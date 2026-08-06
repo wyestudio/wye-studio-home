@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { isAdult, MIN_SIGNUP_AGE } from "@/lib/age";
 
@@ -34,7 +35,24 @@ export async function signupAction(
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const headersList = await headers();
+  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
+  const protocol = headersList.get("x-forwarded-proto") ?? "http";
+  const origin = `${protocol}://${host}`;
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback?redirect=/`,
+      // Confirm-email projects only get the user back after a mail round trip
+      // (sometimes on a different device), so we can't rely on this form
+      // submission's cookies/session still being around then. Stashing the
+      // fields in user_metadata lets /auth/callback finish the profile
+      // without asking the user to type everything again.
+      data: { name, phone, birth_date: birthDate, gender },
+    },
+  });
   if (error) {
     return { error: error.message === "User already registered"
       ? "이미 가입된 이메일입니다."

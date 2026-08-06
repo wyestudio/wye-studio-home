@@ -12,7 +12,6 @@ export type Session = {
   theme_label: string;
   start_at: string;
   end_at: string | null;
-  venue_name: string;
   venue_area: string;
   price_krw: number;
   capacity_min: number;

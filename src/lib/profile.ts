@@ -1,4 +1,6 @@
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { isAdult } from "@/lib/age";
 import type { Profile } from "@/types/domain";
 
 export async function getCurrentUser() {
@@ -23,4 +25,41 @@ export async function getMyProfile(): Promise<Profile | null> {
     .maybeSingle();
 
   return data;
+}
+
+/**
+ * signupAction stores the signup form's name/phone/birth_date/gender in the
+ * auth user's metadata so it survives the "confirm your email" round trip
+ * (which can happen on a different request, even a different device). Call
+ * this right after a user's first authenticated request post-confirmation
+ * (e.g. /auth/callback) to finish creating their profile without asking them
+ * to type everything again. Returns true only if a profile now exists.
+ */
+export async function createProfileFromSignupMetadata(
+  supabase: SupabaseClient,
+  user: User
+): Promise<boolean> {
+  const meta = user.user_metadata as Record<string, unknown>;
+  const name = typeof meta.name === "string" ? meta.name : "";
+  const phone = typeof meta.phone === "string" ? meta.phone : "";
+  const birthDate = typeof meta.birth_date === "string" ? meta.birth_date : "";
+  const gender = typeof meta.gender === "string" ? meta.gender : "";
+
+  if (!name || !phone || !birthDate || (gender !== "M" && gender !== "F")) {
+    return false;
+  }
+  if (!isAdult(birthDate)) {
+    return false;
+  }
+
+  const { error } = await supabase.from("profiles").insert({
+    id: user.id,
+    name,
+    phone,
+    birth_date: birthDate,
+    gender,
+  });
+
+  // 23505 = unique_violation — a profile already exists, which counts as success.
+  return !error || (error as { code?: string }).code === "23505";
 }

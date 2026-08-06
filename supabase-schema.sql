@@ -32,6 +32,9 @@ create policy "profiles_update_own"
   to authenticated
   using (auth.uid() = id);
 
+-- RLS 정책과 별개로 테이블 자체 권한도 필요(Supabase는 새 테이블을 anon/authenticated에 자동 grant하지 않음)
+grant select, insert, update on profiles to authenticated;
+
 
 -- =========================================================
 -- 2. sessions (회차 — 방탈출 테마 목록이 아니라 날짜+타임 단위 상품)
@@ -44,8 +47,7 @@ create table sessions (
   theme_label text not null, -- '비소개팅' / '소개팅'
   start_at timestamptz not null,
   end_at timestamptz,
-  venue_name text not null,
-  venue_area text not null, -- 대략 지역 (정확 주소는 참가확정자에게 개별 안내, 이 테이블엔 안 둠)
+  venue_area text not null, -- 대략 지역 (상호명/정확 주소는 session_venues에 별도 보관)
   price_krw int not null,
   capacity_min int not null default 16, -- 참고 정보용 (최소 진행 인원 안내), 확정 로직엔 미사용
   capacity_confirm_line int not null default 20, -- 이 인원까지는 즉시 확정
@@ -63,6 +65,27 @@ create policy "sessions_select_public"
   using (true);
 
 -- insert/update 정책 없음 -> 지금은 Supabase 대시보드/시드 SQL로 운영자가 직접 등록
+
+grant select on sessions to anon, authenticated;
+
+
+-- =========================================================
+-- 2b. session_venues (상호명 — 의도적으로 비공개)
+--     sessions는 select using (true) + anon grant라 REST API로 직접 조회하면
+--     테이블의 모든 컬럼이 그대로 노출된다. 정확한 장소는 참가 확정자에게만
+--     개별 안내하는 정책이라, 아예 별도 표로 분리하고 select 정책/grant를
+--     하나도 주지 않는다 — anon/authenticated 둘 다 이 표는 존재 자체를
+--     알 수 없고, 운영자는 SQL Editor/Table Editor(테이블 소유자 권한이라
+--     RLS를 우회함)에서만 열람·수정한다.
+-- =========================================================
+create table session_venues (
+  session_id uuid primary key references sessions(id) on delete cascade,
+  venue_name text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table session_venues enable row level security;
+-- select/insert/update 정책 없음 + grant 없음 = 운영자(테이블 소유자) 전용
 
 
 -- =========================================================
@@ -93,6 +116,10 @@ create policy "applications_select_own"
 -- (일반 insert 정책을 열어두면 status/confirmation_code를 클라이언트가 임의로 넣을 수 있어 policy를 만들지 않음)
 
 -- payment_status 변경(입금확인)은 정책 없음 = 운영자가 대시보드에서 수동 처리
+
+-- select만 grant. insert는 위 정책이 없어서 어차피 막혀 있고, 실제 생성은
+-- apply_and_recompute()가 SECURITY DEFINER(테이블 소유자 권한)로 수행하므로 grant 불필요.
+grant select on applications to authenticated;
 
 
 -- =========================================================
@@ -205,21 +232,25 @@ grant execute on function get_session_stats(uuid) to anon, authenticated;
 -- =========================================================
 insert into sessions (
   event_date, slot, title, theme_label,
-  start_at, end_at, venue_name, venue_area,
+  start_at, end_at, venue_area,
   price_krw, capacity_min, capacity_confirm_line, capacity_max,
   status, description
 ) values
 (
   '2026-08-22', 'afternoon', '8/22(토) 오후 · 비소개팅', '비소개팅',
   '2026-08-22T12:30:00+09:00', '2026-08-22T17:00:00+09:00',
-  '뮤트스페이스 신림점', '서울 신림권',
+  '서울 신림권',
   69000, 16, 20, 24,
   'open', '방탈출과 미니게임으로 자연스럽게 친해지는 비소개팅 타임. 1부(아이스브레이킹+식사+방탈출) 진행.'
 ),
 (
   '2026-08-22', 'evening', '8/22(토) 저녁 · 소개팅', '소개팅',
   '2026-08-22T18:30:00+09:00', '2026-08-22T23:45:00+09:00',
-  '뮤트스페이스 신림점', '서울 신림권',
+  '서울 신림권',
   69000, 16, 20, 24,
   'open', '로테이션 소개팅 + 방탈출을 결합한 저녁 타임. 4인 1조로 랜덤 편성되어 방탈출을 함께 플레이합니다.'
 );
+
+-- 상호명은 session_venues에 별도 등록 (event_date로 매칭)
+insert into session_venues (session_id, venue_name)
+select id, '뮤트스페이스 신림점' from sessions where event_date = '2026-08-22';
