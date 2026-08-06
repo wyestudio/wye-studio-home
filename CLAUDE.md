@@ -6,8 +6,8 @@
 
 # 리포지토리 / 배포
 
-- GitHub: **`wyestudio/wye-studio-home`** (조직 계정, private). 반드시 이 저장소를 써야 함 — 실수로 개인 계정(`wye-ting`)에 동명 저장소를 만든 적이 있으니 혼동 주의(정리 필요 시 `github.com/wye-ting/wye-studio-home/settings`에서 직접 삭제).
-- Vercel: 아직 연동 전. `wyestudio/wye-studio-home`을 Import하고 `.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`를 환경변수로 등록하면 됨.
+- GitHub: **`wyestudio/wye-studio-home`** (조직 계정, **public**). 반드시 이 저장소를 써야 함 — 실수로 개인 계정(`wye-ting`)에 동명 저장소를 만든 적이 있으니 혼동 주의(정리 필요 시 `github.com/wye-ting/wye-studio-home/settings`에서 직접 삭제). ⚠️ private였다가 Vercel Hobby(무료) 플랜으로 배포하기 위해 public으로 전환함(private 조직 저장소는 Vercel Pro 플랜이 필요) — 커밋 히스토리에 비밀키 없음을 확인 후 전환. `.env*`는 `.gitignore`로 계속 제외됨.
+- Vercel: **연동 완료**. `wyestudio/wye-studio-home` Import, Vercel Team "WYE"(Hobby), 환경변수 `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` 등록 완료. 배포 URL: `https://wye-studio-home-1ih0pshfp-wye1.vercel.app` (main 브랜치 push마다 자동 재배포됨). 커스텀 도메인은 아직 미연결(도메인 구매 후 진행 예정).
 
 # 스택 및 결정 이유
 
@@ -31,7 +31,7 @@
 - [x] Resend 커스텀 SMTP 연결(Supabase Auth) — 도메인 인증은 아직(TBD, 앞으로 할 일 참고)
 - [x] RLS 실측 점검 — anon은 `profiles`/`session_venues` 접근 자체가 차단됨을 API 호출로 확인
 - [x] `sessions.venue_name`(상호명) 노출 문제 수정 — `session_venues` 비공개 테이블로 분리, 관련 select 정책/grant 없음
-- [ ] Vercel 배포 — 진행 예정
+- [x] Vercel 배포 — `https://wye-studio-home-1ih0pshfp-wye1.vercel.app`, 홈 화면 회차 카드/모집 위젯까지 실제 Supabase 연결 확인됨
 
 # 화면 / 라우팅 구조
 
@@ -66,11 +66,16 @@
 
 # 앞으로 할 일 (순서대로)
 
-1. **Resend 도메인 인증** — 지금은 발신 주소(`onboarding@resend.dev`)가 Resend 계정 가입 이메일로만 수신 테스트가 가능해서, 실제 사용자는 가입 확인 메일을 못 받는 상태. 정식 오픈 전 반드시 처리.
-2. Vercel에서 `wyestudio/wye-studio-home` Import + 환경변수 등록 후 배포
-3. 카카오/네이버 개발자센터 앱 등록·키 발급(사용자 직접) → Supabase Auth Provider 연결 → 소셜 로그인 실제 활성화
-4. 두 번째 실제 테스트 계정으로 `profiles`/`applications` 교차 접근 차단(타인 데이터 조회 불가) 재확인 — 1번(도메인 인증) 끝나면 임의 이메일로 테스트 계정을 여러 개 만들 수 있어서 쉬워짐
-5. 04~12 나머지 베타 화면 순차 추가, 문자 알림 파이프라인, 성비 관리, (나중) PG 결제 연동
+1. 카카오/네이버 개발자센터 앱 등록·키 발급(사용자 직접) → Supabase Auth Provider 연결 → 소셜 로그인 실제 활성화
+2. 04~12 나머지 베타 화면 순차 추가, 문자 알림 파이프라인, 성비 관리, (나중) PG 결제 연동
+
+## 도메인 구매 대기 중 — 아직 도메인이 없어서 보류된 일 (2026-08-06 기준)
+
+사용자가 wye studio용 도메인을 아직 안 샀음(Cloudflare Registrar 또는 가비아 추천, 안내 완료). **도메인을 사고 DNS 설정까지 끝내면 아래 항목들을 다시 진행해야 함 — 사용자가 알려주면 이어서 처리:**
+
+- **Resend 도메인 인증** — 지금은 발신 주소(`onboarding@resend.dev`)가 Resend 계정 가입 이메일로만 수신 테스트 가능해서, 실제 사용자는 가입 확인 메일을 못 받는 상태. 도메인 구매 후 Resend에 등록 → TXT/DKIM/CNAME 레코드를 DNS에 추가 → 인증되면 임의 이메일로 발송 가능해짐. **정식 오픈 전 반드시 처리해야 하는 launch blocker.**
+- 두 번째 실제 테스트 계정으로 `profiles`/`applications` 교차 접근 차단(타인 데이터 조회 불가) 재확인 — Resend 도메인 인증이 끝나야 임의 이메일로 테스트 계정을 여러 개 만들 수 있어서 쉬워짐 (그 전엔 Resend 가입 이메일 1개로만 테스트 가능해 사실상 불가능).
+- Vercel 커스텀 도메인 연결(`wyestudio.com` 등) — 배포 자체는 도메인 없이 `*.vercel.app` 주소로 먼저 완료하고, 도메인이 생기면 Vercel 프로젝트에 Domain 추가 + DNS에 A/CNAME 레코드 설정.
 
 # 설계 변경 이력 (요약)
 
