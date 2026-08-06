@@ -7,7 +7,8 @@
 # 리포지토리 / 배포
 
 - GitHub: **`wyestudio/wye-studio-home`** (조직 계정, **public**). 반드시 이 저장소를 써야 함 — 실수로 개인 계정(`wye-ting`)에 동명 저장소를 만든 적이 있으니 혼동 주의(정리 필요 시 `github.com/wye-ting/wye-studio-home/settings`에서 직접 삭제). ⚠️ private였다가 Vercel Hobby(무료) 플랜으로 배포하기 위해 public으로 전환함(private 조직 저장소는 Vercel Pro 플랜이 필요) — 커밋 히스토리에 비밀키 없음을 확인 후 전환. `.env*`는 `.gitignore`로 계속 제외됨.
-- Vercel: **연동 완료**. `wyestudio/wye-studio-home` Import, Vercel Team "WYE"(Hobby), 환경변수 `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` 등록 완료. 배포 URL: `https://wye-studio-home-1ih0pshfp-wye1.vercel.app` (main 브랜치 push마다 자동 재배포됨). 커스텀 도메인은 아직 미연결(도메인 구매 후 진행 예정).
+- Vercel: **연동 완료**. `wyestudio/wye-studio-home` Import, Vercel Team "WYE"(Hobby), 환경변수 `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` 등록 완료. 배포 URL: `https://wye-studio-home-1ih0pshfp-wye1.vercel.app` (main 브랜치 push마다 자동 재배포됨). **커스텀 도메인 연결 완료**(`wouldyouescape.com`, 아래 "도메인 관련 진행 상황" 참고).
+- 도메인: **`wouldyouescape.com`을 Cloudflare Registrar에서 구매 완료**(2026-08-06). 네임서버도 Cloudflare 사용 중.
 
 # 스택 및 결정 이유
 
@@ -15,7 +16,7 @@
 - **Supabase (Postgres)** — Firebase(NoSQL) 대신 선택. 신청 관련 관계형 데이터를 다뤄야 하고, 향후 결제 연동 시 서버 사이드 검증이 필요하기 때문. 리전은 **Seoul (Northeast Asia)**.
 - Supabase 프로젝트 생성 시 보안 옵션: **Data API ON / Automatically expose new tables OFF / Automatic RLS ON**
 - **인증**: Supabase Auth 이메일/비밀번호가 현재 유일하게 동작하는 방식. 카카오/네이버 OAuth는 버튼과 콜백 라우트(`src/app/auth/callback/route.ts`)만 준비돼 있고, 개발자센터 앱 등록·키 발급 전이라 아직 비활성 상태("준비 중" 안내로 처리, `SocialLoginButtons.tsx`).
-- **이메일 발송(Confirm email)**: Supabase Auth의 "Confirm email"이 켜져 있어 가입 시 이메일 인증이 실제로 필요함. 기본 내장 메일 발송은 시간당 2건 수준으로 매우 제한적이라 **Resend를 커스텀 SMTP로 연결**해둠(발신 주소 `onboarding@resend.dev`). ⚠️ 이 발신 주소는 **도메인 인증 전까지 Resend 계정 가입 이메일로만 수신 테스트 가능**한 제한이 있음 — 정식 오픈 전 반드시 실제 도메인을 Resend에서 인증해야 임의의 사용자가 가입 메일을 받을 수 있음(현재 앞으로 할 일 목록 참고).
+- **이메일 발송(Confirm email)**: Supabase Auth의 "Confirm email"이 켜져 있어 가입 시 이메일 인증이 실제로 필요함. 기본 내장 메일 발송은 시간당 2건 수준으로 매우 제한적이라 **Resend를 커스텀 SMTP로 연결**해둠. `wouldyouescape.com`을 Resend에 등록하고 Cloudflare DNS에 DKIM(TXT `resend._domainkey`)/SPF(MX+TXT `send`)/DMARC(TXT `_dmarc`) 레코드를 추가해 **도메인 인증 완료(Verified, 2026-08-07)**. Supabase Auth SMTP 발신 주소도 `onboarding@resend.dev` → **`no-reply@wouldyouescape.com`**으로 변경 완료 — 이제 임의의 이메일 주소로 가입 확인 메일 수신 가능. Resend 리전은 Tokyo(ap-northeast-1) — Resend가 서울 리전을 아예 제공하지 않아(제공 리전: 버지니아/아일랜드/상파울루/도쿄) 한국에서 가장 가까운 도쿄가 기본 선택된 것. 스팸 판정은 서버 지역이 아니라 SPF/DKIM/DMARC 인증과 발신 IP 평판(Resend는 내부적으로 AWS SES 사용)으로 결정되므로 리전 자체는 무관.
 
 # 지금까지 완료한 것
 
@@ -33,6 +34,10 @@
 - [x] `sessions.venue_name`(상호명) 노출 문제 수정 — `session_venues` 비공개 테이블로 분리, 관련 select 정책/grant 없음
 - [x] Vercel 배포 — `https://wye-studio-home-1ih0pshfp-wye1.vercel.app`, 홈 화면 회차 카드/모집 위젯까지 실제 Supabase 연결 확인됨
 - [x] 카카오 로그인 활성화 — 카카오 개발자센터 앱(`우주이스케이프`, ID 1535854, 비즈 앱) 등록, REST API 키/Client Secret 발급, Redirect URI를 Supabase 콜백(`https://jilghhbbtjyybzbgwdhq.supabase.co/auth/v1/callback`)으로 등록, Supabase Auth Provider에 Kakao 연결, `SocialLoginButtons.tsx`에서 `signInWithOAuth({provider:"kakao"})` 호출. 실제 로그인 화면까지 도달 확인.
+- [x] 도메인 구매 — `wouldyouescape.com`을 Cloudflare Registrar에서 구매 완료(2026-08-06).
+- [x] Resend 도메인 인증 완료 — Cloudflare DNS에 DKIM/SPF(MX+TXT)/DMARC 레코드 4개 추가 후 "Verified" 확인(2026-08-07), Supabase Auth SMTP 발신 주소를 `no-reply@wouldyouescape.com`으로 변경. 이제 임의 이메일로 가입 확인 메일 수신 가능.
+- [x] Vercel 커스텀 도메인 연결 — Vercel 프로젝트에 `wouldyouescape.com`(apex, → `www`로 308 리다이렉트) + `www.wouldyouescape.com`(Production) 추가, Cloudflare DNS에 CNAME(둘 다 `8610a2a84068dc1b.vercel-dns-017.com`, 프록시 끔/"DNS 전용") 등록(2026-08-07). 둘 다 "Valid Configuration" 확인, SSL 인증서 자동 발급.
+- [x] **Supabase Auth URL Configuration 수정** — 도메인 연결 도중 발견: Site URL이 여태 `http://localhost:3000`이었고 Redirect URLs 허용 목록이 완전히 비어 있었음(즉 이메일 인증 링크·카카오 로그인 완료 후 리다이렉트가 실제로는 localhost로 튈 수 있는 상태였음). Site URL을 `https://wouldyouescape.com`으로, Redirect URLs에 `https://wouldyouescape.com/**` / `https://www.wouldyouescape.com/**` / `https://wye-studio-home-*.vercel.app/**` / `http://localhost:3000/**` 4개를 추가함(2026-08-07).
 
 # 화면 / 라우팅 구조
 
@@ -71,13 +76,13 @@
 2. 04~12 나머지 베타 화면 순차 추가, 문자 알림 파이프라인, 성비 관리, (나중) PG 결제 연동
 3. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토 — 아래 "카카오 로그인 관련 결정" 참고
 
-## 도메인 구매 대기 중 — 아직 도메인이 없어서 보류된 일 (2026-08-06 기준)
+## 도메인 연결 작업 기록 (2026-08-07, 전부 완료)
 
-사용자가 wye studio용 도메인을 아직 안 샀음(Cloudflare Registrar 또는 가비아 추천, 안내 완료). **도메인을 사고 DNS 설정까지 끝내면 아래 항목들을 다시 진행해야 함 — 사용자가 알려주면 이어서 처리:**
+`wouldyouescape.com`을 Cloudflare Registrar에서 구매 완료(네임서버도 Cloudflare). 아래 3가지 모두 완료됨:
 
-- **Resend 도메인 인증** — 지금은 발신 주소(`onboarding@resend.dev`)가 Resend 계정 가입 이메일로만 수신 테스트 가능해서, 실제 사용자는 가입 확인 메일을 못 받는 상태. 도메인 구매 후 Resend에 등록 → TXT/DKIM/CNAME 레코드를 DNS에 추가 → 인증되면 임의 이메일로 발송 가능해짐. **정식 오픈 전 반드시 처리해야 하는 launch blocker.**
-- 두 번째 실제 테스트 계정으로 `profiles`/`applications` 교차 접근 차단(타인 데이터 조회 불가) 재확인 — Resend 도메인 인증이 끝나야 임의 이메일로 테스트 계정을 여러 개 만들 수 있어서 쉬워짐 (그 전엔 Resend 가입 이메일 1개로만 테스트 가능해 사실상 불가능).
-- Vercel 커스텀 도메인 연결(`wyestudio.com` 등) — 배포 자체는 도메인 없이 `*.vercel.app` 주소로 먼저 완료하고, 도메인이 생기면 Vercel 프로젝트에 Domain 추가 + DNS에 A/CNAME 레코드 설정.
+- [x] **Resend 도메인 인증 완료** — Cloudflare DNS에 TXT `resend._domainkey`(DKIM), MX `send`(우선순위 10) + TXT `send`(SPF), TXT `_dmarc`(DMARC) 4개 레코드 추가 → Resend Dashboard(`resend.com/domains`)에서 상태 "Verified" 확인(2026-08-07). Supabase Auth SMTP 발신 주소를 `no-reply@wouldyouescape.com`으로 변경 완료.
+- [x] **Vercel 커스텀 도메인 연결 완료** — Vercel Domains에 `wouldyouescape.com`(apex)과 `www.wouldyouescape.com` 추가. apex는 www로 308 리다이렉트, www가 Production에 연결됨. Cloudflare DNS에 CNAME `@`/`www` → `8610a2a84068dc1b.vercel-dns-017.com`(프록시 끔, Vercel 권장사항) 등록 → 둘 다 "Valid Configuration". **이제 `https://wouldyouescape.com`으로 실제 접속 가능.**
+- [x] **교차 계정 RLS 재검증 완료** — Supabase Auth Users에서 관리자 권한으로 테스트 계정 2개(`rls-test-a`/`rls-test-b@wouldyouescape.com`, 이메일 인증 없이 auto-confirm) 생성 → 각각 실제 프로덕션 사이트(`wouldyouescape.com`)에서 로그인해 프로필 입력 + 참가 신청까지 완료 → User B 세션의 access token으로 Supabase REST API를 직접 호출(`GET /rest/v1/profiles`, `/applications`, User A의 UUID를 알고 직접 지정해서 조회하는 경우까지 포함)해서 결과가 전부 빈 배열 또는 본인 행만 반환되는 것을 확인(2026-08-07). RLS(`auth.uid() = id` / `auth.uid() = user_id`)가 UI뿐 아니라 API 레벨에서도 타인 데이터 접근을 완전히 차단함을 검증. 테스트 후 두 계정과 연쇄 삭제된 프로필/신청 데이터는 정리 완료(운영 모집 현황 수치에 영향 없음 확인).
 
 # 설계 변경 이력 (요약)
 
