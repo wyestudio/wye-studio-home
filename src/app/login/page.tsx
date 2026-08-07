@@ -9,6 +9,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   const params = await searchParams;
   const redirectTo = typeof params.redirect === "string" ? params.redirect : "/";
+  const hasNaverError = params.error === "naver_login_failed";
 
   return (
     <div className="mx-auto max-w-md px-5 py-12">
@@ -16,6 +17,11 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <p className="mb-8 text-sm text-muted">
         참가 신청을 하려면 먼저 로그인해주세요.
       </p>
+      {hasNaverError ? (
+        <p className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
+          네이버 로그인에 실패했습니다. 다시 시도해주세요.
+        </p>
+      ) : null}
       <LoginForm redirectTo={redirectTo} />
       <p className="mt-6 text-center text-sm text-muted">
         아직 계정이 없으신가요?{" "}

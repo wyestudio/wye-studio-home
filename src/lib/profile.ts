@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isAdult } from "@/lib/age";
@@ -62,4 +63,32 @@ export async function createProfileFromSignupMetadata(
 
   // 23505 = unique_violation — a profile already exists, which counts as success.
   return !error || (error as { code?: string }).code === "23505";
+}
+
+/**
+ * Shared by every OAuth/email callback route once a Supabase session exists:
+ * finish creating the profile from signup metadata if possible, otherwise
+ * send the user to fill it in manually.
+ */
+export async function finishOAuthLogin(
+  supabase: SupabaseClient,
+  user: User,
+  redirectTo: string,
+  origin: string
+): Promise<NextResponse> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!profile) {
+    const completed = await createProfileFromSignupMetadata(supabase, user);
+    if (!completed) {
+      const params = new URLSearchParams({ redirect: redirectTo });
+      return NextResponse.redirect(`${origin}/signup/profile?${params.toString()}`);
+    }
+  }
+
+  return NextResponse.redirect(`${origin}${redirectTo}`);
 }

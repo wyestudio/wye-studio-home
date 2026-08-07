@@ -72,9 +72,13 @@
 
 # 앞으로 할 일 (순서대로)
 
-1. 네이버 로그인 — Supabase 기본 미지원(Custom OIDC 필요), 실제 시도 시 추가 작업 필요할 수 있음. 아직 미착수.
-2. 04~12 나머지 베타 화면 순차 추가, 문자 알림 파이프라인, 성비 관리, (나중) PG 결제 연동
-3. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토 — 아래 "카카오 로그인 관련 결정" 참고
+1. **이메일 발송 문구 커스텀화** — Supabase Auth > Emails > Templates에서 가입 확인/비밀번호 재설정 등 이메일 제목·본문을 wye studio 브랜드 톤의 한국어 문구로 교체. 현재 Supabase 기본 템플릿(영문)일 가능성이 높음 — 실제 내용 확인부터 필요.
+2. **구글 검색 노출(SEO)** — "우주이스케이프"/"wouldyouescape" 검색 시 노출되도록 `robots.txt`/`sitemap.xml` 추가, `layout.tsx`의 `metadata`에 Open Graph/키워드 보강, Google Search Console에 도메인 등록 + 사이트맵 제출(필요 시 네이버 서치어드바이저도). 현재 아무 설정도 없는 상태.
+3. **카카오 공유 시 메시지 포맷** — 카카오톡 공유(Kakao Link) 시 노출되는 제목/설명/썸네일 이미지 포맷 설정. Open Graph 메타태그(`og:title`/`og:description`/`og:image`) 최소 설정부터, 필요하면 카카오 SDK 공유 버튼까지 검토. 현재 관련 코드 전혀 없음.
+4. **참가 신청 시 Slack 알림** — 신청 발생 시 운영자가 바로 알 수 있도록 Slack 채널로 알림 전송. `src/app/sessions/[id]/apply/actions.ts`에서 `apply_and_recompute()` 호출 성공 후 Slack Incoming Webhook을 호출하는 방식이 가장 간단(또는 Supabase Database Webhook으로 `applications` insert 이벤트 감지). 아직 미착수, Slack 워크스페이스/웹훅 URL 준비 필요.
+5. 네이버 로그인 — Supabase 기본 미지원(Custom OIDC 필요), 실제 시도 시 추가 작업 필요할 수 있음. 아직 미착수.
+6. 04~12 나머지 베타 화면 순차 추가, 문자 알림 파이프라인, 성비 관리, (나중) PG 결제 연동
+7. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토 — 아래 "카카오 로그인 관련 결정" 참고
 
 ## 도메인 연결 작업 기록 (2026-08-07, 전부 완료)
 
