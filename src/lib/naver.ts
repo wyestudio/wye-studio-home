@@ -1,6 +1,39 @@
+import { NextResponse } from "next/server";
+
 const NAVER_AUTHORIZE_URL = "https://nid.naver.com/oauth2.0/authorize";
 const NAVER_TOKEN_URL = "https://nid.naver.com/oauth2.0/token";
 const NAVER_USERINFO_URL = "https://openapi.naver.com/v1/nid/me";
+
+export const NAVER_STATE_COOKIE = "naver_oauth_state";
+
+export type NaverAuthState = {
+  state: string;
+  redirect: string;
+  mode: "login" | "link";
+};
+
+// Shared by /auth/naver/login (new session) and /auth/naver/link (attach to
+// the currently logged-in user) — same OAuth handshake, the callback route
+// branches on `mode` to decide what to do with the result.
+export function startNaverAuth(
+  mode: NaverAuthState["mode"],
+  redirectTo: string,
+  origin: string
+): NextResponse {
+  const state = crypto.randomUUID();
+  const redirectUri = `${origin}/auth/naver/callback`;
+
+  const response = NextResponse.redirect(getNaverAuthorizeUrl(state, redirectUri));
+  const cookieValue: NaverAuthState = { state, redirect: redirectTo, mode };
+  response.cookies.set(NAVER_STATE_COOKIE, JSON.stringify(cookieValue), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 300,
+    path: "/",
+  });
+  return response;
+}
 
 export function getNaverAuthorizeUrl(state: string, redirectUri: string): string {
   const params = new URLSearchParams({

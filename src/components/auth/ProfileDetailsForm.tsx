@@ -34,6 +34,8 @@ export function ProfileDetailsForm({ redirectTo }: { redirectTo: string }) {
         </div>
       </fieldset>
 
+      <p className="text-xs text-muted">wye studio는 만 19세 이상만 이용할 수 있습니다.</p>
+
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
 
       <Button type="submit" disabled={pending} className="mt-2 w-full">

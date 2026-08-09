@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { finishOAuthLogin } from "@/lib/profile";
 
-// Handles both the email "confirm your address" link (signup) and the Kakao
-// OAuth redirect (Supabase's native connector) — both hand us a `code` to
-// exchange for a session. Naver uses its own /auth/naver/callback instead,
-// since it's a fully custom OAuth flow, not one Supabase manages.
+// Handles the email "confirm your address" link (signup) — exchanges the
+// `code` it hands us for a session. Kakao and Naver both use their own
+// custom /auth/{provider}/callback instead (see src/lib/kakao.ts,
+// src/lib/naver.ts) since neither goes through Supabase's OAuth system.
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
