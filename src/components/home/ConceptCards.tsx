@@ -7,7 +7,7 @@ const CARDS = [
 export function ConceptCards() {
   return (
     <section className="mx-auto max-w-3xl px-5 py-12">
-      <h2 className="mb-6 text-center text-xl font-extrabold">wye studio가 다른 이유</h2>
+      <h2 className="mb-6 text-center text-xl font-extrabold">우주이스케이프가 다른 이유</h2>
       <div className="grid gap-4 sm:grid-cols-3">
         {CARDS.map((card) => (
           <div key={card.title} className="rounded-xl border border-border bg-surface p-5 text-center">

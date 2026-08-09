@@ -90,7 +90,7 @@ export function ApplyComplete({
         <p className="mb-1 font-bold">무통장입금 안내 (간이)</p>
         <p>은행: 준비 중</p>
         <p>계좌번호: 준비 중</p>
-        <p>예금주: wye studio</p>
+        <p>예금주: 우주이스케이프</p>
         <p>입금액: {formatKrw(priceKrw)}</p>
         <p>입금자명: {application.depositor_name}</p>
         <p className="mt-2 text-xs text-muted">

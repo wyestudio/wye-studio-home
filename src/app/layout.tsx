@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "wye studio — 방탈출로 시작하는 자연스러운 만남",
-  description: "방탈출과 로테이션 소개팅을 결합한 wye studio 베타 오픈. 8/22 오후·저녁 회차 참가 신청.",
+  title: "우주이스케이프",
+  description: "방탈출과 로테이션 소개팅을 결합한 우주이스케이프 베타 오픈. 8/22 오후·저녁 회차 참가 신청.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

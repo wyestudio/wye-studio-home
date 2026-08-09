@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAdult, MIN_SIGNUP_AGE } from "@/lib/age";
 import { isDuplicatePhoneError, resolveDuplicatePhoneConflict } from "@/lib/profile";
 import { PENDING_LINK_COOKIE, pendingLinkCookieOptions } from "@/lib/oauthLink";
 
@@ -27,9 +26,6 @@ export async function completeProfileAction(
   }
   if (gender !== "M" && gender !== "F") {
     return { error: "성별을 선택해주세요." };
-  }
-  if (!isAdult(birthDate)) {
-    return { error: `wye studio는 만 ${MIN_SIGNUP_AGE}세 이상만 이용할 수 있습니다.` };
   }
 
   const supabase = await createClient();
