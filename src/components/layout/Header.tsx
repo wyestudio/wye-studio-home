@@ -1,13 +1,9 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { logoutAction } from "@/app/logout/actions";
 
-export async function Header() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+// 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인/계정 네비게이션은
+// 제거함. 로그인 시스템 자체는 삭제하지 않고 보존 — 자세한 배경은 CLAUDE.md
+// "설계 변경 이력" 참고.
+export function Header() {
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
@@ -18,25 +14,9 @@ export async function Header() {
           <Link href="/#sessions" className="hover:text-foreground">
             상품 소개
           </Link>
-          {user ? (
-            <form action={logoutAction}>
-              <button type="submit" className="hover:text-foreground">
-                로그아웃
-              </button>
-            </form>
-          ) : (
-            <>
-              <Link href="/login" className="hover:text-foreground">
-                로그인
-              </Link>
-              <Link
-                href="/signup"
-                className="rounded-lg bg-brand px-4 py-2 font-semibold text-brand-foreground hover:opacity-90"
-              >
-                회원가입
-              </Link>
-            </>
-          )}
+          <Link href="/lookup" className="hover:text-foreground">
+            참여내역 조회
+          </Link>
         </nav>
       </div>
     </header>

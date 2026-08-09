@@ -4,18 +4,15 @@ import { formatKrw, formatSessionDate, formatSessionDateTime } from "@/lib/forma
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { CapacityPolicyTable } from "@/components/session/CapacityPolicyTable";
-import { getCurrentUser } from "@/lib/profile";
+import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 
 export default async function SessionDetailPage({ params }: PageProps<"/sessions/[id]">) {
   const { id } = await params;
   const session = await getSessionById(id);
   if (!session) notFound();
 
-  const [stats, user] = await Promise.all([getSessionStats(id), getCurrentUser()]);
-
-  const ctaHref = user
-    ? `/sessions/${id}/apply`
-    : `/login?redirect=${encodeURIComponent(`/sessions/${id}/apply`)}`;
+  const stats = await getSessionStats(id);
+  const ctaHref = `/sessions/${id}/apply`;
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-10 pb-28">
@@ -53,7 +50,10 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         </div>
         <div>
           <p className="mb-1 font-semibold text-muted">신청 자격</p>
-          <p className="text-xs text-muted">만 19세 이상 (가입 시 확인). 그 외 세부 자격 조건은 확정 후 안내 예정입니다.</p>
+          <p className="text-xs text-muted">
+            비슷한 또래끼리 더 즐겁게 즐기실 수 있도록 {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만
+            참여하실 수 있어요. 그 외 세부 자격 조건은 확정 후 안내 예정입니다.
+          </p>
         </div>
       </section>
 

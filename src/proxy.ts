@@ -2,7 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED_PATTERN = /^\/sessions\/[^/]+\/apply/;
+// 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인 시스템은 더 이상
+// 활성 플로우에서 쓰이지 않음. 삭제하지 않고 보존 — 결제 연동 등으로 계정이 다시
+// 필요해지면 참고. 자세한 배경은 CLAUDE.md "설계 변경 이력" 참고.
+// sessions/*/apply는 이제 로그인 없이 누구나 접근 가능해야 해서 가드에서 제외했다.
+const PROTECTED_PATTERN = /^\/(account|auth\/(naver|kakao)\/link)/;
 
 export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
