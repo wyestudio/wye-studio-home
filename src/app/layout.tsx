@@ -45,6 +45,11 @@ export const metadata: Metadata = {
     title: "우주이스케이프",
     description: SITE_DESCRIPTION,
   },
+  verification: {
+    other: {
+      "naver-site-verification": "66e18faedf271c624d7ed1edfca8b421c6b02dbf",
+    },
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
