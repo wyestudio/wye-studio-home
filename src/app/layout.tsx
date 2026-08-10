@@ -50,6 +50,12 @@ export const metadata: Metadata = {
       "naver-site-verification": "66e18faedf271c624d7ed1edfca8b421c6b02dbf",
     },
   },
+  icons: {
+    icon: [
+      { url: "/icon-light.png", type: "image/png" },
+      { url: "/icon-dark.png", type: "image/png", media: "(prefers-color-scheme: dark)" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -27,7 +27,7 @@ export function Header() {
               priority
               className="logo-dark h-7 w-auto"
             />
-            <span className="text-base font-extrabold tracking-tight text-brand">
+            <span className="text-base font-extrabold tracking-tight text-foreground">
               우주이스케이프
             </span>
           </Link>
