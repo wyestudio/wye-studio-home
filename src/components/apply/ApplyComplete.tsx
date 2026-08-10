@@ -95,7 +95,8 @@ export function ApplyComplete({
               <li key={i}>
                 {attendee.name}
                 {attendee.nickname ? ` (${attendee.nickname})` : ""} · {attendee.phone}
-                {i === 0 ? " · 대표 신청자" : ""}
+                {attendee.gender ? ` · ${attendee.gender === "M" ? "남성" : "여성"}` : ""}
+                {isGroup && i === 0 ? " · 대표 신청자" : ""}
               </li>
             ))}
           </ul>

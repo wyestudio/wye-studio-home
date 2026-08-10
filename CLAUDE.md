@@ -48,14 +48,20 @@
   - **무통장입금 계좌 확정** — 카카오뱅크 3333052843942, 예금주는 개인 명의라 보안상 "김*온"으로 마스킹 표시(`src/lib/bankAccount.ts`). 신청 완료 화면(`ApplyComplete.tsx`)의 "준비 중" 플레이스홀더를 실제 값으로 교체.
   - **신청 완료 화면(`ApplyComplete.tsx`) 보강** — 참여자 명단에 전화번호 추가, 그룹/단독에 따라 "대표 신청자"/"신청자" 문구로 문자 발송 보조 안내 추가, 환불 기한(행사 전날, `formatRefundDeadline()`)을 명확한 문구로 표시. SMS가 아직 연동 전이라 계좌 정보는 화면에서 제거하지 않고 그대로 유지(화면이 유일한 신뢰 가능 정보원).
   - 문자 알림 3단계(신청확인→입금확인→참가확정) 중 **1단계만 구현** — 2·3단계는 각각 Database Webhook/Cron이 필요한 별도 작업으로 남음("향후 추가 예정" 참고).
+- [x] **네비게이션 4개 메뉴 재편 + 소개팅 성비 분리 신청 로직** (2026-08-10) — 헤더 네비를 About/Contents/Check(=`/lookup`, 라벨만 영문화)/Notice 4개로 재편(`/about`·`/contents`·`/notice` 신규 페이지 추가, `sitemap.ts`에 3개 반영). 처음엔 홈에서 `ConceptCards`/`ProcessSteps`/`FaqPreview`를 각 신규 페이지로 옮기며 중복을 없앴으나, 사용자가 "홈 형태는 원래대로 유지"를 요청해 **홈에도 그대로 남겨두고 About/Contents/Notice에도 같은 컴포넌트를 재사용하는 의도된 중복 구조**로 최종 조정함(`ConceptCards`→`src/components/about/`, `ProcessSteps`→`src/components/contents/`, FAQ 콘텐츠→`src/components/notice/FaqSection.tsx`로 파일 위치만 옮기고 홈/About/Contents/Notice 각각에서 import해서 씀). "홈" 메뉴 항목은 로고 클릭이 이미 홈으로 가서 넣지 않음. 소개팅 회차는 성비를 맞춰야 해서 그룹 신청을 막고 1인+성별 필수 신청으로 전환, 남/여 각각 정원 10명씩 독립 판정하도록 `submit_application()`/`get_session_stats()`를 `supabase-schema.sql` v9로 재작성(`sessions.capacity_confirm_line_male/female`, `application_attendees.gender` 컬럼 추가). 정원이 다 안 찼을 때 성비를 깨서 채우는 결정은 자동화하지 않고 운영자 수동 처리로 남겨둠(위 "데이터 모델" 참고). 비소개팅 회차는 기존 그룹 신청 로직 100% 유지.
 
 # 화면 / 라우팅 구조
 
+헤더 네비게이션은 **About / Contents / Check / Notice** 4개 메뉴로 구성(2026-08-10 재편, 로고 클릭이 이미 홈으로 가서 "홈" 메뉴는 따로 안 둠):
+
 ```
-/                          홈 — 오후/저녁 회차 카드, get_session_stats 위젯
-/sessions/[id]             상품 소개 상세 (누구나 조회 가능)
-/sessions/[id]/apply       참가 신청 폼 (로그인 불필요. 인원 선택 → 대표자+동행자 각각 이름/전화/출생년도/닉네임 입력)
-/lookup                    참여내역 조회 — 전화번호 + 접수번호로 신청 내역 확인 (신규, 로그인 불필요)
+/                          홈 — Hero(회차 카드) + ConceptCards + ProcessSteps + FaqSection, 기존 형태 그대로 유지(사용자 요청)
+/about                     About — 브랜드/회사 소개(ConceptCards, 회사 소개 문구는 아직 "준비 중") — 홈에도 동일 컴포넌트가 중복 노출됨(의도됨)
+/contents                  Contents — 진행 방식(ProcessSteps) + 회차 카드 그리드(회차 상품 목록 허브) — 홈에도 동일 컴포넌트가 중복 노출됨(의도됨)
+/sessions/[id]             상품 소개 상세 (누구나 조회 가능, URL은 그대로 — SEO 색인 유지 목적으로 안 바꿈)
+/sessions/[id]/apply       참가 신청 폼 (로그인 불필요. 비소개팅은 인원 선택+그룹 신청, 소개팅은 1인+성별 선택만)
+/lookup                    Check(참여내역 조회) — 전화번호 + 접수번호로 신청 내역 확인. 네비 라벨만 영문화, URL은 유지
+/notice                    Notice — 공지사항(NoticeSection, 아직 빈 배열) + FAQ(FaqSection) 한 페이지에 통합 — 홈에도 FaqSection이 동일하게 중복 노출됨(의도됨)
 
 --- 아래는 휴면 처리됨(2026-08-09) — 코드는 남아있지만 어디서도 링크하지 않음 ---
 /signup, /signup/check-email, /signup/profile
@@ -64,22 +70,24 @@
 /auth/**                   (callback, kakao/*, naver/*, oauth/*)
 ```
 
-# 데이터 모델 (`supabase-schema.sql` 참고, v8)
+# 데이터 모델 (`supabase-schema.sql` 참고, v9)
 
-- **sessions** — 회차(방탈출 테마 목록이 아님). `theme_label`(예: '비소개팅'/'소개팅')이 같은 테마 재참여 방지 기준으로도 쓰임. `capacity_min`(16, 참고용) / `capacity_confirm_line`(20) / `capacity_max`(24, 이제 "참여 인원 합계" 기준). 조회는 전체 공개, 등록/수정 정책 없음 → 시드 SQL/대시보드로 운영자가 직접 입력.
+- **sessions** — 회차(방탈출 테마 목록이 아님). `theme_label`(예: '비소개팅'/'소개팅')이 같은 테마 재참여 방지 기준으로도 쓰임. `capacity_min`(16, 참고용) / `capacity_confirm_line`(20, 비소개팅 전용) / `capacity_max`(24, 성별 무관 총원 상한, 소개팅도 공통 적용) / `capacity_confirm_line_male`·`capacity_confirm_line_female`(v9 신규, 소개팅만 값 있음 — 둘 다 10, 비소개팅 행은 NULL). 조회는 전체 공개, 등록/수정 정책 없음 → 시드 SQL/대시보드로 운영자가 직접 입력.
 - **session_venues** — 상호명(`venue_name`) 전용 비공개 테이블. select/insert/update 정책·grant 전혀 없어 `anon`/`authenticated` 둘 다 API로 존재 자체를 알 수 없음. 운영자는 SQL Editor/Table Editor(테이블 소유자 권한이라 RLS 우회)에서만 조회.
-- **applications** — 신청 "건"(그룹 단위, 로그인 계정과 무관). `depositor_name_enc`(v8, 암호화됨)/`agreed_terms`/`confirmation_code`/`status`/`payment_status`. 직접 select/insert 정책·grant가 전혀 없음(session_venues와 동일 패턴) — 생성은 `submit_application()`, 조회는 `lookup_application()`을 통해서만.
-- **application_attendees** (v7 신규) — 그룹 신청의 참여자 개개인(대표 신청자 포함 전원 한 행씩). `name_enc`/`phone_enc`(v8, 암호화됨)/`phone_hash`(v8, 매칭 전용 HMAC)/`birth_year`(1990~1999 체크 제약)/`nickname`(선택, 평문 — 다른 참여자에게 보여주는 용도라 암호화 대상 아님)/`is_representative`. `unique(session_id, nickname)`로 같은 회차 내 닉네임 중복만 방지(다른 회차는 재사용 가능, Postgres unique는 NULL을 서로 다른 값으로 취급해서 닉네임 미입력자는 제약에 안 걸림). select/insert 정책 없음 — 완전히 잠김.
+- **applications** — 신청 "건"(그룹 단위, 로그인 계정과 무관. 소개팅은 그룹이 항상 1명). `depositor_name_enc`(v8, 암호화됨)/`agreed_terms`/`confirmation_code`/`status`/`payment_status`. 직접 select/insert 정책·grant가 전혀 없음(session_venues와 동일 패턴) — 생성은 `submit_application()`, 조회는 `lookup_application()`을 통해서만.
+- **application_attendees** (v7 신규) — 그룹 신청의 참여자 개개인(대표 신청자 포함 전원 한 행씩). `name_enc`/`phone_enc`(v8, 암호화됨)/`phone_hash`(v8, 매칭 전용 HMAC)/`birth_year`(1990~1999 체크 제약)/`nickname`(선택, 평문 — 다른 참여자에게 보여주는 용도라 암호화 대상 아님)/`is_representative`/`gender`(v9 신규, `'M'|'F'` 체크 제약, 소개팅 참여자만 값 있고 비소개팅은 NULL). `unique(session_id, nickname)`로 같은 회차 내 닉네임 중복만 방지(다른 회차는 재사용 가능, Postgres unique는 NULL을 서로 다른 값으로 취급해서 닉네임 미입력자는 제약에 안 걸림). select/insert 정책 없음 — 완전히 잠김.
+- **소개팅 성비 분리 신청 로직** (v9, 2026-08-10) — 소개팅은 성비를 맞춰야 해서 그룹 신청(여러 인원 동시 신청)을 금지하고 1인 신청만 받으며, 신청 시 성별이 필수다. 확정/대기 판정도 세션 전체 합계가 아니라 **해당 성별의 확정+대기 인원**과 `capacity_confirm_line_male`/`_female`(각 10)을 비교해서 정한다 — 남/여 독립적으로 10명까지 즉시확정, 이후는 대기. 전체 총원(`capacity_max`=24) 도달 시 마감(`sessions.status='closed'`)되는 건 비소개팅과 동일하지만, **소개팅은 대기자 자동 승격을 하지 않는다** — 자동으로 승격시키면 성비가 깨질 수 있는 결정이라 시스템이 임의로 하면 안 된다고 판단해서, 운영자가 상황을 보고 수동으로 판단해 처리하도록 남겨둠(아래 `admin_attendee_view` 항목 참고). 비소개팅은 기존 로직(신청 건수가 아니라 참여 인원 합계 기준, `capacity_confirm_line`=20/`capacity_max`=24) 그대로 유지.
 - **PII 암호화** (v8, 2026-08-09) — 전화번호로 중복/조회를 체크하는 구조라 보안에 더 신경써야 한다는 판단으로, `application_attendees.name/phone`과 `applications.depositor_name`을 평문으로 저장하지 않음. Supabase 디스크 암호화는 관리형으로 이미 자동 적용되지만 그건 "테이블을 직접 읽을 수 있는 사람"(SQL Editor, `service_role` 키 보유자)에게는 방어가 안 됐던 마지막 구멍이었음.
   - 키는 **Supabase Vault**(`vault.create_secret`, pgsodium 기반 — 이 프로젝트에 이미 활성화돼 있었음)에 `app_pii_key`라는 이름으로 저장. `get_pii_key()`(SECURITY DEFINER, `anon`/`authenticated`엔 grant 없음)로만 꺼낼 수 있음.
   - `encrypt_pii(text) returns bytea` / `decrypt_pii(bytea) returns text` — `pgp_sym_encrypt`/`pgp_sym_decrypt` 래퍼. `name_enc`/`phone_enc`/`depositor_name_enc`에 사용.
   - `hash_phone(text) returns text` — HMAC-SHA256 해시(복호화 불가능). 전화번호는 "같은 번호인지" 매칭(동일 테마 재참여 체크, `/lookup` 조회)만 하면 되고 원문을 되돌릴 필요가 없어서, 매칭용 `phone_hash`는 애초에 복호화가 안 되는 해시로 — 복호화 가능한 암호화보다 이쪽이 더 안전함.
   - `admin_attendee_view` / `admin_application_view` — 운영자가 SQL Editor에서 실제 참여자 이름/연락처/입금자명을 확인해야 할 때 쓰는 복호화된 뷰(둘 다 grant 없음, 테이블 소유자 권한으로만 조회 가능. 행사 운영 중 참여자한테 연락해야 하면 `select name, phone from admin_attendee_view where session_id = '...';`처럼 조회).
+  - **소개팅 정원 초과 시 수동 확정** — 위 "소개팅 성비 분리 신청 로직" 항목 참고. 행사가 임박했는데 남/여 중 한쪽이 10명을 못 채워 총원 20명에 못 미치면, 성비가 좀 깨지더라도 반대 성별 대기자를 확정시켜 채울지는 운영자가 판단할 일 — `admin_attendee_view`로 대기자를 확인한 뒤 `update applications set status = 'confirmed' where id = '...';`처럼 SQL Editor에서 직접 처리한다(자동 로직 없음, 의도적).
   - **실제 겪은 버그**: `submit_application()`의 반환 타입을 `returns table (id uuid, session_id uuid, status text, ...)`로 바꿨더니, PL/pgSQL이 TABLE의 컬럼명을 함수 본문 안에 자동으로 변수처럼 주입해버려서 본문에서 쓰던 `where id = ...`/`where status = ...`같은 원래 테이블 컬럼 참조가 전부 "column reference is ambiguous" 런타임 에러로 깨짐(생성 시점엔 에러 없이 통과됨 — 호출해야 발견됨). `returns table(...)` 대신 별도 `create type application_result as (...)` composite 타입을 만들어 `returns public.application_result`로 바꿔서 해결 — composite 타입은 이 자동 변수 주입이 없음.
-- **submit_application()** (v7 `apply_and_recompute()` 대체, v8에서 암호화 반영) — SECURITY DEFINER, `anon`+`authenticated` 실행 가능. 참여자 배열(jsonb)을 받아 ①약관 동의 ②출생년도 범위 ③동일 테마 재참여(전화번호 해시 기준, 대표자/동행자 모두 검사) ④정원 초과 여부를 순서대로 검증 후 `applications`+`application_attendees`를 한 트랜잭션에 암호화해서 삽입. **그룹 전체가 들어갈 자리가 없으면 신청 자체를 거부**(부분 확정 없음) — 이 덕분에 총 인원이 `capacity_max`를 절대 못 넘어서 "정원 도달 시 대기자 전원 확정" 로직이 그대로 성립. 반환값의 `depositor_name`은 DB에서 다시 복호화하는 게 아니라 방금 입력받은 평문 파라미터를 그대로 돌려줌(어차피 본인이 방금 친 값).
-- **확정 로직(베타 단순화, 그룹 인원 합계 기준)**: 세션 누적 인원이 20명 이하면 그 신청 건은 즉시 confirmed, 넘으면 waiting. 24명(정원) 도달 시 그 회차의 waiting 전원 confirmed 전환 + `sessions.status`를 closed로 변경. `sessions` row를 `for update`로 잠그고 원자적으로 처리.
-- **get_session_stats(session_id)** (v7 재작성) — "신청 건수"가 아니라 "참여 인원 합계" 기준으로 confirmed/waiting 카운트. 비로그인 방문자도 볼 수 있는 공개 집계.
-- **lookup_application(phone_digits, confirmation_code)** (v7 신규, v8에서 해시 매칭+복호화 반영) — 로그인 없이 참여내역을 조회하려면 전화번호만으로는 프라이버시 문제가 있어(번호를 아는 아무나 조회 가능) 접수번호까지 같이 요구. 어느 값이 틀렸는지는 응답에서 구분 안 함(열거 공격 방지). 접수번호는 처음엔 `WYE-0822-A-001`처럼 날짜/타임슬롯을 담은 형식이었으나, 사용자가 직접 입력하기 번거롭다는 피드백으로 **6자리 숫자**(100000~999999, 중복 시 재생성)로 변경함.
+- **submit_application()** (v7 `apply_and_recompute()` 대체, v8에서 암호화 반영, v9에서 소개팅 분기 반영) — SECURITY DEFINER, `anon`+`authenticated` 실행 가능. 참여자 배열(jsonb)을 받아 ①약관 동의 ②(소개팅만) 그룹 크기 1 강제 + 성별 필수 ③출생년도 범위 ④동일 테마 재참여(전화번호 해시 기준, 대표자/동행자 모두 검사) ⑤정원 초과 여부를 순서대로 검증 후 `applications`+`application_attendees`를 한 트랜잭션에 암호화해서 삽입. **그룹 전체가 들어갈 자리가 없으면 신청 자체를 거부**(부분 확정 없음) — 이 덕분에 총 인원이 `capacity_max`를 절대 못 넘어서 "정원 도달 시 대기자 전원 확정" 로직이 그대로 성립(단, 소개팅은 이 자동 승격 자체를 안 함, 아래 참고). 반환값의 `depositor_name`은 DB에서 다시 복호화하는 게 아니라 방금 입력받은 평문 파라미터를 그대로 돌려줌(어차피 본인이 방금 친 값).
+- **확정 로직(베타 단순화)**: 비소개팅은 세션 누적 인원(참여 인원 합계)이 20명 이하면 즉시 confirmed, 넘으면 waiting, 24명(정원) 도달 시 그 회차의 waiting 전원 confirmed 전환 + `sessions.status`를 closed로 변경. 소개팅은 v9부터 **성별별로 독립 판정** — 신청한 성별의 확정+대기 인원이 10명 이하면 즉시 confirmed, 넘으면 waiting. 전체 24명 도달 시 마감은 동일하지만 대기자 자동 승격은 하지 않음(성비 유지를 위해 의도적으로 뺌, 위 "소개팅 성비 분리 신청 로직" 참고). `sessions` row를 `for update`로 잠그고 원자적으로 처리.
+- **get_session_stats(session_id)** (v7 재작성, v9에서 성별 카운트 추가) — "신청 건수"가 아니라 "참여 인원 합계" 기준으로 confirmed/waiting 카운트 + `male_confirmed_count`/`male_waiting_count`/`female_confirmed_count`/`female_waiting_count`(비소개팅은 전부 0). 비로그인 방문자도 볼 수 있는 공개 집계.
+- **lookup_application(phone_digits, confirmation_code)** (v7 신규, v8에서 해시 매칭+복호화 반영, v9-4에서 화면 보강용 필드 추가) — 로그인 없이 참여내역을 조회하려면 전화번호만으로는 프라이버시 문제가 있어(번호를 아는 아무나 조회 가능) 접수번호까지 같이 요구. 어느 값이 틀렸는지는 응답에서 구분 안 함(열거 공격 방지). 접수번호는 처음엔 `WYE-0822-A-001`처럼 날짜/타임슬롯을 담은 형식이었으나, 사용자가 직접 입력하기 번거롭다는 피드백으로 **6자리 숫자**(100000~999999, 중복 시 재생성)로 변경함. v9-4에서는 `/lookup` 조회 결과 화면을 신청 완료 화면(`ApplyComplete.tsx`)과 비슷하게 보여달라는 요청으로 `price_krw`(무통장입금 안내용)와 참여자별 `phone`/`gender`(둘 다 `decrypt_pii`/그대로 반환)를 추가로 내려주도록 재작성. `LookupForm.tsx`도 조회 성공 시 입력 폼(전화번호/접수번호 필드)을 숨기고 결과만 보여주도록 변경, "다른 접수번호로 다시 조회하기" 링크(`<a href="/lookup">` 전체 새로고침으로 폼 상태 초기화)만 남김. "대표 신청자" 라벨은 그룹(참여자 2명 이상)일 때만 표시하도록 `ApplyComplete.tsx`/`LookupForm.tsx`/`ApplyForm.tsx` 전부 수정 — 소개팅은 항상 1인 신청이라 "대표 신청자"라는 말 자체가 안 맞았음(이전엔 인덱스 0번이면 무조건 붙어서 소개팅 1인 신청에도 잘못 표시됐던 버그).
 - `reviews`, 관리자 대시보드는 이번 스키마에 없음(Phase 2).
 - **~~profiles / kakao_links / naver_links / find_account_by_email / find_account_by_phone~~** — 휴면 처리된 로그인 시스템이 쓰던 테이블/함수. 삭제하지 않고 스키마에 그대로 남아있음(신청 플로우는 더 이상 참조 안 함).
 - **중요한 교훈**: Supabase는 새 테이블을 만들어도 RLS 정책과 별개로 `anon`/`authenticated` 롤에 테이블 자체 권한(GRANT)을 자동으로 주지 않는다. 반대로 `session_venues`/`applications`/`application_attendees`처럼 **의도적으로 막고 싶은 테이블은 grant를 아예 안 주면 된다** — 이게 기본값이라 오히려 안전한 쪽, 모든 접근을 SECURITY DEFINER 함수로만 강제할 수 있다. **이 규칙은 `service_role`에도 그대로 적용된다** — RLS는 우회하지만 테이블 GRANT는 별개라, `naver_links`/`kakao_links`에 명시적으로 grant를 안 줬다가 "permission denied for table" 에러를 겪었고(2026-08-07), 이번 v7 작업 중에도 `applications`/`profiles`/`sessions`에 `service_role` grant가 아예 없어 스크립트로 행 개수조차 못 읽는 걸 재확인함(2026-08-09) — 사이드 이펙트 없는 조사성 쿼리라도 grant가 없으면 막힌다는 걸 잊지 말 것.
@@ -96,8 +104,8 @@
 # 향후 추가 예정 (설계는 돼 있으나 미구현)
 
 - **문자 알림 3단계**: 신청확인(즉시, 계좌·입금액 포함) → 입금확인(운영자가 `payment_status`를 confirmed로 바꿀 때, Database Webhook 필요 — 환불불가 시작일=행사 전날 안내 포함) → 참가확정(행사 전날, 시간 기반 Cron 필요, 정확한 장소 최초 공개). **1단계(신청확인) 코드는 구현 완료**(`src/lib/sms.ts`, Solapi SDK), 계정 미생성이라 실제 발송은 대기 중("앞으로 할 일" 1번 참고). 2·3단계는 미구현.
-- **소개팅형(저녁) 세션 성비 관리**: 성별 필드가 v7의 `application_attendees`엔 아직 없음(이름/전화/출생년도/닉네임만) — 필요해지면 컬럼 추가 검토.
-- 04 실시간 모집 현황 단독 페이지, 05 참가 확인, 06 무통장입금 정식 안내(현재는 신청 완료 화면에 간이 버전만 있음), 07 FAQ, 08 공지사항, 09 문의하기, 10~12 정책 페이지(이용약관/개인정보처리방침/환불정책).
+- **이용약관/개인정보처리방침/환불정책 동의 문구 확정** — 아직 실제 약관 내용이 정해지지 않아서 미착수. `ApplyForm`의 체크박스는 지금 "이용약관, 개인정보처리방침, 환불정책에 모두 동의합니다"라는 뭉뚱그린 문구뿐이고 실제 약관 페이지/전문은 없음. 아래 정책 페이지(10~12) 작업과 함께 처리해야 함.
+- 04 실시간 모집 현황 단독 페이지, 05 참가 확인, 06 무통장입금 정식 안내(현재는 신청 완료 화면에 간이 버전만 있음), 09 문의하기, 10~12 정책 페이지(이용약관/개인정보처리방침/환불정책) — 07 FAQ/08 공지사항은 `/notice`로 이미 반영됨(2026-08-10).
 - Phase 2: PG 결제 연동(필요 시 로그인 시스템 재활성화 검토 — 휴면 처리된 상태, "설계 변경 이력" 참고), 리뷰, 다회차/다지역 카탈로그, 애프터 매칭, 관리자 대시보드, 추천인 코드.
 
 # 앞으로 할 일 (순서대로)
@@ -105,7 +113,7 @@
 1. **Solapi 잔액 충전 + 발신번호 승인 대기** (2026-08-10 진행) — 계정 생성, API 키 발급, `.env.local`/Vercel 프로덕션에 `SOLAPI_API_KEY`/`SOLAPI_API_SECRET`/`SOLAPI_SENDER_NUMBER` 등록까지 완료. 번호 노출 부담 때문에 개인 실제 번호 대신 **제로콜(070-5236-4797, 개인 명의)**을 새로 개통해서 발신번호로 등록 — 통신서비스 이용증명원(제로콜 발급)을 서류 인증으로 제출함, 승인까지 영업일 1~3일 소요 예정. 남은 것: (1) 서류 승인 대기, (2) **잔액 충전**(현재 0원, 결제라 직접 진행 필요) — 이 둘이 끝나야 실제 문자 발송이 됨. API Key 발급 시 IP 제한은 "모든 IP 허용"으로 설정함(Vercel 서버리스는 고정 아웃바운드 IP가 없어서 특정 IP로 제한하면 프로덕션에서 호출이 막힘).
 2. **카카오 공유 시 메시지 포맷** — Open Graph 메타태그(`og:title`/`og:description`/`og:image`)는 SEO 작업으로 이미 세팅 완료(카카오톡 공유 시 기본 미리보기는 뜸). 카카오 SDK 공유 버튼("카톡으로 공유하기")은 아직 미착수, 필요하면 검토.
 3. 네이버 로그인 — Supabase 기본 미지원(Custom OIDC 필요), 실제 시도 시 추가 작업 필요할 수 있음. 아직 미착수.
-4. 04~12 나머지 베타 화면 순차 추가, 성비 관리, (나중) PG 결제 연동
+4. 04~06, 09~12 나머지 베타 화면 순차 추가(이용약관/환불정책 문구 확정 포함), (나중) PG 결제 연동
 5. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토, 카카오 알림톡(번호 노출 없는 문자 대안)도 사업자등록 후 재검토 — 아래 "카카오 로그인 관련 결정" 참고
 6. 문자 알림 2·3단계(입금확인/참가확정) — Solapi 연동 완료 후, 입금확인은 Supabase Database Webhook(`payment_status` 변경 감지), 참가확정은 시간 기반 Cron 필요.
 7. **(보류)** 이메일 발송 문구 커스텀화 — 로그인 시스템이 휴면 처리되며 이메일 발송 자체가 당장 불필요해짐. 로그인/PG 결제 연동 등으로 재활성화될 때 재검토.

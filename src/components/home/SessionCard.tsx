@@ -33,10 +33,17 @@ export async function SessionCard({ session }: { session: Session }) {
           <span>
             신청 {total} / 목표 {session.capacity_confirm_line}명
           </span>
-          <span>
-            확정 {stats.confirmed_count}명
-            {stats.waiting_count > 0 ? ` · 대기 ${stats.waiting_count}명` : ""}
-          </span>
+          {session.theme_label === "소개팅" ? (
+            <span>
+              확정 남 {stats.male_confirmed_count}/{session.capacity_confirm_line_male ?? 0} · 여{" "}
+              {stats.female_confirmed_count}/{session.capacity_confirm_line_female ?? 0}
+            </span>
+          ) : (
+            <span>
+              확정 {stats.confirmed_count}명
+              {stats.waiting_count > 0 ? ` · 대기 ${stats.waiting_count}명` : ""}
+            </span>
+          )}
         </div>
         <ProgressBar value={total} max={session.capacity_max} />
       </div>

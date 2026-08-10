@@ -6,13 +6,15 @@ import { isEligibleBirthYear } from "@/lib/eligibility";
 import { getSessionById } from "@/lib/sessions";
 import { sendApplicationSlackAlert } from "@/lib/slack";
 import { sendApplicationConfirmationSms } from "@/lib/sms";
-import type { Application } from "@/types/domain";
+import type { Application, Gender } from "@/types/domain";
 
 export type AttendeeInput = {
   name: string;
   phone: string;
   birthYear: number;
   nickname: string | null;
+  // 소개팅 회차에서만 필수. 비소개팅은 항상 null.
+  gender: Gender | null;
 };
 
 export type ApplyState = {
@@ -31,16 +33,16 @@ function phoneDigits(phone: string) {
   return phone.replace(/[^0-9]/g, "");
 }
 
-const ATTENDEE_FIELD_PATTERN = /^attendees\[(\d+)\]\[(name|phone|birthYear|nickname)\]$/;
+const ATTENDEE_FIELD_PATTERN = /^attendees\[(\d+)\]\[(name|phone|birthYear|nickname|gender)\]$/;
 
 function parseAttendees(formData: FormData): AttendeeInput[] {
-  const byIndex = new Map<number, Partial<Record<"name" | "phone" | "birthYear" | "nickname", string>>>();
+  const byIndex = new Map<number, Partial<Record<"name" | "phone" | "birthYear" | "nickname" | "gender", string>>>();
 
   for (const [key, value] of formData.entries()) {
     const match = key.match(ATTENDEE_FIELD_PATTERN);
     if (!match || typeof value !== "string") continue;
     const index = Number(match[1]);
-    const field = match[2] as "name" | "phone" | "birthYear" | "nickname";
+    const field = match[2] as "name" | "phone" | "birthYear" | "nickname" | "gender";
     if (!byIndex.has(index)) byIndex.set(index, {});
     byIndex.get(index)![field] = value;
   }
@@ -52,6 +54,7 @@ function parseAttendees(formData: FormData): AttendeeInput[] {
       phone: (fields.phone ?? "").trim(),
       birthYear: Number(fields.birthYear),
       nickname: fields.nickname?.trim() || null,
+      gender: fields.gender === "M" || fields.gender === "F" ? fields.gender : null,
     }));
 }
 
@@ -67,6 +70,16 @@ export async function applyAction(
   if (!sessionId) {
     return { error: "잘못된 접근입니다." };
   }
+
+  // theme_label을 알아야 소개팅 전용 검증(1인 신청/성별 필수)을 할 수 있어서
+  // 성공 이후(after() 안)가 아니라 여기서 먼저 조회한다 — 알림 발송 때 다시
+  // 조회하지 않고 이 값을 그대로 재사용한다.
+  const session = await getSessionById(sessionId);
+  if (!session) {
+    return { error: "잘못된 접근입니다." };
+  }
+  const isDatingSession = session.theme_label === "소개팅";
+
   if (!depositorName) {
     return { error: "입금자명을 입력해주세요.", attendees };
   }
@@ -82,6 +95,14 @@ export async function applyAction(
     }
     if (!isEligibleBirthYear(attendee.birthYear)) {
       return { error: "참여자 출생년도는 1990~1999년만 가능합니다.", attendees };
+    }
+  }
+  if (isDatingSession) {
+    if (attendees.length !== 1) {
+      return { error: "소개팅 회차는 1인 신청만 가능합니다.", attendees };
+    }
+    if (attendees[0].gender !== "M" && attendees[0].gender !== "F") {
+      return { error: "성별을 선택해주세요.", attendees };
     }
   }
 
@@ -113,6 +134,7 @@ export async function applyAction(
         phone: a.phone,
         birth_year: a.birthYear,
         nickname: a.nickname,
+        gender: a.gender,
       })),
     })
     .single();
@@ -133,8 +155,6 @@ export async function applyAction(
 
   after(async () => {
     try {
-      const session = await getSessionById(sessionId);
-      if (!session) return;
       await Promise.all([
         sendApplicationSlackAlert({ session, application, attendees }),
         sendApplicationConfirmationSms({ session, application, attendees }),

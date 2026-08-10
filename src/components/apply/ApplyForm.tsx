@@ -17,10 +17,10 @@ const BIRTH_YEARS = Array.from(
 const selectClassName =
   "w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none focus:border-brand";
 
-type AttendeeField = "name" | "phone" | "birthYear" | "nickname";
-type AttendeeState = { name: string; phone: string; birthYear: string; nickname: string };
+type AttendeeField = "name" | "phone" | "birthYear" | "nickname" | "gender";
+type AttendeeState = { name: string; phone: string; birthYear: string; nickname: string; gender: string };
 
-const emptyAttendee: AttendeeState = { name: "", phone: "", birthYear: "", nickname: "" };
+const emptyAttendee: AttendeeState = { name: "", phone: "", birthYear: "", nickname: "", gender: "" };
 
 function phoneDigits(phone: string) {
   return phone.replace(/[^0-9]/g, "");
@@ -31,12 +31,15 @@ export function ApplyForm({
   priceKrw,
   sessionTitle,
   eventDate,
+  themeLabel,
 }: {
   sessionId: string;
   priceKrw: number;
   sessionTitle: string;
   eventDate: string;
+  themeLabel: string;
 }) {
+  const isDatingSession = themeLabel === "소개팅";
   const [state, formAction, pending] = useActionState(applyAction, initialState);
   const [attendeeCount, setAttendeeCount] = useState(1);
   // 입력값을 React state로 들고 있어야 서버 액션이 에러를 반환해 다시 렌더링돼도
@@ -78,6 +81,7 @@ export function ApplyForm({
       formData.set(`attendees[${i}][phone]`, attendee.phone);
       formData.set(`attendees[${i}][birthYear]`, attendee.birthYear);
       formData.set(`attendees[${i}][nickname]`, attendee.nickname);
+      formData.set(`attendees[${i}][gender]`, attendee.gender);
     });
     formAction(formData);
   }
@@ -99,22 +103,27 @@ export function ApplyForm({
       <div className="rounded-xl bg-brand-soft p-4 text-xs text-muted">
         비슷한 또래끼리 더 즐겁게 즐기실 수 있도록, {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만
         참여하실 수 있어요.
+        {isDatingSession
+          ? " 소개팅 회차는 성비를 맞추기 위해 남/여 각각 10명까지 즉시 확정되고, 이후에는 대기로 전환돼요."
+          : null}
       </div>
 
-      <Field label="함께할 인원 (본인 포함)" htmlFor="attendeeCount">
-        <select
-          id="attendeeCount"
-          value={attendeeCount}
-          onChange={(e) => updateAttendeeCount(Number(e.target.value))}
-          className={selectClassName}
-        >
-          {Array.from({ length: MAX_ATTENDEES }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {n}명
-            </option>
-          ))}
-        </select>
-      </Field>
+      {isDatingSession ? null : (
+        <Field label="함께할 인원 (본인 포함)" htmlFor="attendeeCount">
+          <select
+            id="attendeeCount"
+            value={attendeeCount}
+            onChange={(e) => updateAttendeeCount(Number(e.target.value))}
+            className={selectClassName}
+          >
+            {Array.from({ length: MAX_ATTENDEES }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n}명
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <div className="flex flex-col gap-4">
         {attendees.map((attendee, i) => {
@@ -127,7 +136,7 @@ export function ApplyForm({
               }`}
             >
               <p className="mb-3 text-xs font-bold text-muted">
-                {i === 0 ? "대표 신청자 (본인)" : `동행자 ${i}`}
+                {i === 0 ? (isDatingSession ? "신청자 (본인)" : "대표 신청자 (본인)") : `동행자 ${i}`}
               </p>
               <div className="flex flex-col gap-3">
                 <Field label="이름" htmlFor={`attendee-${i}-name`}>
@@ -170,6 +179,24 @@ export function ApplyForm({
                     ))}
                   </select>
                 </Field>
+                {isDatingSession ? (
+                  <Field label="성별" htmlFor={`attendee-${i}-gender`}>
+                    <select
+                      id={`attendee-${i}-gender`}
+                      name={`attendees[${i}][gender]`}
+                      required
+                      value={attendee.gender}
+                      onChange={(e) => updateAttendee(i, "gender", e.target.value)}
+                      className={selectClassName}
+                    >
+                      <option value="" disabled>
+                        선택
+                      </option>
+                      <option value="M">남성</option>
+                      <option value="F">여성</option>
+                    </select>
+                  </Field>
+                ) : null}
                 <Field label="닉네임 (선택)" htmlFor={`attendee-${i}-nickname`}>
                   <Input
                     id={`attendee-${i}-nickname`}

@@ -1,7 +1,7 @@
 import { Hero } from "@/components/home/Hero";
-import { ConceptCards } from "@/components/home/ConceptCards";
-import { ProcessSteps } from "@/components/home/ProcessSteps";
-import { FaqPreview } from "@/components/home/FaqPreview";
+import { ConceptCards } from "@/components/about/ConceptCards";
+import { ProcessSteps } from "@/components/contents/ProcessSteps";
+import { FaqSection } from "@/components/notice/FaqSection";
 import { getUpcomingSessions } from "@/lib/sessions";
 
 export default async function Home() {
@@ -12,7 +12,11 @@ export default async function Home() {
       <Hero sessions={sessions} />
       <ConceptCards />
       <ProcessSteps />
-      <FaqPreview />
+      <section className="border-t border-border px-5 py-12">
+        <div className="mx-auto max-w-2xl">
+          <FaqSection />
+        </div>
+      </section>
     </>
   );
 }

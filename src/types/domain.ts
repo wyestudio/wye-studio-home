@@ -17,6 +17,9 @@ export type Session = {
   capacity_min: number;
   capacity_confirm_line: number;
   capacity_max: number;
+  // 소개팅(theme_label='소개팅') 회차만 값이 있음 — 성비 분리 정원, 비소개팅은 null
+  capacity_confirm_line_male: number | null;
+  capacity_confirm_line_female: number | null;
   status: SessionStatus;
   description: string | null;
   created_at: string;
@@ -25,6 +28,10 @@ export type Session = {
 export type SessionStats = {
   confirmed_count: number;
   waiting_count: number;
+  male_confirmed_count: number;
+  male_waiting_count: number;
+  female_confirmed_count: number;
+  female_waiting_count: number;
 };
 
 // 로그인 시스템(휴면 처리됨)이 쓰던 타입 — 더 이상 신청 플로우에서 쓰이지 않지만
@@ -56,6 +63,8 @@ export type ApplicationAttendee = {
   birth_year: number;
   nickname: string | null;
   is_representative: boolean;
+  // 소개팅 회차 참여자만 값이 있음 — 비소개팅은 null
+  gender: Gender | null;
 };
 
 // 참여내역 조회(lookup_application RPC) 결과.
@@ -63,6 +72,7 @@ export type ApplicationLookupResult = {
   session_title: string;
   event_date: string;
   slot: SessionSlot;
+  price_krw: number;
   status: ApplicationStatus;
   payment_status: PaymentStatus;
   confirmation_code: string;

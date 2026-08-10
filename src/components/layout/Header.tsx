@@ -45,12 +45,18 @@ export function Header() {
           </div>
           <Badge tone="confirm">BETA</Badge>
         </div>
-        <nav className="flex items-center gap-4 text-sm text-muted">
-          <Link href="/#sessions" className="hover:text-foreground">
-            상품 소개
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+          <Link href="/about" className="hover:text-foreground">
+            About
+          </Link>
+          <Link href="/contents" className="hover:text-foreground">
+            Contents
           </Link>
           <Link href="/lookup" className="hover:text-foreground">
-            참여내역 조회
+            Check
+          </Link>
+          <Link href="/notice" className="hover:text-foreground">
+            Notice
           </Link>
         </nav>
       </div>

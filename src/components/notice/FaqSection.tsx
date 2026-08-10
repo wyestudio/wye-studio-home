@@ -1,0 +1,22 @@
+const FAQS = [
+  { q: "신청은 어떻게 하나요?", a: "로그인 없이 회차를 선택해 참가 신청서에 이름/전화번호/출생년도를 입력하고, 무통장입금으로 참가비를 입금하면 신청이 접수됩니다." },
+  { q: "언제 참가가 확정되나요?", a: "비소개팅 회차는 20명까지 신청 즉시 확정되고, 21~24명 구간은 대기 후 24명(정원)이 차면 대기자 전원이 한 번에 확정됩니다." },
+  { q: "소개팅 회차는 확정 기준이 다른가요?", a: "네, 성비를 맞추기 위해 남/여 각각 정원 10명씩 별도로 관리돼요. 신청하신 성별 기준으로 10명까지는 즉시 확정, 그 이후는 대기로 전환됩니다." },
+  { q: "장소는 어디인가요?", a: "매 회차 다른 파티룸을 대관하며, 정확한 주소는 참가 확정자에게 개별 안내됩니다." },
+];
+
+export function FaqSection() {
+  return (
+    <section>
+      <h2 className="mb-6 text-center text-xl font-extrabold">자주 묻는 질문</h2>
+      <div className="flex flex-col gap-3">
+        {FAQS.map((faq) => (
+          <div key={faq.q} className="rounded-xl border border-border bg-surface p-4">
+            <p className="mb-1 font-semibold">{faq.q}</p>
+            <p className="text-sm text-muted">{faq.a}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

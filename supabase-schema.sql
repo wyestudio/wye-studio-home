@@ -16,6 +16,16 @@
 --     Supabase Vault에 키 보관)해서 저장. 전화번호 매칭(동일 테마 재참여 체크, /lookup)은
 --     복호화 불가능한 HMAC 해시(phone_hash)로 처리. 운영자용 복호화 뷰
 --     admin_attendee_view/admin_application_view 신설(SQL Editor 전용, grant 없음).
+-- v9: 소개팅(theme_label='소개팅') 회차만 성비를 맞춰야 해서 남/여 각각 정원 10명씩
+--     분리 관리. sessions.capacity_confirm_line_male/female, application_attendees.gender
+--     추가(둘 다 비소개팅 행은 NULL). submit_application()이 소개팅이면 1인 신청 강제 +
+--     성별 필수 검증 + 확정/대기 판정을 세션 전체가 아니라 해당 성별 인원 기준으로 함.
+--     전체 정원(capacity_max) 도달 시 마감은 비소개팅과 동일하지만, 소개팅은 성비가 깨질
+--     수 있는 대기자 자동 승격을 하지 않음 — 운영자가 SQL Editor에서 수동으로 판단해
+--     확정 처리(admin_attendee_view 보면서 update applications set status='confirmed'...).
+--     get_session_stats()도 성별 분리 카운트를 추가로 반환하도록 재작성.
+--     lookup_application()도 참여내역 조회 화면을 신청 완료 화면과 비슷하게 보여주기 위해
+--     price_krw(무통장입금 안내용)와 참여자별 phone/gender(decrypt_pii)를 추가 반환하도록 재작성.
 
 -- =========================================================
 -- 1. profiles (회원 부가정보 — auth.users 확장)
@@ -826,3 +836,270 @@ insert into sessions (
 -- 상호명은 session_venues에 별도 등록 (event_date로 매칭)
 insert into session_venues (session_id, venue_name)
 select id, '뮤트스페이스 신림점' from sessions where event_date = '2026-08-22';
+
+
+-- =========================================================
+-- v9-1. sessions/application_attendees — 소개팅 성비 분리 정원
+-- (소개팅 회차만 남/여 각각 정원 10명씩 별도로 관리해야 해서 추가.
+--  비소개팅 세션은 두 컬럼 다 NULL로 두고 기존 capacity_confirm_line/
+--  capacity_max 로직 그대로 사용한다)
+-- =========================================================
+alter table sessions
+  add column capacity_confirm_line_male int,
+  add column capacity_confirm_line_female int;
+
+update sessions
+  set capacity_confirm_line_male = 10, capacity_confirm_line_female = 10
+  where theme_label = '소개팅';
+
+alter table application_attendees
+  add column gender text check (gender in ('M', 'F')); -- 비소개팅 참여자는 NULL
+
+
+-- =========================================================
+-- v9-2. submit_application() 재작성 — 소개팅 성비 분리 로직 반영
+-- (theme_label = '소개팅'이면: ①그룹 신청 금지, 1인만 ②성별 필수
+--  ③확정/대기 판정을 세션 전체 합계가 아니라 해당 성별 합계 vs
+--  capacity_confirm_line_male/female로 판정. 전체 정원(capacity_max)
+--  도달 시 마감은 비소개팅과 동일하게 적용하되, 대기자 자동 승격은
+--  하지 않는다 — 성비가 깨질 수 있는 결정이라 운영자가 SQL Editor에서
+--  admin_attendee_view/admin_application_view 보면서 수동으로 판단해
+--  확정 처리한다: 예) update applications set status = 'confirmed' where id = '...';
+--  비소개팅은 v8-3과 동일하게 그대로 동작한다. 파라미터 시그니처는
+--  안 바뀌었으니 create or replace로 충분, 기존 grant도 재부여 불필요.)
+-- =========================================================
+create or replace function public.submit_application(
+  p_session_id uuid,
+  p_depositor_name text,
+  p_agreed_terms boolean,
+  p_attendees jsonb
+)
+returns public.application_result
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_session sessions%rowtype;
+  v_group_size int;
+  v_current_total int;
+  v_gender_total int;
+  v_gender text;
+  v_new_total int;
+  v_status text;
+  v_code text;
+  v_app applications%rowtype;
+  v_dup_phones text;
+  v_self_dup_phones text;
+begin
+  if not p_agreed_terms then
+    raise exception '약관에 동의해야 신청할 수 있습니다.';
+  end if;
+
+  select * into v_session from sessions where id = p_session_id for update;
+  if not found then
+    raise exception '존재하지 않는 회차입니다.';
+  end if;
+  if v_session.status <> 'open' then
+    raise exception '이미 마감된 회차입니다.';
+  end if;
+
+  v_group_size := jsonb_array_length(p_attendees);
+  if v_group_size is null or v_group_size < 1 then
+    raise exception '참여 인원을 입력해주세요.';
+  end if;
+
+  if v_session.theme_label = '소개팅' then
+    if v_group_size <> 1 then
+      raise exception '소개팅 회차는 1인 신청만 가능합니다.';
+    end if;
+    v_gender := p_attendees->0->>'gender';
+    if v_gender is null or v_gender not in ('M', 'F') then
+      raise exception '성별을 선택해주세요.';
+    end if;
+  end if;
+
+  if exists (
+    select 1 from jsonb_array_elements(p_attendees) a
+    where (a->>'birth_year')::int not between 1990 and 1999
+  ) then
+    raise exception '참여자 출생년도는 1990~1999년만 가능합니다.';
+  end if;
+
+  -- 같은 그룹(이번에 제출한 attendees 배열) 안에서 전화번호가 중복되는지도
+  -- 체크 — DB에 있는 기존 참여자와의 충돌(아래)과는 별개로, 지금 막 입력한
+  -- 대표자/동행자끼리 같은 번호를 실수로 넣은 경우를 잡는다.
+  select string_agg(distinct phone, ',') into v_self_dup_phones
+  from (
+    select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone
+    from jsonb_array_elements(p_attendees) a
+    group by 1
+    having count(*) > 1
+  ) t;
+
+  if v_self_dup_phones is not null then
+    raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요.' using detail = v_self_dup_phones;
+  end if;
+
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',')
+  into v_dup_phones
+  from jsonb_array_elements(p_attendees) a
+  where exists (
+    select 1
+    from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    join sessions s on s.id = ap.session_id
+    where s.theme_label = v_session.theme_label
+      and ap.status <> 'cancelled'
+      and aa.phone_hash = hash_phone(a->>'phone')
+  );
+
+  if v_dup_phones is not null then
+    raise exception '이미 같은 테마에 참여하신 분이 포함되어 있어요.' using detail = v_dup_phones;
+  end if;
+
+  select coalesce(sum(cnt), 0) into v_current_total
+  from (
+    select ap.id, count(*) as cnt
+    from applications ap
+    join application_attendees aa on aa.application_id = ap.id
+    where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting')
+    group by ap.id
+  ) t;
+
+  if v_current_total + v_group_size > v_session.capacity_max then
+    raise exception '정원이 얼마 남지 않았어요. 인원을 줄이거나 다른 회차를 선택해주세요.';
+  end if;
+
+  if v_session.theme_label = '소개팅' then
+    select coalesce(count(*), 0) into v_gender_total
+    from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    where ap.session_id = p_session_id
+      and ap.status in ('confirmed', 'waiting')
+      and aa.gender = v_gender;
+
+    v_status := case
+      when v_gender_total + 1 <= (case when v_gender = 'M'
+        then v_session.capacity_confirm_line_male else v_session.capacity_confirm_line_female end)
+      then 'confirmed' else 'waiting' end;
+  else
+    v_status := case when v_current_total + v_group_size <= v_session.capacity_confirm_line
+      then 'confirmed' else 'waiting' end;
+  end if;
+
+  for i in 1..20 loop
+    v_code := (100000 + floor(random() * 900000))::int::text;
+    exit when not exists (select 1 from applications where confirmation_code = v_code);
+  end loop;
+
+  insert into applications (session_id, depositor_name_enc, agreed_terms, confirmation_code, status)
+  values (p_session_id, encrypt_pii(p_depositor_name), p_agreed_terms, v_code, v_status)
+  returning * into v_app;
+
+  insert into application_attendees (application_id, session_id, is_representative, name_enc, phone_enc, phone_hash, birth_year, nickname, gender)
+  select
+    v_app.id, p_session_id, (ord = 1),
+    encrypt_pii(a->>'name'), encrypt_pii(a->>'phone'), hash_phone(a->>'phone'),
+    (a->>'birth_year')::int, nullif(a->>'nickname', ''), nullif(a->>'gender', '')
+  from jsonb_array_elements(p_attendees) with ordinality as t(a, ord);
+
+  v_new_total := v_current_total + v_group_size;
+
+  if v_new_total >= v_session.capacity_max then
+    if v_session.theme_label <> '소개팅' then
+      update applications set status = 'confirmed'
+      where session_id = p_session_id and status = 'waiting';
+    end if;
+
+    update sessions set status = 'closed' where id = p_session_id;
+  end if;
+
+  return (v_app.id, v_app.session_id, p_depositor_name, v_app.agreed_terms,
+    v_app.confirmation_code, v_app.status, v_app.payment_status, v_app.created_at)::public.application_result;
+exception
+  when unique_violation then
+    raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end;
+$$;
+
+
+-- =========================================================
+-- v9-3. get_session_stats() 재작성 — 성별 분리 카운트 추가
+-- (반환 컬럼이 늘어나 시그니처가 바뀌므로 drop 후 재생성 — application_result
+--  때와 동일한 이유로, RETURNS TABLE의 컬럼 구성 변경은 create or replace로 안 됨)
+-- =========================================================
+drop function if exists get_session_stats(uuid);
+
+create or replace function get_session_stats(p_session_id uuid)
+returns table (
+  confirmed_count int, waiting_count int,
+  male_confirmed_count int, male_waiting_count int,
+  female_confirmed_count int, female_waiting_count int
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    coalesce(sum(case when ap.status = 'confirmed' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and aa.gender = 'M' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' and aa.gender = 'M' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and aa.gender = 'F' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' and aa.gender = 'F' then 1 else 0 end), 0)::int
+  from application_attendees aa
+  join applications ap on ap.id = aa.application_id
+  where ap.session_id = p_session_id;
+$$;
+
+revoke all on function get_session_stats(uuid) from public;
+grant execute on function get_session_stats(uuid) to anon, authenticated;
+
+
+-- =========================================================
+-- v9-4. lookup_application() 재작성 — 참여내역 조회 화면을 신청 완료 화면과
+-- 비슷하게 보여주기 위해 price_krw(무통장입금 안내용)와 참여자별 phone/gender를
+-- 추가로 반환. 반환 컬럼이 늘어나 시그니처가 바뀌므로 drop 후 재생성.
+-- =========================================================
+drop function if exists public.lookup_application(text, text);
+
+create or replace function public.lookup_application(p_phone_digits text, p_confirmation_code text)
+returns table (
+  session_title text, event_date date, slot text, price_krw int,
+  status text, payment_status text, confirmation_code text,
+  depositor_name text, created_at timestamptz,
+  attendees jsonb
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+stable
+as $$
+declare
+  v_phone_hash text := hash_phone(p_phone_digits);
+begin
+  return query
+    select s.title, s.event_date, s.slot, s.price_krw,
+      ap.status, ap.payment_status, ap.confirmation_code,
+      decrypt_pii(ap.depositor_name_enc), ap.created_at,
+      (select jsonb_agg(jsonb_build_object(
+          'name', decrypt_pii(aa2.name_enc),
+          'phone', decrypt_pii(aa2.phone_enc),
+          'nickname', aa2.nickname,
+          'gender', aa2.gender,
+          'is_representative', aa2.is_representative
+        ) order by aa2.is_representative desc)
+       from application_attendees aa2 where aa2.application_id = ap.id)
+    from applications ap
+    join sessions s on s.id = ap.session_id
+    join application_attendees aa on aa.application_id = ap.id
+    where ap.confirmation_code = p_confirmation_code
+      and aa.phone_hash = v_phone_hash
+    limit 1;
+end;
+$$;
+
+revoke all on function public.lookup_application(text, text) from public;
+grant execute on function public.lookup_application(text, text) to anon, authenticated;

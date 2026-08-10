@@ -1,0 +1,26 @@
+const NOTICES: { title: string; date: string; body: string }[] = [];
+
+export function NoticeSection() {
+  return (
+    <section>
+      <h2 className="mb-6 text-center text-xl font-extrabold">공지사항</h2>
+      {NOTICES.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border bg-surface p-5 text-center text-sm text-muted">
+          등록된 공지가 없습니다.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {NOTICES.map((notice) => (
+            <div key={notice.title} className="rounded-xl border border-border bg-surface p-4">
+              <div className="mb-1 flex items-center justify-between">
+                <p className="font-semibold">{notice.title}</p>
+                <p className="text-xs text-muted">{notice.date}</p>
+              </div>
+              <p className="text-sm text-muted">{notice.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}

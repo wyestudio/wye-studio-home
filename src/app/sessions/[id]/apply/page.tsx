@@ -25,6 +25,7 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/ap
           priceKrw={session.price_krw}
           sessionTitle={session.title}
           eventDate={session.event_date}
+          themeLabel={session.theme_label}
         />
       )}
     </div>
