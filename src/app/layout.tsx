@@ -51,10 +51,7 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: [
-      { url: "/icon-light.png", type: "image/png" },
-      { url: "/icon-dark.png", type: "image/png", media: "(prefers-color-scheme: dark)" },
-    ],
+    icon: [{ url: "/icon.png", type: "image/png" }],
   },
 };
 
