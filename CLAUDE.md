@@ -40,6 +40,14 @@
 - [x] Resend 도메인 인증 완료 — Cloudflare DNS에 DKIM/SPF(MX+TXT)/DMARC 레코드 4개 추가 후 "Verified" 확인(2026-08-07), Supabase Auth SMTP 발신 주소를 `no-reply@wouldyouescape.com`으로 변경. 이제 임의 이메일로 가입 확인 메일 수신 가능.
 - [x] Vercel 커스텀 도메인 연결 — Vercel 프로젝트에 `wouldyouescape.com`(apex, → `www`로 308 리다이렉트) + `www.wouldyouescape.com`(Production) 추가, Cloudflare DNS에 CNAME(둘 다 `8610a2a84068dc1b.vercel-dns-017.com`, 프록시 끔/"DNS 전용") 등록(2026-08-07). 둘 다 "Valid Configuration" 확인, SSL 인증서 자동 발급.
 - [x] **Supabase Auth URL Configuration 수정** — 도메인 연결 도중 발견: Site URL이 여태 `http://localhost:3000`이었고 Redirect URLs 허용 목록이 완전히 비어 있었음(즉 이메일 인증 링크·카카오 로그인 완료 후 리다이렉트가 실제로는 localhost로 튈 수 있는 상태였음). Site URL을 `https://wouldyouescape.com`으로, Redirect URLs에 `https://wouldyouescape.com/**` / `https://www.wouldyouescape.com/**` / `https://wye-studio-home-*.vercel.app/**` / `http://localhost:3000/**` 4개를 추가함(2026-08-07).
+- [x] **브랜드명 "우주이스케이프"로 통일 + 헤더 BETA 마스코트** (2026-08-09) — 사용자 노출 텍스트 전반(페이지 제목/설명, 홈 문구, 신청 완료 화면 예금주 등)에 남아있던 옛 명칭 "wye studio"를 "우주이스케이프"로 교체(GitHub 저장소명/Vercel 프로젝트명/`package.json` name 등 내부 식별자는 의도적으로 그대로 둠). 휴면 처리된 signup 플로우에 남아있던 "만 19세 미만 거부" 문구/로직도 함께 제거(출생년도 1990~1999 제한으로 대체됐으므로 불필요). 헤더 로고 옆에 마스코트("케이프") 정적 이미지 + 🔨 이모지를 CSS `@keyframes`로 조합해 로고를 망치질하는 애니메이션과 초록색 `BETA` 배지 추가.
+- [x] **SEO 기초 작업 완료** (2026-08-10) — `src/app/robots.ts`/`sitemap.ts` 추가(세션 상세 페이지는 Supabase에서 동적으로 끌어옴), `layout.tsx`의 `metadata`에 OpenGraph/Twitter 카드/keywords 보강, `opengraph-image.tsx`로 동적 OG 이미지 생성(마스코트 이미지 + 한글 폰트 서브셋 임베드). Google Search Console에 도메인 속성 등록(Cloudflare DNS TXT 인증, OAuth 자동 연동은 보안상 거부하고 수동 등록) + 사이트맵 제출 완료. 네이버 서치어드바이저도 사이트 등록(HTML meta 태그 인증, `layout.tsx`의 `verification.other`에 반영) + 사이트맵 제출 완료. 색인 반영까지는 며칠~2주 소요 예상, 색인 여부는 `site:wouldyouescape.com` 검색이나 각 콘솔의 URL 검사/색인 상태 확인 도구로 확인 가능.
+- [x] **참가 신청 시 Slack 알림 + 문자(SMS) 신청확인 발송** (2026-08-10) — `submit_application()` 성공 직후 Next.js `after()`(`next/server`)로 응답을 먼저 돌려주고 백그라운드에서 처리: `src/lib/slack.ts`(`sendApplicationSlackAlert`, Incoming Webhook으로 세션/상태/참여자/접수번호 전송)와 `src/lib/sms.ts`(`sendApplicationConfirmationSms`, Solapi SDK로 대표 신청자에게 접수번호·계좌·환불기한 안내). 둘 다 관련 환경변수(`SLACK_WEBHOOK_URL` / `SOLAPI_API_KEY`·`SOLAPI_API_SECRET`·`SOLAPI_SENDER_NUMBER`)가 없으면 `console.warn`만 남기고 조용히 스킵 — 신청 자체는 절대 실패하지 않음. 필요한 키는 `.env.example`에 문서화.
+  - **Slack**: `api.slack.com`에 "Wouldyouescape Notify" 앱을 Blank app으로 생성 → Incoming Webhooks 활성화 → `#apply-notification` 채널로 Webhook 발급 → `.env.local`에 등록. 실제 신청 제출 후 채널에 메시지 도착까지 확인 완료.
+  - **SMS(Solapi)**: 코드는 완성했지만 **아직 계정 미생성** — Solapi 회원가입 + 발신번호 등록(본인 명의면 SMS 본인인증만으로 즉시 가능) + 충전 필요. 카카오 알림톡(번호 노출 없음)도 검토했으나 사업자등록번호 없이는 카카오 "비즈니스 채널" 인증이 안 돼 알림톡 발송이 막힘을 확인 — 사업자등록 이후 재검토.
+  - **무통장입금 계좌 확정** — 카카오뱅크 3333052843942, 예금주는 개인 명의라 보안상 "김*온"으로 마스킹 표시(`src/lib/bankAccount.ts`). 신청 완료 화면(`ApplyComplete.tsx`)의 "준비 중" 플레이스홀더를 실제 값으로 교체.
+  - **신청 완료 화면(`ApplyComplete.tsx`) 보강** — 참여자 명단에 전화번호 추가, 그룹/단독에 따라 "대표 신청자"/"신청자" 문구로 문자 발송 보조 안내 추가, 환불 기한(행사 전날, `formatRefundDeadline()`)을 명확한 문구로 표시. SMS가 아직 연동 전이라 계좌 정보는 화면에서 제거하지 않고 그대로 유지(화면이 유일한 신뢰 가능 정보원).
+  - 문자 알림 3단계(신청확인→입금확인→참가확정) 중 **1단계만 구현** — 2·3단계는 각각 Database Webhook/Cron이 필요한 별도 작업으로 남음("향후 추가 예정" 참고).
 
 # 화면 / 라우팅 구조
 
@@ -87,20 +95,20 @@
 
 # 향후 추가 예정 (설계는 돼 있으나 미구현)
 
-- **문자 알림 3단계**: 신청확인(즉시, 계좌·입금액 포함) → 입금확인(운영자가 `payment_status`를 confirmed로 바꿀 때, Database Webhook 필요 — 환불불가 시작일=행사 전날 안내 포함) → 참가확정(행사 전날, 시간 기반 Cron 필요, 정확한 장소 최초 공개). SMS 발급사 미선정 상태.
+- **문자 알림 3단계**: 신청확인(즉시, 계좌·입금액 포함) → 입금확인(운영자가 `payment_status`를 confirmed로 바꿀 때, Database Webhook 필요 — 환불불가 시작일=행사 전날 안내 포함) → 참가확정(행사 전날, 시간 기반 Cron 필요, 정확한 장소 최초 공개). **1단계(신청확인) 코드는 구현 완료**(`src/lib/sms.ts`, Solapi SDK), 계정 미생성이라 실제 발송은 대기 중("앞으로 할 일" 1번 참고). 2·3단계는 미구현.
 - **소개팅형(저녁) 세션 성비 관리**: 성별 필드가 v7의 `application_attendees`엔 아직 없음(이름/전화/출생년도/닉네임만) — 필요해지면 컬럼 추가 검토.
 - 04 실시간 모집 현황 단독 페이지, 05 참가 확인, 06 무통장입금 정식 안내(현재는 신청 완료 화면에 간이 버전만 있음), 07 FAQ, 08 공지사항, 09 문의하기, 10~12 정책 페이지(이용약관/개인정보처리방침/환불정책).
 - Phase 2: PG 결제 연동(필요 시 로그인 시스템 재활성화 검토 — 휴면 처리된 상태, "설계 변경 이력" 참고), 리뷰, 다회차/다지역 카탈로그, 애프터 매칭, 관리자 대시보드, 추천인 코드.
 
 # 앞으로 할 일 (순서대로)
 
-1. **이메일 발송 문구 커스텀화** — Supabase Auth > Emails > Templates에서 가입 확인/비밀번호 재설정 등 이메일 제목·본문을 우주이스케이프 브랜드 톤의 한국어 문구로 교체. 현재 Supabase 기본 템플릿(영문)일 가능성이 높음 — 실제 내용 확인부터 필요.
-2. **구글 검색 노출(SEO)** — "우주이스케이프"/"wouldyouescape" 검색 시 노출되도록 `robots.txt`/`sitemap.xml` 추가, `layout.tsx`의 `metadata`에 Open Graph/키워드 보강, Google Search Console에 도메인 등록 + 사이트맵 제출(필요 시 네이버 서치어드바이저도). 현재 아무 설정도 없는 상태.
-3. **카카오 공유 시 메시지 포맷** — 카카오톡 공유(Kakao Link) 시 노출되는 제목/설명/썸네일 이미지 포맷 설정. Open Graph 메타태그(`og:title`/`og:description`/`og:image`) 최소 설정부터, 필요하면 카카오 SDK 공유 버튼까지 검토. 현재 관련 코드 전혀 없음.
-4. **참가 신청 시 Slack 알림** — 신청 발생 시 운영자가 바로 알 수 있도록 Slack 채널로 알림 전송. `src/app/sessions/[id]/apply/actions.ts`에서 `apply_and_recompute()` 호출 성공 후 Slack Incoming Webhook을 호출하는 방식이 가장 간단(또는 Supabase Database Webhook으로 `applications` insert 이벤트 감지). 아직 미착수, Slack 워크스페이스/웹훅 URL 준비 필요.
-5. 네이버 로그인 — Supabase 기본 미지원(Custom OIDC 필요), 실제 시도 시 추가 작업 필요할 수 있음. 아직 미착수.
-6. 04~12 나머지 베타 화면 순차 추가, 문자 알림 파이프라인, 성비 관리, (나중) PG 결제 연동
-7. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토 — 아래 "카카오 로그인 관련 결정" 참고
+1. **Solapi 계정 생성 + 발신번호 등록** — `src/lib/sms.ts` 코드는 완성돼 있고 env var만 채우면 바로 동작함. 가입 → API 키 발급 → 발신번호 등록(본인 명의 번호면 SMS 본인인증으로 즉시 가능, 번호 노출이 부담되면 별도 개인 명의 번호 개통 검토) → 충전 → `.env.local`/Vercel에 `SOLAPI_API_KEY`/`SOLAPI_API_SECRET`/`SOLAPI_SENDER_NUMBER` 등록. 아직 미착수.
+2. **카카오 공유 시 메시지 포맷** — Open Graph 메타태그(`og:title`/`og:description`/`og:image`)는 SEO 작업으로 이미 세팅 완료(카카오톡 공유 시 기본 미리보기는 뜸). 카카오 SDK 공유 버튼("카톡으로 공유하기")은 아직 미착수, 필요하면 검토.
+3. 네이버 로그인 — Supabase 기본 미지원(Custom OIDC 필요), 실제 시도 시 추가 작업 필요할 수 있음. 아직 미착수.
+4. 04~12 나머지 베타 화면 순차 추가, 성비 관리, (나중) PG 결제 연동
+5. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토, 카카오 알림톡(번호 노출 없는 문자 대안)도 사업자등록 후 재검토 — 아래 "카카오 로그인 관련 결정" 참고
+6. 문자 알림 2·3단계(입금확인/참가확정) — Solapi 연동 완료 후, 입금확인은 Supabase Database Webhook(`payment_status` 변경 감지), 참가확정은 시간 기반 Cron 필요.
+7. **(보류)** 이메일 발송 문구 커스텀화 — 로그인 시스템이 휴면 처리되며 이메일 발송 자체가 당장 불필요해짐. 로그인/PG 결제 연동 등으로 재활성화될 때 재검토.
 
 ## 도메인 연결 작업 기록 (2026-08-07, 전부 완료)
 

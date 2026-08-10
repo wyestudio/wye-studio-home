@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
-import { formatKrw } from "@/lib/format";
+import { formatKrw, formatRefundDeadline } from "@/lib/format";
+import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import type { Application } from "@/types/domain";
 import type { AttendeeInput } from "@/app/sessions/[id]/apply/actions";
 
@@ -17,10 +18,14 @@ export function ApplyComplete({
   application,
   attendees,
   priceKrw,
+  sessionTitle,
+  eventDate,
 }: {
   application: Application;
   attendees: AttendeeInput[];
   priceKrw: number;
+  sessionTitle: string;
+  eventDate: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -44,8 +49,29 @@ export function ApplyComplete({
     }
   }
 
+  const isGroup = attendees.length > 1;
+  const representative = attendees[0];
+  const smsRecipientLabel = isGroup ? "대표 신청자" : "신청자";
+
   return (
     <div className="flex flex-col gap-6 rounded-xl border border-border bg-surface p-6">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <Badge tone={application.status === "confirmed" ? "confirm" : "wait"}>
+            {STATUS_LABEL[application.status]}
+          </Badge>
+          <span className="text-sm text-muted">
+            {sessionTitle} 신청이 완료됐어요
+            {application.status === "waiting" ? " — 정원이 차면 자동으로 확정돼요" : ""}.
+          </span>
+        </div>
+        {representative ? (
+          <p className="text-xs text-muted">
+            입금 안내를 {smsRecipientLabel} 전화번호({representative.phone})로도 보내드려요.
+          </p>
+        ) : null}
+      </div>
+
       <div>
         <p className="mb-1 text-sm text-muted">접수번호</p>
         <div className="flex items-center gap-2">
@@ -60,41 +86,34 @@ export function ApplyComplete({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Badge tone={application.status === "confirmed" ? "confirm" : "wait"}>
-          {STATUS_LABEL[application.status]}
-        </Badge>
-        <span className="text-sm text-muted">
-          {application.status === "confirmed"
-            ? "참가가 확정되었습니다. 아래 계좌로 입금해주세요."
-            : "정원이 차면 자동으로 참가확정으로 전환됩니다. 확정 여부와 관계없이 아래 계좌로 입금해주세요."}
-        </span>
-      </div>
-
-      {attendees.length > 0 ? (
-        <div>
-          <p className="mb-2 text-sm font-bold text-muted">참여자 명단</p>
+      <div>
+        <p className="mb-2 text-sm font-bold text-muted">신청 정보</p>
+        <p className="mb-2 text-sm">입금자명: {application.depositor_name}</p>
+        {attendees.length > 0 ? (
           <ul className="flex flex-col gap-1 text-sm">
             {attendees.map((attendee, i) => (
               <li key={i}>
                 {attendee.name}
-                {attendee.nickname ? ` (${attendee.nickname})` : ""}
+                {attendee.nickname ? ` (${attendee.nickname})` : ""} · {attendee.phone}
                 {i === 0 ? " · 대표 신청자" : ""}
               </li>
             ))}
           </ul>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <div className="rounded-lg bg-brand-soft p-4 text-sm">
-        <p className="mb-1 font-bold">무통장입금 안내 (간이)</p>
-        <p>은행: 준비 중</p>
-        <p>계좌번호: 준비 중</p>
-        <p>예금주: 우주이스케이프</p>
+        <p className="mb-1 font-bold">무통장입금 안내</p>
+        <p>은행: {BANK_ACCOUNT.bankName}</p>
+        <p>계좌번호: {BANK_ACCOUNT.accountNumber}</p>
+        <p>예금주: {BANK_ACCOUNT.accountHolder}</p>
         <p>입금액: {formatKrw(priceKrw)}</p>
-        <p>입금자명: {application.depositor_name}</p>
-        <p className="mt-2 text-xs text-muted">
-          자세한 계좌 정보와 입금 기한은 신청확인 문자로 안내드립니다. 행사 전날부터는 환불이 불가합니다.
+      </div>
+
+      <div className="rounded-lg bg-danger-soft p-4 text-sm text-danger">
+        <p className="font-bold">환불 기한</p>
+        <p className="mt-1">
+          {formatRefundDeadline(eventDate)}까지 취소 시 환불 가능하며, 이후에는 환불이 불가해요.
         </p>
       </div>
 

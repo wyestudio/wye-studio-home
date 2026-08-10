@@ -20,7 +20,12 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/ap
           이 회차는 모집이 마감되었습니다.
         </p>
       ) : (
-        <ApplyForm sessionId={id} priceKrw={session.price_krw} />
+        <ApplyForm
+          sessionId={id}
+          priceKrw={session.price_krw}
+          sessionTitle={session.title}
+          eventDate={session.event_date}
+        />
       )}
     </div>
   );

@@ -26,7 +26,17 @@ function phoneDigits(phone: string) {
   return phone.replace(/[^0-9]/g, "");
 }
 
-export function ApplyForm({ sessionId, priceKrw }: { sessionId: string; priceKrw: number }) {
+export function ApplyForm({
+  sessionId,
+  priceKrw,
+  sessionTitle,
+  eventDate,
+}: {
+  sessionId: string;
+  priceKrw: number;
+  sessionTitle: string;
+  eventDate: string;
+}) {
   const [state, formAction, pending] = useActionState(applyAction, initialState);
   const [attendeeCount, setAttendeeCount] = useState(1);
   // 입력값을 React state로 들고 있어야 서버 액션이 에러를 반환해 다시 렌더링돼도
@@ -78,6 +88,8 @@ export function ApplyForm({ sessionId, priceKrw }: { sessionId: string; priceKrw
         application={state.application}
         attendees={state.attendees ?? []}
         priceKrw={priceKrw}
+        sessionTitle={sessionTitle}
+        eventDate={eventDate}
       />
     );
   }

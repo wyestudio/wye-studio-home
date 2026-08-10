@@ -23,3 +23,13 @@ export function formatSessionDate(eventDate: string): string {
   const weekday = WEEKDAYS[d.getDay()];
   return `${month}월 ${date}일(${weekday})`;
 }
+
+// 환불 기한(행사 전날)을 "OO월 OO일(요일)" 형식으로 반환.
+export function formatRefundDeadline(eventDate: string): string {
+  const d = new Date(eventDate + "T00:00:00");
+  d.setDate(d.getDate() - 1);
+  const month = d.getMonth() + 1;
+  const date = d.getDate();
+  const weekday = WEEKDAYS[d.getDay()];
+  return `${month}월 ${date}일(${weekday})`;
+}

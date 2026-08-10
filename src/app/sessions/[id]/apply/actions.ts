@@ -1,7 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isEligibleBirthYear } from "@/lib/eligibility";
+import { getSessionById } from "@/lib/sessions";
+import { sendApplicationSlackAlert } from "@/lib/slack";
+import { sendApplicationConfirmationSms } from "@/lib/sms";
 import type { Application } from "@/types/domain";
 
 export type AttendeeInput = {
@@ -125,5 +129,20 @@ export async function applyAction(
     return { error: error.message, attendees, conflictPhoneDigits, conflictReason };
   }
 
-  return { application: data as Application, attendees };
+  const application = data as Application;
+
+  after(async () => {
+    try {
+      const session = await getSessionById(sessionId);
+      if (!session) return;
+      await Promise.all([
+        sendApplicationSlackAlert({ session, application, attendees }),
+        sendApplicationConfirmationSms({ session, application, attendees }),
+      ]);
+    } catch (err) {
+      console.error("[notify] 신청 알림 처리 중 에러", err);
+    }
+  });
+
+  return { application, attendees };
 }
