@@ -58,6 +58,16 @@ export const metadata: Metadata = {
   },
 };
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "우주이스케이프",
+  alternateName: ["WYE", "Would You Escape"],
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo-black.png`,
+  description: SITE_DESCRIPTION,
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -65,6 +75,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
