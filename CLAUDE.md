@@ -44,11 +44,12 @@
 - [x] **SEO 기초 작업 완료** (2026-08-10) — `src/app/robots.ts`/`sitemap.ts` 추가(세션 상세 페이지는 Supabase에서 동적으로 끌어옴), `layout.tsx`의 `metadata`에 OpenGraph/Twitter 카드/keywords 보강, `opengraph-image.tsx`로 동적 OG 이미지 생성(마스코트 이미지 + 한글 폰트 서브셋 임베드). Google Search Console에 도메인 속성 등록(Cloudflare DNS TXT 인증, OAuth 자동 연동은 보안상 거부하고 수동 등록) + 사이트맵 제출 완료. 네이버 서치어드바이저도 사이트 등록(HTML meta 태그 인증, `layout.tsx`의 `verification.other`에 반영) + 사이트맵 제출 완료. 색인 반영까지는 며칠~2주 소요 예상, 색인 여부는 `site:wouldyouescape.com` 검색이나 각 콘솔의 URL 검사/색인 상태 확인 도구로 확인 가능.
 - [x] **참가 신청 시 Slack 알림 + 문자(SMS) 신청확인 발송** (2026-08-10) — `submit_application()` 성공 직후 Next.js `after()`(`next/server`)로 응답을 먼저 돌려주고 백그라운드에서 처리: `src/lib/slack.ts`(`sendApplicationSlackAlert`, Incoming Webhook으로 세션/상태/참여자/접수번호 전송)와 `src/lib/sms.ts`(`sendApplicationConfirmationSms`, Solapi SDK로 대표 신청자에게 접수번호·계좌·환불기한 안내). 둘 다 관련 환경변수(`SLACK_WEBHOOK_URL` / `SOLAPI_API_KEY`·`SOLAPI_API_SECRET`·`SOLAPI_SENDER_NUMBER`)가 없으면 `console.warn`만 남기고 조용히 스킵 — 신청 자체는 절대 실패하지 않음. 필요한 키는 `.env.example`에 문서화.
   - **Slack**: `api.slack.com`에 "Wouldyouescape Notify" 앱을 Blank app으로 생성 → Incoming Webhooks 활성화 → `#apply-notification` 채널로 Webhook 발급 → `.env.local`에 등록. 실제 신청 제출 후 채널에 메시지 도착까지 확인 완료.
-  - **SMS(Solapi)**: 코드는 완성했지만 **아직 계정 미생성** — Solapi 회원가입 + 발신번호 등록(본인 명의면 SMS 본인인증만으로 즉시 가능) + 충전 필요. 카카오 알림톡(번호 노출 없음)도 검토했으나 사업자등록번호 없이는 카카오 "비즈니스 채널" 인증이 안 돼 알림톡 발송이 막힘을 확인 — 사업자등록 이후 재검토.
+  - **SMS(Solapi) — 실제 발송까지 확인 완료** (2026-08-10) — 계정 생성, 제로콜(070-5236-4797, 개인 명의) 발신번호 서류 인증 승인, 잔액 충전까지 마치고 실제 신청 폼 제출로 라이브 테스트 진행. Solapi API(`getMessages`)로 발송 결과를 직접 조회해 `status: "COMPLETE"`, `reason: "수신 완료"`로 실제 수신까지 확인됨. 카카오 알림톡(번호 노출 없음)도 검토했으나 사업자등록번호 없이는 카카오 "비즈니스 채널" 인증이 안 돼 알림톡 발송이 막힘을 확인 — 사업자등록 이후 재검토.
   - **무통장입금 계좌 확정** — 카카오뱅크 3333052843942, 예금주는 개인 명의라 보안상 "김*온"으로 마스킹 표시(`src/lib/bankAccount.ts`). 신청 완료 화면(`ApplyComplete.tsx`)의 "준비 중" 플레이스홀더를 실제 값으로 교체.
   - **신청 완료 화면(`ApplyComplete.tsx`) 보강** — 참여자 명단에 전화번호 추가, 그룹/단독에 따라 "대표 신청자"/"신청자" 문구로 문자 발송 보조 안내 추가, 환불 기한(행사 전날, `formatRefundDeadline()`)을 명확한 문구로 표시. SMS가 아직 연동 전이라 계좌 정보는 화면에서 제거하지 않고 그대로 유지(화면이 유일한 신뢰 가능 정보원).
   - 문자 알림 3단계(신청확인→입금확인→참가확정) 중 **1단계만 구현** — 2·3단계는 각각 Database Webhook/Cron이 필요한 별도 작업으로 남음("향후 추가 예정" 참고).
 - [x] **네비게이션 4개 메뉴 재편 + 소개팅 성비 분리 신청 로직** (2026-08-10) — 헤더 네비를 About/Contents/Check(=`/lookup`, 라벨만 영문화)/Notice 4개로 재편(`/about`·`/contents`·`/notice` 신규 페이지 추가, `sitemap.ts`에 3개 반영). 처음엔 홈에서 `ConceptCards`/`ProcessSteps`/`FaqPreview`를 각 신규 페이지로 옮기며 중복을 없앴으나, 사용자가 "홈 형태는 원래대로 유지"를 요청해 **홈에도 그대로 남겨두고 About/Contents/Notice에도 같은 컴포넌트를 재사용하는 의도된 중복 구조**로 최종 조정함(`ConceptCards`→`src/components/about/`, `ProcessSteps`→`src/components/contents/`, FAQ 콘텐츠→`src/components/notice/FaqSection.tsx`로 파일 위치만 옮기고 홈/About/Contents/Notice 각각에서 import해서 씀). "홈" 메뉴 항목은 로고 클릭이 이미 홈으로 가서 넣지 않음. 소개팅 회차는 성비를 맞춰야 해서 그룹 신청을 막고 1인+성별 필수 신청으로 전환, 남/여 각각 정원 10명씩 독립 판정하도록 `submit_application()`/`get_session_stats()`를 `supabase-schema.sql` v9로 재작성(`sessions.capacity_confirm_line_male/female`, `application_attendees.gender` 컬럼 추가). 정원이 다 안 찼을 때 성비를 깨서 채우는 결정은 자동화하지 않고 운영자 수동 처리로 남겨둠(위 "데이터 모델" 참고). 비소개팅 회차는 기존 그룹 신청 로직 100% 유지.
+- [x] **Solapi 신청확인 SMS 실제 발송 검증** (2026-08-10) — 발신번호(제로콜 070-5236-4797) 서류 인증 승인 + 잔액 충전 완료 후, 실제 신청 폼으로 라이브 테스트 진행(비소개팅 회차, 접수번호 810751). Solapi SDK의 `getMessages()`로 발송 이력을 직접 조회해 `status: "COMPLETE"` / `reason: "수신 완료"`를 확인 — 콘솔 로그에 의존하지 않고 Solapi API 응답 자체로 실수신을 검증하는 방법을 새로 확립함(추후 SMS 관련 이슈 디버깅 시 재사용 가능). 테스트로 만든 신청 데이터는 확인 후 `delete from applications where confirmation_code = '810751'`로 정리 완료.
 
 # 화면 / 라우팅 구조
 
@@ -103,20 +104,19 @@
 
 # 향후 추가 예정 (설계는 돼 있으나 미구현)
 
-- **문자 알림 3단계**: 신청확인(즉시, 계좌·입금액 포함) → 입금확인(운영자가 `payment_status`를 confirmed로 바꿀 때, Database Webhook 필요 — 환불불가 시작일=행사 전날 안내 포함) → 참가확정(행사 전날, 시간 기반 Cron 필요, 정확한 장소 최초 공개). **1단계(신청확인) 코드는 구현 완료**(`src/lib/sms.ts`, Solapi SDK), 계정 미생성이라 실제 발송은 대기 중("앞으로 할 일" 1번 참고). 2·3단계는 미구현.
+- **문자 알림 3단계**: 신청확인(즉시, 계좌·입금액 포함) → 입금확인(운영자가 `payment_status`를 confirmed로 바꿀 때, Database Webhook 필요 — 환불불가 시작일=행사 전날 안내 포함) → 참가확정(행사 전날, 시간 기반 Cron 필요, 정확한 장소 최초 공개). **1단계(신청확인)는 실제 발송까지 확인 완료**(`src/lib/sms.ts`, Solapi SDK, 2026-08-10 라이브 테스트로 실수신 검증됨). 2·3단계는 미구현("앞으로 할 일" 참고).
 - **이용약관/개인정보처리방침/환불정책 동의 문구 확정** — 아직 실제 약관 내용이 정해지지 않아서 미착수. `ApplyForm`의 체크박스는 지금 "이용약관, 개인정보처리방침, 환불정책에 모두 동의합니다"라는 뭉뚱그린 문구뿐이고 실제 약관 페이지/전문은 없음. 아래 정책 페이지(10~12) 작업과 함께 처리해야 함.
 - 04 실시간 모집 현황 단독 페이지, 05 참가 확인, 06 무통장입금 정식 안내(현재는 신청 완료 화면에 간이 버전만 있음), 09 문의하기, 10~12 정책 페이지(이용약관/개인정보처리방침/환불정책) — 07 FAQ/08 공지사항은 `/notice`로 이미 반영됨(2026-08-10).
 - Phase 2: PG 결제 연동(필요 시 로그인 시스템 재활성화 검토 — 휴면 처리된 상태, "설계 변경 이력" 참고), 리뷰, 다회차/다지역 카탈로그, 애프터 매칭, 관리자 대시보드, 추천인 코드.
 
 # 앞으로 할 일 (순서대로)
 
-1. **Solapi 잔액 충전 + 발신번호 승인 대기** (2026-08-10 진행) — 계정 생성, API 키 발급, `.env.local`/Vercel 프로덕션에 `SOLAPI_API_KEY`/`SOLAPI_API_SECRET`/`SOLAPI_SENDER_NUMBER` 등록까지 완료. 번호 노출 부담 때문에 개인 실제 번호 대신 **제로콜(070-5236-4797, 개인 명의)**을 새로 개통해서 발신번호로 등록 — 통신서비스 이용증명원(제로콜 발급)을 서류 인증으로 제출함, 승인까지 영업일 1~3일 소요 예정. 남은 것: (1) 서류 승인 대기, (2) **잔액 충전**(현재 0원, 결제라 직접 진행 필요) — 이 둘이 끝나야 실제 문자 발송이 됨. API Key 발급 시 IP 제한은 "모든 IP 허용"으로 설정함(Vercel 서버리스는 고정 아웃바운드 IP가 없어서 특정 IP로 제한하면 프로덕션에서 호출이 막힘).
-2. **카카오 공유 시 메시지 포맷** — Open Graph 메타태그(`og:title`/`og:description`/`og:image`)는 SEO 작업으로 이미 세팅 완료(카카오톡 공유 시 기본 미리보기는 뜸). 카카오 SDK 공유 버튼("카톡으로 공유하기")은 아직 미착수, 필요하면 검토.
-3. 네이버 로그인 — Supabase 기본 미지원(Custom OIDC 필요), 실제 시도 시 추가 작업 필요할 수 있음. 아직 미착수.
-4. 04~06, 09~12 나머지 베타 화면 순차 추가(이용약관/환불정책 문구 확정 포함), (나중) PG 결제 연동
-5. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토, 카카오 알림톡(번호 노출 없는 문자 대안)도 사업자등록 후 재검토 — 아래 "카카오 로그인 관련 결정" 참고
-6. 문자 알림 2·3단계(입금확인/참가확정) — Solapi 연동 완료 후, 입금확인은 Supabase Database Webhook(`payment_status` 변경 감지), 참가확정은 시간 기반 Cron 필요.
-7. **(보류)** 이메일 발송 문구 커스텀화 — 로그인 시스템이 휴면 처리되며 이메일 발송 자체가 당장 불필요해짐. 로그인/PG 결제 연동 등으로 재활성화될 때 재검토.
+1. **카카오 공유 시 메시지 포맷** — Open Graph 메타태그(`og:title`/`og:description`/`og:image`)는 SEO 작업으로 이미 세팅 완료(카카오톡 공유 시 기본 미리보기는 뜸). 카카오 SDK 공유 버튼("카톡으로 공유하기")은 아직 미착수, 필요하면 검토.
+2. 네이버 로그인 — 예전엔 "Supabase 기본 미지원(Custom OIDC 필요)"으로 적어뒀지만, 이후 실제로 네이버가 `https://nid.naver.com/.well-known/openid-configuration`에서 표준 OIDC(서명된 id_token, JWKS)를 지원하기 시작한 걸 확인한 적이 있어 예상보다 단순해질 수 있음. 다만 로그인 시스템 자체가 지금 휴면 처리 상태라 우선순위는 낮음, 착수 전 재확인 필요.
+3. 04~06, 09~12 나머지 베타 화면 순차 추가(이용약관/환불정책 문구 확정 포함), (나중) PG 결제 연동
+4. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토, 카카오 알림톡(번호 노출 없는 문자 대안)도 사업자등록 후 재검토 — 아래 "카카오 로그인 관련 결정" 참고
+5. 문자 알림 2·3단계(입금확인/참가확정) — Solapi 연동 자체는 완료(위 "지금까지 완료한 것" 참고), 입금확인은 Supabase Database Webhook(`payment_status` 변경 감지), 참가확정은 시간 기반 Cron 필요.
+6. **(보류)** 이메일 발송 문구 커스텀화 — 로그인 시스템이 휴면 처리되며 이메일 발송 자체가 당장 불필요해짐. 로그인/PG 결제 연동 등으로 재활성화될 때 재검토.
 
 ## 도메인 연결 작업 기록 (2026-08-07, 전부 완료)
 
