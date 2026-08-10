@@ -10,8 +10,23 @@ export function Header() {
     <header className="sticky top-0 z-10 border-b border-border bg-surface/90 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
         <div className="flex items-center gap-2">
-          <Link href="/" className="text-base font-extrabold tracking-tight text-brand">
-            우주이스케이프
+          <Link href="/" aria-label="우주이스케이프" className="flex items-center">
+            <Image
+              src="/logo-black.png"
+              alt="우주이스케이프"
+              width={92}
+              height={64}
+              priority
+              className="logo-light h-8 w-auto"
+            />
+            <Image
+              src="/logo-white.png"
+              alt="우주이스케이프"
+              width={92}
+              height={64}
+              priority
+              className="logo-dark h-8 w-auto"
+            />
           </Link>
           <div className="relative" aria-hidden>
             <span className="animate-hammer-swing absolute -left-2 -top-1.5 text-sm">

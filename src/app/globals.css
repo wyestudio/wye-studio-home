@@ -73,3 +73,17 @@ body {
   animation: hammer-swing 1.1s ease-in-out infinite;
   transform-origin: 90% 80%;
 }
+
+.logo-dark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo-light {
+    display: none;
+  }
+
+  .logo-dark {
+    display: block;
+  }
+}
