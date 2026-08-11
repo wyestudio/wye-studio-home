@@ -49,9 +49,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         {session.status === "closed" ? <Badge tone="danger">모집 마감</Badge> : <Badge tone="neutral">모집중</Badge>}
       </div>
 
-      {isDatingSession ? (
-        <div className="mb-8">
-          <div className="flex gap-4">
+      <div className="mb-8">
+        <div className="flex gap-4">
+          {isDatingSession ? (
             <div className="relative aspect-square w-32 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-surface sm:w-40">
               <Image
                 src="/bar-o-title.png"
@@ -62,22 +62,22 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
                 priority
               />
             </div>
-            <div className="flex flex-col justify-center">
-              <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
-              <p className="text-sm text-muted">{session.description}</p>
+          ) : (
+            <div className="flex aspect-square w-32 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-brand-soft text-center text-xs text-muted sm:w-40">
+              대표 이미지
+              <br />
+              준비 중
             </div>
+          )}
+          <div className="flex flex-col justify-center">
+            <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
+            <p className="text-sm text-muted">{session.description}</p>
           </div>
-          <p className="mt-2 text-xs text-muted">테마 아트웍 이미지 · 실제 진행 공간은 회차마다 달라질 수 있어요.</p>
         </div>
-      ) : (
-        <>
-          <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
-          <p className="mb-8 text-muted">{session.description}</p>
-          <div className="mb-6 flex h-48 items-center justify-center rounded-xl border border-dashed border-border bg-brand-soft text-sm text-muted">
-            대표 이미지 준비 중
-          </div>
-        </>
-      )}
+        {isDatingSession ? (
+          <p className="mt-2 text-xs text-muted">테마 아트웍 이미지 · 실제 진행 공간은 회차마다 달라질 수 있어요.</p>
+        ) : null}
+      </div>
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-bold text-muted">포함사항</h2>
