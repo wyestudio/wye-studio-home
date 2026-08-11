@@ -27,6 +27,14 @@ export async function SessionCard({ session }: { session: Session }) {
         {formatSessionDateTime(session.start_at)} · {session.venue_area}
       </p>
       <p className="text-sm font-semibold">{formatKrw(session.price_krw)} / 인당</p>
+      <div className="flex flex-wrap gap-1.5">
+        <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
+          방탈출 1회 플레이
+        </span>
+        <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
+          {session.theme_label === "소개팅" ? "성비 맞춤 매칭" : "4인 1조 랜덤 편성"}
+        </span>
+      </div>
 
       <div className="mt-1">
         <div className="mb-1 flex items-center justify-between text-xs text-muted">

@@ -11,6 +11,9 @@ export function Hero({ sessions }: { sessions: Session[] }) {
         <p className="mt-3 text-muted">
           매번 다른 파티룸을 대관해, 4인 1조로 랜덤 편성된 사람들과 방탈출을 함께 플레이합니다.
         </p>
+        <p className="mt-4 text-xs text-muted">
+          🔒 입력하신 정보는 암호화되어 안전하게 보관돼요 · 로그인 없이 3분 신청
+        </p>
       </div>
 
       <div id="sessions" className="mx-auto mt-10 grid max-w-3xl gap-4 sm:grid-cols-2">

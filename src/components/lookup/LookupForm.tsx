@@ -101,6 +101,7 @@ export function LookupForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      <p className="text-xs text-muted">접수번호는 신청 완료 화면과 문자로 안내드려요.</p>
       <Field label="대표 신청자 전화번호" htmlFor="phone">
         <Input id="phone" name="phone" type="tel" required placeholder="010-0000-0000" />
       </Field>

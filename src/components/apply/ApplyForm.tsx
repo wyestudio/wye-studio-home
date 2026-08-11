@@ -341,6 +341,8 @@ export function ApplyForm({
         <span>이용약관, 개인정보처리방침, 환불정책에 모두 동의합니다.</span>
       </label>
 
+      <p className="text-xs text-muted">🔒 입력하신 이름·전화번호는 암호화되어 저장돼요.</p>
+
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
 
       <Button type="submit" disabled={pending} className="w-full">
