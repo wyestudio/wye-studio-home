@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isEligibleBirthYear } from "@/lib/eligibility";
 import { getSessionById } from "@/lib/sessions";
 import { sendApplicationSlackAlert } from "@/lib/slack";
+import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import type { Application, Gender } from "@/types/domain";
 
 export type AttendeeInput = {
@@ -27,10 +28,6 @@ export type ApplyState = {
   // "theme": 이미 같은 테마에 참여한 적 있는 전화번호가 포함됨
   conflictReason?: "group" | "theme";
 };
-
-function phoneDigits(phone: string) {
-  return phone.replace(/[^0-9]/g, "");
-}
 
 const ATTENDEE_FIELD_PATTERN = /^attendees\[(\d+)\]\[(name|phone|birthYear|nickname|gender)\]$/;
 
@@ -91,6 +88,9 @@ export async function applyAction(
   for (const attendee of attendees) {
     if (!attendee.name || !attendee.phone) {
       return { error: "참여자 이름과 전화번호를 모두 입력해주세요.", attendees };
+    }
+    if (!isValidPhoneDigits(phoneDigits(attendee.phone))) {
+      return { error: "올바른 휴대폰 번호 형식이 아니에요. (예: 010-1234-5678)", attendees };
     }
     if (!isEligibleBirthYear(attendee.birthYear)) {
       return { error: "참여자 출생년도는 1990~1999년만 가능합니다.", attendees };

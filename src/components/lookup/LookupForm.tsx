@@ -5,6 +5,7 @@ import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatKrw, formatRefundDeadline, formatSessionDate } from "@/lib/format";
+import { formatPhoneDigits } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { lookupAction, type LookupState } from "@/app/lookup/actions";
 import type { ApplicationStatus, PaymentStatus, SessionSlot } from "@/types/domain";
@@ -66,7 +67,7 @@ export function LookupForm() {
               {result.attendees.map((attendee, i) => (
                 <li key={i}>
                   {attendee.name}
-                  {attendee.nickname ? ` (${attendee.nickname})` : ""} · {attendee.phone}
+                  {attendee.nickname ? ` (${attendee.nickname})` : ""} · {formatPhoneDigits(attendee.phone)}
                   {attendee.gender ? ` · ${attendee.gender === "M" ? "남성" : "여성"}` : ""}
                   {isGroup && attendee.is_representative ? " · 대표 신청자" : ""}
                 </li>

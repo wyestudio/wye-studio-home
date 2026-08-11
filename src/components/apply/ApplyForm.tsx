@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { ApplyComplete } from "@/components/apply/ApplyComplete";
 import { applyAction, type ApplyState } from "@/app/sessions/[id]/apply/actions";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
+import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 
 const initialState: ApplyState = {};
 const MAX_ATTENDEES = 8;
@@ -17,13 +18,33 @@ const BIRTH_YEARS = Array.from(
 const selectClassName =
   "w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none focus:border-brand";
 
-type AttendeeField = "name" | "phone" | "birthYear" | "nickname" | "gender";
-type AttendeeState = { name: string; phone: string; birthYear: string; nickname: string; gender: string };
+type AttendeeField = "name" | "phone1" | "phone2" | "phone3" | "birthYear" | "nickname" | "gender";
+type AttendeeState = {
+  name: string;
+  phone1: string;
+  phone2: string;
+  phone3: string;
+  birthYear: string;
+  nickname: string;
+  gender: string;
+};
 
-const emptyAttendee: AttendeeState = { name: "", phone: "", birthYear: "", nickname: "", gender: "" };
+const emptyAttendee: AttendeeState = {
+  name: "",
+  phone1: "",
+  phone2: "",
+  phone3: "",
+  birthYear: "",
+  nickname: "",
+  gender: "",
+};
 
-function phoneDigits(phone: string) {
-  return phone.replace(/[^0-9]/g, "");
+function phoneInputClassName(invalid: boolean) {
+  return `w-full rounded-lg border px-3 py-2.5 text-center text-sm outline-none ${
+    invalid
+      ? "border-danger bg-danger-soft text-danger"
+      : "border-border bg-surface text-foreground focus:border-brand"
+  }`;
 }
 
 export function ApplyForm({
@@ -48,6 +69,9 @@ export function ApplyForm({
   const [attendees, setAttendees] = useState<AttendeeState[]>([{ ...emptyAttendee }]);
   const [depositorName, setDepositorName] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
+  // 제출을 한 번이라도 시도한 뒤부터 형식 오류 칸을 빨갛게 표시한다 — 타이핑
+  // 중간에 매 글자마다 빨개지는 건 거슬리니, 시도 이후에는 실시간으로 반영.
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const conflictPhones = new Set(state.conflictPhoneDigits ?? []);
 
@@ -65,6 +89,30 @@ export function ApplyForm({
     setAttendees((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
   }
 
+  // 세 칸으로 나뉜 전화번호 입력칸 하나를 갱신한다. 숫자만 허용하고 칸별
+  // 길이 제한에 맞춰 자르며, 칸이 다 채워지면 다음 칸으로 자동 이동한다.
+  function updatePhoneSegment(
+    index: number,
+    field: "phone1" | "phone2" | "phone3",
+    rawValue: string,
+    maxLength: number,
+    nextId: string | null
+  ) {
+    const digitsOnly = rawValue.replace(/[^0-9]/g, "").slice(0, maxLength);
+    updateAttendee(index, field, digitsOnly);
+    if (nextId && digitsOnly.length === maxLength) {
+      document.getElementById(nextId)?.focus();
+    }
+  }
+
+  // 빈 칸에서 백스페이스를 누르면 이전 칸으로 포커스를 옮겨 자연스럽게
+  // 이어서 지울 수 있게 한다.
+  function handlePhoneBackspace(e: React.KeyboardEvent<HTMLInputElement>, prevId: string | null) {
+    if (e.key === "Backspace" && e.currentTarget.value === "" && prevId) {
+      document.getElementById(prevId)?.focus();
+    }
+  }
+
   // <form action={formAction}>로 직접 연결하면 React가 액션 완료 후(성공이든 에러든)
   // 네이티브 form.reset()을 호출하는데, 이게 checkbox/select 같은 엘리먼트는 React
   // state와 무관하게 실제로 리셋시켜버린다(실제로 겪은 버그 — 이용약관 체크가 풀리고
@@ -72,13 +120,22 @@ export function ApplyForm({
   // 아니라 이미 들고 있는 React state에서 그대로 구성해 제출한다.
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    const hasInvalidPhone = attendees.some(
+      (a) => !isValidPhoneDigits(`${a.phone1}${a.phone2}${a.phone3}`)
+    );
+    if (hasInvalidPhone) {
+      setSubmitAttempted(true);
+      return;
+    }
+
     const formData = new FormData();
     formData.set("sessionId", sessionId);
     formData.set("depositorName", depositorName);
     if (agreedTerms) formData.set("agreedTerms", "on");
     attendees.forEach((attendee, i) => {
       formData.set(`attendees[${i}][name]`, attendee.name);
-      formData.set(`attendees[${i}][phone]`, attendee.phone);
+      formData.set(`attendees[${i}][phone]`, `${attendee.phone1}${attendee.phone2}${attendee.phone3}`);
       formData.set(`attendees[${i}][birthYear]`, attendee.birthYear);
       formData.set(`attendees[${i}][nickname]`, attendee.nickname);
       formData.set(`attendees[${i}][gender]`, attendee.gender);
@@ -127,7 +184,10 @@ export function ApplyForm({
 
       <div className="flex flex-col gap-4">
         {attendees.map((attendee, i) => {
-          const isConflict = conflictPhones.has(phoneDigits(attendee.phone));
+          const combinedPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
+          const isConflict = conflictPhones.has(phoneDigits(combinedPhone));
+          const isFormatInvalid = submitAttempted && !isValidPhoneDigits(combinedPhone);
+          const phoneInvalid = isConflict || isFormatInvalid;
           return (
             <div
               key={i}
@@ -149,16 +209,54 @@ export function ApplyForm({
                     onChange={(e) => updateAttendee(i, "name", e.target.value)}
                   />
                 </Field>
-                <Field label="전화번호" htmlFor={`attendee-${i}-phone`}>
-                  <Input
-                    id={`attendee-${i}-phone`}
-                    name={`attendees[${i}][phone]`}
-                    type="tel"
-                    required
-                    placeholder="010-0000-0000"
-                    value={attendee.phone}
-                    onChange={(e) => updateAttendee(i, "phone", e.target.value)}
-                  />
+                <Field
+                  label="전화번호"
+                  htmlFor={`attendee-${i}-phone1`}
+                  error={isFormatInvalid ? "올바른 휴대폰 번호 형식이 아니에요." : undefined}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={`attendee-${i}-phone1`}
+                      type="tel"
+                      inputMode="numeric"
+                      required
+                      maxLength={3}
+                      placeholder="010"
+                      value={attendee.phone1}
+                      onChange={(e) =>
+                        updatePhoneSegment(i, "phone1", e.target.value, 3, `attendee-${i}-phone2`)
+                      }
+                      className={phoneInputClassName(phoneInvalid)}
+                    />
+                    <span className="text-muted">-</span>
+                    <input
+                      id={`attendee-${i}-phone2`}
+                      type="tel"
+                      inputMode="numeric"
+                      required
+                      maxLength={4}
+                      placeholder="0000"
+                      value={attendee.phone2}
+                      onKeyDown={(e) => handlePhoneBackspace(e, `attendee-${i}-phone1`)}
+                      onChange={(e) =>
+                        updatePhoneSegment(i, "phone2", e.target.value, 4, `attendee-${i}-phone3`)
+                      }
+                      className={phoneInputClassName(phoneInvalid)}
+                    />
+                    <span className="text-muted">-</span>
+                    <input
+                      id={`attendee-${i}-phone3`}
+                      type="tel"
+                      inputMode="numeric"
+                      required
+                      maxLength={4}
+                      placeholder="0000"
+                      value={attendee.phone3}
+                      onKeyDown={(e) => handlePhoneBackspace(e, `attendee-${i}-phone2`)}
+                      onChange={(e) => updatePhoneSegment(i, "phone3", e.target.value, 4, null)}
+                      className={phoneInputClassName(phoneInvalid)}
+                    />
+                  </div>
                 </Field>
                 <Field label="출생년도" htmlFor={`attendee-${i}-birthYear`}>
                   <select

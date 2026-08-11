@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { formatKrw, formatRefundDeadline } from "@/lib/format";
+import { formatPhoneDigits } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import type { Application } from "@/types/domain";
 import type { AttendeeInput } from "@/app/sessions/[id]/apply/actions";
@@ -67,7 +68,7 @@ export function ApplyComplete({
         </div>
         {representative ? (
           <p className="text-xs text-muted">
-            입금 안내를 {smsRecipientLabel} 전화번호({representative.phone})로도 보내드려요.
+            입금 안내를 {smsRecipientLabel} 전화번호({formatPhoneDigits(representative.phone)})로도 보내드려요.
           </p>
         ) : null}
       </div>
@@ -94,7 +95,7 @@ export function ApplyComplete({
             {attendees.map((attendee, i) => (
               <li key={i}>
                 {attendee.name}
-                {attendee.nickname ? ` (${attendee.nickname})` : ""} · {attendee.phone}
+                {attendee.nickname ? ` (${attendee.nickname})` : ""} · {formatPhoneDigits(attendee.phone)}
                 {attendee.gender ? ` · ${attendee.gender === "M" ? "남성" : "여성"}` : ""}
                 {isGroup && i === 0 ? " · 대표 신청자" : ""}
               </li>
