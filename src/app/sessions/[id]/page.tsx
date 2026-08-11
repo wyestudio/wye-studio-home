@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getSessionById, getSessionStats } from "@/lib/sessions";
 import { formatKrw, formatSessionDate, formatSessionDateTime } from "@/lib/format";
@@ -51,9 +52,24 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
       <p className="mb-8 text-muted">{session.description}</p>
 
-      <div className="mb-6 flex h-48 items-center justify-center rounded-xl border border-dashed border-border bg-brand-soft text-sm text-muted">
-        대표 이미지 준비 중
-      </div>
+      {isDatingSession ? (
+        <div className="mb-6">
+          <div className="relative h-48 overflow-hidden rounded-xl border border-border">
+            <Image
+              src="/bar-o-title.png"
+              alt="바-오 탈출 테마 아트웍"
+              fill
+              className="object-cover"
+              priority
+            />
+          </div>
+          <p className="mt-1.5 text-xs text-muted">테마 아트웍 이미지 · 실제 진행 공간은 회차마다 달라질 수 있어요.</p>
+        </div>
+      ) : (
+        <div className="mb-6 flex h-48 items-center justify-center rounded-xl border border-dashed border-border bg-brand-soft text-sm text-muted">
+          대표 이미지 준비 중
+        </div>
+      )}
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-bold text-muted">포함사항</h2>
