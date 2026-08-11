@@ -49,26 +49,34 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         {session.status === "closed" ? <Badge tone="danger">모집 마감</Badge> : <Badge tone="neutral">모집중</Badge>}
       </div>
 
-      <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
-      <p className="mb-8 text-muted">{session.description}</p>
-
       {isDatingSession ? (
-        <div className="mb-6">
-          <div className="relative h-48 overflow-hidden rounded-xl border border-border">
-            <Image
-              src="/bar-o-title.png"
-              alt="바-오 탈출 테마 아트웍"
-              fill
-              className="object-cover"
-              priority
-            />
+        <div className="mb-8">
+          <div className="flex gap-4">
+            <div className="relative aspect-square w-32 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-surface sm:w-40">
+              <Image
+                src="/bar-o-title.png"
+                alt="바-오 탈출 테마 아트웍"
+                fill
+                className="object-contain"
+                sizes="160px"
+                priority
+              />
+            </div>
+            <div className="flex flex-col justify-center">
+              <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
+              <p className="text-sm text-muted">{session.description}</p>
+            </div>
           </div>
-          <p className="mt-1.5 text-xs text-muted">테마 아트웍 이미지 · 실제 진행 공간은 회차마다 달라질 수 있어요.</p>
+          <p className="mt-2 text-xs text-muted">테마 아트웍 이미지 · 실제 진행 공간은 회차마다 달라질 수 있어요.</p>
         </div>
       ) : (
-        <div className="mb-6 flex h-48 items-center justify-center rounded-xl border border-dashed border-border bg-brand-soft text-sm text-muted">
-          대표 이미지 준비 중
-        </div>
+        <>
+          <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
+          <p className="mb-8 text-muted">{session.description}</p>
+          <div className="mb-6 flex h-48 items-center justify-center rounded-xl border border-dashed border-border bg-brand-soft text-sm text-muted">
+            대표 이미지 준비 중
+          </div>
+        </>
       )}
 
       <section className="mb-8">
