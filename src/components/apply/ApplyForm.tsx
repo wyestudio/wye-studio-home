@@ -82,13 +82,17 @@ export function ApplyForm({
   useEffect(() => {
     if (state.application && !completeEventSent.current) {
       completeEventSent.current = true;
+      // 그룹 신청은 동행자마다 출생년도/성별이 다를 수 있어 대표 신청자(0번) 값만 보낸다.
+      const representative = state.attendees?.[0];
       pushDataLayerEvent("신청 완료", {
         sessionId,
         themeLabel,
         confirmationCode: state.application.confirmation_code,
+        birthYear: representative?.birthYear,
+        gender: representative?.gender,
       });
     }
-  }, [state.application, sessionId, themeLabel]);
+  }, [state.application, state.attendees, sessionId, themeLabel]);
 
   const conflictPhones = new Set(state.conflictPhoneDigits ?? []);
 
