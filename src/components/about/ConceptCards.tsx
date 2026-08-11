@@ -10,7 +10,7 @@ export function ConceptCards() {
       <h2 className="mb-6 text-center text-xl font-extrabold">우주이스케이프가 다른 이유</h2>
       <div className="grid gap-4 sm:grid-cols-3">
         {CARDS.map((card) => (
-          <div key={card.title} className="rounded-xl border border-border bg-surface p-5 text-center">
+          <div key={card.title} className="rounded-xl glass-panel p-5 text-center">
             <p className="mb-2 font-bold">{card.title}</p>
             <p className="text-sm text-muted">{card.desc}</p>
           </div>

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { StarfieldCanvas } from "@/components/space/StarfieldCanvas";
+import { MascotCursor } from "@/components/space/MascotCursor";
+import { MascotSelectionProvider } from "@/components/space/MascotSelectionContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -78,9 +81,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <MascotSelectionProvider>
+          <StarfieldCanvas />
+          <MascotCursor />
+          <Header />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </MascotSelectionProvider>
       </body>
     </html>
   );

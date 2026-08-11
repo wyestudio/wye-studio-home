@@ -14,12 +14,12 @@ export default function AboutPage() {
 
         <section className="mb-8">
           <h2 className="mb-3 text-sm font-bold text-muted">브랜드 스토리</h2>
-          <p className="rounded-xl border border-dashed border-border bg-surface p-5 text-center text-sm text-muted">
+          <p className="rounded-xl border border-dashed border-glass-border bg-surface/40 p-5 text-center text-sm text-muted">
             회사 소개 준비 중
           </p>
         </section>
 
-        <section className="mb-8 rounded-xl border border-border bg-surface p-5">
+        <section className="mb-8 rounded-xl glass-panel p-5">
           <div className="flex items-center gap-3">
             <span className="text-3xl" aria-hidden>
               🧢
@@ -41,7 +41,7 @@ export default function AboutPage() {
           <h2 className="mb-3 text-center text-xl font-extrabold">운영 원칙</h2>
           <div className="grid gap-4 sm:grid-cols-3">
             {PRINCIPLES.map((p) => (
-              <div key={p.title} className="rounded-xl border border-border bg-surface p-5 text-center">
+              <div key={p.title} className="rounded-xl glass-panel p-5 text-center">
                 <p className="mb-2 font-bold">{p.title}</p>
                 <p className="text-sm text-muted">{p.desc}</p>
               </div>
@@ -49,7 +49,7 @@ export default function AboutPage() {
           </div>
         </section>
 
-        <section className="mb-10 rounded-xl border border-border bg-surface p-5 text-sm">
+        <section className="mb-10 rounded-xl glass-panel p-5 text-sm">
           <p className="mb-1 font-semibold">사업자 정보</p>
           <p className="text-muted">준비 중 (회사 설립 완료 후 기재 예정)</p>
         </section>

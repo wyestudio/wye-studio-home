@@ -16,7 +16,7 @@ const BIRTH_YEARS = Array.from(
 );
 
 const selectClassName =
-  "w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none focus:border-brand";
+  "w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]";
 
 type AttendeeField = "name" | "phone1" | "phone2" | "phone3" | "birthYear" | "nickname" | "gender";
 type AttendeeState = {
@@ -40,10 +40,10 @@ const emptyAttendee: AttendeeState = {
 };
 
 function phoneInputClassName(invalid: boolean) {
-  return `w-full rounded-lg border px-3 py-2.5 text-center text-sm outline-none ${
+  return `w-full rounded-lg border px-3 py-2.5 text-center text-sm outline-none transition-shadow ${
     invalid
       ? "border-danger bg-danger-soft text-danger"
-      : "border-border bg-surface text-foreground focus:border-brand"
+      : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
   }`;
 }
 

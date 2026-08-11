@@ -38,7 +38,7 @@ export function LookupForm() {
 
     return (
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-6 rounded-xl border border-border bg-surface p-6">
+        <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
           <div>
             <p className="text-sm text-muted">{result.session_title}</p>
             <p className="text-xs text-muted">

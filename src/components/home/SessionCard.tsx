@@ -12,28 +12,30 @@ export async function SessionCard({ session }: { session: Session }) {
   return (
     <Link
       href={`/sessions/${session.id}`}
-      className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 transition-shadow hover:shadow-md"
+      className="flex min-h-[26rem] flex-col justify-between gap-3 rounded-xl glass-panel p-5 transition-shadow hover:shadow-[0_0_30px_-6px_var(--glow)]"
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-bold text-brand">{session.theme_label}</span>
-        {session.status === "closed" ? (
-          <Badge tone="danger">마감</Badge>
-        ) : (
-          <Badge tone="neutral">모집중</Badge>
-        )}
-      </div>
-      <h3 className="text-lg font-extrabold">{session.title}</h3>
-      <p className="text-sm text-muted">
-        {formatSessionDateTime(session.start_at)} · {session.venue_area}
-      </p>
-      <p className="text-sm font-semibold">{formatKrw(session.price_krw)} / 인당</p>
-      <div className="flex flex-wrap gap-1.5">
-        <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
-          방탈출 1회 플레이
-        </span>
-        <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
-          {session.theme_label === "소개팅" ? "성비 맞춤 매칭" : "4인 1조 랜덤 편성"}
-        </span>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-brand">{session.theme_label}</span>
+          {session.status === "closed" ? (
+            <Badge tone="danger">마감</Badge>
+          ) : (
+            <Badge tone="neutral">모집중</Badge>
+          )}
+        </div>
+        <h3 className="text-lg font-extrabold">{session.title}</h3>
+        <p className="text-sm text-muted">
+          {formatSessionDateTime(session.start_at)} · {session.venue_area}
+        </p>
+        <p className="text-sm font-semibold">{formatKrw(session.price_krw)} / 인당</p>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
+            방탈출 1회 플레이
+          </span>
+          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
+            {session.theme_label === "소개팅" ? "성비 맞춤 매칭" : "4인 1조 랜덤 편성"}
+          </span>
+        </div>
       </div>
 
       <div className="mt-1">

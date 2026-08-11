@@ -19,7 +19,7 @@ function GenderCapacityPolicyTable({ session, stats }: { session: Session; stats
   ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border">
+    <div className="overflow-hidden rounded-xl border border-glass-border">
       <table className="w-full text-sm">
         <tbody>
           {rows.map((row) => (
@@ -64,7 +64,7 @@ export function CapacityPolicyTable({ session, stats }: { session: Session; stat
   ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border">
+    <div className="overflow-hidden rounded-xl border border-glass-border">
       <table className="w-full text-sm">
         <tbody>
           {rows.map((row) => (

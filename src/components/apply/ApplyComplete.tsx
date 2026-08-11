@@ -55,7 +55,7 @@ export function ApplyComplete({
   const smsRecipientLabel = isGroup ? "대표 신청자" : "신청자";
 
   return (
-    <div className="flex flex-col gap-6 rounded-xl border border-border bg-surface p-6">
+    <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <Badge tone={application.status === "confirmed" ? "confirm" : "wait"}>

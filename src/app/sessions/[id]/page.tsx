@@ -52,7 +52,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       <div className="mb-8">
         <div className="flex gap-4">
           {isDatingSession ? (
-            <div className="relative aspect-square w-32 flex-shrink-0 overflow-hidden rounded-xl border border-border bg-surface sm:w-40">
+            <div className="relative aspect-square w-32 flex-shrink-0 overflow-hidden rounded-xl border border-glass-border bg-surface sm:w-40">
               <Image
                 src="/bar-o-title.png"
                 alt="바-오 탈출 테마 아트웍"
@@ -63,7 +63,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
               />
             </div>
           ) : (
-            <div className="flex aspect-square w-32 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-border bg-brand-soft text-center text-xs text-muted sm:w-40">
+            <div className="flex aspect-square w-32 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-glass-border bg-brand-soft text-center text-xs text-muted sm:w-40">
               대표 이미지
               <br />
               준비 중
@@ -85,7 +85,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           {includedItems.map((item) => (
             <span
               key={item}
-              className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-foreground"
+              className="rounded-full border border-glass-border bg-surface/70 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-sm"
             >
               {item}
             </span>
@@ -100,7 +100,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>
-        <ol className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-5 text-sm">
+        <ol className="flex flex-col gap-3 rounded-xl glass-panel p-5 text-sm">
           {[
             { text: `${formatSessionDateTime(session.start_at)} 현장 도착 및 접수`, muted: false },
             { text: "조 편성 안내", muted: false },
@@ -115,7 +115,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         </ol>
       </section>
 
-      <section className="mb-8 grid gap-4 rounded-xl border border-border bg-surface p-5 text-sm sm:grid-cols-2">
+      <section className="mb-8 grid gap-4 rounded-xl glass-panel p-5 text-sm sm:grid-cols-2">
         <div>
           <p className="mb-1 font-semibold text-muted">일시</p>
           <p>{formatSessionDateTime(session.start_at)}</p>
@@ -143,7 +143,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         <h2 className="mb-3 text-sm font-bold text-muted">자주 묻는 질문</h2>
         <div className="flex flex-col gap-2">
           {faqs.map((faq, i) => (
-            <div key={faq.q} className="rounded-xl border border-border bg-surface p-4 text-sm">
+            <div key={faq.q} className="rounded-xl glass-panel p-4 text-sm">
               <p className="mb-1 font-semibold">
                 <span className="mr-1 text-brand">{i + 1}.</span>
                 {faq.q}
@@ -156,7 +156,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       <Link
         href="/about"
-        className="mb-8 flex items-center justify-between rounded-xl border border-border bg-surface p-4 text-sm transition-colors hover:border-brand"
+        className="mb-8 flex items-center justify-between rounded-xl glass-panel p-4 text-sm transition-colors hover:border-brand"
       >
         <span>
           <span className="font-semibold">우주이스케이프를 만드는 사람들</span>
@@ -167,7 +167,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-bold text-muted">참가자 후기</h2>
-        <p className="rounded-xl border border-dashed border-border bg-surface p-5 text-center text-sm text-muted">
+        <p className="rounded-xl border border-dashed border-glass-border bg-surface/40 p-5 text-center text-sm text-muted">
           아직 등록된 후기가 없어요. 첫 시즌이 끝나면 이 자리에 참가자들의 후기가 채워질 예정이에요.
         </p>
       </section>
@@ -176,7 +176,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         본 행사는 {formatSessionDate(session.event_date)} 진행되며, 행사 전날부터는 환불이 불가합니다.
       </p>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-surface p-4">
+      <div className="fixed inset-x-0 bottom-0 border-t border-glass-border bg-background/90 p-4 backdrop-blur-md">
         <div className="mx-auto max-w-2xl">
           {session.status === "closed" ? (
             <LinkButton href="#" className="pointer-events-none w-full opacity-50">

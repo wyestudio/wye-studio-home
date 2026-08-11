@@ -13,7 +13,7 @@ export function FaqSection() {
       <h2 className="mb-6 text-center text-xl font-extrabold">자주 묻는 질문</h2>
       <div className="flex flex-col gap-3">
         {FAQS.map((faq) => (
-          <div key={faq.q} className="rounded-xl border border-border bg-surface p-4">
+          <div key={faq.q} className="rounded-xl glass-panel p-4">
             <p className="mb-1 font-semibold">{faq.q}</p>
             <p className="text-sm text-muted">{faq.a}</p>
           </div>
