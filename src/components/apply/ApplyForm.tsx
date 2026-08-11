@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { ApplyComplete } from "@/components/apply/ApplyComplete";
 import { applyAction, type ApplyState } from "@/app/sessions/[id]/apply/actions";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
+import { pushDataLayerEvent } from "@/lib/analytics";
 
 const initialState: ApplyState = {};
 const MAX_ATTENDEES = 8;
@@ -72,6 +73,22 @@ export function ApplyForm({
   // 제출을 한 번이라도 시도한 뒤부터 형식 오류 칸을 빨갛게 표시한다 — 타이핑
   // 중간에 매 글자마다 빨개지는 건 거슬리니, 시도 이후에는 실시간으로 반영.
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const completeEventSent = useRef(false);
+
+  useEffect(() => {
+    pushDataLayerEvent("신청 시작", { sessionId, themeLabel });
+  }, [sessionId, themeLabel]);
+
+  useEffect(() => {
+    if (state.application && !completeEventSent.current) {
+      completeEventSent.current = true;
+      pushDataLayerEvent("신청 완료", {
+        sessionId,
+        themeLabel,
+        confirmationCode: state.application.confirmation_code,
+      });
+    }
+  }, [state.application, sessionId, themeLabel]);
 
   const conflictPhones = new Set(state.conflictPhoneDigits ?? []);
 
