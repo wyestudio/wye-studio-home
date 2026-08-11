@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { isEligibleBirthYear } from "@/lib/eligibility";
 import { getSessionById } from "@/lib/sessions";
 import { sendApplicationSlackAlert } from "@/lib/slack";
-import { sendApplicationConfirmationSms } from "@/lib/sms";
 import type { Application, Gender } from "@/types/domain";
 
 export type AttendeeInput = {
@@ -155,10 +154,10 @@ export async function applyAction(
 
   after(async () => {
     try {
-      await Promise.all([
-        sendApplicationSlackAlert({ session, application, attendees }),
-        sendApplicationConfirmationSms({ session, application, attendees }),
-      ]);
+      // SMS 발송 임시 중단 (2026-08-11) — 팀원 테스트로 실제 문자 요금이 계속
+      // 나가고 있어 급히 비활성화. 재활성화 시 src/lib/sms.ts의
+      // sendApplicationConfirmationSms를 다시 import해서 아래 배열에 추가할 것.
+      await Promise.all([sendApplicationSlackAlert({ session, application, attendees })]);
     } catch (err) {
       console.error("[notify] 신청 알림 처리 중 에러", err);
     }
