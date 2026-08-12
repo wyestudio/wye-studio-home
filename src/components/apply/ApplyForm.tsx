@@ -587,6 +587,9 @@ export function ApplyForm({
         />
         <span>이용약관, 개인정보처리방침, 환불정책에 모두 동의합니다.</span>
       </label>
+      {validationErrors.find((e) => e.field === "agreedTerms") ? (
+        <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "agreedTerms")!.message}</p>
+      ) : null}
 
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
 

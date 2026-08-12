@@ -1325,11 +1325,11 @@ update sessions set original_price_krw = 79000 where theme_label = '바-ㅇ탈�
 
 -- v11-1. application_attendees — 경험 횟수 컬럼 추가
 alter table application_attendees
-add column experience_range text check (experience_range is null or experience_range in ('0', '1-50', '50-100', '100-200', '200+'));
+add column if not exists experience_range text check (experience_range is null or experience_range in ('0', '1-50', '50-100', '100-200', '200+'));
 
 -- v11-2. applications — 그룹 비고 컬럼 추가
 alter table applications
-add column notes text check (notes is null or char_length(notes) <= 200);
+add column if not exists notes text check (notes is null or char_length(notes) <= 200);
 
 -- v11-3. submit_application() 재작성 — 5-파라미터로 확장
 -- 기존 4-파라미터 버전이 오버로드로 남지 않도록 drop 먼저 실행

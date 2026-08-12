@@ -17,6 +17,3 @@ export function getThemeBaseName(themeLabel: string): string {
   return themeLabel.replace(/\s*\(ver\.[^)]*\)\s*/, "").trim();
 }
 
-export function getThemeShortLabel(themeLabel: string): string {
-  return isDatingTheme(themeLabel) ? "소개팅" : "모임";
-}

@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import { getSessionById } from "@/lib/sessions";
 import { ApplyForm } from "@/components/apply/ApplyForm";
 import { formatSessionDateShort } from "@/lib/format";
-import { getThemeShortLabel } from "@/lib/theme";
-import { Badge } from "@/components/ui/Badge";
+import { ThemeTag } from "@/components/ui/ThemeTag";
 
 export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/apply">) {
   const { id } = await params;
@@ -13,9 +12,9 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/ap
   return (
     <div className="mx-auto max-w-md px-5 py-10">
       <h1 className="mb-1 text-2xl font-extrabold">참가 신청</h1>
-      <div className="mb-6 flex items-center gap-2 text-sm">
+      <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
+        <ThemeTag themeLabel={session.theme_label} />
         <span className="text-muted">바-ㅇ탈출</span>
-        <Badge tone="neutral">{getThemeShortLabel(session.theme_label)}</Badge>
         <span className="text-muted">{formatSessionDateShort(session.start_at)}</span>
       </div>
 

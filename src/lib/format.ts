@@ -53,10 +53,10 @@ export function formatSessionTime(startAt: string): string {
 }
 
 export function formatSessionDateShort(startAt: string): string {
-  const { month, day, hour, minute } = seoulParts(startAt);
+  const { month, day, weekday, hour, minute } = seoulParts(startAt);
   const hh = hour.toString().padStart(2, "0");
   const mm = minute.toString().padStart(2, "0");
-  return `${month}/${day} ${hh}:${mm}`;
+  return `${month}/${day}(${weekday}) · ${hh}:${mm}`;
 }
 
 // 시작~종료 시각 사이의 플레이타임을 "N시간 (M분)" 형식으로 반환.
