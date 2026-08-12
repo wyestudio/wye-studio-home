@@ -2,6 +2,7 @@
 
 import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
+import { HudCard } from "@/components/ui/HudCard";
 import { LinkButton } from "@/components/ui/Button";
 
 const FAQS = [
@@ -39,10 +40,10 @@ export function ClosingScene({
         </div>
         <div className="grid w-full gap-3 sm:grid-cols-2">
           {FAQS.map((faq) => (
-            <div key={faq.q} className="glass-panel rounded-xl p-4">
+            <HudCard key={faq.q} className="p-4">
               <p className="mb-1 font-semibold">{faq.q}</p>
               <p className="text-sm text-muted">{faq.a}</p>
-            </div>
+            </HudCard>
           ))}
         </div>
         <LinkButton href="/contents">회차 보러 가기 →</LinkButton>

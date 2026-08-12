@@ -5,6 +5,8 @@ import { getSessionById, getSessionStats } from "@/lib/sessions";
 import { formatKrw, formatSessionDate, formatSessionDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
+import { HudCard } from "@/components/ui/HudCard";
+import { FaqAccordion } from "@/components/ui/FaqAccordion";
 import { CapacityPolicyTable } from "@/components/session/CapacityPolicyTable";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isDatingTheme } from "@/lib/theme";
@@ -101,7 +103,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>
-        <ol className="flex flex-col gap-3 rounded-xl glass-panel p-5 text-sm">
+        <HudCard as="ol" className="flex flex-col gap-3 p-5 text-sm">
           {[
             { text: `${formatSessionDateTime(session.start_at)} 현장 도착 및 접수`, muted: false },
             { text: "조 편성 안내", muted: false },
@@ -113,57 +115,48 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
               <span>{step.text}</span>
             </li>
           ))}
-        </ol>
+        </HudCard>
       </section>
 
-      <section className="mb-8 grid gap-4 rounded-xl glass-panel p-5 text-sm sm:grid-cols-2">
-        <div>
-          <p className="mb-1 font-semibold text-muted">일시</p>
-          <p>{formatSessionDateTime(session.start_at)}</p>
-        </div>
-        <div>
-          <p className="mb-1 font-semibold text-muted">장소</p>
-          <p>{session.venue_area}</p>
-          <p className="text-xs text-muted">정확한 주소는 참가확정자에게 개별 안내됩니다.</p>
-        </div>
-        <div>
-          <p className="mb-1 font-semibold text-muted">참가비</p>
-          <p>{formatKrw(session.price_krw)} / 인당</p>
-          <p className="text-xs text-muted">무통장입금만 가능합니다.</p>
-        </div>
-        <div>
-          <p className="mb-1 font-semibold text-muted">신청 자격</p>
-          <p className="text-xs text-muted">
-            비슷한 또래끼리 더 즐겁게 즐기실 수 있도록 {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만
-            참여하실 수 있어요. 그 외 세부 자격 조건은 확정 후 안내 예정입니다.
-          </p>
-        </div>
+      <section className="mb-8">
+        <HudCard className="grid gap-4 p-5 text-sm sm:grid-cols-2">
+          <div>
+            <p className="mb-1 font-semibold text-muted">일시</p>
+            <p>{formatSessionDateTime(session.start_at)}</p>
+          </div>
+          <div>
+            <p className="mb-1 font-semibold text-muted">장소</p>
+            <p>{session.venue_area}</p>
+            <p className="text-xs text-muted">정확한 주소는 참가확정자에게 개별 안내됩니다.</p>
+          </div>
+          <div>
+            <p className="mb-1 font-semibold text-muted">참가비</p>
+            <p>{formatKrw(session.price_krw)} / 인당</p>
+            <p className="text-xs text-muted">무통장입금만 가능합니다.</p>
+          </div>
+          <div>
+            <p className="mb-1 font-semibold text-muted">신청 자격</p>
+            <p className="text-xs text-muted">
+              비슷한 또래끼리 더 즐겁게 즐기실 수 있도록 {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만
+              참여하실 수 있어요. 그 외 세부 자격 조건은 확정 후 안내 예정입니다.
+            </p>
+          </div>
+        </HudCard>
       </section>
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-bold text-muted">자주 묻는 질문</h2>
-        <div className="flex flex-col gap-2">
-          {faqs.map((faq, i) => (
-            <div key={faq.q} className="rounded-xl glass-panel p-4 text-sm">
-              <p className="mb-1 font-semibold">
-                <span className="mr-1 text-brand">{i + 1}.</span>
-                {faq.q}
-              </p>
-              <p className="text-muted">{faq.a}</p>
-            </div>
-          ))}
-        </div>
+        <FaqAccordion items={faqs} />
       </section>
 
-      <Link
-        href="/about"
-        className="mb-8 flex items-center justify-between rounded-xl glass-panel p-4 text-sm transition-colors hover:border-brand"
-      >
-        <span>
-          <span className="font-semibold">우주이스케이프를 만드는 사람들</span>
-          <span className="ml-1 text-muted">이 궁금하다면</span>
-        </span>
-        <span className="text-brand">About →</span>
+      <Link href="/about" className="mb-8 block">
+        <HudCard className="flex items-center justify-between p-4 text-sm">
+          <span>
+            <span className="font-semibold">우주이스케이프를 만드는 사람들</span>
+            <span className="ml-1 text-muted">이 궁금하다면</span>
+          </span>
+          <span className="text-brand">About →</span>
+        </HudCard>
       </Link>
 
       <section className="mb-8">

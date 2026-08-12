@@ -2,20 +2,18 @@
 
 import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
+import { HudCard } from "@/components/ui/HudCard";
 
 const POINTS = [
   {
-    n: "01",
     title: "방탈출",
     desc: "몰입감 있는 방탈출 콘텐츠가 대화의 자연스러운 매개체가 됩니다.",
   },
   {
-    n: "02",
     title: "4인 1조 랜덤 편성",
     desc: "모르는 사람들과 랜덤으로 조가 편성되어 함께 미션을 풀어갑니다.",
   },
   {
-    n: "03",
     title: "자연스러운 대화",
     desc: "게임을 함께 풀어가며 자연스럽게 서로를 알아가는 경험을 제공합니다.",
   },
@@ -44,17 +42,13 @@ export function ConceptScene({
           </h2>
           <p className="mt-4 text-xs text-muted">이런 공간에서 진행돼요 · 사진 준비 중</p>
         </div>
-        <ul className="flex flex-col gap-6">
+        <ul className="flex flex-col gap-3">
           {POINTS.map((point) => (
-            <li
-              key={point.n}
-              className="flex gap-4 border-t border-glass-border pt-4 first:border-t-0 first:pt-0"
-            >
-              <span className="text-2xl font-extrabold text-glow">{point.n}</span>
-              <div>
+            <li key={point.title}>
+              <HudCard className="p-4">
                 <p className="font-bold">{point.title}</p>
                 <p className="text-sm text-muted">{point.desc}</p>
-              </div>
+              </HudCard>
             </li>
           ))}
         </ul>

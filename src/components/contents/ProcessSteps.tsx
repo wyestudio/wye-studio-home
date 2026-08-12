@@ -14,7 +14,7 @@ export function ProcessSteps() {
           {STEPS.map((step, i) => (
             <div key={step.label} className="flex items-center gap-2">
               <div className="flex flex-col items-center gap-1 px-1">
-                <span className="rounded-full bg-brand-soft px-4 py-2 text-sm font-semibold text-brand">
+                <span className="rounded-full border border-glow bg-brand-soft px-4 py-2 text-sm font-semibold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
                   {step.label}
                 </span>
                 <span className="text-xs text-muted">{step.desc}</span>

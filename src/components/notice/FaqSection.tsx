@@ -1,3 +1,5 @@
+import { FaqAccordion } from "@/components/ui/FaqAccordion";
+
 const FAQS = [
   { q: "신청은 어떻게 하나요?", a: "로그인 없이 회차를 선택해 참가 신청서에 이름/전화번호/출생년도를 입력하고, 무통장입금으로 참가비를 입금하면 신청이 접수됩니다." },
   { q: "언제 참가가 확정되나요?", a: "비소개팅 회차는 20명까지 신청 즉시 확정되고, 21~24명 구간은 대기 후 24명(정원)이 차면 대기자 전원이 한 번에 확정됩니다." },
@@ -11,14 +13,7 @@ export function FaqSection() {
   return (
     <section>
       <h2 className="mb-6 text-center text-xl font-extrabold">자주 묻는 질문</h2>
-      <div className="flex flex-col gap-3">
-        {FAQS.map((faq) => (
-          <div key={faq.q} className="rounded-xl glass-panel p-4">
-            <p className="mb-1 font-semibold">{faq.q}</p>
-            <p className="text-sm text-muted">{faq.a}</p>
-          </div>
-        ))}
-      </div>
+      <FaqAccordion items={FAQS} />
     </section>
   );
 }

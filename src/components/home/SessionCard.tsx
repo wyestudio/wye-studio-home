@@ -18,10 +18,8 @@ export function SessionCard({ session }: { session: Session }) {
   return (
     <Link
       href={`/sessions/${session.id}`}
-      className={`hud-panel hud-clip relative flex flex-col gap-6 p-6 sm:gap-7 sm:p-7 ${colorVariant}`}
+      className={`hud-panel relative flex flex-col gap-6 p-6 sm:gap-7 sm:p-7 ${colorVariant}`}
     >
-      <span aria-hidden className="hud-scanline hud-clip" />
-
       <h3 className="text-2xl font-extrabold leading-tight sm:text-3xl" style={{ color: "var(--hud-accent)" }}>
         {session.theme_label}
       </h3>

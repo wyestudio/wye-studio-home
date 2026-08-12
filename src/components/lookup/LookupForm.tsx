@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { HudCard } from "@/components/ui/HudCard";
 import { formatKrw, formatRefundDeadline, formatSessionDate } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
@@ -38,7 +39,7 @@ export function LookupForm() {
 
     return (
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
+        <HudCard className="flex flex-col gap-6 p-6">
           <div>
             <p className="text-sm text-muted">{result.session_title}</p>
             <p className="text-xs text-muted">
@@ -90,7 +91,7 @@ export function LookupForm() {
               불가해요.
             </p>
           </div>
-        </div>
+        </HudCard>
 
         <a href="/lookup" className="text-center text-sm font-semibold text-brand underline">
           다른 접수번호로 다시 조회하기

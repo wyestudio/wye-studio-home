@@ -76,134 +76,93 @@ html.custom-cursor-active label {
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
 }
 
-/* 각진 유리질감 SF/HUD 패널 — 라운드 대신 우측 상/하단 모서리만 대각선으로
-   깎아서 "미래적 인터페이스" 느낌을 줌. 좌측 변은 그대로 둬서 좌상단
-   테마명/좌하단 가격이 잘리지 않게 함. 색상은 --hud-accent 커스텀 프로퍼티
-   하나로 관리 — .hud-panel-group/.hud-panel-dating가 이 값만 바꿔서
-   테마별로 다른 네온 색을 입힌다(기본값은 기존 브랜드 블루). */
-.hud-clip {
-  clip-path: polygon(
-    0 0,
-    calc(100% - 22px) 0,
-    100% 22px,
-    100% calc(100% - 22px),
-    calc(100% - 22px) 100%,
-    0 100%
-  );
-}
-
+/* 투명 유리 디스플레이 패널 — 각진 코너 컷/모서리 브래킷을 걷어내고 깔끔한
+   사각형 + 얇은 네온 흰 테두리로 단순화. 이전 배경은 color-mix로 만든 완전
+   불투명 그라디언트라 backdrop-filter blur를 줘도 뒤가 전혀 안 비쳤는데
+   ("불투명한 디스플레이 느낌" 피드백), 진짜 알파 투명도가 있는 배경으로
+   바꿔서 실제로 뒤 별빛이 흐릿하게 비치게 한다. --hud-accent는 테마 텍스트
+   색(회차 카드 제목 등)에만 쓰고 테두리/글로우는 항상 흰색으로 통일. */
 .hud-panel {
   --hud-accent: var(--glow);
-  --hud-accent-soft: rgba(111, 140, 255, 0.55);
-  --hud-accent-border: rgba(120, 140, 255, 0.35);
   position: relative;
-  background: linear-gradient(
-    160deg,
-    color-mix(in srgb, var(--hud-accent) 16%, #151b4a),
-    color-mix(in srgb, var(--hud-accent) 6%, #0b0e2d)
-  );
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background:
+    linear-gradient(
+      120deg,
+      transparent 62%,
+      rgba(255, 255, 255, 0.22) 78%,
+      rgba(255, 255, 255, 0.22) 84%,
+      transparent 100%
+    ),
+    linear-gradient(160deg, rgba(17, 22, 60, 0.4), rgba(8, 10, 32, 0.55));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 0 44px -22px var(--hud-accent-soft),
-    0 0 0 1px var(--hud-accent-border),
-    0 30px 70px rgba(0, 0, 0, 0.5);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 20px -8px rgba(255, 255, 255, 0.3),
+    0 20px 45px rgba(0, 0, 0, 0.4);
   transition:
-    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.35s ease;
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .hud-panel:hover {
-  transform: scale(1.035);
+  transform: scale(1.02);
+  border-color: rgba(255, 255, 255, 0.75);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    inset 0 0 54px -20px var(--hud-accent-soft),
-    0 0 0 1px var(--hud-accent),
-    0 30px 80px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 0 28px -4px rgba(255, 255, 255, 0.45),
+    0 24px 55px rgba(0, 0, 0, 0.45);
+}
+
+/* 호버 시 빛이 유리 위를 한 번 훑고 지나가는 스윕 애니메이션 — 고정
+   하이라이트(위 background)와 별개 레이어(::after)로 둬서, 평소엔 안 보이다가
+   호버할 때만 대각선으로 쓸고 지나가게 한다. 실제 크기보다 훨씬 큰
+   그라디언트(300%)를 옅게 깔아두고 background-position만 옮겨서 이동시키는
+   방식 — transform/좌표 계산 없이 대각선 각도를 그대로 유지할 수 있다. */
+.hud-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, transparent 46%, rgba(255, 255, 255, 0.4) 50%, transparent 54%);
+  background-repeat: no-repeat;
+  background-size: 300% 300%;
+  background-position: -120% -120%;
+  transition: background-position 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hud-panel:hover::after {
+  background-position: 120% 120%;
 }
 
 .hud-panel-group {
   --hud-accent: #3dffb0;
-  --hud-accent-soft: rgba(61, 255, 176, 0.5);
-  --hud-accent-border: rgba(61, 255, 176, 0.32);
 }
 
 .hud-panel-dating {
   --hud-accent: #ff5ec4;
-  --hud-accent-soft: rgba(255, 94, 196, 0.5);
-  --hud-accent-border: rgba(255, 94, 196, 0.32);
 }
 
-.hud-panel::before,
-.hud-panel::after {
-  content: "";
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  pointer-events: none;
-  opacity: 0.9;
-  z-index: 1;
-}
-
-.hud-panel::before {
-  top: 10px;
-  left: 10px;
-  border-top: 1.5px solid var(--hud-accent);
-  border-left: 1.5px solid var(--hud-accent);
-}
-
-.hud-panel::after {
-  bottom: 10px;
-  left: 10px;
-  border-bottom: 1.5px solid var(--hud-accent);
-  border-left: 1.5px solid var(--hud-accent);
-}
-
-/* 호버 시 좌상단/좌하단 브래킷에서 시작한 선이 테두리를 한 바퀴 그리며
-   감싸 도는 애니메이션 — 손으로 그린 것처럼 두껍고 또렷한 네온 선이
-   이어져야 하므로(얇고 흐린 링이면 안 됨) 두께를 3px로 키우고
-   drop-shadow로 확실한 글로우를 더한다. --hud-sweep(각도)을
-   0deg→360deg로 트랜지션시켜, 진행된 구간만 선이 그려지고 나머지는
-   투명하게 비워둔다. */
-@property --hud-sweep {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 0deg;
-}
-
-.hud-scanline {
-  position: absolute;
-  inset: -3px;
-  padding: 3px;
-  pointer-events: none;
-  opacity: 0;
-  --hud-sweep: 0deg;
-  background: conic-gradient(from 0deg, var(--hud-accent) 0deg, var(--hud-accent) var(--hud-sweep), transparent var(--hud-sweep));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  filter: drop-shadow(0 0 6px var(--hud-accent)) drop-shadow(0 0 2px var(--hud-accent));
-  transition:
-    opacity 0.15s ease,
-    --hud-sweep 0.9s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.hud-panel:hover .hud-scanline {
-  opacity: 1;
-  --hud-sweep: 360deg;
+/* 회차 테마가 없는 일반 콘텐츠 카드용 — 새 색을 또 만들지 않고 히어로/CTA에서
+   이미 쓰는 브랜드 글로우(--glow)를 그대로 재사용해 톤을 통일한다. */
+.hud-panel-glow {
+  --hud-accent: var(--glow);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .hud-panel,
-  .hud-panel:hover {
+  .hud-panel:hover,
+  .hud-panel::after,
+  .hud-panel:hover::after {
     transition: none;
     transform: none;
   }
-  .hud-scanline {
-    transition: none;
-    opacity: 0;
+  .hud-panel::after {
+    background-position: -120% -120%;
   }
 }
 
