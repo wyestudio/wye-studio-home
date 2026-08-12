@@ -13,6 +13,7 @@
 # 스택 및 결정 이유
 
 - **Next.js 16 (App Router, TypeScript, Tailwind v4)** — 프론트엔드+백엔드(서버 액션)를 한 프로젝트에서 처리. 개발자가 순수 JS 경험만 있어서 React/Next.js는 Claude Code와 함께 배워가며 진행 중.
+- **motion**(옛 Framer Motion, 2026-08-12 설치) — 헤더 메뉴 글자 스왑 호버 애니메이션(`RandomLetterSwap`)에 사용. import는 `"motion/react"`(패키지명이 `motion`으로 바뀌면서 서브패스도 같이 바뀜, `"framer-motion"` 아님).
 - **Supabase (Postgres)** — Firebase(NoSQL) 대신 선택. 신청 관련 관계형 데이터를 다뤄야 하고, 향후 결제 연동 시 서버 사이드 검증이 필요하기 때문. 리전은 **Seoul (Northeast Asia)**.
 - Supabase 프로젝트 생성 시 보안 옵션: **Data API ON / Automatically expose new tables OFF / Automatic RLS ON**
 - **인증**: 비회원 구매 플로우로 전환하며 **휴면 처리됨**(2026-08-09). 이메일/비번 + 카카오/네이버 직접 OAuth 로그인까지 전부 완성해서 실제로 동작했었지만, 신청 플로우에서 더 이상 로그인을 요구하지 않게 되면서 코드는 남기고(`src/app/{login,signup,auth,account}/**`, `src/lib/{kakao,naver,profile,oauthLink,accountLookup,age}.ts`) 진입점만 제거함(`proxy.ts`, `Header.tsx`, 신청 페이지). 자세한 배경은 "설계 변경 이력" 3차 수정 참고.
@@ -70,6 +71,15 @@
   - 회차 카드 씬(`SessionScene.tsx`)은 이번 라운드에서 좌측 텍스트/페르소나 칩 컬럼을 없애고 카드 2개만 화면 중앙에 크게 배치하도록 단순화됨(2열 고정, `SessionCard.tsx`도 세로로 긴 카드가 되도록 `min-h`/`justify-between` 추가).
   - 관련 파일: `src/components/home/scroll-stage/{ScrollStage,ScrollStageContext,SceneShell}.tsx`, `src/components/home/scenes/{Hero,Session,Concept,Process,Closing}Scene.tsx`, `src/components/space/{MascotOrbit,MascotCursor,MascotSelectionContext,useScrollStageProgress}.tsx`, `src/lib/mascots.ts`, `src/components/layout/Header.tsx`, `src/app/page.tsx`.
   - **다음에 이어서 할 만한 것**: 지금까지는 전부 "일단 이 정도면 괜찮다"는 반응까지만 확인된 상태 — 회차 카드 씬의 좌측 텍스트를 없앤 뒤라 카피(설명 문구) 없이 카드만 있는 게 정보량이 부족하진 않은지, 컨셉/진행방식/마무리 씬은 여전히 옛날 fade 방식이라 히어로→회차 구간과 톤이 안 맞는 느낌이 있는지 정도는 다음에 실제로 다시 보면서 판단하면 좋을 듯. 헤더 투명화의 다른 페이지 가독성 트레이드오프도 다음 세션에 체크해볼 것.
+- [x] **GTM/GA4 애널리틱스 연동** (2026-08-11~12) — 페이지뷰 + "신청 시작"/"신청 완료"(대표 신청자 출생년도/성별 포함) 이벤트를 GA4로 전송, GA4 맞춤 정의(테마명/접수번호/출생년도/성별) 등록까지 완료. 컨테이너/속성 ID, 태그·트리거·변수 구성, 새 이벤트 추가 시 체크리스트는 `ANALYTICS.md` 참고.
+- [x] **테마 리브랜딩 + 8/29 일정·가격 변경 + 회차 카드 전면 재디자인** (2026-08-12) — `supabase-schema.sql` v10.
+  - **리브랜딩/일정/가격**: `theme_label`을 '소개팅'/'비소개팅' → **"바-ㅇ탈출(ver.소개팅)"/"바-ㅇ탈출(ver.모임)"**으로 변경(오타 아님, 의도된 표기 — 사용자 확정). 이 값이 `submit_application()`(그룹신청 제한/성별필수/성비분리 정원 분기) 등 여러 곳에서 리터럴 비교되고 있어서, TS 쪽은 `src/lib/theme.ts`의 `isDatingTheme()` 헬퍼로 비교를 한 곳에 모으고(값이 또 바뀌어도 한 군데만 고치면 되게), SQL 쪽은 `submit_application()`을 새 값으로 `create or replace`. 날짜 8/22→**8/29**로 변경, 가격은 정가(모임 65,000원/소개팅 75,000원) 대비 **8/29 베타 한정 할인**(모임 45,000원/소개팅 55,000원, `SessionCard.tsx`에서 `price_krw + 20,000`로 정가를 계산해 취소선 표시 — 정가 자체는 DB에 안 둠). `venue_area`도 "서울 신림권" → "서울 신림역 인근"으로 수정. **DB 값 변경(UPDATE 2건)은 Supabase SQL Editor에서 직접 실행 완료** — `sessions` 테이블엔 `service_role`도 update grant가 없어서(의도된 보안 설정, 위 "중요한 교훈" 참고) 스크립트로 못 돌리고 브라우저로 Supabase 대시보드 SQL Editor에 직접 접속해서 실행함.
+  - **회차 카드 디자인**: `SessionCard.tsx`를 신청현황/진행바/모집중 뱃지 없이 테마명(색은 `hud-panel-group`=초록/`hud-panel-dating`=핑크 네온, `isDatingTheme()`로 분기) + 날짜/시작시간/플레이타임/장소(라벨-값 쌍 반복, `SessionCardField`) + 가격(정가 취소선+할인가)만 남기는 걸로 재구성. 각진 유리질감 SF 패널(`globals.css`의 `.hud-panel`/`.hud-clip`, 우측 상하단 모서리만 대각선으로 깎음, `--hud-accent` 커스텀 프로퍼티로 테마별 색 주입) + 호버 시 확장하는 배경 글로우. `SessionScene.tsx`(홈)도 `grid-cols-1 sm:grid-cols-2`로 모바일 반응형 추가(예전엔 `grid-cols-2` 고정이라 모바일에서 카드가 다 찌그러졌었음).
+  - **모바일 버그 3종**: ① `ScrollStage.tsx`의 씬 컨테이너가 `h-screen`(100vh)이라 모바일 브라우저 주소창이 떠 있을 때 실제 보이는 영역보다 콘텐츠가 밀려 보이던 문제 → **`h-dvh`(동적 뷰포트 높이)로 교체**. ② `Header.tsx`의 로고 옆 브랜드 텍스트("우주이스케이프")가 좁은 화면에서 단어 중간에 줄바꿈되던 버그 → `whitespace-nowrap` + 로고 클러스터 `shrink-0`, 망치질 마스코트는 공간 확보를 위해 모바일에서만 숨김(`hidden sm:block`). ③ 마스코트 커스텀 커서(`MascotCursor.tsx`)가 링크/버튼 위에서 브라우저 기본 손 커서와 같이 보이던 문제 — `<a href>`는 브라우저 기본 스타일시트가 그 요소에 직접 `cursor:pointer`를 지정해서 body의 `cursor:none` 상속보다 우선순위가 높았음(단순히 Tailwind `cursor-pointer` 클래스를 지우는 것만으론 해결 안 됐던 부분). `MascotCursor` 활성화 시 `<html>`에 `custom-cursor-active` 클래스를 붙이고 `globals.css`에서 그 클래스가 있을 때 `a`/`button`/`input` 등을 직접 겨냥해 `cursor:none`을 걸도록 수정 — `getComputedStyle`로 실제 계산된 커서 값이 `"none"`인 것까지 확인함. 추가로 클릭 가능한 요소 위에서는 마스코트 커서 자체도 30% 투명도로 옅어지도록 함(호버 애니메이션이 커서에 가려 안 보이던 문제 해결).
+  - **헤더 메뉴 글자 스왑 호버 효과**: `motion`(옛 Framer Motion) 패키지 신규 설치, `RandomLetterSwap` 컴포넌트(`src/components/ui/RandomLetterSwap.tsx`) 신규 제작 — 헤더 4개 메뉴 글자가 호버 시 무작위 순서로 스태거되며 롤업 애니메이션. 21st.dev 커뮤니티 컴포넌트(`m-random-letter-swap-1`)를 참고했으나 핵심 로직 소스는 안 보여줘서 실제 사이트에서 호버 동작을 관찰하고 직접 구현.
+  - **히어로 CTA 버튼("YES")**: `src/components/home/HeroCtaButton.tsx` 신규 — "would you escape?" 바로 아래, 클릭 시 `/contents`로 이동. 기본 상태는 테두리 없이 우상단(ㄱ)/좌하단(ㄴ) 브래킷 없이 텍스트만(여러 라운드 끝에 브래킷도 뺌) 떠 있다가, 호버 시 커서가 들어온 지점에서 흰 원이 퍼지며(`--origin-x/y` CSS 커스텀 프로퍼티, `globals.css`의 `.hero-cta-fill`) 그 사각형 클리핑 영역이 자연스럽게 완전한 네모로 채워지고 텍스트도 "YES" → "참여하기"로 크로스페이드(21st.dev "Origin Button" 참고). ">" 표시는 폰트에 기대지 않도록 정사각형 45도 회전(`.hero-cta-arrow`)으로 그림. 기본 라벨은 왼쪽 패딩 30px/오른쪽 42px(합 72px 고정)로 왼쪽에 붙어있고, 호버 라벨("참여하기")은 `absolute inset-0 flex justify-center`로 기본 라벨과 독립적으로 버튼 정중앙에 옴.
+  - **관련 파일**: `src/lib/theme.ts`(신규), `src/components/home/{SessionCard,HeroCtaButton}.tsx`, `src/components/home/scenes/{SessionScene,HeroScene}.tsx`, `src/components/home/scroll-stage/ScrollStage.tsx`, `src/components/layout/Header.tsx`, `src/components/space/{MascotCursor,MascotOrbit}.tsx`, `src/components/ui/RandomLetterSwap.tsx`(신규), `src/lib/format.ts`(`formatSessionTime`/`formatDuration` 추가), `src/app/globals.css`, `supabase-schema.sql`(v10).
+  - **다음에 이어서 할 만한 것**: 회차 카드의 호버 애니메이션(테두리가 도는 효과)은 여러 번 시도했지만 사용자가 원하는 정확한 느낌을 못 맞춰서 보류 상태 — 사용자가 직접 레퍼런스를 더 찾아본 뒤 재논의 예정. `RandomLetterSwap`도 21st.dev 원본 소스를 못 보고 관찰만으로 재현한 거라, 실제 라이브러리 소스가 확보되면 비교해볼 것.
 
 # 화면 / 라우팅 구조
 
@@ -91,9 +101,9 @@
 /auth/**                   (callback, kakao/*, naver/*, oauth/*)
 ```
 
-# 데이터 모델 (`supabase-schema.sql` 참고, v9)
+# 데이터 모델 (`supabase-schema.sql` 참고, v10)
 
-- **sessions** — 회차(방탈출 테마 목록이 아님). `theme_label`(예: '비소개팅'/'소개팅')이 같은 테마 재참여 방지 기준으로도 쓰임. `capacity_min`(16, 참고용) / `capacity_confirm_line`(20, 비소개팅 전용) / `capacity_max`(24, 성별 무관 총원 상한, 소개팅도 공통 적용) / `capacity_confirm_line_male`·`capacity_confirm_line_female`(v9 신규, 소개팅만 값 있음 — 둘 다 10, 비소개팅 행은 NULL). 조회는 전체 공개, 등록/수정 정책 없음 → 시드 SQL/대시보드로 운영자가 직접 입력.
+- **sessions** — 회차(방탈출 테마 목록이 아님). `theme_label`(v10부터 '바-ㅇ탈출(ver.모임)'/'바-ㅇ탈출(ver.소개팅)', 예전 값은 '비소개팅'/'소개팅')이 같은 테마 재참여 방지 기준으로도 쓰임 — 프론트에서 이 값과의 비교는 전부 `src/lib/theme.ts`의 `isDatingTheme()`를 거침(리터럴 문자열을 여러 곳에 흩어두지 않기 위해). `capacity_min`(16, 참고용) / `capacity_confirm_line`(20, 비소개팅 전용) / `capacity_max`(24, 성별 무관 총원 상한, 소개팅도 공통 적용) / `capacity_confirm_line_male`·`capacity_confirm_line_female`(v9 신규, 소개팅만 값 있음 — 둘 다 10, 비소개팅 행은 NULL). 조회는 전체 공개, 등록/수정 정책 없음 → 시드 SQL/대시보드로 운영자가 직접 입력.
 - **session_venues** — 상호명(`venue_name`) 전용 비공개 테이블. select/insert/update 정책·grant 전혀 없어 `anon`/`authenticated` 둘 다 API로 존재 자체를 알 수 없음. 운영자는 SQL Editor/Table Editor(테이블 소유자 권한이라 RLS 우회)에서만 조회.
 - **applications** — 신청 "건"(그룹 단위, 로그인 계정과 무관. 소개팅은 그룹이 항상 1명). `depositor_name_enc`(v8, 암호화됨)/`agreed_terms`/`confirmation_code`/`status`/`payment_status`. 직접 select/insert 정책·grant가 전혀 없음(session_venues와 동일 패턴) — 생성은 `submit_application()`, 조회는 `lookup_application()`을 통해서만.
 - **application_attendees** (v7 신규) — 그룹 신청의 참여자 개개인(대표 신청자 포함 전원 한 행씩). `name_enc`/`phone_enc`(v8, 암호화됨)/`phone_hash`(v8, 매칭 전용 HMAC)/`birth_year`(1990~1999 체크 제약)/`nickname`(선택, 평문 — 다른 참여자에게 보여주는 용도라 암호화 대상 아님)/`is_representative`/`gender`(v9 신규, `'M'|'F'` 체크 제약, 소개팅 참여자만 값 있고 비소개팅은 NULL). `unique(session_id, nickname)`로 같은 회차 내 닉네임 중복만 방지(다른 회차는 재사용 가능, Postgres unique는 NULL을 서로 다른 값으로 취급해서 닉네임 미입력자는 제약에 안 걸림). select/insert 정책 없음 — 완전히 잠김.
@@ -174,3 +184,4 @@
 
 @AGENTS.md
 @CLAUDE.local.md
+@ANALYTICS.md

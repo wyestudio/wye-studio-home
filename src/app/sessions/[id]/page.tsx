@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { CapacityPolicyTable } from "@/components/session/CapacityPolicyTable";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
+import { isDatingTheme } from "@/lib/theme";
 
 const INCLUDED_ITEMS_BASE = ["방탈출 1회 플레이", "테마 맞춤 조 편성"];
 const INCLUDED_ITEMS_NON_DATING = [...INCLUDED_ITEMS_BASE, "4인 1조 랜덤 편성"];
@@ -38,7 +39,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
   const stats = await getSessionStats(id);
   const ctaHref = `/sessions/${id}/apply`;
-  const isDatingSession = session.theme_label === "소개팅";
+  const isDatingSession = isDatingTheme(session.theme_label);
   const includedItems = isDatingSession ? INCLUDED_ITEMS_DATING : INCLUDED_ITEMS_NON_DATING;
   const faqs = sessionFaqs(isDatingSession);
 

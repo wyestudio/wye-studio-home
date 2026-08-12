@@ -8,6 +8,7 @@ import { applyAction, type ApplyState } from "@/app/sessions/[id]/apply/actions"
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { pushDataLayerEvent } from "@/lib/analytics";
+import { isDatingTheme } from "@/lib/theme";
 
 const initialState: ApplyState = {};
 const MAX_ATTENDEES = 8;
@@ -61,7 +62,7 @@ export function ApplyForm({
   eventDate: string;
   themeLabel: string;
 }) {
-  const isDatingSession = themeLabel === "소개팅";
+  const isDatingSession = isDatingTheme(themeLabel);
   const [state, formAction, pending] = useActionState(applyAction, initialState);
   const [attendeeCount, setAttendeeCount] = useState(1);
   // 입력값을 React state로 들고 있어야 서버 액션이 에러를 반환해 다시 렌더링돼도

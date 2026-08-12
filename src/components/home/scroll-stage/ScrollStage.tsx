@@ -55,7 +55,7 @@ export function ScrollStage({ children }: { children: ReactNode }) {
         marginTop: "calc(-1 * var(--header-height, 80px))",
       }}
     >
-      <div className="sticky top-0 h-screen overflow-hidden">
+      <div className="sticky top-0 h-dvh overflow-hidden">
         <ScrollStageContext.Provider value={{ progress, reduceMotion }}>
           {childArray.map((child, index) =>
             isValidElement(child)

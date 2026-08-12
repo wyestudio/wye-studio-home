@@ -146,7 +146,7 @@ export function MascotOrbit({ progress, reduceMotion }: { progress: number; redu
           return (
             <div
               key={id}
-              className="group absolute flex flex-col items-center gap-1 pointer-events-auto cursor-pointer"
+              className="group absolute flex flex-col items-center gap-1 pointer-events-auto"
               style={{ left: `${left}%`, top: `${top}%`, transform: "translate(-50%, -50%)" }}
               onClick={() => handleSelect(id)}
               role="button"
@@ -203,7 +203,7 @@ export function MascotOrbit({ progress, reduceMotion }: { progress: number; redu
               ref={(el) => {
                 mascotElRefs.current[i] = el;
               }}
-              className="group absolute left-0 top-0 pointer-events-auto cursor-pointer"
+              className="group absolute left-0 top-0 pointer-events-auto"
               onClick={() => handleSelect(id)}
               role="button"
               tabIndex={0}

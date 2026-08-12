@@ -1,61 +1,53 @@
 import Link from "next/link";
-import { Badge } from "@/components/ui/Badge";
-import { ProgressBar } from "@/components/ui/ProgressBar";
-import { getSessionStats } from "@/lib/sessions";
-import { formatKrw, formatSessionDateTime } from "@/lib/format";
+import { formatKrw, formatSessionDate, formatSessionTime, formatDuration } from "@/lib/format";
+import { isDatingTheme } from "@/lib/theme";
 import type { Session } from "@/types/domain";
 
-export async function SessionCard({ session }: { session: Session }) {
-  const stats = await getSessionStats(session.id);
-  const total = stats.confirmed_count + stats.waiting_count;
+// 8/29 베타 한정 할인폭 — 정가는 DB에 따로 저장하지 않고 항상 이 상수만큼
+// price_krw(할인가)에 더해서 계산한다. 결제는 무통장입금뿐이라 정가로
+// 실제 결제되는 경로는 없음 — 순수 마케팅 표기용.
+const BETA_DISCOUNT_KRW = 20000;
+
+function SessionCardField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium text-muted">{label}</p>
+      <p className="text-sm font-semibold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+export function SessionCard({ session }: { session: Session }) {
+  const originalPriceKrw = session.price_krw + BETA_DISCOUNT_KRW;
+  const colorVariant = isDatingTheme(session.theme_label) ? "hud-panel-dating" : "hud-panel-group";
 
   return (
     <Link
       href={`/sessions/${session.id}`}
-      className="flex min-h-[26rem] flex-col justify-between gap-3 rounded-xl glass-panel p-5 transition-shadow hover:shadow-[0_0_30px_-6px_var(--glow)]"
+      className={`hud-panel hud-clip relative flex flex-col gap-6 p-6 sm:gap-7 sm:p-7 ${colorVariant}`}
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-brand">{session.theme_label}</span>
-          {session.status === "closed" ? (
-            <Badge tone="danger">마감</Badge>
-          ) : (
-            <Badge tone="neutral">모집중</Badge>
-          )}
-        </div>
-        <h3 className="text-lg font-extrabold">{session.title}</h3>
-        <p className="text-sm text-muted">
-          {formatSessionDateTime(session.start_at)} · {session.venue_area}
-        </p>
-        <p className="text-sm font-semibold">{formatKrw(session.price_krw)} / 인당</p>
-        <div className="flex flex-wrap gap-1.5">
-          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
-            방탈출 1회 플레이
-          </span>
-          <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
-            {session.theme_label === "소개팅" ? "성비 맞춤 매칭" : "4인 1조 랜덤 편성"}
-          </span>
-        </div>
+      <span aria-hidden className="hud-scanline hud-clip" />
+
+      <h3 className="text-2xl font-extrabold leading-tight sm:text-3xl" style={{ color: "var(--hud-accent)" }}>
+        {session.theme_label}
+      </h3>
+
+      <div className="grid grid-cols-2 gap-x-5 gap-y-4">
+        <SessionCardField label="날짜" value={formatSessionDate(session.event_date)} />
+        <SessionCardField label="시작 시간" value={`${formatSessionTime(session.start_at)} 시작`} />
+        {session.end_at ? (
+          <SessionCardField label="플레이타임" value={formatDuration(session.start_at, session.end_at)} />
+        ) : null}
+        <SessionCardField label="장소" value={session.venue_area} />
       </div>
 
-      <div className="mt-1">
-        <div className="mb-1 flex items-center justify-between text-xs text-muted">
-          <span>
-            신청 {total} / 목표 {session.capacity_confirm_line}명
-          </span>
-          {session.theme_label === "소개팅" ? (
-            <span>
-              확정 남 {stats.male_confirmed_count}/{session.capacity_confirm_line_male ?? 0} · 여{" "}
-              {stats.female_confirmed_count}/{session.capacity_confirm_line_female ?? 0}
-            </span>
-          ) : (
-            <span>
-              확정 {stats.confirmed_count}명
-              {stats.waiting_count > 0 ? ` · 대기 ${stats.waiting_count}명` : ""}
-            </span>
-          )}
-        </div>
-        <ProgressBar value={total} max={session.capacity_max} />
+      <div className="flex flex-col items-start gap-1 border-t border-border pt-4 sm:pt-5">
+        <p className="text-sm text-danger line-through decoration-2">{formatKrw(originalPriceKrw)}</p>
+        <p className="text-2xl font-extrabold">
+          {formatKrw(session.price_krw)}
+          <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
+        </p>
+        <p className="text-[11px] text-muted">8/29 베타 한정 할인가</p>
       </div>
     </Link>
   );

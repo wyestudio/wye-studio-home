@@ -53,12 +53,158 @@ body {
   color: var(--foreground);
 }
 
+/* 마스코트 커스텀 커서(MascotCursor.tsx)가 활성화된 동안(파인 포인터 + 모션 줄이기
+   꺼짐) 링크/버튼 위에서도 브라우저 기본 손 커서가 다시 나오지 않도록 함. <a href>는
+   브라우저 기본 스타일시트가 cursor:pointer를 그 요소에 직접 지정해서, body에만 준
+   cursor:none은 상속으로 내려가다가 그 규칙한테 진다 — 그래서 요소 자신을 직접
+   겨냥하는 규칙이 필요하다. */
+html.custom-cursor-active a,
+html.custom-cursor-active button,
+html.custom-cursor-active [role="button"],
+html.custom-cursor-active input,
+html.custom-cursor-active select,
+html.custom-cursor-active textarea,
+html.custom-cursor-active label {
+  cursor: none;
+}
+
 .glass-panel {
   background: linear-gradient(145deg, var(--surface-glass-from), var(--surface-glass-to));
   border: 1px solid var(--glass-border);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+}
+
+/* 각진 유리질감 SF/HUD 패널 — 라운드 대신 우측 상/하단 모서리만 대각선으로
+   깎아서 "미래적 인터페이스" 느낌을 줌. 좌측 변은 그대로 둬서 좌상단
+   테마명/좌하단 가격이 잘리지 않게 함. 색상은 --hud-accent 커스텀 프로퍼티
+   하나로 관리 — .hud-panel-group/.hud-panel-dating가 이 값만 바꿔서
+   테마별로 다른 네온 색을 입힌다(기본값은 기존 브랜드 블루). */
+.hud-clip {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 22px) 0,
+    100% 22px,
+    100% calc(100% - 22px),
+    calc(100% - 22px) 100%,
+    0 100%
+  );
+}
+
+.hud-panel {
+  --hud-accent: var(--glow);
+  --hud-accent-soft: rgba(111, 140, 255, 0.55);
+  --hud-accent-border: rgba(120, 140, 255, 0.35);
+  position: relative;
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--hud-accent) 16%, #151b4a),
+    color-mix(in srgb, var(--hud-accent) 6%, #0b0e2d)
+  );
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 44px -22px var(--hud-accent-soft),
+    0 0 0 1px var(--hud-accent-border),
+    0 30px 70px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease;
+}
+
+.hud-panel:hover {
+  transform: scale(1.035);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 54px -20px var(--hud-accent-soft),
+    0 0 0 1px var(--hud-accent),
+    0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.hud-panel-group {
+  --hud-accent: #3dffb0;
+  --hud-accent-soft: rgba(61, 255, 176, 0.5);
+  --hud-accent-border: rgba(61, 255, 176, 0.32);
+}
+
+.hud-panel-dating {
+  --hud-accent: #ff5ec4;
+  --hud-accent-soft: rgba(255, 94, 196, 0.5);
+  --hud-accent-border: rgba(255, 94, 196, 0.32);
+}
+
+.hud-panel::before,
+.hud-panel::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+  opacity: 0.9;
+  z-index: 1;
+}
+
+.hud-panel::before {
+  top: 10px;
+  left: 10px;
+  border-top: 1.5px solid var(--hud-accent);
+  border-left: 1.5px solid var(--hud-accent);
+}
+
+.hud-panel::after {
+  bottom: 10px;
+  left: 10px;
+  border-bottom: 1.5px solid var(--hud-accent);
+  border-left: 1.5px solid var(--hud-accent);
+}
+
+/* 호버 시 좌상단/좌하단 브래킷에서 시작한 선이 테두리를 한 바퀴 그리며
+   감싸 도는 애니메이션 — 손으로 그린 것처럼 두껍고 또렷한 네온 선이
+   이어져야 하므로(얇고 흐린 링이면 안 됨) 두께를 3px로 키우고
+   drop-shadow로 확실한 글로우를 더한다. --hud-sweep(각도)을
+   0deg→360deg로 트랜지션시켜, 진행된 구간만 선이 그려지고 나머지는
+   투명하게 비워둔다. */
+@property --hud-sweep {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.hud-scanline {
+  position: absolute;
+  inset: -3px;
+  padding: 3px;
+  pointer-events: none;
+  opacity: 0;
+  --hud-sweep: 0deg;
+  background: conic-gradient(from 0deg, var(--hud-accent) 0deg, var(--hud-accent) var(--hud-sweep), transparent var(--hud-sweep));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 6px var(--hud-accent)) drop-shadow(0 0 2px var(--hud-accent));
+  transition:
+    opacity 0.15s ease,
+    --hud-sweep 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hud-panel:hover .hud-scanline {
+  opacity: 1;
+  --hud-sweep: 360deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-panel,
+  .hud-panel:hover {
+    transition: none;
+    transform: none;
+  }
+  .hud-scanline {
+    transition: none;
+    opacity: 0;
+  }
 }
 
 @keyframes mascot-bob {
@@ -105,5 +251,73 @@ body {
   .animate-drift,
   .animate-glow-pulse {
     animation: none;
+  }
+}
+
+/* 히어로 CTA 버튼("YES") — 기본 상태는 테두리/브래킷 없이 텍스트+화살표만
+   떠 있다가, 호버 시 커서가 들어온 지점에서 흰 원이 퍼지며 그 사각형
+   클리핑 영역이 자연스럽게 완전한 네모로 채워지는 연출(21st.dev
+   "Origin Button" 참고). 각진 네모 유지를 위해 버튼 자체엔 border-radius를
+   안 주고 overflow:hidden으로만 안쪽 원을 잘라낸다. */
+.hero-cta-button {
+  overflow: hidden;
+  isolation: isolate;
+  background: transparent;
+}
+
+/* ">" 모양 — 글꼴에 기대지 않도록 정사각형을 45도 돌려서 위/오른쪽 변만 남긴다. */
+.hero-cta-arrow {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+.hero-cta-fill {
+  position: absolute;
+  left: var(--origin-x, 50%);
+  top: var(--origin-y, 50%);
+  width: 340px;
+  height: 340px;
+  margin-left: -170px;
+  margin-top: -170px;
+  border-radius: 50%;
+  background: #fff;
+  transform: scale(0);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-cta-button:hover .hero-cta-fill {
+  transform: scale(1);
+}
+
+.hero-cta-label-default,
+.hero-cta-label-hover {
+  white-space: nowrap;
+  transition: opacity 0.3s ease;
+}
+
+.hero-cta-label-hover {
+  opacity: 0;
+  color: var(--brand-foreground);
+}
+
+.hero-cta-button:hover .hero-cta-label-default {
+  opacity: 0;
+}
+
+.hero-cta-button:hover .hero-cta-label-hover {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cta-fill,
+  .hero-cta-label-default,
+  .hero-cta-label-hover {
+    transition: none;
   }
 }

@@ -1,4 +1,5 @@
 import type { Session, SessionStats } from "@/types/domain";
+import { isDatingTheme } from "@/lib/theme";
 
 // 소개팅 회차는 성비를 맞춰야 해서 남/여 각각 정원(10명씩)을 따로 관리한다 —
 // 세션 전체 합계가 아니라 성별별 확정/대기 인원 기준으로 표를 그린다.
@@ -40,7 +41,7 @@ function GenderCapacityPolicyTable({ session, stats }: { session: Session; stats
 }
 
 export function CapacityPolicyTable({ session, stats }: { session: Session; stats: SessionStats }) {
-  if (session.theme_label === "소개팅") {
+  if (isDatingTheme(session.theme_label)) {
     return <GenderCapacityPolicyTable session={session} stats={stats} />;
   }
 

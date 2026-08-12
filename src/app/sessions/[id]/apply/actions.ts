@@ -6,6 +6,7 @@ import { isEligibleBirthYear } from "@/lib/eligibility";
 import { getSessionById } from "@/lib/sessions";
 import { sendApplicationSlackAlert } from "@/lib/slack";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
+import { isDatingTheme } from "@/lib/theme";
 import type { Application, Gender } from "@/types/domain";
 
 export type AttendeeInput = {
@@ -74,7 +75,7 @@ export async function applyAction(
   if (!session) {
     return { error: "잘못된 접근입니다." };
   }
-  const isDatingSession = session.theme_label === "소개팅";
+  const isDatingSession = isDatingTheme(session.theme_label);
 
   if (!depositorName) {
     return { error: "입금자명을 입력해주세요.", attendees };

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
 import { MascotOrbit } from "@/components/space/MascotOrbit";
+import { HeroCtaButton } from "@/components/home/HeroCtaButton";
 import { clamp01 } from "@/lib/motion";
 
 export function HeroScene({
@@ -36,6 +37,7 @@ export function HeroScene({
         <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-4xl">
           would you escape?
         </h1>
+        <HeroCtaButton />
       </div>
     </SceneShell>
   );

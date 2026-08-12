@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
+import { RandomLetterSwap } from "@/components/ui/RandomLetterSwap";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인/계정 네비게이션은
 // 제거함. 로그인 시스템 자체는 삭제하지 않고 보존 — 자세한 배경은 CLAUDE.md
@@ -31,8 +32,8 @@ export function Header() {
       ref={headerRef}
       className="sticky top-0 z-20"
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-2">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-4">
+        <div className="flex shrink-0 items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5">
             <Image
               src="/logo-white.png"
@@ -42,11 +43,11 @@ export function Header() {
               priority
               className="h-7 w-auto"
             />
-            <span className="text-base font-extrabold tracking-tight text-foreground">
+            <span className="whitespace-nowrap text-base font-extrabold tracking-tight text-foreground">
               우주이스케이프
             </span>
           </Link>
-          <div className="relative" aria-hidden>
+          <div className="relative hidden sm:block" aria-hidden>
             <span className="animate-hammer-swing absolute -left-2 -top-1.5 text-sm">
               🔨
             </span>
@@ -61,17 +62,17 @@ export function Header() {
           <Badge tone="confirm">BETA</Badge>
         </div>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
-          <Link href="/about" className="transition-colors hover:text-glow">
-            About
+          <Link href="/about">
+            <RandomLetterSwap label="About" className="hover:text-glow" />
           </Link>
-          <Link href="/contents" className="transition-colors hover:text-glow">
-            Contents
+          <Link href="/contents">
+            <RandomLetterSwap label="Contents" className="hover:text-glow" />
           </Link>
-          <Link href="/lookup" className="transition-colors hover:text-glow">
-            Check
+          <Link href="/lookup">
+            <RandomLetterSwap label="Check" className="hover:text-glow" />
           </Link>
-          <Link href="/notice" className="transition-colors hover:text-glow">
-            Notice
+          <Link href="/notice">
+            <RandomLetterSwap label="Notice" className="hover:text-glow" />
           </Link>
         </nav>
       </div>
