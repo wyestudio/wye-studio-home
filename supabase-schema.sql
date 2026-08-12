@@ -1293,3 +1293,28 @@ update sessions
       theme_label = '바-ㅇ탈출(ver.모임)',
       title = '8/29(토) 오후 · 바-ㅇ탈출(ver.모임)'
   where theme_label = '비소개팅';
+
+
+-- v10-3. 베타 가격 최종 확정(2026-08-12) — 정가/할인가 재조정, 할인폭도
+-- 2만원 → 2.4만원으로 변경(src/components/home/SessionCard.tsx의
+-- BETA_DISCOUNT_KRW도 같이 수정 완료). WHERE절은 v10-2에서 이미 바뀐
+-- theme_label 기준으로 매칭.
+update sessions set price_krw = 65000 where theme_label = '바-ㅇ탈출(ver.소개팅)';
+update sessions set price_krw = 55000 where theme_label = '바-ㅇ탈출(ver.모임)';
+
+
+-- =========================================================
+-- v10-4. sessions.original_price_krw 컬럼 신설(2026-08-12) — 정가를
+-- src/components/home/SessionCard.tsx의 BETA_DISCOUNT_KRW 코드 상수로
+-- 계산하던 방식(v10-3까지)을 버리고 DB 컬럼으로 이전. 할인폭이 바뀌거나
+-- 정가/할인가가 독립적으로 바뀌어도 코드 배포 없이 SQL만으로 반영
+-- 가능하도록 하기 위함(v10-3에서 할인폭 자체가 바뀌어 코드까지 다시
+-- 배포해야 했던 게 계기). BETA_DISCOUNT_KRW 상수는 코드에서 제거하고
+-- SessionCard.tsx가 session.original_price_krw를 그대로 사용하도록 변경.
+-- =========================================================
+alter table sessions add column original_price_krw int;
+
+update sessions set original_price_krw = 89000 where theme_label = '바-ㅇ탈출(ver.소개팅)';
+update sessions set original_price_krw = 79000 where theme_label = '바-ㅇ탈출(ver.모임)';
+
+alter table sessions alter column original_price_krw set not null;

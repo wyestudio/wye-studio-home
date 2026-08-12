@@ -3,11 +3,6 @@ import { formatKrw, formatSessionDate, formatSessionTime, formatDuration } from 
 import { isDatingTheme } from "@/lib/theme";
 import type { Session } from "@/types/domain";
 
-// 8/29 베타 한정 할인폭 — 정가는 DB에 따로 저장하지 않고 항상 이 상수만큼
-// price_krw(할인가)에 더해서 계산한다. 결제는 무통장입금뿐이라 정가로
-// 실제 결제되는 경로는 없음 — 순수 마케팅 표기용.
-const BETA_DISCOUNT_KRW = 20000;
-
 function SessionCardField({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -18,7 +13,6 @@ function SessionCardField({ label, value }: { label: string; value: string }) {
 }
 
 export function SessionCard({ session }: { session: Session }) {
-  const originalPriceKrw = session.price_krw + BETA_DISCOUNT_KRW;
   const colorVariant = isDatingTheme(session.theme_label) ? "hud-panel-dating" : "hud-panel-group";
 
   return (
@@ -42,7 +36,7 @@ export function SessionCard({ session }: { session: Session }) {
       </div>
 
       <div className="flex flex-col items-start gap-1 border-t border-border pt-4 sm:pt-5">
-        <p className="text-sm text-danger line-through decoration-2">{formatKrw(originalPriceKrw)}</p>
+        <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
         <p className="text-2xl font-extrabold">
           {formatKrw(session.price_krw)}
           <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>

@@ -14,6 +14,7 @@ export type Session = {
   end_at: string | null;
   venue_area: string;
   price_krw: number;
+  original_price_krw: number;
   capacity_min: number;
   capacity_confirm_line: number;
   capacity_max: number;
