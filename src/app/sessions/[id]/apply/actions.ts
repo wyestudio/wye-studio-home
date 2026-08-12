@@ -7,6 +7,13 @@ import { getSessionById } from "@/lib/sessions";
 import { sendApplicationSlackAlert } from "@/lib/slack";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { isDatingTheme } from "@/lib/theme";
+import {
+  isValidKoreanName,
+  isValidNickname,
+  isValidNotes,
+  isValidExperienceRange,
+  type ExperienceRange,
+} from "@/lib/validation";
 import type { Application, Gender } from "@/types/domain";
 
 export type AttendeeInput = {
@@ -14,45 +21,49 @@ export type AttendeeInput = {
   phone: string;
   birthYear: number;
   nickname: string | null;
-  // 소개팅 회차에서만 필수. 비소개팅은 항상 null.
   gender: Gender | null;
+  experienceRange: ExperienceRange | null;
 };
 
 export type ApplyState = {
   error?: string;
   application?: Application;
   attendees?: AttendeeInput[];
-  // submit_application()이 전화번호 충돌 에러를 던질 때 DETAIL로 실어 보내는
-  // 충돌 전화번호 목록(숫자만) — ApplyForm이 어떤 참여자 입력칸을 표시할지 판별.
+  notes?: string | null;
   conflictPhoneDigits?: string[];
-  // "group": 이번에 제출한 그룹 안에서 전화번호가 서로 중복됨
-  // "theme": 이미 같은 테마에 참여한 적 있는 전화번호가 포함됨
   conflictReason?: "group" | "theme";
 };
 
-const ATTENDEE_FIELD_PATTERN = /^attendees\[(\d+)\]\[(name|phone|birthYear|nickname|gender)\]$/;
+const ATTENDEE_FIELD_PATTERN = /^attendees\[(\d+)\]\[(name|phone|birthYear|nickname|gender|experienceRange)\]$/;
 
 function parseAttendees(formData: FormData): AttendeeInput[] {
-  const byIndex = new Map<number, Partial<Record<"name" | "phone" | "birthYear" | "nickname" | "gender", string>>>();
+  const byIndex = new Map<
+    number,
+    Partial<Record<"name" | "phone" | "birthYear" | "nickname" | "gender" | "experienceRange", string>>
+  >();
 
   for (const [key, value] of formData.entries()) {
     const match = key.match(ATTENDEE_FIELD_PATTERN);
     if (!match || typeof value !== "string") continue;
     const index = Number(match[1]);
-    const field = match[2] as "name" | "phone" | "birthYear" | "nickname" | "gender";
+    const field = match[2] as "name" | "phone" | "birthYear" | "nickname" | "gender" | "experienceRange";
     if (!byIndex.has(index)) byIndex.set(index, {});
     byIndex.get(index)![field] = value;
   }
 
   return [...byIndex.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([, fields]) => ({
-      name: (fields.name ?? "").trim(),
-      phone: (fields.phone ?? "").trim(),
-      birthYear: Number(fields.birthYear),
-      nickname: fields.nickname?.trim() || null,
-      gender: fields.gender === "M" || fields.gender === "F" ? fields.gender : null,
-    }));
+    .map(([, fields]) => {
+      const expRange = fields.experienceRange ?? "";
+      return {
+        name: (fields.name ?? "").trim(),
+        phone: (fields.phone ?? "").trim(),
+        birthYear: Number(fields.birthYear),
+        nickname: fields.nickname?.trim() || null,
+        gender: fields.gender === "M" || fields.gender === "F" ? fields.gender : null,
+        experienceRange: isValidExperienceRange(expRange) ? (expRange as ExperienceRange) : null,
+      };
+    });
 }
 
 export async function applyAction(
@@ -62,6 +73,7 @@ export async function applyAction(
   const sessionId = String(formData.get("sessionId") ?? "");
   const depositorName = String(formData.get("depositorName") ?? "").trim();
   const agreedTerms = formData.get("agreedTerms") === "on";
+  const notes = String(formData.get("notes") ?? "").trim() || null;
   const attendees = parseAttendees(formData);
 
   if (!sessionId) {
@@ -78,32 +90,50 @@ export async function applyAction(
   const isDatingSession = isDatingTheme(session.theme_label);
 
   if (!depositorName) {
-    return { error: "입금자명을 입력해주세요.", attendees };
+    return { error: "입금자명을 입력해주세요.", attendees, notes };
+  }
+  if (!isValidKoreanName(depositorName)) {
+    return { error: "입금자명은 한글 2~10자만 가능합니다.", attendees, notes };
   }
   if (!agreedTerms) {
-    return { error: "약관에 동의해야 신청할 수 있습니다.", attendees };
+    return { error: "약관에 동의해야 신청할 수 있습니다.", attendees, notes };
   }
   if (attendees.length === 0) {
-    return { error: "참여 인원을 입력해주세요.", attendees };
+    return { error: "참여 인원을 입력해주세요.", attendees, notes };
   }
+
   for (const attendee of attendees) {
     if (!attendee.name || !attendee.phone) {
-      return { error: "참여자 이름과 전화번호를 모두 입력해주세요.", attendees };
+      return { error: "참여자 이름과 전화번호를 모두 입력해주세요.", attendees, notes };
+    }
+    if (!isValidKoreanName(attendee.name)) {
+      return { error: "참여자 이름은 한글 2~10자만 가능합니다.", attendees, notes };
     }
     if (!isValidPhoneDigits(phoneDigits(attendee.phone))) {
-      return { error: "올바른 휴대폰 번호 형식이 아니에요. (예: 010-1234-5678)", attendees };
+      return { error: "올바른 휴대폰 번호 형식이 아니에요.", attendees, notes };
     }
     if (!isEligibleBirthYear(attendee.birthYear)) {
-      return { error: "참여자 출생년도는 1990~1999년만 가능합니다.", attendees };
+      return { error: "참여자 출생년도는 1990~1999년만 가능합니다.", attendees, notes };
+    }
+    // 성별 (모든 테마에서 필수)
+    if (!attendee.gender || (attendee.gender !== "M" && attendee.gender !== "F")) {
+      return { error: "모든 참여자의 성별을 선택해주세요.", attendees, notes };
+    }
+    // 닉네임 (선택, 입력했을 때만 검사)
+    if (attendee.nickname && !isValidNickname(attendee.nickname)) {
+      return { error: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다.", attendees, notes };
     }
   }
+
   if (isDatingSession) {
     if (attendees.length !== 1) {
-      return { error: "소개팅 회차는 1인 신청만 가능합니다.", attendees };
+      return { error: "소개팅 회차는 1인 신청만 가능합니다.", attendees, notes };
     }
-    if (attendees[0].gender !== "M" && attendees[0].gender !== "F") {
-      return { error: "성별을 선택해주세요.", attendees };
-    }
+  }
+
+  // 비고 검사 (그룹 전용, 선택)
+  if (attendees.length >= 2 && notes && !isValidNotes(notes)) {
+    return { error: "비고는 200자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.", attendees, notes };
   }
 
   const digitCounts = new Map<string, number>();
@@ -135,7 +165,9 @@ export async function applyAction(
         birth_year: a.birthYear,
         nickname: a.nickname,
         gender: a.gender,
+        experience_range: a.experienceRange,
       })),
+      p_notes: attendees.length >= 2 ? notes : null,
     })
     .single();
 
@@ -148,21 +180,18 @@ export async function applyAction(
       : error.message.includes("같은 테마")
         ? "theme"
         : undefined;
-    return { error: error.message, attendees, conflictPhoneDigits, conflictReason };
+    return { error: error.message, attendees, notes, conflictPhoneDigits, conflictReason };
   }
 
   const application = data as Application;
 
   after(async () => {
     try {
-      // SMS 발송 임시 중단 (2026-08-11) — 팀원 테스트로 실제 문자 요금이 계속
-      // 나가고 있어 급히 비활성화. 재활성화 시 src/lib/sms.ts의
-      // sendApplicationConfirmationSms를 다시 import해서 아래 배열에 추가할 것.
       await Promise.all([sendApplicationSlackAlert({ session, application, attendees })]);
     } catch (err) {
       console.error("[notify] 신청 알림 처리 중 에러", err);
     }
   });
 
-  return { application, attendees };
+  return { application, attendees, notes };
 }

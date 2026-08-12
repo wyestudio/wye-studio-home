@@ -8,3 +8,15 @@ export const DATING_THEME_LABEL = "바-ㅇ탈출(ver.소개팅)";
 export function isDatingTheme(themeLabel: string): boolean {
   return themeLabel === DATING_THEME_LABEL;
 }
+
+export function getThemeTag(themeLabel: string): string {
+  return isDatingTheme(themeLabel) ? "소개팅" : "모임";
+}
+
+export function getThemeBaseName(themeLabel: string): string {
+  return themeLabel.replace(/\s*\(ver\.[^)]*\)\s*/, "").trim();
+}
+
+export function getThemeShortLabel(themeLabel: string): string {
+  return isDatingTheme(themeLabel) ? "소개팅" : "모임";
+}

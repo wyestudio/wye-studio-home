@@ -1,14 +1,21 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { Field, Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
+import { Field } from "@/components/ui/Input";
 import { ApplyComplete } from "@/components/apply/ApplyComplete";
 import { applyAction, type ApplyState } from "@/app/sessions/[id]/apply/actions";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import { isDatingTheme } from "@/lib/theme";
+import {
+  isValidKoreanName,
+  isValidNickname,
+  isValidNotes,
+  EXPERIENCE_RANGES,
+  EXPERIENCE_RANGE_LABELS,
+  getValidationErrorMessage,
+} from "@/lib/validation";
 
 const initialState: ApplyState = {};
 const MAX_ATTENDEES = 8;
@@ -20,7 +27,7 @@ const BIRTH_YEARS = Array.from(
 const selectClassName =
   "w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]";
 
-type AttendeeField = "name" | "phone1" | "phone2" | "phone3" | "birthYear" | "nickname" | "gender";
+type AttendeeField = "name" | "phone1" | "phone2" | "phone3" | "birthYear" | "nickname" | "gender" | "experienceRange";
 type AttendeeState = {
   name: string;
   phone1: string;
@@ -29,6 +36,7 @@ type AttendeeState = {
   birthYear: string;
   nickname: string;
   gender: string;
+  experienceRange: string;
 };
 
 const emptyAttendee: AttendeeState = {
@@ -38,14 +46,44 @@ const emptyAttendee: AttendeeState = {
   phone3: "",
   birthYear: "",
   nickname: "",
-  gender: "",
+  gender: "F",
+  experienceRange: "",
 };
+
+type ValidationError = { field: string; message: string };
 
 function phoneInputClassName(invalid: boolean) {
   return `w-full rounded-lg border px-3 py-2.5 text-center text-sm outline-none transition-shadow ${
     invalid
       ? "border-danger bg-danger-soft text-danger"
       : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
+  }`;
+}
+
+function textInputClassName(invalid: boolean) {
+  return `w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-shadow ${
+    invalid
+      ? "border-danger bg-danger-soft text-danger"
+      : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
+  }`;
+}
+
+function selectClassNameFn(invalid: boolean) {
+  return `w-full rounded-lg border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow ${
+    invalid
+      ? "border-danger bg-danger-soft text-danger"
+      : "border-border focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
+  }`;
+}
+
+function toggleButtonClassName(active: boolean, invalid: boolean) {
+  if (invalid) {
+    return "flex-1 rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm font-medium text-danger transition-all";
+  }
+  return `flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
+    active
+      ? "border-brand bg-brand text-brand-foreground"
+      : "border-border bg-surface text-foreground hover:border-brand"
   }`;
 }
 
@@ -71,9 +109,9 @@ export function ApplyForm({
   const [attendees, setAttendees] = useState<AttendeeState[]>([{ ...emptyAttendee }]);
   const [depositorName, setDepositorName] = useState("");
   const [agreedTerms, setAgreedTerms] = useState(false);
-  // 제출을 한 번이라도 시도한 뒤부터 형식 오류 칸을 빨갛게 표시한다 — 타이핑
-  // 중간에 매 글자마다 빨개지는 건 거슬리니, 시도 이후에는 실시간으로 반영.
+  const [notes, setNotes] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const completeEventSent = useRef(false);
 
   useEffect(() => {
@@ -127,26 +165,108 @@ export function ApplyForm({
     }
   }
 
-  // 빈 칸에서 백스페이스를 누르면 이전 칸으로 포커스를 옮겨 자연스럽게
-  // 이어서 지울 수 있게 한다.
   function handlePhoneBackspace(e: React.KeyboardEvent<HTMLInputElement>, prevId: string | null) {
     if (e.key === "Backspace" && e.currentTarget.value === "" && prevId) {
       document.getElementById(prevId)?.focus();
     }
   }
 
-  // <form action={formAction}>로 직접 연결하면 React가 액션 완료 후(성공이든 에러든)
-  // 네이티브 form.reset()을 호출하는데, 이게 checkbox/select 같은 엘리먼트는 React
-  // state와 무관하게 실제로 리셋시켜버린다(실제로 겪은 버그 — 이용약관 체크가 풀리고
-  // 출생년도가 첫 옵션으로 되돌아감). 그래서 onSubmit에서 직접 막고, FormData도 DOM이
-  // 아니라 이미 들고 있는 React state에서 그대로 구성해 제출한다.
+  function handleSubmitPointerEnter(e: React.PointerEvent<HTMLButtonElement>) {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--origin-x", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--origin-y", `${e.clientY - rect.top}px`);
+    // 버튼의 대각선 길이 × 2를 --fill-size로 계산해 어떤 지점을 눌러도 원이 버튼 전체를 덮도록 함
+    const diagonal = Math.hypot(rect.width, rect.height);
+    el.style.setProperty("--fill-size", `${diagonal * 2}px`);
+  }
+
+  function validateForm(): ValidationError[] {
+    const errors: ValidationError[] = [];
+
+    // 입금자명
+    if (!depositorName.trim()) {
+      errors.push({ field: "depositorName", message: getValidationErrorMessage("depositorName", "required") });
+    } else if (!isValidKoreanName(depositorName)) {
+      errors.push({ field: "depositorName", message: getValidationErrorMessage("depositorName", "invalid") });
+    }
+
+    // 약관 동의
+    if (!agreedTerms) {
+      errors.push({ field: "agreedTerms", message: getValidationErrorMessage("agreedTerms", "required") });
+    }
+
+    // 각 참여자
+    attendees.forEach((attendee, i) => {
+      // 이름
+      if (!attendee.name.trim()) {
+        errors.push({
+          field: `attendee-${i}-name`,
+          message: "이름을 입력해주세요.",
+        });
+      } else if (!isValidKoreanName(attendee.name)) {
+        errors.push({
+          field: `attendee-${i}-name`,
+          message: getValidationErrorMessage("name", "invalid"),
+        });
+      }
+
+      // 전화번호
+      const fullPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
+      if (!fullPhone) {
+        errors.push({
+          field: `attendee-${i}-phone`,
+          message: "전화번호를 입력해주세요.",
+        });
+      } else if (!isValidPhoneDigits(fullPhone)) {
+        errors.push({
+          field: `attendee-${i}-phone`,
+          message: getValidationErrorMessage("phone", "invalid"),
+        });
+      }
+
+      // 출생년도
+      if (!attendee.birthYear) {
+        errors.push({
+          field: `attendee-${i}-birthYear`,
+          message: "출생년도를 선택해주세요.",
+        });
+      }
+
+      // 성별 (모든 테마에서 필수)
+      if (!attendee.gender || (attendee.gender !== "M" && attendee.gender !== "F")) {
+        errors.push({
+          field: `attendee-${i}-gender`,
+          message: "성별을 선택해주세요.",
+        });
+      }
+
+      // 닉네임 (선택, 입력했을 때만 검사)
+      if (attendee.nickname && !isValidNickname(attendee.nickname)) {
+        errors.push({
+          field: `attendee-${i}-nickname`,
+          message: getValidationErrorMessage("nickname", "invalid"),
+        });
+      }
+    });
+
+    // 비고 (그룹 전용, 선택)
+    if (attendees.length >= 2 && notes && !isValidNotes(notes)) {
+      errors.push({
+        field: "notes",
+        message: getValidationErrorMessage("notes", "invalid"),
+      });
+    }
+
+    return errors;
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const hasInvalidPhone = attendees.some(
-      (a) => !isValidPhoneDigits(`${a.phone1}${a.phone2}${a.phone3}`)
-    );
-    if (hasInvalidPhone) {
+    const errors = validateForm();
+    if (errors.length > 0) {
+      setValidationErrors(errors);
       setSubmitAttempted(true);
       return;
     }
@@ -155,12 +275,14 @@ export function ApplyForm({
     formData.set("sessionId", sessionId);
     formData.set("depositorName", depositorName);
     if (agreedTerms) formData.set("agreedTerms", "on");
+    if (attendees.length >= 2 && notes) formData.set("notes", notes);
     attendees.forEach((attendee, i) => {
       formData.set(`attendees[${i}][name]`, attendee.name);
       formData.set(`attendees[${i}][phone]`, `${attendee.phone1}${attendee.phone2}${attendee.phone3}`);
       formData.set(`attendees[${i}][birthYear]`, attendee.birthYear);
       formData.set(`attendees[${i}][nickname]`, attendee.nickname);
       formData.set(`attendees[${i}][gender]`, attendee.gender);
+      formData.set(`attendees[${i}][experienceRange]`, attendee.experienceRange);
     });
     formAction(formData);
   }
@@ -173,15 +295,17 @@ export function ApplyForm({
         priceKrw={priceKrw}
         sessionTitle={sessionTitle}
         eventDate={eventDate}
+        notes={state.notes}
       />
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <div className="rounded-xl bg-brand-soft p-4 text-xs text-muted">
-        비슷한 또래끼리 더 즐겁게 즐기실 수 있도록, {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만
-        참여하실 수 있어요.
+        비슷한 또래끼리 더 즐겁게 즐기실 수 있도록,
+        <br />
+        {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만 참여하실 수 있어요.
         {isDatingSession
           ? " 소개팅 회차는 성비를 맞추기 위해 남/여 각각 10명까지 즉시 확정되고, 이후에는 대기로 전환돼요."
           : null}
@@ -210,6 +334,14 @@ export function ApplyForm({
           const isConflict = conflictPhones.has(phoneDigits(combinedPhone));
           const isFormatInvalid = submitAttempted && !isValidPhoneDigits(combinedPhone);
           const phoneInvalid = isConflict || isFormatInvalid;
+
+          const nameError = validationErrors.find((e) => e.field === `attendee-${i}-name`);
+          const phoneError = validationErrors.find((e) => e.field === `attendee-${i}-phone`);
+          const birthYearError = validationErrors.find((e) => e.field === `attendee-${i}-birthYear`);
+          const genderError = validationErrors.find((e) => e.field === `attendee-${i}-gender`);
+          const experienceError = validationErrors.find((e) => e.field === `attendee-${i}-experienceRange`);
+          const nicknameError = validationErrors.find((e) => e.field === `attendee-${i}-nickname`);
+
           return (
             <div
               key={i}
@@ -218,24 +350,31 @@ export function ApplyForm({
               }`}
             >
               <p className="mb-3 text-xs font-bold text-muted">
-                {i === 0 ? (isDatingSession ? "신청자 (본인)" : "대표 신청자 (본인)") : `동행자 ${i}`}
+                {i === 0 ? "대표 신청자 (본인)" : `동행자 ${i}`}
               </p>
               <div className="flex flex-col gap-3">
-                <Field label="이름" htmlFor={`attendee-${i}-name`}>
-                  <Input
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor={`attendee-${i}-name`} className="text-sm font-semibold text-foreground">
+                    이름
+                  </label>
+                  <input
                     id={`attendee-${i}-name`}
-                    name={`attendees[${i}][name]`}
                     type="text"
                     required
+                    placeholder="홍길동"
                     value={attendee.name}
-                    onChange={(e) => updateAttendee(i, "name", e.target.value)}
+                    onChange={(e) => {
+                      updateAttendee(i, "name", e.target.value);
+                      if (submitAttempted) setValidationErrors(validateForm());
+                    }}
+                    className={textInputClassName(!!nameError)}
                   />
-                </Field>
-                <Field
-                  label="전화번호"
-                  htmlFor={`attendee-${i}-phone1`}
-                  error={isFormatInvalid ? "올바른 휴대폰 번호 형식이 아니에요." : undefined}
-                >
+                  {nameError ? <p className="text-xs text-danger">{nameError.message}</p> : null}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor={`attendee-${i}-phone1`} className="text-sm font-semibold text-foreground">
+                    전화번호
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
                       id={`attendee-${i}-phone1`}
@@ -245,10 +384,11 @@ export function ApplyForm({
                       maxLength={3}
                       placeholder="010"
                       value={attendee.phone1}
-                      onChange={(e) =>
-                        updatePhoneSegment(i, "phone1", e.target.value, 3, `attendee-${i}-phone2`)
-                      }
-                      className={phoneInputClassName(phoneInvalid)}
+                      onChange={(e) => {
+                        updatePhoneSegment(i, "phone1", e.target.value, 3, `attendee-${i}-phone2`);
+                        if (submitAttempted) setValidationErrors(validateForm());
+                      }}
+                      className={phoneInputClassName(phoneInvalid || !!phoneError)}
                     />
                     <span className="text-muted">-</span>
                     <input
@@ -260,10 +400,11 @@ export function ApplyForm({
                       placeholder="0000"
                       value={attendee.phone2}
                       onKeyDown={(e) => handlePhoneBackspace(e, `attendee-${i}-phone1`)}
-                      onChange={(e) =>
-                        updatePhoneSegment(i, "phone2", e.target.value, 4, `attendee-${i}-phone3`)
-                      }
-                      className={phoneInputClassName(phoneInvalid)}
+                      onChange={(e) => {
+                        updatePhoneSegment(i, "phone2", e.target.value, 4, `attendee-${i}-phone3`);
+                        if (submitAttempted) setValidationErrors(validateForm());
+                      }}
+                      className={phoneInputClassName(phoneInvalid || !!phoneError)}
                     />
                     <span className="text-muted">-</span>
                     <input
@@ -275,19 +416,28 @@ export function ApplyForm({
                       placeholder="0000"
                       value={attendee.phone3}
                       onKeyDown={(e) => handlePhoneBackspace(e, `attendee-${i}-phone2`)}
-                      onChange={(e) => updatePhoneSegment(i, "phone3", e.target.value, 4, null)}
-                      className={phoneInputClassName(phoneInvalid)}
+                      onChange={(e) => {
+                        updatePhoneSegment(i, "phone3", e.target.value, 4, null);
+                        if (submitAttempted) setValidationErrors(validateForm());
+                      }}
+                      className={phoneInputClassName(phoneInvalid || !!phoneError)}
                     />
                   </div>
-                </Field>
-                <Field label="출생년도" htmlFor={`attendee-${i}-birthYear`}>
+                  {phoneError ? <p className="text-xs text-danger">{phoneError.message}</p> : null}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor={`attendee-${i}-birthYear`} className="text-sm font-semibold text-foreground">
+                    출생년도
+                  </label>
                   <select
                     id={`attendee-${i}-birthYear`}
-                    name={`attendees[${i}][birthYear]`}
                     required
                     value={attendee.birthYear}
-                    onChange={(e) => updateAttendee(i, "birthYear", e.target.value)}
-                    className={selectClassName}
+                    onChange={(e) => {
+                      updateAttendee(i, "birthYear", e.target.value);
+                      if (submitAttempted) setValidationErrors(validateForm());
+                    }}
+                    className={selectClassNameFn(!!birthYearError)}
                   >
                     <option value="" disabled>
                       선택
@@ -298,35 +448,74 @@ export function ApplyForm({
                       </option>
                     ))}
                   </select>
-                </Field>
-                {isDatingSession ? (
-                  <Field label="성별" htmlFor={`attendee-${i}-gender`}>
-                    <select
-                      id={`attendee-${i}-gender`}
-                      name={`attendees[${i}][gender]`}
-                      required
-                      value={attendee.gender}
-                      onChange={(e) => updateAttendee(i, "gender", e.target.value)}
-                      className={selectClassName}
+                  {birthYearError ? <p className="text-xs text-danger">{birthYearError.message}</p> : null}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-foreground">성별</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateAttendee(i, "gender", "F");
+                        if (submitAttempted) setValidationErrors(validateForm());
+                      }}
+                      className={toggleButtonClassName(attendee.gender === "F", !!genderError)}
                     >
-                      <option value="" disabled>
-                        선택
-                      </option>
-                      <option value="M">남성</option>
-                      <option value="F">여성</option>
-                    </select>
-                  </Field>
-                ) : null}
-                <Field label="닉네임 (선택)" htmlFor={`attendee-${i}-nickname`}>
-                  <Input
+                      여성
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateAttendee(i, "gender", "M");
+                        if (submitAttempted) setValidationErrors(validateForm());
+                      }}
+                      className={toggleButtonClassName(attendee.gender === "M", !!genderError)}
+                    >
+                      남성
+                    </button>
+                  </div>
+                  {genderError ? <p className="text-xs text-danger">{genderError.message}</p> : null}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-semibold text-foreground">방탈출 경험 횟수 (선택)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {EXPERIENCE_RANGES.map((range) => (
+                      <button
+                        key={range}
+                        type="button"
+                        onClick={() => {
+                          updateAttendee(i, "experienceRange", attendee.experienceRange === range ? "" : range);
+                          if (submitAttempted) setValidationErrors(validateForm());
+                        }}
+                        className={toggleButtonClassName(attendee.experienceRange === range, !!experienceError)}
+                      >
+                        {EXPERIENCE_RANGE_LABELS[range]}
+                      </button>
+                    ))}
+                  </div>
+                  {experienceError ? <p className="text-xs text-danger">{experienceError.message}</p> : null}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor={`attendee-${i}-nickname`} className="text-sm font-semibold text-foreground">
+                    닉네임 (선택)
+                  </label>
+                  <input
                     id={`attendee-${i}-nickname`}
-                    name={`attendees[${i}][nickname]`}
                     type="text"
                     placeholder="같은 회차 내에서 다른 참여자와 중복될 수 없어요"
                     value={attendee.nickname}
-                    onChange={(e) => updateAttendee(i, "nickname", e.target.value)}
+                    onChange={(e) => {
+                      updateAttendee(i, "nickname", e.target.value);
+                      if (submitAttempted) setValidationErrors(validateForm());
+                    }}
+                    className={textInputClassName(!!nicknameError)}
                   />
-                </Field>
+                  <p className="text-xs text-muted">비워두면 이름으로 표시돼요.</p>
+                  {nicknameError ? <p className="text-xs text-danger">{nicknameError.message}</p> : null}
+                </div>
               </div>
               {isConflict ? (
                 <p className="mt-2 text-xs text-danger">
@@ -340,16 +529,49 @@ export function ApplyForm({
         })}
       </div>
 
-      <Field label="입금 시 사용할 이름 (입금자명)" htmlFor="depositorName">
-        <Input
+      {attendees.length >= 2 ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="notes" className="text-sm font-semibold text-foreground">
+            비고 (선택)
+          </label>
+          <textarea
+            id="notes"
+            maxLength={200}
+            placeholder="예: 친구들과 같은 조로 배정해주세요."
+            value={notes}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              if (submitAttempted) setValidationErrors(validateForm());
+            }}
+            className={textInputClassName(!!validationErrors.find((e) => e.field === "notes"))}
+            rows={3}
+          />
+          <p className="text-xs text-muted">모든 요청을 반영해드리기는 어려울 수 있어요.</p>
+          {validationErrors.find((e) => e.field === "notes") ? (
+            <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "notes")!.message}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="depositorName" className="text-sm font-semibold text-foreground">
+          입금 시 사용할 이름 (입금자명)
+        </label>
+        <input
           id="depositorName"
-          name="depositorName"
           type="text"
           required
           value={depositorName}
-          onChange={(e) => setDepositorName(e.target.value)}
+          onChange={(e) => {
+            setDepositorName(e.target.value);
+            if (submitAttempted) setValidationErrors(validateForm());
+          }}
+          className={textInputClassName(!!validationErrors.find((e) => e.field === "depositorName"))}
         />
-      </Field>
+        {validationErrors.find((e) => e.field === "depositorName") ? (
+          <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "depositorName")!.message}</p>
+        ) : null}
+      </div>
 
       <label className="flex items-start gap-2 text-sm">
         <input
@@ -358,18 +580,25 @@ export function ApplyForm({
           required
           className="mt-1"
           checked={agreedTerms}
-          onChange={(e) => setAgreedTerms(e.target.checked)}
+          onChange={(e) => {
+            setAgreedTerms(e.target.checked);
+            if (submitAttempted) setValidationErrors(validateForm());
+          }}
         />
         <span>이용약관, 개인정보처리방침, 환불정책에 모두 동의합니다.</span>
       </label>
 
-      <p className="text-xs text-muted">🔒 입력하신 이름·전화번호는 암호화되어 저장돼요.</p>
-
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "제출 중..." : "신청 제출"}
-      </Button>
+      <button
+        type="submit"
+        disabled={pending}
+        onPointerEnter={handleSubmitPointerEnter}
+        className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50"
+      >
+        <span aria-hidden className="apply-submit-fill" />
+        <span className="apply-submit-label">{pending ? "제출 중..." : "제출하기"}</span>
+      </button>
     </form>
   );
 }

@@ -44,13 +44,15 @@
   --color-wait-soft: var(--wait-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-suit);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 /* 마스코트 커스텀 커서(MascotCursor.tsx)가 활성화된 동안(파인 포인터 + 모션 줄이기
@@ -277,6 +279,49 @@ html.custom-cursor-active label {
   .hero-cta-fill,
   .hero-cta-label-default,
   .hero-cta-label-hover {
+    transition: none;
+  }
+}
+
+/* 신청 폼 제출 버튼 애니메이션 — 히어로 CTA와 동일한 호버 확산 메커니즘.
+   차이점: 히어로는 배경 투명(흰 원)/텍스트 크로스페이드,
+   신청 버튼은 배경 투명(브랜드색 원)/텍스트 고정(항상 흰색). */
+.apply-submit-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: transparent;
+  border: 2px solid var(--brand);
+  color: #fff;
+}
+
+.apply-submit-fill {
+  position: absolute;
+  left: var(--origin-x, 50%);
+  top: var(--origin-y, 50%);
+  width: var(--fill-size, 340px);
+  height: var(--fill-size, 340px);
+  margin-left: calc(var(--fill-size, 340px) / -2);
+  margin-top: calc(var(--fill-size, 340px) / -2);
+  border-radius: 50%;
+  background: var(--brand);
+  transform: scale(0);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.apply-submit-button:hover .apply-submit-fill {
+  transform: scale(1);
+}
+
+.apply-submit-label {
+  position: relative;
+  z-index: 10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apply-submit-fill {
     transition: none;
   }
 }

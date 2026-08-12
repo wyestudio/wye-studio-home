@@ -8,6 +8,7 @@ import { HudCard } from "@/components/ui/HudCard";
 import { formatKrw, formatRefundDeadline, formatSessionDate } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
+import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { lookupAction, type LookupState } from "@/app/lookup/actions";
 import type { ApplicationStatus, PaymentStatus, SessionSlot } from "@/types/domain";
 
@@ -66,15 +67,29 @@ export function LookupForm() {
             <p className="mb-2 text-sm">입금자명: {result.depositor_name}</p>
             <ul className="flex flex-col gap-1 text-sm">
               {result.attendees.map((attendee, i) => (
-                <li key={i}>
-                  {attendee.name}
-                  {attendee.nickname ? ` (${attendee.nickname})` : ""} · {formatPhoneDigits(attendee.phone)}
-                  {attendee.gender ? ` · ${attendee.gender === "M" ? "남성" : "여성"}` : ""}
-                  {isGroup && attendee.is_representative ? " · 대표 신청자" : ""}
+                <li key={i} className="flex flex-col gap-0.5">
+                  <div>
+                    {attendee.name}
+                    {attendee.nickname ? ` (${attendee.nickname})` : ""} · {formatPhoneDigits(attendee.phone)}
+                    {attendee.gender ? ` · ${attendee.gender === "M" ? "남성" : "여성"}` : ""}
+                    {isGroup && attendee.is_representative ? " · 대표 신청자" : ""}
+                  </div>
+                  {attendee.experience_range ? (
+                    <div className="text-xs text-muted">
+                      방탈출 경험: {EXPERIENCE_RANGE_LABELS[attendee.experience_range]}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>
           </div>
+
+          {result.notes ? (
+            <div className="rounded-lg border border-border p-4 text-sm">
+              <p className="mb-2 font-bold">비고</p>
+              <p className="text-muted">{result.notes}</p>
+            </div>
+          ) : null}
 
           <div className="rounded-lg bg-brand-soft p-4 text-sm">
             <p className="mb-1 font-bold">무통장입금 안내</p>

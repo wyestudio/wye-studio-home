@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { formatKrw, formatRefundDeadline } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
+import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import type { Application } from "@/types/domain";
 import type { AttendeeInput } from "@/app/sessions/[id]/apply/actions";
 
@@ -21,12 +22,14 @@ export function ApplyComplete({
   priceKrw,
   sessionTitle,
   eventDate,
+  notes,
 }: {
   application: Application;
   attendees: AttendeeInput[];
   priceKrw: number;
   sessionTitle: string;
   eventDate: string;
+  notes?: string | null;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -93,16 +96,28 @@ export function ApplyComplete({
         {attendees.length > 0 ? (
           <ul className="flex flex-col gap-1 text-sm">
             {attendees.map((attendee, i) => (
-              <li key={i}>
-                {attendee.name}
-                {attendee.nickname ? ` (${attendee.nickname})` : ""} · {formatPhoneDigits(attendee.phone)}
-                {attendee.gender ? ` · ${attendee.gender === "M" ? "남성" : "여성"}` : ""}
-                {isGroup && i === 0 ? " · 대표 신청자" : ""}
+              <li key={i} className="flex flex-col gap-0.5">
+                <div>
+                  {attendee.name}
+                  {attendee.nickname ? ` (${attendee.nickname})` : ""} · {formatPhoneDigits(attendee.phone)}
+                  {attendee.gender ? ` · ${attendee.gender === "M" ? "남성" : "여성"}` : ""}
+                  {isGroup && i === 0 ? " · 대표 신청자" : ""}
+                </div>
+                {attendee.experienceRange ? (
+                  <div className="text-xs text-muted">방탈출 경험: {EXPERIENCE_RANGE_LABELS[attendee.experienceRange]}</div>
+                ) : null}
               </li>
             ))}
           </ul>
         ) : null}
       </div>
+
+      {notes ? (
+        <div className="rounded-lg border border-border p-4 text-sm">
+          <p className="mb-2 font-bold">비고</p>
+          <p className="text-muted">{notes}</p>
+        </div>
+      ) : null}
 
       <div className="rounded-lg bg-brand-soft p-4 text-sm">
         <p className="mb-1 font-bold">무통장입금 안내</p>
