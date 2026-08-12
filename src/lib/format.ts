@@ -77,3 +77,11 @@ export function formatRefundDeadline(eventDate: string): string {
   const weekday = WEEKDAYS[d.getDay()];
   return `${month}월 ${date}일(${weekday})`;
 }
+
+// Date 객체를 "OO월 OO일(요일)" 형식으로 반환 (SMS 알림용).
+export function formatDate(date: Date): string {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const weekday = WEEKDAYS[date.getDay()];
+  return `${month}월 ${day}일(${weekday})`;
+}
