@@ -2,7 +2,7 @@ import { isDatingTheme, getThemeTag } from "@/lib/theme";
 
 export function ThemeTag({ themeLabel }: { themeLabel: string }) {
   const isDating = isDatingTheme(themeLabel);
-  const accentColor = isDating ? "var(--hud-accent-dating)" : "var(--hud-accent-group)";
+  const accentColor = isDating ? "#ff5ec4" : "#3dffb0";
 
   return (
     <div

@@ -21,7 +21,7 @@ export function HeroCtaButton() {
       ref={ref}
       href="/contents"
       onPointerEnter={handlePointerEnter}
-      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-2.5 pl-[30px] pr-[42px] text-sm font-semibold tracking-wide text-white"
+      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] pl-10 pr-[55px] text-[1.1rem] font-semibold tracking-wide text-white"
     >
       <span aria-hidden className="hero-cta-fill" />
       <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">

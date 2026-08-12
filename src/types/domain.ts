@@ -21,6 +21,10 @@ export type Session = {
   // 소개팅(theme_label='소개팅') 회차만 값이 있음 — 성비 분리 정원, 비소개팅은 null
   capacity_confirm_line_male: number | null;
   capacity_confirm_line_female: number | null;
+  capacity_max_male: number | null;
+  capacity_max_female: number | null;
+  male_closed: boolean;
+  female_closed: boolean;
   status: SessionStatus;
   description: string | null;
   created_at: string;
@@ -54,6 +58,7 @@ export type Application = {
   confirmation_code: string;
   status: ApplicationStatus;
   payment_status: PaymentStatus;
+  waiting_number: number | null;
   created_at: string;
 };
 
@@ -64,9 +69,12 @@ export type ApplicationAttendee = {
   birth_year: number;
   nickname: string | null;
   is_representative: boolean;
-  // 소개팅 회차 참여자만 값이 있음 — 비소개팅은 null
   gender: Gender | null;
+  // 모든 테마에서 값이 채워짐
+  experience_range: ExperienceRange | null;
 };
+
+export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200+";
 
 // 참여내역 조회(lookup_application RPC) 결과.
 export type ApplicationLookupResult = {
@@ -79,5 +87,7 @@ export type ApplicationLookupResult = {
   confirmation_code: string;
   depositor_name: string;
   created_at: string;
+  waiting_number: number | null;
+  notes: string | null;
   attendees: ApplicationAttendee[];
 };

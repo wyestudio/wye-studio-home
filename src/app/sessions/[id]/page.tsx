@@ -137,8 +137,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           <div>
             <p className="mb-1 font-semibold text-muted">신청 자격</p>
             <p className="text-xs text-muted">
-              비슷한 또래끼리 더 즐겁게 즐기실 수 있도록 {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만
-              참여하실 수 있어요. 그 외 세부 자격 조건은 확정 후 안내 예정입니다.
+              비슷한 또래끼리 더 즐겁게 즐기실 수 있도록,
+              <br />
+              {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만 참여하실 수 있어요. 그 외 세부 자격 조건은 확정 후 안내 예정입니다.
             </p>
           </div>
         </HudCard>
