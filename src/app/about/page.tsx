@@ -1,5 +1,6 @@
 "use client";
 
+import { notFound } from "next/navigation";
 import { ConceptCards } from "@/components/about/ConceptCards";
 import { HudCard } from "@/components/ui/HudCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -13,6 +14,9 @@ const PRINCIPLES = [
 ];
 
 export default function AboutPage() {
+  if (!process.env.NEXT_PUBLIC_ABOUT_ENABLED) {
+    notFound();
+  }
   return (
     <div className="pt-10">
       <div className="mx-auto max-w-3xl px-5">

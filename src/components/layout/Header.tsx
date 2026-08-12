@@ -62,9 +62,11 @@ export function Header() {
           <Badge tone="confirm">BETA</Badge>
         </div>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
-          <Link href="/about">
-            <RandomLetterSwap label="About" className="hover:text-glow" />
-          </Link>
+          {process.env.NEXT_PUBLIC_ABOUT_ENABLED && (
+            <Link href="/about">
+              <RandomLetterSwap label="About" className="hover:text-glow" />
+            </Link>
+          )}
           <Link href="/contents">
             <RandomLetterSwap label="Contents" className="hover:text-glow" />
           </Link>
