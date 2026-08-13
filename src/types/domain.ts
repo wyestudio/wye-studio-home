@@ -6,6 +6,7 @@ export type Gender = "M" | "F";
 
 export type Session = {
   id: string;
+  slug: string;
   event_date: string;
   slot: SessionSlot;
   title: string;

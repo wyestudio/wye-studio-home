@@ -1,13 +1,26 @@
-import { notFound } from "next/navigation";
-import { getSessionById } from "@/lib/sessions";
+import { notFound, redirect } from "next/navigation";
+import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { ApplyForm } from "@/components/apply/ApplyForm";
 import { formatSessionDateShort } from "@/lib/format";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 
-export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/apply">) {
-  const { id } = await params;
-  const session = await getSessionById(id);
-  if (!session) notFound();
+export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/apply">) {
+  const { slug } = await params;
+
+  let session = await getSessionBySlug(slug);
+
+  if (!session) {
+    // Fallback: check if slug is a legacy UUID format
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(slug)) {
+      session = await getSessionById(slug);
+      if (session) {
+        // Redirect to canonical slug URL
+        redirect(`/sessions/${session.slug}/apply`);
+      }
+    }
+    notFound();
+  }
 
   return (
     <div className="mx-auto max-w-md px-5 py-10">
@@ -26,7 +39,7 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/ap
         </div>
       ) : (
         <ApplyForm
-          sessionId={id}
+          sessionId={session.id}
           priceKrw={session.price_krw}
           sessionTitle={session.title}
           eventDate={session.event_date}

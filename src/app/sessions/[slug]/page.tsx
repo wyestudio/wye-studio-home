@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
-import { notFound } from "next/navigation";
-import { getSessionById, getSessionStats } from "@/lib/sessions";
+import { notFound, redirect } from "next/navigation";
+import { getSessionBySlug, getSessionById, getSessionStats } from "@/lib/sessions";
 import { formatKrw, formatSessionDate, formatSessionDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
@@ -33,13 +33,26 @@ function sessionFaqs(isDatingSession: boolean) {
   return [...common, ...themed];
 }
 
-export default async function SessionDetailPage({ params }: PageProps<"/sessions/[id]">) {
-  const { id } = await params;
-  const session = await getSessionById(id);
-  if (!session) notFound();
+export default async function SessionDetailPage({ params }: PageProps<"/sessions/[slug]">) {
+  const { slug } = await params;
 
-  const stats = await getSessionStats(id);
-  const ctaHref = `/sessions/${id}/apply`;
+  let session = await getSessionBySlug(slug);
+
+  if (!session) {
+    // Fallback: check if slug is a legacy UUID format
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(slug)) {
+      session = await getSessionById(slug);
+      if (session) {
+        // Redirect to canonical slug URL
+        redirect(`/sessions/${session.slug}`);
+      }
+    }
+    notFound();
+  }
+
+  const stats = await getSessionStats(session.id);
+  const ctaHref = `/sessions/${session.slug}/apply`;
   const isDatingSession = isDatingTheme(session.theme_label);
   const includedItems = isDatingSession ? INCLUDED_ITEMS_DATING : INCLUDED_ITEMS_NON_DATING;
   const faqs = sessionFaqs(isDatingSession);

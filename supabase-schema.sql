@@ -66,6 +66,7 @@ grant select, insert, update on profiles to authenticated;
 -- =========================================================
 create table sessions (
   id uuid primary key default gen_random_uuid(),
+  slug text unique not null, -- URL-friendly identifier (e.g., '0829-meeting', '0829-dating')
   event_date date not null,
   slot text not null check (slot in ('afternoon', 'evening')),
   title text not null,
@@ -813,20 +814,20 @@ from applications ap;
 -- (베타 상품 정보 & 타임테이블 문서 기준)
 -- =========================================================
 insert into sessions (
-  event_date, slot, title, theme_label,
+  slug, event_date, slot, title, theme_label,
   start_at, end_at, venue_area,
   price_krw, capacity_min, capacity_confirm_line, capacity_max,
   status, description
 ) values
 (
-  '2026-08-22', 'afternoon', '8/22(토) 오후 · 비소개팅', '비소개팅',
+  '0822-meeting', '2026-08-22', 'afternoon', '8/22(토) 오후 · 비소개팅', '비소개팅',
   '2026-08-22T12:30:00+09:00', '2026-08-22T17:00:00+09:00',
   '서울 신림권',
   69000, 16, 20, 24,
   'open', '방탈출과 미니게임으로 자연스럽게 친해지는 비소개팅 타임. 1부(아이스브레이킹+식사+방탈출) 진행.'
 ),
 (
-  '2026-08-22', 'evening', '8/22(토) 저녁 · 소개팅', '소개팅',
+  '0822-dating', '2026-08-22', 'evening', '8/22(토) 저녁 · 소개팅', '소개팅',
   '2026-08-22T18:30:00+09:00', '2026-08-22T23:45:00+09:00',
   '서울 신림권',
   69000, 16, 20, 24,

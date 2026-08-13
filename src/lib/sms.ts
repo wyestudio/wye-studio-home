@@ -1,7 +1,7 @@
 import "server-only";
 import { SolapiMessageService } from "solapi";
 import type { Application, Session } from "@/types/domain";
-import type { AttendeeInput } from "@/app/sessions/[id]/apply/actions";
+import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { formatKrw, formatDate } from "@/lib/format";
 import { createAdminClient } from "@/lib/supabase/admin";

@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Field } from "@/components/ui/Input";
 import { ApplyComplete } from "@/components/apply/ApplyComplete";
-import { applyAction, type ApplyState } from "@/app/sessions/[id]/apply/actions";
+import { applyAction, type ApplyState } from "@/app/sessions/[slug]/apply/actions";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { pushDataLayerEvent } from "@/lib/analytics";

@@ -24,6 +24,18 @@ export async function getSessionById(id: string): Promise<Session | null> {
   return data;
 }
 
+export async function getSessionBySlug(slug: string): Promise<Session | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getSessionStats(sessionId: string): Promise<SessionStats> {
   const supabase = await createClient();
   const { data, error } = await supabase

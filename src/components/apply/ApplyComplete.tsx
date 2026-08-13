@@ -8,7 +8,7 @@ import { formatPhoneDigits } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import type { Application } from "@/types/domain";
-import type { AttendeeInput } from "@/app/sessions/[id]/apply/actions";
+import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
 
 const STATUS_LABEL: Record<Application["status"], string> = {
   confirmed: "참가확정",

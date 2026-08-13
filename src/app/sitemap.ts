@@ -39,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
     },
     ...sessions.map((session) => ({
-      url: `${BASE_URL}/sessions/${session.id}`,
+      url: `${BASE_URL}/sessions/${session.slug}`,
       lastModified: new Date(session.created_at),
       changeFrequency: "daily" as const,
       priority: 0.8,

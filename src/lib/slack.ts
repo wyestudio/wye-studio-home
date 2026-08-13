@@ -1,6 +1,6 @@
 import "server-only";
 import type { Application, Session } from "@/types/domain";
-import type { AttendeeInput } from "@/app/sessions/[id]/apply/actions";
+import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
 import { formatSessionDateTime } from "@/lib/format";
 
 const STATUS_LABEL: Record<Application["status"], string> = {

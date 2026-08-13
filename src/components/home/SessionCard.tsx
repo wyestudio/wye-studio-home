@@ -21,7 +21,7 @@ export function SessionCard({ session }: { session: Session }) {
 
   return (
     <Link
-      href={`/sessions/${session.id}`}
+      href={`/sessions/${session.slug}`}
       className={`hud-panel relative flex flex-col gap-6 p-6 sm:gap-7 sm:p-7 ${colorVariant}`}
     >
       {/* 태그 + 타이틀 */}

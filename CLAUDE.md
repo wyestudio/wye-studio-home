@@ -39,6 +39,7 @@
 - 2026-08-12: 유리 네온 카드 디자인 통일 + About 환경변수 제어
 - 2026-08-13: 8/29 회차 시각 변경 (모임 13:00 / 소개팅 18:00)
 - 2026-08-13: 신청 폼 UX 개선 + v12 신청 확정/대기 로직 전면 재설계 (어드민 페이지/크론 API 포함)
+- 2026-08-13: 회차 URL을 UUID에서 짧은 슬러그로 변경 (예: `/sessions/0829-meeting`, 기존 UUID 링크도 자동 리다이렉트)
 
 ---
 
@@ -50,8 +51,8 @@
 /                          홈 — Hero(회차 카드) + ConceptCards + ProcessSteps + FaqSection, 기존 형태 그대로 유지(사용자 요청)
 /about                     About — 브랜드/회사 소개(ConceptCards, 회사 소개 문구는 아직 "준비 중") — 홈에도 동일 컴포넌트가 중복 노출됨(의도됨), NEXT_PUBLIC_ABOUT_ENABLED 환경변수로 배포 시 폐쇄
 /contents                  Contents — 진행 방식(ProcessSteps) + 회차 카드 그리드(회차 상품 목록 허브) — 홈에도 동일 컴포넌트가 중복 노출됨(의도됨)
-/sessions/[id]             상품 소개 상세 (누구나 조회 가능, URL은 그대로 — SEO 색인 유지 목적으로 안 바꿈)
-/sessions/[id]/apply       참가 신청 폼 (로그인 불필요. 비소개팅은 인원 선택+그룹 신청, 소개팅은 1인+성별 선택만)
+/sessions/[slug]           상품 소개 상세 (누구나 조회 가능, slug 기반 URL — 예: `/sessions/0829-meeting`)
+/sessions/[slug]/apply     참가 신청 폼 (로그인 불필요. 비소개팅은 인원 선택+그룹 신청, 소개팅은 1인+성별 선택만)
 /lookup                    Check(참여내역 조회) — 전화번호 + 접수번호로 신청 내역 확인. 네비 라벨만 영문화, URL은 유지
 /notice                    Notice — 공지사항(NoticeSection) + FAQ(FaqSection) 한 페이지에 통합 — 홈에도 FaqSection이 동일하게 중복 노출됨(의도됨)
 /admin-x7f9k2m3/login      어드민 로그인 — 비밀번호 입력 (ADMIN_PASSWORD 환경변수), 성공 시 admin_auth 쿠키 발급(24시간, httpOnly)
@@ -66,9 +67,9 @@
 /auth/**                   (callback, kakao/*, naver/*, oauth/*)
 ```
 
-# 데이터 모델 (`supabase-schema.sql` 참고, v12)
+# 데이터 모델 (`supabase-schema.sql` 참고, v13)
 
-- **sessions** — 회차(방탈출 테마 목록이 아님). `theme_label`(v10부터 '바-ㅇ탈출(ver.모임)'/'바-ㅇ탈출(ver.소개팅)', 예전 값은 '비소개팅'/'소개팅')이 같은 테마 재참여 방지 기준으로도 쓰임 — 프론트에서 이 값과의 비교는 전부 `src/lib/theme.ts`의 `isDatingTheme()`를 거침(리터럴 문자열을 여러 곳에 흩어두지 않기 위해). v12부터 정원 로직 전면 재설계:
+- **sessions** — 회차(방탈출 테마 목록이 아님). v13부터 `slug text unique not null` 컬럼 신설(고객 URL용 슬러그, 예: `'0829-meeting'`, `'0829-dating'`). `theme_label`(v10부터 '바-ㅇ탈출(ver.모임)'/'바-ㅇ탈출(ver.소개팅)', 예전 값은 '비소개팅'/'소개팅')이 같은 테마 재참여 방지 기준으로도 쓰임 — 프론트에서 이 값과의 비교는 전부 `src/lib/theme.ts`의 `isDatingTheme()`를 거침(리터럴 문자열을 여러 곳에 흩어두지 않기 위해). v12부터 정원 로직 전면 재설계:
   - **비소개팅**: `capacity_confirm_line`=24(즉시확정), `capacity_max`=50(정원). 참여 인원 합계가 24명 이하면 confirmed, 25~49명은 waiting, 50명 도달 시 신청 거부.
   - **소개팅**: `capacity_confirm_line_male/female`=12(각 성별 즉시확정), `capacity_max_male/female`=30(각 성별 정원), 공통 `capacity_max`=60(전체 총원 상한). 신청한 성별의 인원이 12명 이하면 confirmed, 13~29명은 waiting, 30명 도달 시 그 성별 신청 거부. 60명 도달 시 전체 마감. `male_closed`/`female_closed` 플래그로 성별별 마감 상태 추적.
   - 조회는 전체 공개, 등록/수정 정책 없음 → 시드 SQL/어드민 페이지에서 운영자가 처리.
