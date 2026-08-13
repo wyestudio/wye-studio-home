@@ -115,7 +115,7 @@ export function LookupForm() {
     const accentColor = isDatingTheme(result.theme_label) ? "#ff5ec4" : "#3dffb0";
 
     return (
-      <div className="flex justify-center -mx-5">
+      <div style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)' }} className="flex justify-center">
         <div className="w-full max-w-[560px] px-5">
           <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
             {/* 접수번호 */}
@@ -253,7 +253,7 @@ export function LookupForm() {
           />
         </div>
       </div>
-    );
+    );  // viewport full-width result
   }
 
   return (
