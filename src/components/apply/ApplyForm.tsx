@@ -1,43 +1,28 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Field } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { ApplyComplete } from "@/components/apply/ApplyComplete";
+import { ApplyNotices } from "@/components/apply/ApplyNotices";
+import { ApplySessionSummary } from "@/components/apply/ApplySessionSummary";
 import { applyAction, type ApplyState } from "@/app/sessions/[slug]/apply/actions";
-import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
+import { formatKrw } from "@/lib/format";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import { isDatingTheme } from "@/lib/theme";
 import {
   isValidKoreanName,
   isValidNickname,
   isValidNotes,
-  EXPERIENCE_RANGES,
-  EXPERIENCE_RANGE_LABELS,
   getValidationErrorMessage,
 } from "@/lib/validation";
+import { AttendeeCard } from "@/components/apply/AttendeeCard";
+import { AttendeeTabs } from "@/components/apply/AttendeeTabs";
+import { type AttendeeState, type AttendeeField, type ValidationError } from "@/components/apply/types";
 
 const initialState: ApplyState = {};
 const MAX_ATTENDEES = 8;
-const BIRTH_YEARS = Array.from(
-  { length: ELIGIBLE_BIRTH_YEAR_MAX - ELIGIBLE_BIRTH_YEAR_MIN + 1 },
-  (_, i) => ELIGIBLE_BIRTH_YEAR_MAX - i
-);
-
-const selectClassName =
-  "w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]";
-
-type AttendeeField = "name" | "phone1" | "phone2" | "phone3" | "birthYear" | "nickname" | "gender" | "experienceRange";
-type AttendeeState = {
-  name: string;
-  phone1: string;
-  phone2: string;
-  phone3: string;
-  birthYear: string;
-  nickname: string;
-  gender: string;
-  experienceRange: string;
-};
 
 const emptyAttendee: AttendeeState = {
   name: "",
@@ -50,43 +35,6 @@ const emptyAttendee: AttendeeState = {
   experienceRange: "",
 };
 
-type ValidationError = { field: string; message: string };
-
-function phoneInputClassName(invalid: boolean) {
-  return `w-full rounded-lg border px-3 py-2.5 text-center text-sm outline-none transition-shadow ${
-    invalid
-      ? "border-danger bg-danger-soft text-danger"
-      : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
-  }`;
-}
-
-function textInputClassName(invalid: boolean) {
-  return `w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-shadow ${
-    invalid
-      ? "border-danger bg-danger-soft text-danger"
-      : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
-  }`;
-}
-
-function selectClassNameFn(invalid: boolean) {
-  return `w-full rounded-lg border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow ${
-    invalid
-      ? "border-danger bg-danger-soft text-danger"
-      : "border-border focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
-  }`;
-}
-
-function toggleButtonClassName(active: boolean, invalid: boolean) {
-  if (invalid) {
-    return "flex-1 rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm font-medium text-danger transition-all";
-  }
-  return `flex-1 rounded-lg border px-3 py-2.5 text-sm font-medium transition-all ${
-    active
-      ? "border-brand bg-brand text-brand-foreground"
-      : "border-border bg-surface text-foreground hover:border-brand"
-  }`;
-}
-
 export function ApplyForm({
   sessionId,
   priceKrw,
@@ -95,6 +43,9 @@ export function ApplyForm({
   themeLabel,
   maleClosed = false,
   femaleClosed = false,
+  startAt,
+  endAt,
+  venueArea,
 }: {
   sessionId: string;
   priceKrw: number;
@@ -103,10 +54,14 @@ export function ApplyForm({
   themeLabel: string;
   maleClosed?: boolean;
   femaleClosed?: boolean;
+  startAt: string;
+  endAt: string | null;
+  venueArea: string;
 }) {
   const isDatingSession = isDatingTheme(themeLabel);
   const [state, formAction, pending] = useActionState(applyAction, initialState);
   const [attendeeCount, setAttendeeCount] = useState(1);
+  const [activeAttendeeIndex, setActiveAttendeeIndex] = useState(0);
   // 입력값을 React state로 들고 있어야 서버 액션이 에러를 반환해 다시 렌더링돼도
   // (React가 uncontrolled 폼 필드는 액션 완료 후 리셋시킴) 사용자가 입력한 내용이
   // 사라지지 않는다 — 신청 실패 시 폼을 그대로 두고 수정만 하게 해달라는 요청.
@@ -115,77 +70,11 @@ export function ApplyForm({
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [notes, setNotes] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const completeEventSent = useRef(false);
 
-  useEffect(() => {
-    pushDataLayerEvent("신청 시작", { sessionId, themeLabel });
-  }, [sessionId, themeLabel]);
+  const conflictPhones = useMemo(() => new Set(state.conflictPhoneDigits ?? []), [state.conflictPhoneDigits]);
 
-  useEffect(() => {
-    if (state.application && !completeEventSent.current) {
-      completeEventSent.current = true;
-      // 그룹 신청은 동행자마다 출생년도/성별이 다를 수 있어 대표 신청자(0번) 값만 보낸다.
-      const representative = state.attendees?.[0];
-      pushDataLayerEvent("신청 완료", {
-        sessionId,
-        themeLabel,
-        confirmationCode: state.application.confirmation_code,
-        birthYear: representative?.birthYear,
-        gender: representative?.gender,
-      });
-    }
-  }, [state.application, state.attendees, sessionId, themeLabel]);
-
-  const conflictPhones = new Set(state.conflictPhoneDigits ?? []);
-
-  function updateAttendeeCount(count: number) {
-    setAttendeeCount(count);
-    setAttendees((prev) => {
-      const next = [...prev];
-      while (next.length < count) next.push({ ...emptyAttendee });
-      next.length = count;
-      return next;
-    });
-  }
-
-  function updateAttendee(index: number, field: AttendeeField, value: string) {
-    setAttendees((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
-  }
-
-  // 세 칸으로 나뉜 전화번호 입력칸 하나를 갱신한다. 숫자만 허용하고 칸별
-  // 길이 제한에 맞춰 자르며, 칸이 다 채워지면 다음 칸으로 자동 이동한다.
-  function updatePhoneSegment(
-    index: number,
-    field: "phone1" | "phone2" | "phone3",
-    rawValue: string,
-    maxLength: number,
-    nextId: string | null
-  ) {
-    const digitsOnly = rawValue.replace(/[^0-9]/g, "").slice(0, maxLength);
-    updateAttendee(index, field, digitsOnly);
-    if (nextId && digitsOnly.length === maxLength) {
-      document.getElementById(nextId)?.focus();
-    }
-  }
-
-  function handlePhoneBackspace(e: React.KeyboardEvent<HTMLInputElement>, prevId: string | null) {
-    if (e.key === "Backspace" && e.currentTarget.value === "" && prevId) {
-      document.getElementById(prevId)?.focus();
-    }
-  }
-
-  function handleSubmitPointerEnter(e: React.PointerEvent<HTMLButtonElement>) {
-    const el = e.currentTarget;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty("--origin-x", `${e.clientX - rect.left}px`);
-    el.style.setProperty("--origin-y", `${e.clientY - rect.top}px`);
-    // 버튼의 대각선 길이 × 2를 --fill-size로 계산해 어떤 지점을 눌러도 원이 버튼 전체를 덮도록 함
-    const diagonal = Math.hypot(rect.width, rect.height);
-    el.style.setProperty("--fill-size", `${diagonal * 2}px`);
-  }
-
-  function validateForm(): ValidationError[] {
+  const validateForm = useCallback((): ValidationError[] => {
     const errors: ValidationError[] = [];
 
     // 입금자명
@@ -263,6 +152,90 @@ export function ApplyForm({
     }
 
     return errors;
+  }, [depositorName, agreedTerms, attendees, notes]);
+
+  const validationErrors = useMemo(
+    () => (submitAttempted ? validateForm() : []),
+    [submitAttempted, validateForm]
+  );
+
+  const errorAttendeeIndexes = useMemo(() => {
+    const indexes = new Set<number>();
+    for (const err of validationErrors) {
+      const match = /^attendee-(\d+)-/.exec(err.field);
+      if (match) indexes.add(Number(match[1]));
+    }
+    attendees.forEach((attendee, i) => {
+      const combinedPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
+      if (conflictPhones.has(phoneDigits(combinedPhone))) indexes.add(i);
+    });
+    return indexes;
+  }, [validationErrors, attendees, conflictPhones]);
+
+  useEffect(() => {
+    pushDataLayerEvent("신청 시작", { sessionId, themeLabel });
+  }, [sessionId, themeLabel]);
+
+  useEffect(() => {
+    if (state.application && !completeEventSent.current) {
+      completeEventSent.current = true;
+      // 그룹 신청은 동행자마다 출생년도/성별이 다를 수 있어 대표 신청자(0번) 값만 보낸다.
+      const representative = state.attendees?.[0];
+      pushDataLayerEvent("신청 완료", {
+        sessionId,
+        themeLabel,
+        confirmationCode: state.application.confirmation_code,
+        birthYear: representative?.birthYear,
+        gender: representative?.gender,
+      });
+    }
+  }, [state.application, state.attendees, sessionId, themeLabel]);
+
+  function updateAttendeeCount(count: number) {
+    setAttendeeCount(count);
+    setActiveAttendeeIndex((prev) => Math.min(prev, count - 1));
+    setAttendees((prev) => {
+      const next = [...prev];
+      while (next.length < count) next.push({ ...emptyAttendee });
+      next.length = count;
+      return next;
+    });
+  }
+
+  function updateAttendee(index: number, field: AttendeeField, value: string) {
+    setAttendees((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
+  }
+
+  // 세 칸으로 나뉜 전화번호 입력칸 하나를 갱신한다. 숫자만 허용하고 칸별
+  // 길이 제한에 맞춰 자르며, 칸이 다 채워지면 다음 칸으로 자동 이동한다.
+  function updatePhoneSegment(
+    index: number,
+    field: "phone1" | "phone2" | "phone3",
+    rawValue: string,
+    maxLength: number,
+    nextId: string | null
+  ) {
+    const digitsOnly = rawValue.replace(/[^0-9]/g, "").slice(0, maxLength);
+    updateAttendee(index, field, digitsOnly);
+    if (nextId && digitsOnly.length === maxLength) {
+      document.getElementById(nextId)?.focus();
+    }
+  }
+
+  function handlePhoneBackspace(e: React.KeyboardEvent<HTMLInputElement>, prevId: string | null) {
+    if (e.key === "Backspace" && e.currentTarget.value === "" && prevId) {
+      document.getElementById(prevId)?.focus();
+    }
+  }
+
+  function handleSubmitPointerEnter(e: React.PointerEvent<HTMLButtonElement>) {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--origin-x", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--origin-y", `${e.clientY - rect.top}px`);
+    // 버튼의 대각선 길이 × 2를 --fill-size로 계산해 어떤 지점을 눌러도 원이 버튼 전체를 덮도록 함
+    const diagonal = Math.hypot(rect.width, rect.height);
+    el.style.setProperty("--fill-size", `${diagonal * 2}px`);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -270,7 +243,6 @@ export function ApplyForm({
 
     const errors = validateForm();
     if (errors.length > 0) {
-      setValidationErrors(errors);
       setSubmitAttempted(true);
       return;
     }
@@ -315,306 +287,192 @@ export function ApplyForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-      <div className="rounded-xl bg-brand-soft p-4 text-xs text-muted">
-        비슷한 또래끼리 더 즐겁게 즐기실 수 있도록,
-        <br />
-        {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만 참여하실 수 있어요.
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8">
+      {/* 모바일 전용 요약 카드 */}
+      <div className="lg:hidden">
+        <ApplySessionSummary
+          themeLabel={themeLabel}
+          startAt={startAt}
+          endAt={endAt}
+          venueArea={venueArea}
+        />
       </div>
 
-      {isDatingSession ? null : (
-        <Field label="함께할 인원 (본인 포함)" htmlFor="attendeeCount">
-          <select
-            id="attendeeCount"
-            value={attendeeCount}
-            onChange={(e) => updateAttendeeCount(Number(e.target.value))}
-            className={selectClassName}
-          >
-            {Array.from({ length: MAX_ATTENDEES }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {n}명
-              </option>
-            ))}
-          </select>
-        </Field>
-      )}
+      {/* 입력 필드 블록 — 모바일: 그대로, 데스크톱: 왼쪽 flex-1 */}
+      <div className="flex flex-col gap-5 lg:flex-1">
+        {isDatingSession ? null : (
+          <Field label="인원" htmlFor="attendeeCount">
+            <Select
+              id="attendeeCount"
+              value={String(attendeeCount)}
+              onChange={(v) => updateAttendeeCount(Number(v))}
+              options={Array.from({ length: MAX_ATTENDEES }, (_, i) => i + 1).map((n) => ({
+                value: String(n),
+                label: `${n}명`,
+              }))}
+            />
+          </Field>
+        )}
 
-      <div className="flex flex-col gap-4">
-        {attendees.map((attendee, i) => {
-          const combinedPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
-          const isConflict = conflictPhones.has(phoneDigits(combinedPhone));
-          const isFormatInvalid = submitAttempted && !isValidPhoneDigits(combinedPhone);
-          const phoneInvalid = isConflict || isFormatInvalid;
+        <AttendeeTabs
+          count={attendeeCount}
+          activeIndex={activeAttendeeIndex}
+          errorIndexes={errorAttendeeIndexes}
+          onSelect={setActiveAttendeeIndex}
+        />
 
-          const nameError = validationErrors.find((e) => e.field === `attendee-${i}-name`);
-          const phoneError = validationErrors.find((e) => e.field === `attendee-${i}-phone`);
-          const birthYearError = validationErrors.find((e) => e.field === `attendee-${i}-birthYear`);
-          const genderError = validationErrors.find((e) => e.field === `attendee-${i}-gender`);
-          const experienceError = validationErrors.find((e) => e.field === `attendee-${i}-experienceRange`);
-          const nicknameError = validationErrors.find((e) => e.field === `attendee-${i}-nickname`);
+        <div>
+          {activeAttendeeIndex < attendees.length && (
+            <AttendeeCard
+              index={activeAttendeeIndex}
+              attendee={attendees[activeAttendeeIndex]}
+              isDatingSession={isDatingSession}
+              maleClosed={maleClosed}
+              femaleClosed={femaleClosed}
+              isConflict={conflictPhones.has(phoneDigits(`${attendees[activeAttendeeIndex].phone1}${attendees[activeAttendeeIndex].phone2}${attendees[activeAttendeeIndex].phone3}`))}
+              conflictReason={state.conflictReason}
+              attendeeCount={attendeeCount}
+              errors={{
+                name: validationErrors.find((e) => e.field === `attendee-${activeAttendeeIndex}-name`)?.message,
+                phone: validationErrors.find((e) => e.field === `attendee-${activeAttendeeIndex}-phone`)?.message,
+                birthYear: validationErrors.find((e) => e.field === `attendee-${activeAttendeeIndex}-birthYear`)?.message,
+                gender: validationErrors.find((e) => e.field === `attendee-${activeAttendeeIndex}-gender`)?.message,
+                experienceRange: validationErrors.find((e) => e.field === `attendee-${activeAttendeeIndex}-experienceRange`)?.message,
+                nickname: validationErrors.find((e) => e.field === `attendee-${activeAttendeeIndex}-nickname`)?.message,
+              }}
+              onNameChange={(value) => {
+                updateAttendee(activeAttendeeIndex, "name", value);
+              }}
+              onPhoneSegmentChange={(field, rawValue, maxLength, nextId) => {
+                updatePhoneSegment(activeAttendeeIndex, field, rawValue, maxLength, nextId);
+              }}
+              onPhoneBackspace={(e, prevId) => handlePhoneBackspace(e, prevId)}
+              onBirthYearChange={(value) => {
+                updateAttendee(activeAttendeeIndex, "birthYear", value);
+              }}
+              onGenderChange={(value) => {
+                updateAttendee(activeAttendeeIndex, "gender", value);
+              }}
+              onExperienceChange={(value) => {
+                updateAttendee(activeAttendeeIndex, "experienceRange", attendees[activeAttendeeIndex].experienceRange === value ? "" : value);
+              }}
+              onNicknameChange={(value) => {
+                updateAttendee(activeAttendeeIndex, "nickname", value);
+              }}
+            />
+          )}
+        </div>
 
-          return (
-            <div
-              key={i}
-              className={`rounded-xl border p-4 ${
-                isConflict ? "border-danger bg-danger-soft" : "border-border bg-surface"
+        {attendees.length >= 2 ? (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="notes" className="text-sm font-semibold text-foreground">
+              비고 (선택)
+            </label>
+            <input
+              id="notes"
+              type="text"
+              maxLength={50}
+              placeholder="예: 친구들과 같은 조로 배정해주세요."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-shadow ${
+                !!validationErrors.find((e) => e.field === "notes")
+                  ? "border-danger bg-danger-soft text-danger"
+                  : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
               }`}
-            >
-              <p className="mb-3 text-xs font-bold text-muted">
-                {i === 0 ? "대표 신청자 (본인)" : `동행자 ${i}`}
-              </p>
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`attendee-${i}-name`} className="text-sm font-semibold text-foreground">
-                    이름
-                  </label>
-                  <input
-                    id={`attendee-${i}-name`}
-                    type="text"
-                    required
-                    placeholder="홍길동"
-                    value={attendee.name}
-                    onChange={(e) => {
-                      updateAttendee(i, "name", e.target.value);
-                      if (submitAttempted) setValidationErrors(validateForm());
-                    }}
-                    className={textInputClassName(!!nameError)}
-                  />
-                  {nameError ? <p className="text-xs text-danger">{nameError.message}</p> : null}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`attendee-${i}-phone1`} className="text-sm font-semibold text-foreground">
-                    전화번호
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id={`attendee-${i}-phone1`}
-                      type="tel"
-                      inputMode="numeric"
-                      required
-                      maxLength={3}
-                      placeholder="010"
-                      value={attendee.phone1}
-                      onChange={(e) => {
-                        updatePhoneSegment(i, "phone1", e.target.value, 3, `attendee-${i}-phone2`);
-                        if (submitAttempted) setValidationErrors(validateForm());
-                      }}
-                      className={phoneInputClassName(phoneInvalid || !!phoneError)}
-                    />
-                    <span className="text-muted">-</span>
-                    <input
-                      id={`attendee-${i}-phone2`}
-                      type="tel"
-                      inputMode="numeric"
-                      required
-                      maxLength={4}
-                      placeholder="0000"
-                      value={attendee.phone2}
-                      onKeyDown={(e) => handlePhoneBackspace(e, `attendee-${i}-phone1`)}
-                      onChange={(e) => {
-                        updatePhoneSegment(i, "phone2", e.target.value, 4, `attendee-${i}-phone3`);
-                        if (submitAttempted) setValidationErrors(validateForm());
-                      }}
-                      className={phoneInputClassName(phoneInvalid || !!phoneError)}
-                    />
-                    <span className="text-muted">-</span>
-                    <input
-                      id={`attendee-${i}-phone3`}
-                      type="tel"
-                      inputMode="numeric"
-                      required
-                      maxLength={4}
-                      placeholder="0000"
-                      value={attendee.phone3}
-                      onKeyDown={(e) => handlePhoneBackspace(e, `attendee-${i}-phone2`)}
-                      onChange={(e) => {
-                        updatePhoneSegment(i, "phone3", e.target.value, 4, null);
-                        if (submitAttempted) setValidationErrors(validateForm());
-                      }}
-                      className={phoneInputClassName(phoneInvalid || !!phoneError)}
-                    />
-                  </div>
-                  {phoneError ? <p className="text-xs text-danger">{phoneError.message}</p> : null}
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`attendee-${i}-birthYear`} className="text-sm font-semibold text-foreground">
-                    출생년도
-                  </label>
-                  <select
-                    id={`attendee-${i}-birthYear`}
-                    required
-                    value={attendee.birthYear}
-                    onChange={(e) => {
-                      updateAttendee(i, "birthYear", e.target.value);
-                      if (submitAttempted) setValidationErrors(validateForm());
-                    }}
-                    className={selectClassNameFn(!!birthYearError)}
-                  >
-                    <option value="" disabled>
-                      선택
-                    </option>
-                    {BIRTH_YEARS.map((y) => (
-                      <option key={y} value={y}>
-                        {y}년생
-                      </option>
-                    ))}
-                  </select>
-                  {birthYearError ? <p className="text-xs text-danger">{birthYearError.message}</p> : null}
-                </div>
+            />
+            {validationErrors.find((e) => e.field === "notes") ? (
+              <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "notes")!.message}</p>
+            ) : null}
+          </div>
+        ) : null}
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-foreground">성별</label>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled={isDatingSession && femaleClosed}
-                      onClick={() => {
-                        updateAttendee(i, "gender", "F");
-                        if (submitAttempted) setValidationErrors(validateForm());
-                      }}
-                      className={`${toggleButtonClassName(attendee.gender === "F", !!genderError)} ${isDatingSession && femaleClosed ? "pointer-events-none opacity-50" : ""}`}
-                    >
-                      여성{isDatingSession && femaleClosed ? " (마감)" : ""}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isDatingSession && maleClosed}
-                      onClick={() => {
-                        updateAttendee(i, "gender", "M");
-                        if (submitAttempted) setValidationErrors(validateForm());
-                      }}
-                      className={`${toggleButtonClassName(attendee.gender === "M", !!genderError)} ${isDatingSession && maleClosed ? "pointer-events-none opacity-50" : ""}`}
-                    >
-                      남성{isDatingSession && maleClosed ? " (마감)" : ""}
-                    </button>
-                  </div>
-                  {genderError ? <p className="text-xs text-danger">{genderError.message}</p> : null}
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-semibold text-foreground">방탈출 경험 횟수 (선택)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {EXPERIENCE_RANGES.map((range) => (
-                      <button
-                        key={range}
-                        type="button"
-                        onClick={() => {
-                          updateAttendee(i, "experienceRange", attendee.experienceRange === range ? "" : range);
-                          if (submitAttempted) setValidationErrors(validateForm());
-                        }}
-                        className={toggleButtonClassName(attendee.experienceRange === range, !!experienceError)}
-                      >
-                        {EXPERIENCE_RANGE_LABELS[range]}
-                      </button>
-                    ))}
-                  </div>
-                  {experienceError ? <p className="text-xs text-danger">{experienceError.message}</p> : null}
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label htmlFor={`attendee-${i}-nickname`} className="text-sm font-semibold text-foreground">
-                    닉네임 (선택)
-                  </label>
-                  <input
-                    id={`attendee-${i}-nickname`}
-                    type="text"
-                    placeholder="같은 회차 내에서 다른 참여자와 중복될 수 없어요"
-                    value={attendee.nickname}
-                    onChange={(e) => {
-                      updateAttendee(i, "nickname", e.target.value);
-                      if (submitAttempted) setValidationErrors(validateForm());
-                    }}
-                    className={textInputClassName(!!nicknameError)}
-                  />
-                  <p className="text-xs text-muted">비워두면 이름으로 표시돼요.</p>
-                  {nicknameError ? <p className="text-xs text-danger">{nicknameError.message}</p> : null}
-                </div>
-              </div>
-              {isConflict ? (
-                <p className="mt-2 text-xs text-danger">
-                  {state.conflictReason === "group"
-                    ? "그룹 안의 다른 참여자와 전화번호가 중복돼요."
-                    : "이미 같은 테마에 참여하신 신청자예요."}
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-
-      {attendees.length >= 2 ? (
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="notes" className="text-sm font-semibold text-foreground">
-            비고 (선택)
+          <label htmlFor="depositorName" className="text-sm font-semibold text-foreground">
+            입금 시 사용할 이름 (입금자명)
           </label>
-          <textarea
-            id="notes"
-            maxLength={200}
-            placeholder="예: 친구들과 같은 조로 배정해주세요."
-            value={notes}
+          <input
+            id="depositorName"
+            type="text"
+            required
+            placeholder="홍길동"
+            value={depositorName}
             onChange={(e) => {
-              setNotes(e.target.value);
-              if (submitAttempted) setValidationErrors(validateForm());
+              setDepositorName(e.target.value);
             }}
-            className={textInputClassName(!!validationErrors.find((e) => e.field === "notes"))}
-            rows={3}
+            className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-shadow ${
+              !!validationErrors.find((e) => e.field === "depositorName")
+                ? "border-danger bg-danger-soft text-danger"
+                : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
+            }`}
           />
-          <p className="text-xs text-muted">모든 요청을 반영해드리기는 어려울 수 있어요.</p>
-          {validationErrors.find((e) => e.field === "notes") ? (
-            <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "notes")!.message}</p>
+          {validationErrors.find((e) => e.field === "depositorName") ? (
+            <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "depositorName")!.message}</p>
           ) : null}
         </div>
-      ) : null}
-
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="depositorName" className="text-sm font-semibold text-foreground">
-          입금 시 사용할 이름 (입금자명)
-        </label>
-        <input
-          id="depositorName"
-          type="text"
-          required
-          value={depositorName}
-          onChange={(e) => {
-            setDepositorName(e.target.value);
-            if (submitAttempted) setValidationErrors(validateForm());
-          }}
-          className={textInputClassName(!!validationErrors.find((e) => e.field === "depositorName"))}
-        />
-        {validationErrors.find((e) => e.field === "depositorName") ? (
-          <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "depositorName")!.message}</p>
-        ) : null}
       </div>
 
-      <label className="flex items-start gap-2 text-sm">
-        <input
-          type="checkbox"
-          name="agreedTerms"
-          required
-          className="mt-1"
-          checked={agreedTerms}
-          onChange={(e) => {
-            setAgreedTerms(e.target.checked);
-            if (submitAttempted) setValidationErrors(validateForm());
-          }}
-        />
-        <span>이용약관, 개인정보처리방침, 환불정책에 모두 동의합니다.</span>
-      </label>
-      {validationErrors.find((e) => e.field === "agreedTerms") ? (
-        <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "agreedTerms")!.message}</p>
-      ) : null}
+      {/* 사이드바 — 모바일: 그대로, 데스크톱: 오른쪽 380px */}
+      <div className="flex flex-col gap-8 lg:w-[380px] lg:shrink-0">
+        {/* 데스크톱 전용 요약 카드 */}
+        <div className="hidden lg:block">
+          <ApplySessionSummary
+            themeLabel={themeLabel}
+            startAt={startAt}
+            endAt={endAt}
+            venueArea={venueArea}
+          />
+        </div>
 
-      {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+        {/* 요금 패널 — 모바일: DOM 순서상 1번째(안내사항보다 먼저), 데스크톱: lg:order-2로 2번째 */}
+        <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 lg:order-2">
+          <div className="flex items-start justify-between gap-3">
+            <span className="shrink-0 text-sm font-semibold text-foreground">할인</span>
+            <span className="text-right text-sm font-semibold text-foreground">베타 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }}>5,000원</span> 페이백</span>
+          </div>
+          <div className="flex items-center justify-between border-t border-border pt-3">
+            <span className="text-sm font-semibold text-foreground">요금</span>
+            <span className="text-xl font-extrabold text-foreground">{formatKrw(priceKrw * attendeeCount)}</span>
+          </div>
+        </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        onPointerEnter={handleSubmitPointerEnter}
-        className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50"
-      >
-        <span aria-hidden className="apply-submit-fill" />
-        <span className="apply-submit-label">{pending ? "제출 중..." : "제출하기"}</span>
-      </button>
+        {/* 안내사항 — 모바일: DOM 순서상 2번째(요금 다음), 데스크톱: lg:order-1로 요금보다 앞으로 */}
+        <div className="lg:order-1">
+          <ApplyNotices isDatingSession={isDatingSession} />
+        </div>
+
+        {/* 동의 및 제출 — 모바일/데스크톱 모두 마지막 */}
+        <div className="flex flex-col gap-5 lg:order-3">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="agreedTerms"
+            required
+            className="mt-1"
+            checked={agreedTerms}
+            onChange={(e) => {
+              setAgreedTerms(e.target.checked);
+            }}
+          />
+          <span>이용약관, 개인정보처리방침, 환불정책에 모두 동의합니다.</span>
+        </label>
+        {validationErrors.find((e) => e.field === "agreedTerms") ? (
+          <p className="text-xs text-danger">{validationErrors.find((e) => e.field === "agreedTerms")!.message}</p>
+        ) : null}
+
+        {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+
+        <button
+          type="submit"
+          disabled={pending}
+          onPointerEnter={handleSubmitPointerEnter}
+          className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50"
+        >
+          <span aria-hidden className="apply-submit-fill" />
+          <span className="apply-submit-label">{pending ? "제출 중..." : "제출하기"}</span>
+        </button>
+        </div>
+      </div>
     </form>
   );
 }

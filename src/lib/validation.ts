@@ -30,8 +30,8 @@ export function isValidExperienceRange(v: string): v is ExperienceRange {
 }
 
 // 그룹 비고(notes): 한글/영문/숫자/기본 기호만, <>&"'\ 등 HTML/스크립트 관련 문자 제외
-export const NOTES_MAX_LENGTH = 200;
-export const NOTES_PATTERN = /^[가-힣a-zA-Z0-9\s.,!?~()·:;\-]{0,200}$/;
+export const NOTES_MAX_LENGTH = 50;
+export const NOTES_PATTERN = /^[가-힣a-zA-Z0-9\s.,!?~()·:;\-]{0,50}$/;
 export function isValidNotes(notes: string): boolean {
   if (!notes || notes.trim() === "") return true; // 선택 필드
   return NOTES_PATTERN.test(notes);
@@ -64,7 +64,7 @@ export function getValidationErrorMessage(field: string, reason: string): string
       invalid: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다.",
     },
     notes: {
-      invalid: "비고는 200자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.",
+      invalid: "비고는 50자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.",
     },
     depositorName: {
       required: "입금자명을 입력해주세요.",

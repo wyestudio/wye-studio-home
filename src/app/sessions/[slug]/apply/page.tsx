@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { ApplyForm } from "@/components/apply/ApplyForm";
-import { formatSessionDateShort } from "@/lib/format";
-import { ThemeTag } from "@/components/ui/ThemeTag";
 
 const SITE_URL = "https://wouldyouescape.com";
 
@@ -66,14 +64,8 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/
   }
 
   return (
-    <div className="mx-auto max-w-md px-5 py-10">
-      <h1 className="mb-1 text-2xl font-extrabold">참가 신청</h1>
-      <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
-        <ThemeTag themeLabel={session.theme_label} />
-        <span className="text-muted">바-ㅇ탈출</span>
-        <span className="text-muted">{formatSessionDateShort(session.start_at)}</span>
-      </div>
-
+    <div className="mx-auto max-w-[860px] px-5 py-10">
+      <h1 className="mb-6 text-2xl font-extrabold">참가 신청</h1>
       {session.status === "closed" ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-glass-border bg-surface p-6 text-center">
           <p className="text-lg font-bold">정원이 다 차서 마감되었습니다.</p>
@@ -89,6 +81,9 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/
           themeLabel={session.theme_label}
           maleClosed={session.male_closed}
           femaleClosed={session.female_closed}
+          startAt={session.start_at}
+          endAt={session.end_at}
+          venueArea={session.venue_area}
         />
       )}
     </div>

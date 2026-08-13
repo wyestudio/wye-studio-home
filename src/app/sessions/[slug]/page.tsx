@@ -1,40 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
-import { getSessionBySlug, getSessionById, getSessionStats } from "@/lib/sessions";
-import { formatKrw, formatSessionDate, formatSessionDateTime } from "@/lib/format";
-import { Badge } from "@/components/ui/Badge";
-import { LinkButton } from "@/components/ui/Button";
-import { HudCard } from "@/components/ui/HudCard";
-import { FaqAccordion } from "@/components/ui/FaqAccordion";
-import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
-import { isDatingTheme } from "@/lib/theme";
+import { getSessionBySlug, getSessionById } from "@/lib/sessions";
+import { formatKrw, formatSessionDateTime, formatDuration } from "@/lib/format";
+import { RippleLinkButton } from "@/components/ui/RippleLinkButton";
+import { ThemeTag } from "@/components/ui/ThemeTag";
+import { isDatingTheme, getThemeBaseName } from "@/lib/theme";
 
 const SITE_URL = "https://wouldyouescape.com";
-
-const INCLUDED_ITEMS_BASE = ["방탈출 1회 플레이", "테마 맞춤 조 편성"];
-const INCLUDED_ITEMS_NON_DATING = [...INCLUDED_ITEMS_BASE, "4인 1조 랜덤 편성"];
-const INCLUDED_ITEMS_DATING = [...INCLUDED_ITEMS_BASE, "성비 맞춤 참가자 매칭"];
-
-function sessionFaqs(isDatingSession: boolean) {
-  const common = [
-    {
-      q: "확정 여부는 어떻게 확인하나요?",
-      a: "신청 직후 화면에 바로 표시되고, 접수번호와 전화번호로 언제든 다시 조회할 수 있어요.",
-    },
-    { q: "정확한 장소는 언제 알려주나요?", a: "참가가 확정된 분께 개별로 안내드려요." },
-  ];
-  const themed = isDatingSession
-    ? [
-        {
-          q: "대기 중인데 정원이 안 차면 어떻게 되나요?",
-          a: "성비를 맞추기 위해 자동으로 확정하지 않고, 상황을 보고 운영진이 직접 안내드려요.",
-        },
-      ]
-    : [{ q: "혼자 신청해도 되나요?", a: "네, 1인부터 최대 8인까지 원하는 인원으로 신청할 수 있어요." }];
-  return [...common, ...themed];
-}
 
 export async function generateMetadata(
   { params }: PageProps<"/sessions/[slug]">
@@ -78,157 +51,169 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
   let session = await getSessionBySlug(slug);
 
   if (!session) {
-    // Fallback: check if slug is a legacy UUID format
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (UUID_REGEX.test(slug)) {
       session = await getSessionById(slug);
       if (session) {
-        // Redirect to canonical slug URL
         redirect(`/sessions/${session.slug}`);
       }
     }
     notFound();
   }
 
-  const stats = await getSessionStats(session.id);
   const ctaHref = `/sessions/${session.slug}/apply`;
   const isDatingSession = isDatingTheme(session.theme_label);
-  const includedItems = isDatingSession ? INCLUDED_ITEMS_DATING : INCLUDED_ITEMS_NON_DATING;
-  const faqs = sessionFaqs(isDatingSession);
+  const themeName = getThemeBaseName(session.theme_label);
+  const duration = session.end_at ? formatDuration(session.start_at, session.end_at) : "-";
+
+  const progressSteps = isDatingSession
+    ? ["로테이션 소개팅", "팀매칭", "방탈출", "포인트교환"]
+    : ["아이스브레이킹", "방탈출 + 미니게임", "포인트교환"];
+
+  const precautions = [
+    { title: "활동형 콘텐츠입니다", desc: "방탈출・보드게임 등 추리/협력 중심 프로그램으로, 팀 게임에 적극적으로 참여 가능한 분만 신청 바랍니다." },
+    { title: "시간 엄수 필수", desc: "노쇼 및 지각은 절대 불가합니다. 1부・2부 모두 정시 참여 및 전체 일정 참여 가능자만 신청 바랍니다." },
+    { title: "휴대폰 사용 제한", desc: "1부 진행(약 2시간) 동안 휴대폰 사용이 제한되며, 사전 제출에 동의하신 분만 참여 가능합니다." },
+    { title: "건강한 경쟁 매너 필수", desc: "미니게임 및 경쟁 요소가 포함되어 있습니다. 과도한 몰입 없이 즐겁게 참여 가능한 분을 지향합니다." },
+    { title: "운영 방해 행위 제재", desc: "만취자 및 타인에게 불쾌감을 주는 행위 발생 시 즉시 퇴장 조치됩니다." },
+    { title: "촬영 금지", desc: "행사 중 사진 및 영상 촬영은 전면 금지됩니다." },
+    { title: "매너 있는 교류 필수", desc: "과도한 신체 접촉 및 불쾌감을 유발하는 언행은 엄격히 제한됩니다." },
+  ];
 
   return (
-    <div className="mx-auto max-w-2xl px-5 py-10 pb-28">
-      <div className="mb-4 flex items-center gap-2">
-        <span className="text-sm font-bold text-brand">{session.theme_label}</span>
-        {session.status === "closed" ? <Badge tone="danger">모집 마감</Badge> : <Badge tone="neutral">모집중</Badge>}
-      </div>
+    <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl px-5 py-10 sm:px-8 sm:py-14 lg:py-20 pb-28">
+      {/* 포스터 + 핵심 정보 */}
+      <div className="mb-12">
+        <div className="flex gap-8 sm:gap-10">
+          {/* 포스터 — 각진 테두리 */}
+          <div className="relative aspect-[4/5] w-40 sm:w-64 lg:w-80 flex-shrink-0 overflow-hidden border border-glass-border bg-surface">
+            <Image
+              src="/bar-o-title.png"
+              alt="우주이스케이프 바-오 탈출 테마 아트웍"
+              fill
+              className="object-contain"
+              sizes="(min-width: 640px) 224px, 160px"
+              priority
+            />
+          </div>
 
-      <div className="mb-8">
-        <div className="flex gap-4">
-          {isDatingSession ? (
-            <div className="relative aspect-square w-32 flex-shrink-0 overflow-hidden rounded-xl border border-glass-border bg-surface sm:w-40">
-              <Image
-                src="/bar-o-title.png"
-                alt="바-오 탈출 테마 아트웍"
-                fill
-                className="object-contain"
-                sizes="160px"
-                priority
-              />
+          {/* 우측 정보 */}
+          <div className="flex flex-col justify-between">
+            {/* 제목 + 뱃지 */}
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold">{themeName}</h1>
+                <ThemeTag themeLabel={session.theme_label} />
+              </div>
+
+              {/* 정보 목록 */}
+              <dl className="space-y-3 text-sm sm:text-base">
+                {/* 날짜 */}
+                <div>
+                  <dt className="font-semibold text-muted">날짜</dt>
+                  <dd className="text-foreground">{formatSessionDateTime(session.start_at)}</dd>
+                </div>
+
+                {/* 시간 */}
+                <div>
+                  <dt className="font-semibold text-muted">시간</dt>
+                  <dd className="text-foreground">{duration}</dd>
+                </div>
+
+                {/* 장소 */}
+                <div>
+                  <dt className="font-semibold text-muted">장소</dt>
+                  <dd className="text-foreground">{session.venue_area}</dd>
+                  <dd className="text-xs text-muted">정확한 주소는 24시간 전 문자로 안내드립니다.</dd>
+                </div>
+
+                {/* 참가비 */}
+                <div>
+                  <dt className="font-semibold text-muted">참가비</dt>
+                  <dd>
+                    <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
+                    <p className="font-bold">
+                      {formatKrw(session.price_krw)}
+                      <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
+                    </p>
+                    <p className="text-[11px] text-muted">8/29 베타 한정 할인가</p>
+                  </dd>
+                </div>
+              </dl>
             </div>
-          ) : (
-            <div className="flex aspect-square w-32 flex-shrink-0 items-center justify-center rounded-xl border border-dashed border-glass-border bg-brand-soft text-center text-xs text-muted sm:w-40">
-              대표 이미지
-              <br />
-              준비 중
-            </div>
-          )}
-          <div className="flex flex-col justify-center">
-            <h1 className="mb-2 text-2xl font-extrabold">{session.title}</h1>
-            <p className="text-sm text-muted">{session.description}</p>
           </div>
         </div>
-        {isDatingSession ? (
-          <p className="mt-2 text-xs text-muted">테마 아트웍 이미지 · 실제 진행 공간은 회차마다 달라질 수 있어요.</p>
-        ) : null}
       </div>
 
-      <section className="mb-8">
-        <h2 className="mb-3 text-sm font-bold text-muted">포함사항</h2>
-        <div className="flex flex-wrap gap-2">
-          {includedItems.map((item) => (
-            <span
-              key={item}
-              className="rounded-full border border-glass-border bg-surface/70 px-3 py-1.5 text-xs font-semibold text-foreground backdrop-blur-sm"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-      </section>
-
-
-      <section className="mb-8">
+      {/* 진행 순서 */}
+      <section className="mb-12">
         <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>
-        <HudCard as="ol" className="flex flex-col gap-3 p-5 text-sm">
-          {[
-            { text: `${formatSessionDateTime(session.start_at)} 현장 도착 및 접수`, muted: false },
-            { text: "조 편성 안내", muted: false },
-            { text: "방탈출 진행", muted: false },
-            { text: "(확장 예정) 애프터", muted: true },
-          ].map((step, i) => (
-            <li key={step.text} className={`flex items-baseline gap-2 ${step.muted ? "text-muted" : ""}`}>
-              <span className="text-xs font-bold text-brand">{i + 1}</span>
-              <span>{step.text}</span>
-            </li>
+        <div className="flex flex-wrap items-start justify-center gap-x-1 gap-y-4">
+          {progressSteps.map((step, i) => (
+            <div key={step} className="flex items-center gap-1">
+              <div className="flex flex-col items-center gap-2 px-1">
+                <span className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full border border-glow bg-brand-soft text-sm sm:text-base font-bold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
+                  {i + 1}
+                </span>
+                <span className="max-w-[76px] text-center text-xs sm:text-sm font-semibold">{step}</span>
+              </div>
+              {i < progressSteps.length - 1 ? <span className="mb-7 text-border">→</span> : null}
+            </div>
           ))}
-        </HudCard>
+        </div>
       </section>
 
-      <section className="mb-8">
-        <HudCard className="grid gap-4 p-5 text-sm sm:grid-cols-2">
-          <div>
-            <p className="mb-1 font-semibold text-muted">일시</p>
-            <p>{formatSessionDateTime(session.start_at)}</p>
-          </div>
-          <div>
-            <p className="mb-1 font-semibold text-muted">장소</p>
-            <p>{session.venue_area}</p>
-            <p className="text-xs text-muted">정확한 주소는 참가확정자에게 개별 안내됩니다.</p>
-          </div>
-          <div>
-            <p className="mb-1 font-semibold text-muted">참가비</p>
-            <p>{formatKrw(session.price_krw)} / 인당</p>
-            <p className="text-xs text-muted">무통장입금만 가능합니다.</p>
-          </div>
-          <div>
-            <p className="mb-1 font-semibold text-muted">신청 자격</p>
-            <p className="text-xs text-muted">
-              비슷한 또래끼리 더 즐겁게 즐기실 수 있도록,
-              <br />
-              {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만 참여하실 수 있어요. 그 외 세부 자격 조건은 확정 후 안내 예정입니다.
-            </p>
-          </div>
-        </HudCard>
-      </section>
+      {/* CTA 버튼 (모바일) */}
+      <div className="mb-12 sm:hidden">
+        <RippleLinkButton href={ctaHref} disabled={session.status === "closed"}>
+          {session.status === "closed" ? "모집이 마감되었습니다" : "참가하기"}
+        </RippleLinkButton>
+      </div>
 
-      <section className="mb-8">
-        <h2 className="mb-3 text-sm font-bold text-muted">자주 묻는 질문</h2>
-        <FaqAccordion items={faqs} />
-      </section>
-
-      <Link href="/about" className="mb-8 block">
-        <HudCard className="flex items-center justify-between p-4 text-sm">
-          <span>
-            <span className="font-semibold">우주이스케이프를 만드는 사람들</span>
-            <span className="ml-1 text-muted">이 궁금하다면</span>
-          </span>
-          <span className="text-brand">About →</span>
-        </HudCard>
-      </Link>
-
-      <section className="mb-8">
-        <h2 className="mb-3 text-sm font-bold text-muted">참가자 후기</h2>
-        <p className="rounded-xl border border-dashed border-glass-border bg-surface/40 p-5 text-center text-sm text-muted">
-          아직 등록된 후기가 없어요. 첫 시즌이 끝나면 이 자리에 참가자들의 후기가 채워질 예정이에요.
-        </p>
-      </section>
-
-      <p className="mb-24 text-xs text-muted">
-        본 행사는 {formatSessionDate(session.event_date)} 진행되며, 행사 전날부터는 환불이 불가합니다.
-      </p>
-
-      <div className="fixed inset-x-0 bottom-0 border-t border-glass-border bg-background/90 p-4 backdrop-blur-md">
-        <div className="mx-auto max-w-2xl">
-          {session.status === "closed" ? (
-            <LinkButton href="#" className="pointer-events-none w-full opacity-50">
-              모집이 마감되었습니다
-            </LinkButton>
+      {/* 컨텐츠 소개 */}
+      <section className="mb-12">
+        <h2 className="mb-4 text-sm font-bold text-muted">컨텐츠 소개</h2>
+        <div className="space-y-4 text-sm leading-relaxed text-foreground">
+          {isDatingSession ? (
+            <>
+              <p>소개팅과 방탈출을 결합한 신개념 프로그램입니다. 제한시간 안에 문제를 풀며 자연스럽게 <span className="font-bold text-brand">이성에게 매력을 어필</span>할 수 있어요.</p>
+              <p>단순한 대화가 아니라 같은 팀이 되어 문제를 해결하는 방식이라 어색함은 줄이고, <span className="font-bold text-brand">몰입감과 재미는 극대화</span>했습니다.</p>
+              <p>문제 풀이뿐 아니라 다양한 미니게임과 차별화된 콘텐츠로 <span className="font-bold text-brand">각자의 매력이 자연스럽게 드러나도록</span> 구성했습니다.</p>
+            </>
           ) : (
-            <LinkButton href={ctaHref} className="w-full">
-              참가하기
-            </LinkButton>
+            <>
+              <p>방탈출과 협동 게임을 결합한 신개념 친목 프로그램입니다. 제한시간 안에 문제를 풀며 자연스럽게 <span className="font-bold text-brand">새로운 사람들과 가까워질</span> 수 있어요.</p>
+              <p>단순한 대화가 아니라 같은 팀이 되어 문제를 해결하는 방식이라 어색함은 줄이고, <span className="font-bold text-brand">몰입감과 재미는 극대화</span>했습니다.</p>
+              <p>문제 풀이뿐 아니라 다양한 미니게임과 차별화된 콘텐츠로 <span className="font-bold text-brand">서로 가까워질 수 있도록</span> 구성했습니다.</p>
+            </>
           )}
+        </div>
+      </section>
+
+      {/* 유의사항 */}
+      <section className="mb-12">
+        <h2 className="mb-4 text-sm font-bold text-muted">유의사항</h2>
+        <div className="space-y-0">
+          {precautions.map((item, i) => (
+            <div key={i} className={`flex gap-4 p-4 ${i !== precautions.length - 1 ? "border-b border-border/40" : ""}`}>
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-xs font-bold text-danger">
+                {i + 1}
+              </span>
+              <div className="flex flex-col gap-1">
+                <p className="font-semibold text-foreground">{item.title}</p>
+                <p className="text-xs text-muted">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 고정 CTA 버튼 (데스크톱) */}
+      <div className="fixed inset-x-0 bottom-0 bg-background/90 p-4 backdrop-blur-md">
+        <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl hidden sm:block">
+          <RippleLinkButton href={ctaHref} disabled={session.status === "closed"}>
+            {session.status === "closed" ? "모집이 마감되었습니다" : "참가하기"}
+          </RippleLinkButton>
         </div>
       </div>
     </div>
