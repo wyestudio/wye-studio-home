@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'cmd=$(jq -r .tool_input.command <<<\"$1\"); echo \"$cmd\" | grep -q \"^git push\" || exit 0; cd $(git rev-parse --show-toplevel 2>/dev/null) 2>/dev/null || exit 0; files=$(git log @{u}..HEAD --name-only 2>/dev/null || echo \"\"); [ -z \"$files\" ] && exit 0; echo \"$files\" | grep -q \"^CLAUDE.md$\" && exit 0; echo \"$files\" | grep -q . && (echo \"❌ CLAUDE.md 기록이 필요합니다. 기록 추가 후 다시 push해주세요.\" >&2; exit 2); exit 0' bash \"$1\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
