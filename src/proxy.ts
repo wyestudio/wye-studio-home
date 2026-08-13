@@ -8,6 +8,13 @@ import { createServerClient } from "@supabase/ssr";
 // sessions/*/apply는 이제 로그인 없이 누구나 접근 가능해야 해서 가드에서 제외했다.
 const PROTECTED_PATTERN = /^\/(account|auth\/(naver|kakao)\/link)/;
 
+function isAdminProtectedPath(pathname: string): boolean {
+  const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
+  // 어드민 경로 중에서 /login 제외
+  const adminRegex = new RegExp(`^${adminPath}(?!/login$)`);
+  return adminRegex.test(pathname);
+}
+
 export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
 
@@ -33,6 +40,17 @@ export async function proxy(request: NextRequest) {
 
     if (!user) {
       const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // 어드민 경로 보호 (비밀번호 쿠키 확인)
+  if (isAdminProtectedPath(request.nextUrl.pathname)) {
+    const adminCookie = request.cookies.get("admin_auth")?.value;
+    if (!adminCookie) {
+      const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
+      const loginUrl = new URL(`${adminPath}/login`, request.url);
       loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
       return NextResponse.redirect(loginUrl);
     }
