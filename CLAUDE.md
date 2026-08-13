@@ -163,13 +163,15 @@
 
 # 앞으로 할 일 (순서대로)
 
-1. **신청확인 SMS 재활성화** — 위 "향후 추가 예정" 참고. 팀원 테스트로 인한 요금 문제가 정리되면(예: 테스트용 발신 차단/별도 환경 분리 등을 먼저 정하고) `actions.ts`에 `sendApplicationConfirmationSms` 호출을 다시 붙일 것.
-2. **외부 크론 서비스 실제 등록** — `/api/cron/reminder` 라우트는 완성되었지만, cron-job.org 같은 외부 서비스에 실제 등록하지 않아서 참가확정 SMS 3단계가 자동 실행되지 않음. 환경변수 `CRON_SECRET` 설정 후 `https://wouldyouescape.com/api/cron/reminder?token=[CRON_SECRET]`을 5~15분 주기로 호출하도록 등록할 것.
-3. **카카오 공유 시 메시지 포맷** — Open Graph 메타태그(`og:title`/`og:description`/`og:image`)는 SEO 작업으로 이미 세팅 완료(카카오톡 공유 시 기본 미리보기는 뜸). 카카오 SDK 공유 버튼("카톡으로 공유하기")은 아직 미착수, 필요하면 검토.
-4. 네이버 로그인 — 예전엔 "Supabase 기본 미지원(Custom OIDC 필요)"으로 적어뒀지만, 이후 실제로 네이버가 `https://nid.naver.com/.well-known/openid-configuration`에서 표준 OIDC(서명된 id_token, JWKS)를 지원하기 시작한 걸 확인한 적이 있어 예상보다 단순해질 수 있음. 다만 로그인 시스템 자체가 지금 휴면 처리 상태라 우선순위는 낮음, 착수 전 재확인 필요.
-5. 04~06, 09~12 나머지 베타 화면 순차 추가(이용약관/환불정책 문구 확정 포함), (나중) PG 결제 연동
-6. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토, 카카오 알림톡(번호 노출 없는 문자 대안)도 사업자등록 후 재검토 — 아래 "카카오 로그인 관련 결정" 참고
-7. **(보류)** 이메일 발송 문구 커스텀화 — 로그인 시스템이 휴면 처리되며 이메일 발송 자체가 당장 불필요해짐. 로그인/PG 결제 연동 등으로 재활성화될 때 재검토.
+1. **신청확인 SMS 재활성화** — 위 "향후 추가 예정" 참고. 팀원 테스트로 인한 요금 문제가 정리되면(예: 테스트용 발신 차단/별도 환경 분리 등을 먼저 정하고) `actions.ts`에 `sendApplicationConfirmationSms` 호출을 다시 붙일 것. ⚠️ **재활성화 시 실제 문자가 나가는지는 아직 확인 전** — Vercel Production 환경에 SOLAPI 키(`SOLAPI_API_KEY`/`SOLAPI_API_SECRET`/`SOLAPI_SENDER_NUMBER`)가 설정돼 있는지 반드시 검증 후 진행할 것.
+2. **어드민 비밀번호/크론 시크릿 환경변수 설정** — 어드민 페이지(`/admin-x7f9k2m3/login`)가 작동하려면 `.env.local`의 `ADMIN_PASSWORD`를 설정해야 하고(현재 비어있어 로그인이 항상 실패), 크론 API(`/api/cron/reminder`)가 작동하려면 `CRON_SECRET`을 설정해야 함(현재 없어 모든 크론 요청이 401). Vercel Production 환경변수에도 모두 등록 필요.
+3. **외부 크론 서비스 실제 등록** — `/api/cron/reminder` 라우트는 완성되었지만, cron-job.org 같은 외부 서비스에 실제 등록하지 않아서 참가확정 SMS 3단계가 자동 실행되지 않음. 위 `CRON_SECRET` 설정 후 `https://wouldyouescape.com/api/cron/reminder?token=[CRON_SECRET]`을 5~15분 주기로 호출하도록 등록할 것.
+4. **동시성 검증** — Node.js 스크립트(임시, 스크래치패드 작성)로 모임/소개팅 각각 정원 근처까지 동시 신청을 `Promise.all`로 보냄 — 모임은 확정 24건 + 대기 1~26번을 정확히 받는지, 소개팅은 성별 각 12명 확정 + 대기 1~18번을 받는지, 51명 이상/성별 31명 이상은 모두 "정원마감:" 에러로 거부되는지 확인. `waiting_number` 순번이 race condition 없이 정확한지 검증. 테스트 후 생성된 신청 데이터는 `delete from applications where confirmation_code in (...)`로 정리.
+5. **카카오 공유 시 메시지 포맷** — Open Graph 메타태그(`og:title`/`og:description`/`og:image`)는 SEO 작업으로 이미 세팅 완료(카카오톡 공유 시 기본 미리보기는 뜸). 카카오 SDK 공유 버튼("카톡으로 공유하기")은 아직 미착수, 필요하면 검토.
+6. 네이버 로그인 — 예전엔 "Supabase 기본 미지원(Custom OIDC 필요)"으로 적어뒀지만, 이후 실제로 네이버가 `https://nid.naver.com/.well-known/openid-configuration`에서 표준 OIDC(서명된 id_token, JWKS)를 지원하기 시작한 걸 확인한 적이 있어 예상보다 단순해질 수 있음. 다만 로그인 시스템 자체가 지금 휴면 처리 상태라 우선순위는 낮음, 착수 전 재확인 필요.
+7. 04~06, 09~12 나머지 베타 화면 순차 추가(이용약관/환불정책 문구 확정 포함), (나중) PG 결제 연동
+8. **(사업자등록 완료 후)** 카카오 간편가입(카카오싱크) 전환 검토, 카카오 알림톡(번호 노출 없는 문자 대안)도 사업자등록 후 재검토 — 아래 "카카오 로그인 관련 결정" 참고
+9. **(보류)** 이메일 발송 문구 커스텀화 — 로그인 시스템이 휴면 처리되며 이메일 발송 자체가 당장 불필요해짐. 로그인/PG 결제 연동 등으로 재활성화될 때 재검토.
 
 ## 도메인 연결 작업 기록 (2026-08-07, 전부 완료)
 
