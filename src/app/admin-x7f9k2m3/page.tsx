@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime } from "@/lib/format";
+import { LogoutButton } from "@/components/admin/LogoutButton";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,12 @@ export default async function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">관리자 대시보드</h1>
-          <p className="text-muted">세션별 신청 현황을 확인하고 입금을 승인할 수 있습니다.</p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">관리자 대시보드</h1>
+            <p className="text-muted">세션별 신청 현황을 확인하고 입금을 승인할 수 있습니다.</p>
+          </div>
+          <LogoutButton />
         </div>
 
         <div className="space-y-4">

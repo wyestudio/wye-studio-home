@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
+import { verifyAdminToken } from "@/lib/adminAuth";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인 시스템은 더 이상
 // 활성 플로우에서 쓰이지 않음. 삭제하지 않고 보존 — 결제 연동 등으로 계정이 다시
@@ -45,10 +46,10 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 어드민 경로 보호 (비밀번호 쿠키 확인)
+  // 어드민 경로 보호 (서명된 토큰 검증)
   if (isAdminProtectedPath(request.nextUrl.pathname)) {
     const adminCookie = request.cookies.get("admin_auth")?.value;
-    if (!adminCookie) {
+    if (!adminCookie || !verifyAdminToken(adminCookie)) {
       const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
       const loginUrl = new URL(`${adminPath}/login`, request.url);
       loginUrl.searchParams.set("redirect", request.nextUrl.pathname);

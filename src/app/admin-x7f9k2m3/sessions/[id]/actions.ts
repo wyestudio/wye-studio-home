@@ -1,9 +1,16 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPaymentConfirmedSms } from "@/lib/sms";
+import { requireAdminAuth } from "@/lib/adminAuth";
 
 export async function confirmPayment(applicationId: string, sessionId: string) {
+  // 다층 방어: 서버 액션 자체에서도 인증 검증
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
   const supabase = createAdminClient();
 
   // 신청 정보 조회
