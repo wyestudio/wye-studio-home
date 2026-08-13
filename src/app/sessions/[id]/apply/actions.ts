@@ -32,6 +32,7 @@ export type ApplyState = {
   notes?: string | null;
   conflictPhoneDigits?: string[];
   conflictReason?: "group" | "theme";
+  closed?: boolean;
 };
 
 const ATTENDEE_FIELD_PATTERN = /^attendees\[(\d+)\]\[(name|phone|birthYear|nickname|gender|experienceRange)\]$/;
@@ -172,15 +173,16 @@ export async function applyAction(
     .single();
 
   if (error) {
+    const isClosed = error.message.startsWith("정원마감:");
     const conflictPhoneDigits = error.details
       ? error.details.split(",").map((s) => s.trim()).filter(Boolean)
       : undefined;
     const conflictReason = error.message.includes("그룹 안에서")
       ? "group"
-      : error.message.includes("같은 테마")
+      : error.message.includes("같은 테마") || error.message.includes("다른 테마")
         ? "theme"
         : undefined;
-    return { error: error.message, attendees, notes, conflictPhoneDigits, conflictReason };
+    return { error: error.message, attendees: isClosed ? undefined : attendees, notes: isClosed ? undefined : notes, conflictPhoneDigits, conflictReason, closed: isClosed };
   }
 
   const application = data as Application;
