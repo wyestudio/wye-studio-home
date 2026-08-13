@@ -74,13 +74,11 @@ export function LookupForm() {
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
     const errors = validateForm();
     if (errors.length > 0) {
+      e.preventDefault();
       setSubmitAttempted(true);
-      return;
     }
-    formAction(new FormData(e.currentTarget));
   }
 
   async function handleCancelConfirm() {
@@ -257,7 +255,7 @@ export function LookupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+    <form action={formAction} onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
       <Field label="접수번호" htmlFor="confirmationCode" error={confirmationCodeError}>
         <Input
           id="confirmationCode"
