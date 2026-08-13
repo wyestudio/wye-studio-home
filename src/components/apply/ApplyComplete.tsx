@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { formatRefundDeadline, formatSessionDateTime } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { ThemeTag } from "@/components/ui/ThemeTag";
+import { getThemeBaseName, isDatingTheme } from "@/lib/theme";
 import type { Application } from "@/types/domain";
 import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
 
@@ -52,6 +53,7 @@ export function ApplyComplete({
   const isGroup = attendees.length > 1;
   const representative = attendees[0];
   const smsRecipientLabel = isGroup ? "대표 신청자" : "신청자";
+  const accentColor = isDatingTheme(themeLabel) ? "#ff5ec4" : "#3dffb0";
 
   return (
     <div className="mx-auto max-w-[560px]">
@@ -62,18 +64,16 @@ export function ApplyComplete({
 
       <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
         {/* 접수번호 */}
-        <div className="text-center">
-          <p className="mb-1 text-sm text-muted">접수번호</p>
-          <div className="inline-flex items-center gap-2">
-            <p className="text-lg font-extrabold">{application.confirmation_code}</p>
-            <button
-              type="button"
-              onClick={handleCopyClick}
-              className="rounded-md border border-border px-2 py-1 text-xs text-muted hover:text-foreground"
-            >
-              {copied ? "복사됨" : "복사"}
-            </button>
-          </div>
+        <div className="flex items-center justify-center gap-3">
+          <p className="text-sm text-muted">접수번호</p>
+          <p className="text-3xl font-extrabold">{application.confirmation_code}</p>
+          <button
+            type="button"
+            onClick={handleCopyClick}
+            className="rounded-md border border-border px-2 py-1 text-xs text-muted hover:text-foreground"
+          >
+            {copied ? "복사됨" : "복사"}
+          </button>
         </div>
 
         {/* 대기 상태 안내 */}
@@ -92,7 +92,12 @@ export function ApplyComplete({
         <div className="grid grid-cols-2 divide-x divide-border">
           <div className="flex flex-col gap-2 pr-6">
             <p className="text-sm font-bold text-muted">신청 정보</p>
-            <ThemeTag themeLabel={themeLabel} />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold" style={{ color: accentColor }}>
+                {getThemeBaseName(themeLabel)}
+              </span>
+              <ThemeTag themeLabel={themeLabel} />
+            </div>
             <p className="text-sm text-foreground">{formatSessionDateTime(startAt)}</p>
             <p className="text-sm text-muted">{venueArea}</p>
           </div>
