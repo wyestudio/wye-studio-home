@@ -66,9 +66,14 @@ export function ApplyComplete({
           </Badge>
           <span className="text-sm text-muted">
             {sessionTitle} 신청이 완료됐어요
-            {application.status === "waiting" ? " — 정원이 차면 자동으로 확정돼요" : ""}.
+            {application.status === "waiting" ? ` — 대기번호 ${application.waiting_number}번` : ""}.
           </span>
         </div>
+        {application.status === "waiting" ? (
+          <p className="text-xs text-muted">
+            정원이 다 찼고 취소 발생 시 연락드리겠습니다.
+          </p>
+        ) : null}
         {representative ? (
           <p className="text-xs text-muted">
             입금 안내를 {smsRecipientLabel} 전화번호({formatPhoneDigits(representative.phone)})로도 보내드려요.

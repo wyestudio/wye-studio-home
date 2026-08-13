@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/Badge";
 import { LinkButton } from "@/components/ui/Button";
 import { HudCard } from "@/components/ui/HudCard";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
-import { CapacityPolicyTable } from "@/components/session/CapacityPolicyTable";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isDatingTheme } from "@/lib/theme";
 
@@ -96,10 +95,6 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         </div>
       </section>
 
-      <section className="mb-8">
-        <h2 className="mb-3 text-sm font-bold text-muted">조편성 정책</h2>
-        <CapacityPolicyTable session={session} stats={stats} />
-      </section>
 
       <section className="mb-8">
         <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>

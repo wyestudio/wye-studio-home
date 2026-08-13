@@ -56,6 +56,14 @@ export function LookupForm() {
               {PAYMENT_LABEL[result.payment_status]}
             </Badge>
           </div>
+          {result.status === "waiting" && result.waiting_number ? (
+            <p className="text-sm text-muted">대기번호: {result.waiting_number}번</p>
+          ) : null}
+          {result.status === "waiting" ? (
+            <p className="text-xs text-muted">
+              정원이 다 찼고 취소 발생 시 연락드리겠습니다.
+            </p>
+          ) : null}
 
           <div>
             <p className="mb-1 text-sm text-muted">접수번호</p>
