@@ -2176,3 +2176,141 @@ update sessions
   set start_at = '2026-08-29T13:00:00+09:00',
       end_at = '2026-08-29T16:30:00+09:00'  -- 기존 3.5시간 진행시간 유지
   where theme_label = '바-ㅇ탈출(ver.모임)';
+
+
+-- v13. lookup_application 버그 수정(notes/birth_year/experience_range) + cancel_application 신설 (2026-08-14)
+-- 배경: v11-4에서 lookup_application이 notes/experience_range를 반환하도록 만들었으나,
+--      v12-5에서 함수를 재작성하면서 실수로 이 컬럼들을 빠뜨림.
+--      또한 ApplyComplete와 통일하려면 theme_label/venue_area/start_at도 필요.
+
+-- v13-1. lookup_application 수정 (notes/experience_range 복구 + 추가 컬럼)
+drop function if exists public.lookup_application(text, text);
+
+create or replace function public.lookup_application(p_phone_digits text, p_confirmation_code text)
+returns table (
+  session_title text, theme_label text, venue_area text, start_at timestamptz,
+  event_date date, slot text, price_krw int,
+  status text, payment_status text, confirmation_code text,
+  created_at timestamptz, notes text,
+  waiting_number int,
+  attendees jsonb
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+stable
+as $$
+declare
+  v_phone_hash text := hash_phone(p_phone_digits);
+  v_session_id uuid;
+  v_status text;
+  v_theme text;
+  v_gender text;
+  v_waiting_number int;
+begin
+  -- 먼저 세션 정보 조회
+  select ap.session_id, ap.status, s.theme_label
+  into v_session_id, v_status, v_theme
+  from applications ap
+  join sessions s on s.id = ap.session_id
+  join application_attendees aa on aa.application_id = ap.id
+  where ap.confirmation_code = p_confirmation_code
+    and aa.phone_hash = v_phone_hash
+  limit 1;
+
+  -- waiting_number 계산
+  if v_status = 'waiting' then
+    if v_theme = '바-ㅇ탈출(ver.소개팅)' then
+      select aa2.gender into v_gender
+      from application_attendees aa2
+      join applications ap2 on ap2.id = aa2.application_id
+      where ap2.session_id = v_session_id
+        and ap2.confirmation_code = p_confirmation_code
+        and aa2.is_representative
+      limit 1;
+
+      select count(*) into v_waiting_number
+      from application_attendees aa2
+      join applications ap2 on ap2.id = aa2.application_id
+      where ap2.session_id = v_session_id
+        and ap2.status = 'waiting'
+        and aa2.gender = v_gender
+        and ap2.created_at <= (
+          select ap3.created_at from applications ap3
+          where ap3.confirmation_code = p_confirmation_code limit 1
+        );
+    else
+      select count(*) into v_waiting_number
+      from applications ap2
+      where ap2.session_id = v_session_id
+        and ap2.status = 'waiting'
+        and ap2.created_at <= (
+          select ap3.created_at from applications ap3
+          where ap3.confirmation_code = p_confirmation_code limit 1
+        );
+    end if;
+  else
+    v_waiting_number := null;
+  end if;
+
+  return query
+    select s.title, s.theme_label, s.venue_area, s.start_at,
+      s.event_date, s.slot, s.price_krw,
+      ap.status, ap.payment_status, ap.confirmation_code,
+      ap.created_at, ap.notes,
+      v_waiting_number,
+      (select jsonb_agg(jsonb_build_object(
+          'name', decrypt_pii(aa2.name_enc),
+          'phone', decrypt_pii(aa2.phone_enc),
+          'birth_year', aa2.birth_year,
+          'nickname', aa2.nickname,
+          'gender', aa2.gender,
+          'experience_range', aa2.experience_range,
+          'is_representative', aa2.is_representative
+        ) order by aa2.is_representative desc)
+       from application_attendees aa2 where aa2.application_id = ap.id)
+    from applications ap
+    join sessions s on s.id = ap.session_id
+    join application_attendees aa on aa.application_id = ap.id
+    where ap.confirmation_code = p_confirmation_code
+      and aa.phone_hash = v_phone_hash
+    limit 1;
+end;
+$$;
+
+revoke all on function public.lookup_application(text, text) from public;
+grant execute on function public.lookup_application(text, text) to anon, authenticated;
+
+
+-- v13-2. cancel_application 신설
+create or replace function public.cancel_application(p_phone_digits text, p_confirmation_code text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_phone_hash text := hash_phone(p_phone_digits);
+  v_application_id uuid;
+begin
+  select ap.id into v_application_id
+  from applications ap
+  join application_attendees aa on aa.application_id = ap.id
+  where ap.confirmation_code = p_confirmation_code
+    and aa.phone_hash = v_phone_hash
+    and ap.status <> 'cancelled'
+  limit 1;
+
+  if v_application_id is null then
+    raise exception '이미 취소되었거나 일치하는 신청 내역을 찾을 수 없어요.';
+  end if;
+
+  update applications set status = 'cancelled', payment_status = 'cancelled'
+    where id = v_application_id;
+
+  return true;
+end;
+$$;
+
+revoke all on function public.cancel_application(text, text) from public;
+grant execute on function public.cancel_application(text, text) to anon, authenticated;

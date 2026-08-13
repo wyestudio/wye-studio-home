@@ -80,15 +80,17 @@ export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200+";
 // 참여내역 조회(lookup_application RPC) 결과.
 export type ApplicationLookupResult = {
   session_title: string;
+  theme_label: string;
+  venue_area: string;
+  start_at: string;
   event_date: string;
   slot: SessionSlot;
   price_krw: number;
   status: ApplicationStatus;
   payment_status: PaymentStatus;
   confirmation_code: string;
-  depositor_name: string;
   created_at: string;
-  waiting_number: number | null;
   notes: string | null;
+  waiting_number: number | null;
   attendees: ApplicationAttendee[];
 };

@@ -1,6 +1,6 @@
 "use server";
 
-import { lookupApplication } from "@/lib/lookup";
+import { lookupApplication, cancelApplication } from "@/lib/lookup";
 import { phoneDigits, isValidPhoneDigits } from "@/lib/phone";
 import type { ApplicationLookupResult } from "@/types/domain";
 
@@ -36,4 +36,26 @@ export async function lookupAction(
   }
 
   return { result };
+}
+
+export async function cancelApplicationAction(
+  phone: string,
+  confirmationCode: string
+): Promise<{ success?: boolean; error?: string }> {
+  // 형식 검증
+  const phoneDigitsOnly = phoneDigits(phone);
+  if (!isValidPhoneDigits(phoneDigitsOnly)) {
+    return { error: "일치하는 신청 내역을 찾을 수 없어요. 전화번호와 접수번호를 다시 확인해주세요." };
+  }
+
+  if (!/^\d{6}$/.test(confirmationCode)) {
+    return { error: "일치하는 신청 내역을 찾을 수 없어요. 전화번호와 접수번호를 다시 확인해주세요." };
+  }
+
+  const success = await cancelApplication(phone, confirmationCode);
+  if (!success) {
+    return { error: "취소 처리 중 오류가 발생했어요. 다시 시도해주세요." };
+  }
+
+  return { success: true };
 }
