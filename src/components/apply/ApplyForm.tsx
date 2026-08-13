@@ -271,7 +271,9 @@ export function ApplyForm({
         themeLabel={themeLabel}
         sessionTitle={sessionTitle}
         eventDate={eventDate}
-        notes={state.notes}
+        startAt={startAt}
+        endAt={endAt}
+        venueArea={venueArea}
       />
     );
   }
