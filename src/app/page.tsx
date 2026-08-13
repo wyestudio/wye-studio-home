@@ -2,8 +2,7 @@ import { ScrollStage } from "@/components/home/scroll-stage/ScrollStage";
 import { HeroScene } from "@/components/home/scenes/HeroScene";
 import { SessionScene } from "@/components/home/scenes/SessionScene";
 import { ConceptScene } from "@/components/home/scenes/ConceptScene";
-import { ProcessScene } from "@/components/home/scenes/ProcessScene";
-import { ClosingScene } from "@/components/home/scenes/ClosingScene";
+import { NoticeScene } from "@/components/home/scenes/NoticeScene";
 import { SessionCard } from "@/components/home/SessionCard";
 import { getUpcomingSessions } from "@/lib/sessions";
 
@@ -19,8 +18,7 @@ export default async function Home() {
         ))}
       </SessionScene>
       <ConceptScene />
-      <ProcessScene />
-      <ClosingScene />
+      <NoticeScene />
     </ScrollStage>
   );
 }

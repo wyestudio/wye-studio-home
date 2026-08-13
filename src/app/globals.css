@@ -21,6 +21,9 @@
   --wait-soft: #3a2a0d;
   --danger: #ff6b6b;
   --danger-soft: #3a1717;
+  --mascot-woodju: #3AA0F0;
+  --mascot-is: #F1573C;
+  --mascot-kape: #9B87E0;
 }
 
 @theme inline {
@@ -44,6 +47,9 @@
   --color-wait-soft: var(--wait-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-mascot-woodju: var(--mascot-woodju);
+  --color-mascot-is: var(--mascot-is);
+  --color-mascot-kape: var(--mascot-kape);
   --font-sans: var(--font-suit);
   --font-mono: var(--font-geist-mono);
 }
