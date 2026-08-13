@@ -1946,3 +1946,221 @@ grant execute on function public.lookup_application(text, text) to anon, authent
 grant select on admin_application_view, admin_attendee_view to service_role;
 grant select, update on applications to service_role;
 grant select on session_venues to service_role;
+
+
+-- v12-8. submit_application() 파라미터 복구 (p_notes 재추가)
+-- v12-4에서 정원/대기 로직 재작성 시 실수로 p_notes를 제거했는데, 비고(notes)
+-- 기능은 여전히 UI/검증/저장에서 쓰이고 있어서 클라이언트 호출과 DB 함수
+-- 시그니처가 불일치하는 PostgREST 에러 발생. v11-3의 5-파라미터 패턴을
+-- v12-4의 최신 로직 위에 복원.
+drop function if exists public.submit_application(uuid, text, boolean, jsonb);
+
+create or replace function public.submit_application(
+  p_session_id uuid,
+  p_depositor_name text,
+  p_agreed_terms boolean,
+  p_attendees jsonb,
+  p_notes text default null
+)
+returns public.application_result
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_session sessions%rowtype;
+  v_group_size int;
+  v_current_total int;
+  v_gender_total int;
+  v_gender text;
+  v_new_total int;
+  v_status text;
+  v_code text;
+  v_app applications%rowtype;
+  v_dup_phones text;
+  v_self_dup_phones text;
+  v_waiting_number int;
+begin
+  if not p_agreed_terms then
+    raise exception '약관에 동의해야 신청할 수 있습니다.';
+  end if;
+
+  select * into v_session from sessions where id = p_session_id for update;
+  if not found then
+    raise exception '존재하지 않는 회차입니다.';
+  end if;
+  if v_session.status <> 'open' then
+    raise exception '이미 마감된 회차입니다.';
+  end if;
+
+  v_group_size := jsonb_array_length(p_attendees);
+  if v_group_size is null or v_group_size < 1 then
+    raise exception '참여 인원을 입력해주세요.';
+  end if;
+
+  -- 소개팅 조건: 1인 신청, 성별 필수
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    if v_group_size <> 1 then
+      raise exception '소개팅 회차는 1인 신청만 가능합니다.';
+    end if;
+    v_gender := p_attendees->0->>'gender';
+    if v_gender is null or v_gender not in ('M', 'F') then
+      raise exception '성별을 선택해주세요.';
+    end if;
+  end if;
+
+  if exists (
+    select 1 from jsonb_array_elements(p_attendees) a
+    where (a->>'birth_year')::int not between 1990 and 1999
+  ) then
+    raise exception '참여자 출생년도는 1990~1999년만 가능합니다.';
+  end if;
+
+  -- 같은 그룹 내부 전화번호 중복 체크
+  select string_agg(distinct phone, ',') into v_self_dup_phones
+  from (
+    select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone
+    from jsonb_array_elements(p_attendees) a
+    group by 1
+    having count(*) > 1
+  ) t;
+
+  if v_self_dup_phones is not null then
+    raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요.' using detail = v_self_dup_phones;
+  end if;
+
+  -- [v12 수정] 테마 상호배타: 테마 불문 활성 신청이 하나라도 있으면 차단
+  -- 이전엔 `where s.theme_label = v_session.theme_label`을 비교했지만, 지금은 완전 제거
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',')
+  into v_dup_phones
+  from jsonb_array_elements(p_attendees) a
+  where exists (
+    select 1
+    from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    where ap.status <> 'cancelled'
+      and aa.phone_hash = hash_phone(a->>'phone')
+  );
+
+  if v_dup_phones is not null then
+    raise exception '다른 테마에 이미 신청하신 분이 포함되어 있어요. 한 테마만 신청 가능합니다.' using detail = v_dup_phones;
+  end if;
+
+  -- 현재 인원 계산(소개팅은 해당 성별만)
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    select coalesce(count(*), 0) into v_current_total
+    from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    where ap.session_id = p_session_id
+      and ap.status in ('confirmed', 'waiting')
+      and aa.gender = v_gender;
+  else
+    select coalesce(sum(cnt), 0) into v_current_total
+    from (
+      select ap.id, count(*) as cnt
+      from applications ap
+      join application_attendees aa on aa.application_id = ap.id
+      where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting')
+      group by ap.id
+    ) t;
+  end if;
+
+  -- [v12 추가] 사전 마감 체크: 그룹 전체가 못 들어가면 통째로 거부
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    if v_gender = 'M' and v_session.male_closed then
+      raise exception '정원마감: 남성 참여자의 정원이 마감되었습니다.';
+    end if;
+    if v_gender = 'F' and v_session.female_closed then
+      raise exception '정원마감: 여성 참여자의 정원이 마감되었습니다.';
+    end if;
+    if v_current_total + 1 > v_session.capacity_max_female then
+      raise exception '정원마감: 정원이 모두 찼습니다.';
+    end if;
+  else
+    if v_current_total + v_group_size > v_session.capacity_max then
+      raise exception '정원마감: 정원이 모두 찼습니다.';
+    end if;
+  end if;
+
+  -- 접수번호 생성
+  for i in 1..20 loop
+    v_code := (100000 + floor(random() * 900000))::int::text;
+    exit when not exists (select 1 from applications where confirmation_code = v_code);
+  end loop;
+
+  -- 확정/대기 판정
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    v_status := case
+      when v_current_total + 1 <= (case when v_gender = 'M'
+        then v_session.capacity_confirm_line_male else v_session.capacity_confirm_line_female end)
+      then 'confirmed' else 'waiting' end;
+  else
+    v_status := case when v_current_total + v_group_size <= v_session.capacity_confirm_line
+      then 'confirmed' else 'waiting' end;
+  end if;
+
+  -- 신청 행 삽입
+  insert into applications (session_id, depositor_name_enc, agreed_terms, confirmation_code, status, notes)
+  values (p_session_id, encrypt_pii(p_depositor_name), p_agreed_terms, v_code, v_status, p_notes)
+  returning * into v_app;
+
+  -- 참여자 행 삽입
+  insert into application_attendees (application_id, session_id, is_representative, name_enc, phone_enc, phone_hash, birth_year, nickname, gender)
+  select
+    v_app.id, p_session_id, (ord = 1),
+    encrypt_pii(a->>'name'), encrypt_pii(a->>'phone'), hash_phone(a->>'phone'),
+    (a->>'birth_year')::int, nullif(a->>'nickname', ''), nullif(a->>'gender', '')
+  from jsonb_array_elements(p_attendees) with ordinality as t(a, ord);
+
+  v_new_total := v_current_total + v_group_size;
+
+  -- [v12 수정] 정원 도달 처리: 자동 승격 로직 없음, 마감 표시만
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    if v_gender = 'M' and v_current_total + 1 >= v_session.capacity_max_male then
+      update sessions set male_closed = true where id = p_session_id;
+    end if;
+    if v_gender = 'F' and v_current_total + 1 >= v_session.capacity_max_female then
+      update sessions set female_closed = true where id = p_session_id;
+    end if;
+    -- 양쪽 다 마감되면 세션 전체 마감
+    if (select count(*) from sessions where id = p_session_id and male_closed and female_closed) > 0 then
+      update sessions set status = 'closed' where id = p_session_id;
+    end if;
+  else
+    if v_new_total >= v_session.capacity_max then
+      update sessions set status = 'closed' where id = p_session_id;
+    end if;
+  end if;
+
+  -- [v12 추가] waiting_number 계산
+  if v_app.status = 'waiting' then
+    if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+      select count(*) into v_waiting_number
+      from application_attendees aa
+      join applications ap on ap.id = aa.application_id
+      where ap.session_id = p_session_id
+        and ap.status = 'waiting'
+        and aa.gender = v_gender
+        and ap.created_at <= v_app.created_at
+      group by ap.session_id;
+    else
+      select count(*) into v_waiting_number
+      from applications ap
+      where ap.session_id = p_session_id
+        and ap.status = 'waiting'
+        and ap.created_at <= v_app.created_at;
+    end if;
+  else
+    v_waiting_number := null;
+  end if;
+
+  return (v_app.id, v_app.session_id, p_depositor_name, v_app.agreed_terms,
+    v_app.confirmation_code, v_app.status, v_app.payment_status, v_waiting_number, v_app.created_at)::public.application_result;
+exception
+  when unique_violation then
+    raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end;
+$$;
+
+revoke all on function public.submit_application(uuid, text, boolean, jsonb, text) from public;
+grant execute on function public.submit_application(uuid, text, boolean, jsonb, text) to anon, authenticated;
