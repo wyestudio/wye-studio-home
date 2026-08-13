@@ -320,9 +320,6 @@ export function ApplyForm({
         비슷한 또래끼리 더 즐겁게 즐기실 수 있도록,
         <br />
         {ELIGIBLE_BIRTH_YEAR_MIN}~{ELIGIBLE_BIRTH_YEAR_MAX}년생만 참여하실 수 있어요.
-        {isDatingSession
-          ? " 소개팅 회차는 성비를 맞추기 위해 남/여 각각 10명까지 즉시 확정되고, 이후에는 대기로 전환돼요."
-          : null}
       </div>
 
       {isDatingSession ? null : (
