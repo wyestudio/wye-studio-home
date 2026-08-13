@@ -115,8 +115,9 @@ export function LookupForm() {
     const accentColor = isDatingTheme(result.theme_label) ? "#ff5ec4" : "#3dffb0";
 
     return (
-      <div className="mx-auto max-w-[560px]">
-        <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
+      <div className="flex justify-center -mx-5">
+        <div className="w-full max-w-[560px] px-5">
+          <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
           {/* 접수번호 */}
           <div className="flex items-center justify-center gap-3">
             <p className="text-sm text-muted">접수번호</p>
@@ -250,7 +251,9 @@ export function LookupForm() {
           onConfirm={handleCancelConfirm}
           danger
         />
+        </div>
       </div>
+    </div>
     );
   }
 
