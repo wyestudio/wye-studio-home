@@ -5,15 +5,16 @@
 // 땐 그쪽도 함께 갱신해야 한다.
 export const DATING_THEME_LABEL = "바-ㅇ탈출(ver.소개팅)";
 
-export function isDatingTheme(themeLabel: string): boolean {
+export function isDatingTheme(themeLabel: string | undefined): boolean {
   return themeLabel === DATING_THEME_LABEL;
 }
 
-export function getThemeTag(themeLabel: string): string {
+export function getThemeTag(themeLabel: string | undefined): string {
   return isDatingTheme(themeLabel) ? "소개팅" : "모임";
 }
 
-export function getThemeBaseName(themeLabel: string): string {
+export function getThemeBaseName(themeLabel: string | undefined): string {
+  if (!themeLabel) return "";
   return themeLabel.replace(/\s*\(ver\.[^)]*\)\s*/, "").trim();
 }
 
