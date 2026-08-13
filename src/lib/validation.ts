@@ -73,6 +73,10 @@ export function getValidationErrorMessage(field: string, reason: string): string
     agreedTerms: {
       required: "약관에 동의해야 신청할 수 있습니다.",
     },
+    confirmationCode: {
+      required: "접수번호를 입력해주세요.",
+      invalid: "접수번호는 6자리 숫자예요.",
+    },
   };
 
   return messages[field]?.[reason] ?? `${field} 입력값이 올바르지 않습니다.`;

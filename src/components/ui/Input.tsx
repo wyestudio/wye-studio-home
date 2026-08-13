@@ -22,11 +22,19 @@ export function Field({
   );
 }
 
-export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({
+  invalid,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { invalid?: boolean }) {
+  const baseClass = "w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition-shadow";
+  const stateClass = invalid
+    ? "border-danger bg-danger-soft text-danger"
+    : "border-border bg-surface text-foreground focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]";
+
   return (
     <input
       {...props}
-      className={`w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)] ${props.className ?? ""}`}
+      className={`${baseClass} ${stateClass} ${props.className ?? ""}`}
     />
   );
 }

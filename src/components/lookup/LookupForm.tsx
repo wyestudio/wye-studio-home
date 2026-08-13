@@ -6,9 +6,9 @@ import { Field, Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { HudCard } from "@/components/ui/HudCard";
 import { formatKrw, formatRefundDeadline, formatSessionDate } from "@/lib/format";
-import { formatPhoneDigits, formatPhoneInput } from "@/lib/phone";
+import { formatPhoneDigits, formatPhoneInput, phoneDigits, isValidPhoneDigits } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
-import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
+import { EXPERIENCE_RANGE_LABELS, getValidationErrorMessage } from "@/lib/validation";
 import { lookupAction, type LookupState } from "@/app/lookup/actions";
 import type { ApplicationStatus, PaymentStatus, SessionSlot } from "@/types/domain";
 
@@ -35,6 +35,26 @@ export function LookupForm() {
   const [state, formAction, pending] = useActionState(lookupAction, initialState);
   const [phone, setPhone] = useState("");
   const [confirmationCode, setConfirmationCode] = useState("");
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  function validateForm() {
+    const errors: { field: string; message: string }[] = [];
+    if (!confirmationCode.trim()) {
+      errors.push({ field: "confirmationCode", message: getValidationErrorMessage("confirmationCode", "required") });
+    } else if (!/^\d{6}$/.test(confirmationCode)) {
+      errors.push({ field: "confirmationCode", message: getValidationErrorMessage("confirmationCode", "invalid") });
+    }
+    if (!phone.trim()) {
+      errors.push({ field: "phone", message: getValidationErrorMessage("phone", "required") });
+    } else if (!isValidPhoneDigits(phoneDigits(phone))) {
+      errors.push({ field: "phone", message: getValidationErrorMessage("phone", "invalid") });
+    }
+    return errors;
+  }
+
+  const validationErrors = submitAttempted ? validateForm() : [];
+  const confirmationCodeError = validationErrors.find((e) => e.field === "confirmationCode")?.message;
+  const phoneError = validationErrors.find((e) => e.field === "phone")?.message;
 
   function handleSubmitPointerEnter(e: React.PointerEvent<HTMLButtonElement>) {
     const el = e.currentTarget;
@@ -43,6 +63,16 @@ export function LookupForm() {
     el.style.setProperty("--origin-y", `${e.clientY - rect.top}px`);
     const diagonal = Math.hypot(rect.width, rect.height);
     el.style.setProperty("--fill-size", `${diagonal * 2}px`);
+  }
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const errors = validateForm();
+    if (errors.length > 0) {
+      setSubmitAttempted(true);
+      return;
+    }
+    formAction(new FormData(e.currentTarget));
   }
 
   if (state.result) {
@@ -135,8 +165,8 @@ export function LookupForm() {
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <Field label="접수번호" htmlFor="confirmationCode">
+    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+      <Field label="접수번호" htmlFor="confirmationCode" error={confirmationCodeError}>
         <Input
           id="confirmationCode"
           name="confirmationCode"
@@ -145,6 +175,7 @@ export function LookupForm() {
           maxLength={6}
           required
           placeholder="12345"
+          invalid={!!confirmationCodeError}
           value={confirmationCode}
           onChange={(e) => {
             const filtered = e.target.value.replace(/[^0-9]/g, "");
@@ -152,7 +183,7 @@ export function LookupForm() {
           }}
         />
       </Field>
-      <Field label="신청자 전화번호" htmlFor="phone">
+      <Field label="신청자 전화번호" htmlFor="phone" error={phoneError}>
         <Input
           id="phone"
           name="phone"
@@ -161,6 +192,7 @@ export function LookupForm() {
           maxLength={13}
           required
           placeholder="010-0000-0000"
+          invalid={!!phoneError}
           value={phone}
           onChange={(e) => {
             setPhone(formatPhoneInput(e.target.value));
