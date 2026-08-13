@@ -1,8 +1,51 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { ApplyForm } from "@/components/apply/ApplyForm";
 import { formatSessionDateShort } from "@/lib/format";
 import { ThemeTag } from "@/components/ui/ThemeTag";
+
+const SITE_URL = "https://wouldyouescape.com";
+
+export async function generateMetadata(
+  { params }: PageProps<"/sessions/[slug]/apply">
+): Promise<Metadata> {
+  const { slug } = await params;
+  const session = await getSessionBySlug(slug);
+
+  if (!session) {
+    return {};
+  }
+
+  const title = `${session.title} 참가 신청 | 우주이스케이프`;
+  const description = session.description || "우주이스케이프 회차에 참가 신청하세요.";
+  const url = `${SITE_URL}/sessions/${session.slug}/apply`;
+
+  return {
+    title,
+    description,
+    robots: {
+      index: false,
+      follow: true,
+    },
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+      siteName: "우주이스케이프",
+      locale: "ko_KR",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/apply">) {
   const { slug } = await params;

@@ -29,28 +29,44 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    // 24시간 이내에 시작하는 확정된 신청 조회
-    // (reminder_sms_sent_at이 null인 것만 — 중복 발송 방지)
+    // 24시간 이내에 시작하는 회차 조회 (시간 필터가 필요하므로 sessions에서 먼저)
     const now = new Date();
     const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const { data: applications, error } = await supabase
+    const { data: sessions, error: sessionsError } = await supabase
+      .from("sessions")
+      .select("id, title, start_at, theme_label")
+      .gte("start_at", now.toISOString())
+      .lte("start_at", oneDayLater.toISOString());
+
+    if (sessionsError) {
+      console.error("[cron] 세션 조회 오류:", sessionsError);
+      return NextResponse.json(
+        { error: "세션 조회 실패", details: sessionsError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!sessions || sessions.length === 0) {
+      return NextResponse.json(
+        { success: true, count: 0, message: "24시간 내 시작 세션이 없습니다." }
+      );
+    }
+
+    const sessionIds = sessions.map((s) => s.id);
+
+    // 해당 세션들의 확정된 신청 조회 (reminder_sms_sent_at이 null인 것만)
+    const { data: applications, error: appError } = await supabase
       .from("applications")
-      .select(
-        `
-        id, session_id, confirmation_code, status,
-        sessions(id, title, start_at, theme_label)
-      `
-      )
+      .select("id, session_id, confirmation_code, status")
       .eq("status", "confirmed")
       .is("reminder_sms_sent_at", null)
-      .gte("sessions.start_at", now.toISOString())
-      .lte("sessions.start_at", oneDayLater.toISOString());
+      .in("session_id", sessionIds);
 
-    if (error) {
-      console.error("[cron] DB 조회 오류:", error);
+    if (appError) {
+      console.error("[cron] 신청 조회 오류:", appError);
       return NextResponse.json(
-        { error: "DB 조회 실패", details: error.message },
+        { error: "신청 조회 실패", details: appError.message },
         { status: 500 }
       );
     }
@@ -64,12 +80,15 @@ export async function GET(request: NextRequest) {
     let successCount = 0;
     const errors: string[] = [];
 
+    // 세션 ID를 문자열로 정규화한 맵 생성
+    const sessionMap = new Map(sessions.map((s) => [String(s.id), s]));
+
     // 각 신청에 대해 참가확정 알림 발송
     for (const app of applications) {
       try {
-        const session = (app as any).sessions as Session;
+        const session = sessionMap.get(String(app.session_id)) as Session | undefined;
         if (!session) {
-          errors.push(`신청 ${app.confirmation_code}: 세션 정보 없음`);
+          errors.push(`신청 ${app.confirmation_code}: 세션 정보 없음 (session_id: ${app.session_id})`);
           continue;
         }
 

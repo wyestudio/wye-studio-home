@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
@@ -9,6 +10,8 @@ import { HudCard } from "@/components/ui/HudCard";
 import { FaqAccordion } from "@/components/ui/FaqAccordion";
 import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
 import { isDatingTheme } from "@/lib/theme";
+
+const SITE_URL = "https://wouldyouescape.com";
 
 const INCLUDED_ITEMS_BASE = ["방탈출 1회 플레이", "테마 맞춤 조 편성"];
 const INCLUDED_ITEMS_NON_DATING = [...INCLUDED_ITEMS_BASE, "4인 1조 랜덤 편성"];
@@ -31,6 +34,42 @@ function sessionFaqs(isDatingSession: boolean) {
       ]
     : [{ q: "혼자 신청해도 되나요?", a: "네, 1인부터 최대 8인까지 원하는 인원으로 신청할 수 있어요." }];
   return [...common, ...themed];
+}
+
+export async function generateMetadata(
+  { params }: PageProps<"/sessions/[slug]">
+): Promise<Metadata> {
+  const { slug } = await params;
+  const session = await getSessionBySlug(slug);
+
+  if (!session) {
+    return {};
+  }
+
+  const title = `${session.title} | 우주이스케이프`;
+  const description = session.description || "방탈출과 로테이션 소개팅을 결합한 우주이스케이프 회차입니다.";
+  const url = `${SITE_URL}/sessions/${session.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+    },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+      siteName: "우주이스케이프",
+      locale: "ko_KR",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
 }
 
 export default async function SessionDetailPage({ params }: PageProps<"/sessions/[slug]">) {
