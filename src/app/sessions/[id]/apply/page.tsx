@@ -19,9 +19,11 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/ap
       </div>
 
       {session.status === "closed" ? (
-        <p className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">
-          이 회차는 모집이 마감되었습니다.
-        </p>
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-glass-border bg-surface p-6 text-center">
+          <p className="text-lg font-bold">정원이 다 차서 마감되었습니다.</p>
+          <p className="text-sm text-muted">다음 정식 오픈 때 뵙겠습니다.</p>
+          <p className="text-sm text-muted">신청해주셔서 감사합니다.</p>
+        </div>
       ) : (
         <ApplyForm
           sessionId={id}
@@ -29,6 +31,8 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[id]/ap
           sessionTitle={session.title}
           eventDate={session.event_date}
           themeLabel={session.theme_label}
+          maleClosed={session.male_closed}
+          femaleClosed={session.female_closed}
         />
       )}
     </div>

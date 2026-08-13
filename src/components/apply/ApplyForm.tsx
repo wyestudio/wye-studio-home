@@ -93,12 +93,16 @@ export function ApplyForm({
   sessionTitle,
   eventDate,
   themeLabel,
+  maleClosed = false,
+  femaleClosed = false,
 }: {
   sessionId: string;
   priceKrw: number;
   sessionTitle: string;
   eventDate: string;
   themeLabel: string;
+  maleClosed?: boolean;
+  femaleClosed?: boolean;
 }) {
   const isDatingSession = isDatingTheme(themeLabel);
   const [state, formAction, pending] = useActionState(applyAction, initialState);
@@ -300,6 +304,16 @@ export function ApplyForm({
     );
   }
 
+  if (state.closed) {
+    return (
+      <div className="flex flex-col items-center gap-4 rounded-xl border border-glass-border bg-surface p-6 text-center">
+        <p className="text-lg font-bold">정원이 다 차서 마감되었습니다.</p>
+        <p className="text-sm text-muted">다음 정식 오픈 때 뵙겠습니다.</p>
+        <p className="text-sm text-muted">신청해주셔서 감사합니다.</p>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
       <div className="rounded-xl bg-brand-soft p-4 text-xs text-muted">
@@ -456,23 +470,25 @@ export function ApplyForm({
                   <div className="flex gap-2">
                     <button
                       type="button"
+                      disabled={isDatingSession && femaleClosed}
                       onClick={() => {
                         updateAttendee(i, "gender", "F");
                         if (submitAttempted) setValidationErrors(validateForm());
                       }}
-                      className={toggleButtonClassName(attendee.gender === "F", !!genderError)}
+                      className={`${toggleButtonClassName(attendee.gender === "F", !!genderError)} ${isDatingSession && femaleClosed ? "pointer-events-none opacity-50" : ""}`}
                     >
-                      여성
+                      여성{isDatingSession && femaleClosed ? " (마감)" : ""}
                     </button>
                     <button
                       type="button"
+                      disabled={isDatingSession && maleClosed}
                       onClick={() => {
                         updateAttendee(i, "gender", "M");
                         if (submitAttempted) setValidationErrors(validateForm());
                       }}
-                      className={toggleButtonClassName(attendee.gender === "M", !!genderError)}
+                      className={`${toggleButtonClassName(attendee.gender === "M", !!genderError)} ${isDatingSession && maleClosed ? "pointer-events-none opacity-50" : ""}`}
                     >
-                      남성
+                      남성{isDatingSession && maleClosed ? " (마감)" : ""}
                     </button>
                   </div>
                   {genderError ? <p className="text-xs text-danger">{genderError.message}</p> : null}
