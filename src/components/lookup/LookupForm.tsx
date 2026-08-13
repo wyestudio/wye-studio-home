@@ -1,12 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useActionState } from "react";
 import { Field, Input } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { HudCard } from "@/components/ui/HudCard";
 import { formatKrw, formatRefundDeadline, formatSessionDate } from "@/lib/format";
-import { formatPhoneDigits } from "@/lib/phone";
+import { formatPhoneDigits, formatPhoneInput } from "@/lib/phone";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { lookupAction, type LookupState } from "@/app/lookup/actions";
@@ -33,6 +33,17 @@ const SLOT_LABEL: Record<SessionSlot, string> = {
 
 export function LookupForm() {
   const [state, formAction, pending] = useActionState(lookupAction, initialState);
+  const [phone, setPhone] = useState("");
+  const [confirmationCode, setConfirmationCode] = useState("");
+
+  function handleSubmitPointerEnter(e: React.PointerEvent<HTMLButtonElement>) {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    el.style.setProperty("--origin-x", `${e.clientX - rect.left}px`);
+    el.style.setProperty("--origin-y", `${e.clientY - rect.top}px`);
+    const diagonal = Math.hypot(rect.width, rect.height);
+    el.style.setProperty("--fill-size", `${diagonal * 2}px`);
+  }
 
   if (state.result) {
     const { result } = state;
@@ -125,26 +136,49 @@ export function LookupForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
-      <p className="text-xs text-muted">접수번호는 신청 완료 화면과 문자로 안내드려요.</p>
-      <Field label="대표 신청자 전화번호" htmlFor="phone">
-        <Input id="phone" name="phone" type="tel" required placeholder="010-0000-0000" />
-      </Field>
       <Field label="접수번호" htmlFor="confirmationCode">
         <Input
           id="confirmationCode"
           name="confirmationCode"
           type="text"
           inputMode="numeric"
+          maxLength={6}
           required
-          placeholder="482913"
+          placeholder="12345"
+          value={confirmationCode}
+          onChange={(e) => {
+            const filtered = e.target.value.replace(/[^0-9]/g, "");
+            setConfirmationCode(filtered);
+          }}
+        />
+      </Field>
+      <Field label="신청자 전화번호" htmlFor="phone">
+        <Input
+          id="phone"
+          name="phone"
+          type="tel"
+          inputMode="numeric"
+          maxLength={13}
+          required
+          placeholder="010-0000-0000"
+          value={phone}
+          onChange={(e) => {
+            setPhone(formatPhoneInput(e.target.value));
+          }}
         />
       </Field>
 
       {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "조회 중..." : "조회하기"}
-      </Button>
+      <button
+        type="submit"
+        disabled={pending}
+        onPointerEnter={handleSubmitPointerEnter}
+        className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50"
+      >
+        <span aria-hidden className="apply-submit-fill" />
+        <span className="apply-submit-label">{pending ? "조회 중..." : "조회하기"}</span>
+      </button>
     </form>
   );
 }

@@ -65,7 +65,6 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/
 
   return (
     <div className="mx-auto max-w-[860px] px-5 py-10">
-      <h1 className="mb-6 text-2xl font-extrabold">참가 신청</h1>
       {session.status === "closed" ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-glass-border bg-surface p-6 text-center">
           <p className="text-lg font-bold">정원이 다 차서 마감되었습니다.</p>

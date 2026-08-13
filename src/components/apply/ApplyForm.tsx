@@ -268,7 +268,7 @@ export function ApplyForm({
       <ApplyComplete
         application={state.application}
         attendees={state.attendees ?? []}
-        priceKrw={priceKrw}
+        themeLabel={themeLabel}
         sessionTitle={sessionTitle}
         eventDate={eventDate}
         notes={state.notes}
@@ -287,8 +287,10 @@ export function ApplyForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8">
-      {/* 모바일 전용 요약 카드 */}
+    <>
+      <h1 className="mb-6 text-2xl font-extrabold">참가 신청</h1>
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-8">
+        {/* 모바일 전용 요약 카드 */}
       <div className="lg:hidden">
         <ApplySessionSummary
           themeLabel={themeLabel}
@@ -473,6 +475,7 @@ export function ApplyForm({
         </button>
         </div>
       </div>
-    </form>
+      </form>
+    </>
   );
 }

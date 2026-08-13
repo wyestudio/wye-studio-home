@@ -1,6 +1,7 @@
 "use server";
 
 import { lookupApplication } from "@/lib/lookup";
+import { phoneDigits, isValidPhoneDigits } from "@/lib/phone";
 import type { ApplicationLookupResult } from "@/types/domain";
 
 export type LookupState = {
@@ -17,6 +18,16 @@ export async function lookupAction(
 
   if (!phone || !confirmationCode) {
     return { error: "전화번호와 접수번호를 모두 입력해주세요." };
+  }
+
+  // 입력값 형식 검증
+  const phoneDigitsOnly = phoneDigits(phone);
+  if (!isValidPhoneDigits(phoneDigitsOnly)) {
+    return { error: "일치하는 신청 내역을 찾을 수 없어요. 전화번호와 접수번호를 다시 확인해주세요." };
+  }
+
+  if (!/^\d{6}$/.test(confirmationCode)) {
+    return { error: "일치하는 신청 내역을 찾을 수 없어요. 전화번호와 접수번호를 다시 확인해주세요." };
   }
 
   const result = await lookupApplication(phone, confirmationCode);

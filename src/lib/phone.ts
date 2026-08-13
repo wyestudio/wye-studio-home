@@ -16,3 +16,12 @@ export function formatPhoneDigits(phone: string) {
   if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
   return digits;
 }
+
+// 사용자가 타이핑 중인 입력값에 하이픈을 자동으로 삽입
+// AttendeeCard의 3분할 방식과 다르게, 단일 input에서 타이핑하면서 실시간으로 포맷
+export function formatPhoneInput(value: string) {
+  const digits = phoneDigits(value).slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
