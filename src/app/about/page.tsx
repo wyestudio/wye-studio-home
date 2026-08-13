@@ -14,7 +14,7 @@ const PRINCIPLES = [
 ];
 
 export default function AboutPage() {
-  if (!process.env.NEXT_PUBLIC_ABOUT_ENABLED) {
+  if (process.env.NEXT_PUBLIC_ABOUT_ENABLED !== "true") {
     notFound();
   }
   return (

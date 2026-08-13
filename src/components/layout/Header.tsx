@@ -31,7 +31,7 @@ export function Header() {
   }, []);
 
   const navItems = [
-    { label: "About", href: "/about", enabled: process.env.NEXT_PUBLIC_ABOUT_ENABLED },
+    { label: "About", href: "/about", enabled: process.env.NEXT_PUBLIC_ABOUT_ENABLED === "true" },
     { label: "Contents", href: "/contents" },
     { label: "Check", href: "/lookup" },
     { label: "Notice", href: "/notice" },
@@ -76,7 +76,7 @@ export function Header() {
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-bold text-muted">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
-            return (!item.enabled && item.enabled !== undefined) ? null : (
+            return item.enabled === false ? null : (
               <Link
                 key={item.href}
                 href={item.href}
@@ -140,7 +140,7 @@ export function Header() {
               <nav className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-base font-bold text-muted">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href;
-                  return (!item.enabled && item.enabled !== undefined) ? null : (
+                  return item.enabled === false ? null : (
                     <Link
                       key={item.href}
                       href={item.href}
