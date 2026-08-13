@@ -2164,3 +2164,14 @@ $$;
 
 revoke all on function public.submit_application(uuid, text, boolean, jsonb, text) from public;
 grant execute on function public.submit_application(uuid, text, boolean, jsonb, text) to anon, authenticated;
+
+-- v12-9. 8/29 회차 시각 변경 — 모임 13:00 / 소개팅 18:00 (2026-08-13)
+update sessions
+  set start_at = '2026-08-29T18:00:00+09:00',
+      end_at = '2026-08-29T22:30:00+09:00'  -- 기존 4.5시간 진행시간 유지
+  where theme_label = '바-ㅇ탈출(ver.소개팅)';
+
+update sessions
+  set start_at = '2026-08-29T13:00:00+09:00',
+      end_at = '2026-08-29T16:30:00+09:00'  -- 기존 3.5시간 진행시간 유지
+  where theme_label = '바-ㅇ탈출(ver.모임)';

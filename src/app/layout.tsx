@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 
 const SITE_URL = "https://wouldyouescape.com";
 const SITE_DESCRIPTION =
-  "방탈출과 로테이션 소개팅을 결합한 우주이스케이프 베타 오픈. 8/22 오후·저녁 회차 참가 신청.";
+  "방탈출과 로테이션 소개팅을 결합한 우주이스케이프 베타 오픈. 8/29 오후·저녁 회차 참가 신청.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
