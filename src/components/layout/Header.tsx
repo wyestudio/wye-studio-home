@@ -84,7 +84,7 @@ export function Header() {
                 href={item.href}
                 className={`pb-2.5 hover:text-glow transition-colors ${isActive ? 'border-b-2 border-glow' : ''}`}
               >
-                <RandomLetterSwap label={item.label} />
+                <RandomLetterSwap label={item.label} active={isActive} />
               </Link>
             );
           })}

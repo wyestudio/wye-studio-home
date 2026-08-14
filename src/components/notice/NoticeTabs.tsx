@@ -5,14 +5,12 @@ import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { NoticeSection } from "@/components/notice/NoticeSection";
 import { FaqSection } from "@/components/notice/FaqSection";
-import { RefundSection } from "@/components/notice/RefundSection";
 
-type TabKey = "notice" | "faq" | "refund";
+type TabKey = "notice" | "faq";
 
 const TABS = [
   { key: "notice" as const, label: "공지사항" },
   { key: "faq" as const, label: "자주 묻는 질문" },
-  { key: "refund" as const, label: "환불요청" },
 ];
 
 export function NoticeTabs() {
@@ -56,7 +54,6 @@ export function NoticeTabs() {
       <div role="tabpanel">
         {selected === "notice" && <NoticeSection />}
         {selected === "faq" && <FaqSection />}
-        {selected === "refund" && <RefundSection />}
       </div>
     </div>
   );
