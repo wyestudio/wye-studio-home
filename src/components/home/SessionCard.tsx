@@ -22,7 +22,7 @@ export function SessionCard({ session }: { session: Session }) {
   return (
     <Link
       href={`/sessions/${session.slug}`}
-      className={`hud-panel relative flex flex-col gap-6 p-6 sm:gap-7 sm:p-7 ${colorVariant}`}
+      className={`hud-panel relative flex flex-col gap-6 p-6 sm:gap-7 sm:p-7 w-full ${colorVariant}`}
     >
       {/* 태그 + 타이틀 */}
       <div className="flex flex-col gap-2">
