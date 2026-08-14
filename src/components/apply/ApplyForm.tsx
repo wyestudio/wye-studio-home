@@ -512,19 +512,27 @@ export function ApplyForm({
             {/* 단계 3: 요금 안내 + 신청 */}
             <div className="flex flex-col gap-4 mb-20">
               <div className="rounded-xl border border-border bg-surface p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground">기본가</span>
-                  <span className="text-sm font-semibold text-foreground">{formatKrw(originalPriceKrw * attendeeCount)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">할인</span>
-                    <span className="inline-block rounded-full px-2 py-0.5 text-xs font-bold bg-confirm-soft text-confirm">BETA</span>
-                  </span>
-                  <span className="text-sm font-bold text-danger">-{formatKrw((originalPriceKrw - priceKrw) * attendeeCount)}</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-foreground">기본가</span>
+                    <span className="text-sm font-semibold text-foreground">
+                      {formatKrw(originalPriceKrw)}
+                      {attendeeCount > 1 && <span className="font-normal text-muted"> × {attendeeCount}명</span>}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-foreground">할인</span>
+                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-bold bg-confirm-soft text-confirm">BETA</span>
+                    </span>
+                    <span className="text-sm font-bold text-danger">
+                      -{formatKrw(originalPriceKrw - priceKrw)}
+                      {attendeeCount > 1 && <span className="font-normal text-muted"> × {attendeeCount}명</span>}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between border-t border-border pt-3 mt-3">
-                  <span className="text-sm font-semibold text-foreground">요금</span>
+                  <span className="text-sm font-semibold text-foreground">총 요금</span>
                   <span className="text-xl font-extrabold text-foreground">{formatKrw(priceKrw * attendeeCount)}</span>
                 </div>
                 <p className="text-sm text-muted text-right font-semibold mt-3">

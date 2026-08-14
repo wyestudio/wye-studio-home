@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 export function Footer() {
   const pathname = usePathname();
-  const isSessionDetailPage = pathname ? /^\/sessions\/[^/]+\/?$/.test(pathname) : false;
+  const isSessionDetailPage = pathname ? /^\/sessions\/[^/]+(?:\/apply)?\/?$/.test(pathname) : false;
 
   return (
     <footer className="border-t border-border py-6 text-xs text-muted sm:py-8 sm:text-sm">
