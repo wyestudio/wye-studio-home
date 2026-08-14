@@ -12,8 +12,8 @@ export function Footer() {
       <div className="mx-auto max-w-5xl px-5">
         {/* 정보 + 링크 — 항상 좌/우 2열 */}
         <div className="flex justify-between items-start gap-6 sm:gap-8">
-          {/* 왼쪽 컬럼 — 회사 정보 (모바일: 1열, sm이상: 2열 그리드) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 sm:gap-y-1.5">
+          {/* 왼쪽 컬럼 — 회사 정보 (1열로 세로 나열) */}
+          <div className="flex flex-col gap-1 sm:gap-1.5">
             <p>상호: 우주이스케이프 (wouldyouescape)</p>
             <p>사업자등록번호: 820-04-03772</p>
             <p>주소: 서울특별시 관악구 낙성대로 2 4층</p>
