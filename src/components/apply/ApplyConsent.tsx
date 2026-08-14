@@ -17,10 +17,10 @@ export type ConsentState = {
 const REQUIRED_ITEMS = [
   "ageSelf",
   "terms",
-  "noRebooking",
   "pii",
-  "phoneCollection",
   "privacyPolicy",
+  "noRebooking",
+  "phoneCollection",
   "proxyForGroup",
 ] as const;
 
@@ -183,35 +183,7 @@ export function ApplyConsent({
             </div>
           </div>
 
-          {/* 3. 동일 테마 재예약 불가 */}
-          <div className="flex items-start gap-3 p-2">
-            <input
-              type="checkbox"
-              id="no-rebooking"
-              checked={value.noRebooking}
-              onChange={() => handleItemChange("noRebooking")}
-              className="mt-1 w-4 h-4 accent-brand cursor-pointer"
-            />
-            <div className="flex-1 cursor-pointer">
-              <label htmlFor="no-rebooking" className="text-xs font-semibold text-foreground block">
-                동일 테마 재예약 불가를 확인했습니다.
-              </label>
-              <button
-                type="button"
-                onClick={() => toggleExpanded("no-rebooking")}
-                className="text-xs text-brand hover:text-glow font-semibold mt-1"
-              >
-                {expandedItems.has("no-rebooking") ? "닫기 ▲" : "자세히 ▼"}
-              </button>
-              {expandedItems.has("no-rebooking") && (
-                <div className="mt-2 p-2 bg-surface rounded text-xs text-muted leading-relaxed max-h-[120px] overflow-y-auto">
-                  팀 대항 방탈출 특성상 이미 참가한 테마는 정답을 알고 있어 공정성이 훼손됩니다. <strong>베타테스트 참가 이력을 포함해,</strong> 이미 참가한 테마는 다시 신청할 수 없습니다. 재참여를 원하시면 <strong>다른 테마</strong>를 선택해 주세요. (약관 제5조)
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 4. 개인정보 수집·이용 */}
+          {/* 3. 개인정보 수집·이용 */}
           <div className="flex items-start gap-3 p-2">
             <input
               type="checkbox"
@@ -241,7 +213,51 @@ export function ApplyConsent({
             </div>
           </div>
 
-          {/* 5. 휴대폰 수거·보관 */}
+          {/* 4. 개인정보처리방침 */}
+          <div className="flex items-start gap-3 p-2">
+            <input
+              type="checkbox"
+              id="privacy-policy"
+              checked={value.privacyPolicy}
+              onChange={() => handleItemChange("privacyPolicy")}
+              className="mt-1 w-4 h-4 accent-brand cursor-pointer"
+            />
+            <label htmlFor="privacy-policy" className="flex-1 cursor-pointer">
+              <span className="text-xs font-semibold text-foreground">
+                개인정보처리방침을 확인했습니다.
+              </span>
+            </label>
+          </div>
+
+          {/* 5. 동일 테마 재예약 불가 */}
+          <div className="flex items-start gap-3 p-2">
+            <input
+              type="checkbox"
+              id="no-rebooking"
+              checked={value.noRebooking}
+              onChange={() => handleItemChange("noRebooking")}
+              className="mt-1 w-4 h-4 accent-brand cursor-pointer"
+            />
+            <div className="flex-1 cursor-pointer">
+              <label htmlFor="no-rebooking" className="text-xs font-semibold text-foreground block">
+                동일 테마 재예약 불가를 확인했습니다.
+              </label>
+              <button
+                type="button"
+                onClick={() => toggleExpanded("no-rebooking")}
+                className="text-xs text-brand hover:text-glow font-semibold mt-1"
+              >
+                {expandedItems.has("no-rebooking") ? "닫기 ▲" : "자세히 ▼"}
+              </button>
+              {expandedItems.has("no-rebooking") && (
+                <div className="mt-2 p-2 bg-surface rounded text-xs text-muted leading-relaxed max-h-[120px] overflow-y-auto">
+                  팀 대항 방탈출 특성상 이미 참가한 테마는 정답을 알고 있어 공정성이 훼손됩니다. <strong>베타테스트 참가 이력을 포함해,</strong> 이미 참가한 테마는 다시 신청할 수 없습니다. 재참여를 원하시면 <strong>다른 테마</strong>를 선택해 주세요. (약관 제5조)
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 6. 휴대폰 수거·보관 */}
           <div className="flex items-start gap-3 p-2">
             <input
               type="checkbox"
@@ -270,22 +286,6 @@ export function ApplyConsent({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* 6. 개인정보처리방침 */}
-          <div className="flex items-start gap-3 p-2">
-            <input
-              type="checkbox"
-              id="privacy-policy"
-              checked={value.privacyPolicy}
-              onChange={() => handleItemChange("privacyPolicy")}
-              className="mt-1 w-4 h-4 accent-brand cursor-pointer"
-            />
-            <label htmlFor="privacy-policy" className="flex-1 cursor-pointer">
-              <span className="text-xs font-semibold text-foreground">
-                개인정보처리방침을 확인했습니다.
-              </span>
-            </label>
           </div>
 
           {/* 7. 동행자 대리 동의 (그룹만) */}
