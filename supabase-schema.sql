@@ -2413,3 +2413,29 @@ $$;
 
 revoke all on function public.cancel_application(text, text) from public;
 grant execute on function public.cancel_application(text, text) to anon, authenticated;
+
+-- =========================================================
+-- v15. check_active_applications() 신규 — 참가 신청 1단계 사전 중복 체크
+-- (submit_application()의 크로스테마 활성 신청 판정 로직과 동일 기준.
+--  제출 전에 미리 확인만 하고, 최종 검증은 여전히 submit_application()이 담당)
+-- =========================================================
+create or replace function public.check_active_applications(p_phones text[])
+returns text[]
+language sql
+security definer
+set search_path = public, extensions
+stable
+as $$
+  select coalesce(array_agg(distinct phone), array[]::text[])
+  from unnest(p_phones) as phone
+  where exists (
+    select 1
+    from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    where ap.status <> 'cancelled'
+      and aa.phone_hash = hash_phone(phone)
+  );
+$$;
+
+revoke all on function public.check_active_applications(text[]) from public;
+grant execute on function public.check_active_applications(text[]) to anon, authenticated;

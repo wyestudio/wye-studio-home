@@ -7,7 +7,7 @@ import { ApplyComplete } from "@/components/apply/ApplyComplete";
 import { ApplySessionSummary } from "@/components/apply/ApplySessionSummary";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
 import { ApplyConsent, type ConsentState } from "@/components/apply/ApplyConsent";
-import { applyAction, checkNicknameAvailability, type ApplyState } from "@/app/sessions/[slug]/apply/actions";
+import { applyAction, checkNicknameAvailability, checkActiveApplicationConflicts, type ApplyState } from "@/app/sessions/[slug]/apply/actions";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { formatKrw } from "@/lib/format";
 import { pushDataLayerEvent } from "@/lib/analytics";
@@ -93,9 +93,19 @@ export function ApplyForm({
       return initial;
     }
   );
+  const [preCheckConflictPhones, setPreCheckConflictPhones] = useState<Set<string>>(new Set());
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
   const completeEventSent = useRef(false);
 
-  const conflictPhones = useMemo(() => new Set(state.conflictPhoneDigits ?? []), [state.conflictPhoneDigits]);
+  const conflictPhones = useMemo(
+    () => new Set([...(state.conflictPhoneDigits ?? []), ...preCheckConflictPhones]),
+    [state.conflictPhoneDigits, preCheckConflictPhones]
+  );
+
+  const themeConflictActive = state.conflictReason === "theme" || preCheckConflictPhones.size > 0;
+  const displayError = themeConflictActive
+    ? "같은 테마에 이미 신청하신 분이 포함되어 있어요. 중복 신청은 불가합니다."
+    : state.error;
 
   const validateStep1 = useCallback((): ValidationError[] => {
     const errors: ValidationError[] = [];
@@ -251,6 +261,7 @@ export function ApplyForm({
     maxLength: number,
     nextId: string | null
   ) {
+    setPreCheckConflictPhones(new Set());
     const digitsOnly = rawValue.replace(/[^0-9]/g, "").slice(0, maxLength);
     updateAttendee(index, field, digitsOnly);
     if (nextId && digitsOnly.length === maxLength) {
@@ -284,13 +295,25 @@ export function ApplyForm({
     [attendees, sessionId]
   );
 
-  function handleNextStep() {
+  async function handleNextStep() {
     if (currentStep === 0) {
       const errors = validateStep1();
       if (errors.length > 0) {
         setSubmitAttempted(true);
         return;
       }
+
+      setCheckingConflicts(true);
+      const phones = attendees.map((a) => `${a.phone1}${a.phone2}${a.phone3}`);
+      const result = await checkActiveApplicationConflicts(phones);
+      setCheckingConflicts(false);
+
+      if (!("error" in result) && result.conflictPhones.length > 0) {
+        setPreCheckConflictPhones(new Set(result.conflictPhones));
+        return;
+      }
+
+      setPreCheckConflictPhones(new Set());
       setCurrentStep(1);
       setSubmitAttempted(false);
     } else if (currentStep === 1) {
@@ -406,7 +429,7 @@ export function ApplyForm({
                     maleClosed={maleClosed}
                     femaleClosed={femaleClosed}
                     isConflict={conflictPhones.has(phoneDigits(`${attendees[activeAttendeeIndex].phone1}${attendees[activeAttendeeIndex].phone2}${attendees[activeAttendeeIndex].phone3}`))}
-                    conflictReason={state.conflictReason}
+                    conflictReason={state.conflictReason ?? (preCheckConflictPhones.size > 0 ? "theme" : undefined)}
                     attendeeCount={attendeeCount}
                     errors={{
                       name: validationErrors.find((e) => e.field === `attendee-${activeAttendeeIndex}-name`)?.message,
@@ -490,7 +513,7 @@ export function ApplyForm({
                 ) : null}
               </div>
 
-              {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+              {displayError ? <p className="text-sm text-danger">{displayError}</p> : null}
             </div>
           </>
         )}
@@ -502,7 +525,7 @@ export function ApplyForm({
             {submitAttempted && validationErrors.some((e) => e.field === "consents") && (
               <p className="text-sm text-danger mt-4">{validationErrors.find((e) => e.field === "consents")!.message}</p>
             )}
-            {state.error ? <p className="text-sm text-danger mt-4">{state.error}</p> : null}
+            {displayError ? <p className="text-sm text-danger mt-4">{displayError}</p> : null}
             <div className="mt-20" />
           </>
         )}
@@ -540,7 +563,7 @@ export function ApplyForm({
                 </p>
               </div>
 
-              {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+              {displayError ? <p className="text-sm text-danger">{displayError}</p> : null}
             </div>
           </>
         )}
@@ -551,14 +574,14 @@ export function ApplyForm({
         <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl">
           <button
             type="button"
-            disabled={pending}
+            disabled={pending || checkingConflicts}
             onClick={handleNextStep}
             onPointerEnter={handlePointerFillOrigin}
             className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50"
           >
             <span aria-hidden className="apply-submit-fill" />
             <span className="apply-submit-label">
-              {pending ? "제출 중..." : currentStep === 2 ? "신청하기" : "다음"}
+              {pending ? "제출 중..." : checkingConflicts ? "확인 중..." : currentStep === 2 ? "신청하기" : "다음"}
             </span>
           </button>
         </div>

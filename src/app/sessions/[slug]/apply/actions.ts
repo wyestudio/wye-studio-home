@@ -32,6 +32,21 @@ export async function checkNicknameAvailability(
   return { available: data as boolean };
 }
 
+export async function checkActiveApplicationConflicts(
+  phones: string[]
+): Promise<{ conflictPhones: string[] } | { error: string }> {
+  const digitsOnly = phones.map((p) => phoneDigits(p)).filter(Boolean);
+  if (digitsOnly.length === 0) return { conflictPhones: [] };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("check_active_applications", {
+    p_phones: digitsOnly,
+  });
+
+  if (error) return { error: "확인 중 오류가 발생했어요." };
+  return { conflictPhones: (data as string[]) ?? [] };
+}
+
 export type AttendeeInput = {
   name: string;
   phone: string;
