@@ -38,6 +38,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.3,
     },
+    {
+      url: `${BASE_URL}/terms`,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${BASE_URL}/privacy`,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
     ...sessions.map((session) => ({
       url: `${BASE_URL}/sessions/${session.slug}`,
       lastModified: new Date(session.created_at),

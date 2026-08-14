@@ -72,9 +72,12 @@ export default function AboutPage() {
 
         <section className="mb-10">
           <Reveal>
-            <HudCard className="p-5 text-sm">
-              <p className="mb-1 font-semibold">사업자 정보</p>
-              <p className="text-muted">준비 중 (회사 설립 완료 후 기재 예정)</p>
+            <HudCard className="space-y-2 p-5 text-sm">
+              <p className="font-semibold">사업자 정보</p>
+              <div className="space-y-1 text-muted">
+                <p>우주이스케이프 (wouldyouescape) · 사업자등록번호 820-04-03772</p>
+                <p>서울특별시 관악구 낙성대로 2 4층 · wouldyouescape@gmail.com</p>
+              </div>
             </HudCard>
           </Reveal>
         </section>
