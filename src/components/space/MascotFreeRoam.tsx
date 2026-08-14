@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { MASCOTS, MASCOT_ORDER, type MascotId } from "@/lib/mascots";
 import { clamp01 } from "@/lib/motion";
 
+const MASCOT_SCALE = 0.7; // 모바일 마스코트 크기 축소 배율
 const WALK_SPEED = 0.12; // 픽셀/ms, 목표를 향해 걷는 속도
 const CONTENT_PADDING_PX = 25; // 콘텐츠 박스 주변 여유 (충돌 판정용)
 const ARRIVE_THRESHOLD_PX = 24; // 목표 도착 판정 거리
@@ -17,7 +18,9 @@ type Vec2 = { x: number; y: number };
 type Rect = { x: number; y: number; width: number; height: number };
 
 function getMascotRadius(meta: typeof MASCOTS[keyof typeof MASCOTS]): number {
-  return Math.sqrt((meta.orbitWidth / 2) ** 2 + (meta.orbitHeight / 2) ** 2);
+  const scaledWidth = meta.orbitWidth * MASCOT_SCALE;
+  const scaledHeight = meta.orbitHeight * MASCOT_SCALE;
+  return Math.sqrt((scaledWidth / 2) ** 2 + (scaledHeight / 2) ** 2);
 }
 
 export function MascotFreeRoam({
@@ -398,8 +401,10 @@ export function MascotFreeRoam({
         const meta = MASCOTS[id];
         const el = mascotElRefs.current[i];
         if (el) {
-          const halfW = meta.orbitWidth / 2;
-          const halfH = meta.orbitHeight / 2;
+          const scaledWidth = meta.orbitWidth * MASCOT_SCALE;
+          const scaledHeight = meta.orbitHeight * MASCOT_SCALE;
+          const halfW = scaledWidth / 2;
+          const halfH = scaledHeight / 2;
           el.style.transform = `translate3d(${posRef.current[i].x - halfW}px, ${posRef.current[i].y - halfH}px, 0)`;
         }
       });
@@ -514,8 +519,8 @@ export function MascotFreeRoam({
               <Image
                 src={meta.orbitSrc}
                 alt={meta.alt}
-                width={meta.orbitWidth}
-                height={meta.orbitHeight}
+                width={Math.round(meta.orbitWidth * MASCOT_SCALE)}
+                height={Math.round(meta.orbitHeight * MASCOT_SCALE)}
                 priority
                 className="drop-shadow-[0_0_30px_var(--glow)]"
               />
@@ -556,8 +561,8 @@ export function MascotFreeRoam({
                 <Image
                   src={meta.orbitSrc}
                   alt={meta.alt}
-                  width={meta.orbitWidth}
-                  height={meta.orbitHeight}
+                  width={Math.round(meta.orbitWidth * MASCOT_SCALE)}
+                  height={Math.round(meta.orbitHeight * MASCOT_SCALE)}
                   priority
                   className="drop-shadow-[0_0_30px_var(--glow)] select-none"
                   draggable={false}

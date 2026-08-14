@@ -84,7 +84,7 @@ function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
       className="rounded-xl p-6 text-sm sm:text-base border"
       style={{ borderColor: accentColor, backgroundColor: `${accentColor}26` }}
     >
-      <span className="text-muted">신청 가능 대상</span>
+      <span style={{ color: accentColor }}>신청 가능 대상</span>
       <span className="mx-2 text-muted">·</span>
       <span className="font-bold text-foreground">{eligibilityText}</span>
     </div>

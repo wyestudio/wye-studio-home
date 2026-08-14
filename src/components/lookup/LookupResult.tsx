@@ -129,7 +129,7 @@ export function LookupResult() {
           </span>
           <ThemeTag themeLabel={result.theme_label} />
         </div>
-        <InfoRow label="날짜" value={formatSessionDate(result.start_at)} />
+        <InfoRow label="날짜" value={formatSessionDate(result.event_date)} />
         <InfoRow label="시간" value={formatSessionTime(result.start_at)} />
         <InfoRow label="위치" value={result.venue_area} />
       </div>
