@@ -133,9 +133,11 @@ export function ApplyComplete({
           return (
             <div className="rounded-lg bg-danger-soft p-4 text-sm text-danger">
               <p className="font-bold">환불 기한</p>
-              <p className="mt-1">
-                {refundDeadlines.full}까지 취소 시 100% 환불, {refundDeadlines.full}부터 {refundDeadlines.half}까지는 50% 환불, {refundDeadlines.half} 이후에는 환불이 불가해요.
-              </p>
+              <div className="mt-1 flex flex-col gap-0.5">
+                <p>{refundDeadlines.full}까지 취소 시 <span className="font-semibold">100% 환불</span></p>
+                <p>{refundDeadlines.full} ~ {refundDeadlines.half} 취소 시 <span className="font-semibold">50% 환불</span></p>
+                <p>{refundDeadlines.half} 이후 취소 시 <span className="font-semibold">환불 불가</span></p>
+              </div>
             </div>
           );
         })()}
