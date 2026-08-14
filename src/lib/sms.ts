@@ -48,7 +48,7 @@ export async function sendApplicationConfirmationSms({
     `입금액: ${formatKrw(session.price_krw)}`,
     `계좌: ${BANK_ACCOUNT.bankName} ${BANK_ACCOUNT.accountNumber} (예금주 ${BANK_ACCOUNT.accountHolder})`,
     "30분 이내 미입금 시 자동취소될 수 있습니다.",
-    "행사 전날부터는 환불이 불가해요.",
+    "환불: 시작 48시간 전까지 100%, 48~24시간 전 50%, 24시간 전부터 불가",
   ].join("\n");
 
   try {

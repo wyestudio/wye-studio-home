@@ -68,14 +68,36 @@ export function formatDuration(startAt: string, endAt: string): string {
   return rest === 0 ? `${hours}시간` : `${hours}시간 ${rest}분`;
 }
 
-// 환불 기한(행사 전날)을 "OO월 OO일(요일)" 형식으로 반환.
-export function formatRefundDeadline(eventDate: string): string {
-  const d = new Date(eventDate + "T00:00:00");
-  d.setDate(d.getDate() - 1);
-  const month = d.getMonth() + 1;
-  const date = d.getDate();
-  const weekday = WEEKDAYS[d.getDay()];
-  return `${month}월 ${date}일(${weekday})`;
+// 환불 기한(테마 시작 시각 기준 N시간 전)을 "OO월 OO일(요일) HH:mm" 형식으로 반환.
+function formatSeoulDateTimeAt(iso: string): string {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(d);
+  const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+  const year = Number(map.year);
+  const month = Number(map.month);
+  const day = Number(map.day);
+  const hour = Number(map.hour) % 24;
+  const minute = Number(map.minute);
+  const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
+  const hh = hour.toString().padStart(2, "0");
+  const mm = minute.toString().padStart(2, "0");
+  return `${month}월 ${day}일(${weekday}) ${hh}:${mm}`;
+}
+
+export function formatRefundTierDeadlines(startAt: string): { full: string; half: string } {
+  const start = new Date(startAt).getTime();
+  return {
+    full: formatSeoulDateTimeAt(new Date(start - 48 * 60 * 60 * 1000).toISOString()),
+    half: formatSeoulDateTimeAt(new Date(start - 24 * 60 * 60 * 1000).toISOString()),
+  };
 }
 
 // Date 객체를 "OO월 OO일(요일)" 형식으로 반환 (SMS 알림용).

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { formatRefundDeadline, formatSessionDateTime } from "@/lib/format";
+import { formatRefundTierDeadlines, formatSessionDateTime } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { getThemeBaseName, isDatingTheme } from "@/lib/theme";
@@ -128,12 +128,17 @@ export function ApplyComplete({
         </p>
 
         {/* 환불 기한 */}
-        <div className="rounded-lg bg-danger-soft p-4 text-sm text-danger">
-          <p className="font-bold">환불 기한</p>
-          <p className="mt-1">
-            {formatRefundDeadline(eventDate)}까지 취소 시 환불 가능하며, 이후에는 환불이 불가해요.
-          </p>
-        </div>
+        {(() => {
+          const refundDeadlines = formatRefundTierDeadlines(startAt);
+          return (
+            <div className="rounded-lg bg-danger-soft p-4 text-sm text-danger">
+              <p className="font-bold">환불 기한</p>
+              <p className="mt-1">
+                {refundDeadlines.full}까지 취소 시 100% 환불, {refundDeadlines.full}부터 {refundDeadlines.half}까지는 50% 환불, {refundDeadlines.half} 이후에는 환불이 불가해요.
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* 버튼 행 */}

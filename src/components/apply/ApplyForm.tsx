@@ -19,6 +19,7 @@ import {
   isValidNotes,
   getValidationErrorMessage,
 } from "@/lib/validation";
+import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
 import { AttendeeCard, type NicknameCheckState } from "@/components/apply/AttendeeCard";
 import { AttendeeTabs } from "@/components/apply/AttendeeTabs";
 import { type AttendeeState, type AttendeeField, type ValidationError } from "@/components/apply/types";
@@ -147,6 +148,11 @@ export function ApplyForm({
           field: `attendee-${i}-birthYear`,
           message: "출생년도를 선택해주세요.",
         });
+      } else if (!isEligibleBirthYear(Number(attendee.birthYear), isDatingSession)) {
+        errors.push({
+          field: `attendee-${i}-birthYear`,
+          message: `${eligibleBirthYearRangeLabel(isDatingSession)}만 가능합니다.`,
+        });
       }
 
       if (!attendee.gender || (attendee.gender !== "M" && attendee.gender !== "F")) {
@@ -170,6 +176,22 @@ export function ApplyForm({
         message: getValidationErrorMessage("notes", "invalid"),
       });
     }
+
+    // 그룹 내 전화번호 중복 검사
+    const phoneCounts = new Map<string, number>();
+    attendees.forEach((attendee) => {
+      const fullPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
+      if (fullPhone) phoneCounts.set(fullPhone, (phoneCounts.get(fullPhone) ?? 0) + 1);
+    });
+    attendees.forEach((attendee, i) => {
+      const fullPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
+      if (fullPhone && (phoneCounts.get(fullPhone) ?? 0) > 1) {
+        errors.push({
+          field: `attendee-${i}-phone`,
+          message: "그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요.",
+        });
+      }
+    });
 
     return errors;
   }, [depositorName, attendees, notes]);
