@@ -6,7 +6,7 @@ import { MASCOTS, MASCOT_ORDER, type MascotId } from "@/lib/mascots";
 import { clamp01 } from "@/lib/motion";
 
 const MASCOT_SCALE = 0.7; // 모바일 마스코트 크기 축소 배율
-const WALK_SPEED = 0.12; // 픽셀/ms, 목표를 향해 걷는 속도
+const WALK_SPEED = 0.08; // 픽셀/ms, 목표를 향해 걷는 속도
 const CONTENT_PADDING_PX = 25; // 콘텐츠 박스 주변 여유 (충돌 판정용)
 const ARRIVE_THRESHOLD_PX = 24; // 목표 도착 판정 거리
 const MIN_TARGET_DISTANCE_PX = 80; // 현재 위치로부터 목표의 최소 거리
