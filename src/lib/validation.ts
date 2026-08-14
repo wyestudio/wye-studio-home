@@ -50,7 +50,7 @@ export function getValidationErrorMessage(field: string, reason: string): string
     },
     birthYear: {
       required: "출생년도를 선택해주세요.",
-      invalid: "1990~1999년생만 선택 가능합니다.",
+      invalid: "신청 가능한 출생년도를 선택해주세요.",
     },
     gender: {
       required: "성별을 선택해주세요.",

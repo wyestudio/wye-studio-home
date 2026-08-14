@@ -7,6 +7,7 @@ import { RippleLinkButton } from "@/components/ui/RippleLinkButton";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { isDatingTheme, getThemeBaseName } from "@/lib/theme";
+import { eligibleBirthYearRangeLabel } from "@/lib/eligibility";
 
 const SITE_URL = "https://wouldyouescape.com";
 
@@ -103,6 +104,12 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
   const precautions = [
     { title: "정확한 주소는 추후 안내드려요", desc: "장소는 참가 확정 후 시작 24시간 전에 문자로 정확한 주소를 안내드립니다." },
+    {
+      title: "출생년도 제한이 있어요",
+      desc: isDatingSession
+        ? "또래끼리 즐기실 수 있도록 1990~1999년생만 신청 가능합니다."
+        : `20대·30대가 함께하실 수 있도록 ${eligibleBirthYearRangeLabel(false)}만 신청 가능합니다.`,
+    },
     { title: "활동형 콘텐츠입니다", desc: "방탈출・보드게임 등 추리/협력 중심 프로그램으로, 팀 게임에 적극적으로 참여 가능한 분만 신청 바랍니다." },
     { title: "시간 엄수 필수", desc: "노쇼 및 지각은 절대 불가합니다. 1부・2부 모두 정시 참여 및 전체 일정 참여 가능자만 신청 바랍니다." },
     { title: "휴대폰 사용 제한", desc: "1부 진행(약 2시간) 동안 휴대폰 사용이 제한되며, 사전 제출에 동의하신 분만 참여 가능합니다." },

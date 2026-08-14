@@ -2,14 +2,9 @@
 
 import { type AttendeeState } from "./types";
 import { Select } from "@/components/ui/Select";
-import { ELIGIBLE_BIRTH_YEAR_MAX, ELIGIBLE_BIRTH_YEAR_MIN } from "@/lib/eligibility";
+import { getEligibleBirthYearRange } from "@/lib/eligibility";
 import { isValidPhoneDigits } from "@/lib/phone";
 import { EXPERIENCE_RANGES, EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
-
-const BIRTH_YEARS = Array.from(
-  { length: ELIGIBLE_BIRTH_YEAR_MAX - ELIGIBLE_BIRTH_YEAR_MIN + 1 },
-  (_, i) => ELIGIBLE_BIRTH_YEAR_MAX - i
-);
 
 function phoneInputClassName(invalid: boolean) {
   return `w-full rounded-lg border px-3 py-2.5 text-center text-sm outline-none transition-shadow ${
@@ -85,6 +80,11 @@ export function AttendeeCard({
   const combinedPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
   const isFormatInvalid = combinedPhone.length >= 10 && !isValidPhoneDigits(combinedPhone);
   const phoneInvalid = isConflict || isFormatInvalid;
+  const { min: birthYearMin, max: birthYearMax } = getEligibleBirthYearRange(isDatingSession);
+  const birthYears = Array.from(
+    { length: birthYearMax - birthYearMin + 1 },
+    (_, i) => birthYearMax - i
+  );
 
   return (
     <div
@@ -164,7 +164,7 @@ export function AttendeeCard({
             id={`attendee-${index}-birthYear`}
             value={attendee.birthYear}
             onChange={onBirthYearChange}
-            options={BIRTH_YEARS.map((y) => ({
+            options={birthYears.map((y) => ({
               value: String(y),
               label: `${y}년생`,
             }))}

@@ -2,7 +2,7 @@
 
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isEligibleBirthYear } from "@/lib/eligibility";
+import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
 import { getSessionById } from "@/lib/sessions";
 import { sendApplicationSlackAlert } from "@/lib/slack";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
@@ -113,8 +113,8 @@ export async function applyAction(
     if (!isValidPhoneDigits(phoneDigits(attendee.phone))) {
       return { error: "올바른 휴대폰 번호 형식이 아니에요.", attendees, notes };
     }
-    if (!isEligibleBirthYear(attendee.birthYear)) {
-      return { error: "참여자 출생년도는 1990~1999년만 가능합니다.", attendees, notes };
+    if (!isEligibleBirthYear(attendee.birthYear, isDatingSession)) {
+      return { error: `참여자 출생년도는 ${eligibleBirthYearRangeLabel(isDatingSession)}만 가능합니다.`, attendees, notes };
     }
     // 성별 (모든 테마에서 필수)
     if (!attendee.gender || (attendee.gender !== "M" && attendee.gender !== "F")) {
