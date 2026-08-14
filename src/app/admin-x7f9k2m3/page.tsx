@@ -24,7 +24,7 @@ export default async function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="mx-auto">
         <div className="mb-8 flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2">관리자 대시보드</h1>

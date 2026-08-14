@@ -38,7 +38,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
+      <div className="mx-auto">
         <Link href="/admin-x7f9k2m3" className="text-glow hover:underline mb-4 inline-block">
           ← 돌아가기
         </Link>
