@@ -30,7 +30,15 @@ export default async function AdminDashboard() {
             <h1 className="text-3xl font-bold mb-2">관리자 대시보드</h1>
             <p className="text-muted">세션별 신청 현황을 확인하고 입금을 승인할 수 있습니다.</p>
           </div>
-          <LogoutButton />
+          <div className="flex gap-2">
+            <Link
+              href="/admin-x7f9k2m3/analytics"
+              className="px-3 py-2 text-sm bg-glow text-glow-foreground rounded hover:opacity-90 transition-opacity"
+            >
+              분석 보기
+            </Link>
+            <LogoutButton />
+          </div>
         </div>
 
         <div className="space-y-4">

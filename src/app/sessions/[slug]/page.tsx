@@ -99,8 +99,8 @@ function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
     : "20·30대 신체 건강한 남녀만 신청 가능";
   return (
     <div
-      className="rounded-xl p-6 text-sm sm:text-base"
-      style={{ border: `1px solid ${accentColor}66`, backgroundColor: `${accentColor}26` }}
+      className="rounded-xl p-6 text-sm sm:text-base border"
+      style={{ borderColor: accentColor, backgroundColor: `${accentColor}26` }}
     >
       <span className="text-muted">신청 가능 대상</span>
       <span className="mx-2 text-muted">·</span>
