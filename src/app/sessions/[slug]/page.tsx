@@ -114,8 +114,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
   return (
     <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl px-5 py-10 sm:px-8 sm:py-14 lg:py-20 pb-32">
-      {/* 모바일 레이아웃: 카드 */}
-      <div className="sm:hidden mb-12 rounded-xl glass-panel p-6 flex flex-col gap-6">
+      {/* 모바일 레이아웃 */}
+      <div className="sm:hidden mb-12 flex flex-col gap-6">
         {/* 포스터 가운데 정렬 */}
         <div className="flex justify-center">
           <div className="relative aspect-[4/5] w-56 overflow-hidden border border-glass-border bg-surface">
@@ -151,8 +151,10 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           <ShareButton title={session.title} url={shareUrl} />
         </div>
 
-        {/* 날짜/시간/장소 */}
-        <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+        {/* 날짜/시간/장소 — 카드로 감쌈 */}
+        <div className="rounded-xl glass-panel p-6">
+          <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+        </div>
       </div>
 
       {/* 태블릿+데스크톱 레이아웃: 포스터 좌 + 정보 우 */}
@@ -187,12 +189,12 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           {/* 하단: 참가비 + 공유버튼 */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
-              <p className="font-bold text-3xl lg:text-4xl">
+              <p className="text-base lg:text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
+              <p className="font-bold text-4xl lg:text-4xl">
                 {formatKrw(session.price_krw)}
-                <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
+                <span className="ml-1 text-sm lg:text-xs font-normal text-muted">/ 인당</span>
               </p>
-              <p className="text-xs text-muted">8/29 베타 한정 할인가</p>
+              <p className="text-sm lg:text-xs text-muted">8/29 베타 한정 할인가</p>
             </div>
             <ShareButton title={session.title} url={shareUrl} />
           </div>
