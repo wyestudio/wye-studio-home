@@ -1,11 +1,9 @@
-import { NoticeSection } from "@/components/notice/NoticeSection";
-import { FaqSection } from "@/components/notice/FaqSection";
+import { NoticeTabs } from "@/components/notice/NoticeTabs";
 
 export default function NoticePage() {
   return (
-    <div className="mx-auto flex max-w-2xl flex-col gap-12 px-5 py-12">
-      <NoticeSection />
-      <FaqSection />
+    <div className="mx-auto max-w-2xl px-5 py-12">
+      <NoticeTabs />
     </div>
   );
 }
