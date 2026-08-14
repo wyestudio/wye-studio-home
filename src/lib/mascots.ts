@@ -52,12 +52,12 @@ export const MASCOTS: Record<MascotId, MascotMeta> = {
     name: "케이프",
     alt: "",
     orbitSrc: "/mascot-woodju.png",
-    orbitWidth: 60,
-    orbitHeight: 48,
+    orbitWidth: 72,
+    orbitHeight: 58,
     orbitScale: 1,
     cursorSrc: "/mascot-kape-cursor.png",
-    cursorWidth: 45,
-    cursorHeight: 36,
+    cursorWidth: 54,
+    cursorHeight: 44,
   },
 };
 
