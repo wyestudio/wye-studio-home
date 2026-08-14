@@ -51,12 +51,10 @@ function SessionMetaList({
   dateLabel,
   duration,
   venueArea,
-  layout = "stack",
 }: {
   dateLabel: string;
   duration: string;
   venueArea: string;
-  layout?: "stack" | "row" | "row-label-value";
 }) {
   const items = [
     { label: "날짜", value: dateLabel },
@@ -64,28 +62,15 @@ function SessionMetaList({
     { label: "장소", value: venueArea },
   ];
 
-  if (layout === "row-label-value") {
-    return (
-      <dl className="text-sm sm:text-base">
-        {items.map((item, i) => (
-          <div
-            key={item.label}
-            className={`flex items-center justify-between gap-4 py-2.5 ${i !== 0 ? "border-t border-border" : ""}`}
-          >
-            <dt className="text-muted">{item.label}</dt>
-            <dd className="font-semibold text-foreground">{item.value}</dd>
-          </div>
-        ))}
-      </dl>
-    );
-  }
-
   return (
-    <dl className={layout === "row" ? "grid grid-cols-3 gap-4 text-sm sm:text-base" : "space-y-3 text-sm sm:text-base"}>
-      {items.map((item) => (
-        <div key={item.label}>
-          <dt className="font-semibold text-muted">{item.label}</dt>
-          <dd className="text-foreground">{item.value}</dd>
+    <dl className="text-sm sm:text-base">
+      {items.map((item, i) => (
+        <div
+          key={item.label}
+          className={`flex items-center justify-between gap-4 py-2.5 ${i !== 0 ? "border-t border-border" : ""}`}
+        >
+          <dt className="text-muted">{item.label}</dt>
+          <dd className="font-semibold text-foreground">{item.value}</dd>
         </div>
       ))}
     </dl>
@@ -194,7 +179,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
         {/* 날짜/시간/장소 — 카드로 감쌈 */}
         <div className="rounded-xl glass-panel p-6">
-          <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} layout="row-label-value" />
+          <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
         </div>
         <EligibilityCard isDatingSession={isDatingSession} />
       </div>
@@ -224,7 +209,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
             {/* 데스크톱에서만 정보 표시 */}
             <div className="hidden lg:block">
-              <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+              <div className="rounded-xl glass-panel p-6">
+                <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+              </div>
               <div className="mt-4">
                 <EligibilityCard isDatingSession={isDatingSession} />
               </div>
@@ -248,7 +235,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       {/* 태블릿 전용: 정보 별도 섹션 */}
       <div className="hidden sm:block lg:hidden mb-12 mt-8">
-        <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} layout="row" />
+        <div className="rounded-xl glass-panel p-6">
+          <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+        </div>
         <div className="mt-4">
           <EligibilityCard isDatingSession={isDatingSession} />
         </div>
