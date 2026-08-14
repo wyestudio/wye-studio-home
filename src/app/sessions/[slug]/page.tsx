@@ -56,13 +56,30 @@ function SessionMetaList({
   dateLabel: string;
   duration: string;
   venueArea: string;
-  layout?: "stack" | "row";
+  layout?: "stack" | "row" | "row-label-value";
 }) {
   const items = [
     { label: "날짜", value: dateLabel },
     { label: "시간", value: duration },
     { label: "장소", value: venueArea },
   ];
+
+  if (layout === "row-label-value") {
+    return (
+      <dl className="text-sm sm:text-base">
+        {items.map((item, i) => (
+          <div
+            key={item.label}
+            className={`flex items-center justify-between gap-4 py-2.5 ${i !== 0 ? "border-t border-border" : ""}`}
+          >
+            <dt className="text-muted">{item.label}</dt>
+            <dd className="font-semibold text-foreground">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+    );
+  }
+
   return (
     <dl className={layout === "row" ? "grid grid-cols-3 gap-4 text-sm sm:text-base" : "space-y-3 text-sm sm:text-base"}>
       {items.map((item) => (
@@ -72,6 +89,23 @@ function SessionMetaList({
         </div>
       ))}
     </dl>
+  );
+}
+
+function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
+  const accentColor = isDatingSession ? "#ff5ec4" : "#3dffb0";
+  const eligibilityText = isDatingSession
+    ? "1990~1999년생만 신청 가능"
+    : "20·30대 신체 건강한 남녀만 신청 가능";
+  return (
+    <div
+      className="rounded-2xl border px-5 py-4 text-sm sm:text-base"
+      style={{ borderColor: accentColor, boxShadow: `0 0 24px -8px ${accentColor}` }}
+    >
+      <span className="text-muted">신청 가능 대상</span>
+      <span className="mx-2 text-muted">·</span>
+      <span className="font-bold text-foreground">{eligibilityText}</span>
+    </div>
   );
 }
 
@@ -160,8 +194,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
         {/* 날짜/시간/장소 — 카드로 감쌈 */}
         <div className="rounded-xl glass-panel p-6">
-          <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+          <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} layout="row-label-value" />
         </div>
+        <EligibilityCard isDatingSession={isDatingSession} />
       </div>
 
       {/* 태블릿+데스크톱 레이아웃: 포스터 좌 + 정보 우 */}
@@ -190,6 +225,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
             {/* 데스크톱에서만 정보 표시 */}
             <div className="hidden lg:block">
               <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+              <div className="mt-4">
+                <EligibilityCard isDatingSession={isDatingSession} />
+              </div>
             </div>
           </div>
 
@@ -211,6 +249,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       {/* 태블릿 전용: 정보 별도 섹션 */}
       <div className="hidden sm:block lg:hidden mb-12 mt-8">
         <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} layout="row" />
+        <div className="mt-4">
+          <EligibilityCard isDatingSession={isDatingSession} />
+        </div>
       </div>
 
       {/* 컨텐츠 소개 */}
@@ -273,7 +314,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       <div className="fixed inset-x-0 bottom-0 bg-background/90 p-4 backdrop-blur-md">
         <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl">
           <RippleLinkButton href={ctaHref} disabled={session.status === "closed"}>
-            {session.status === "closed" ? "모집이 마감되었습니다" : "참가하기"}
+            {session.status === "closed" ? "모집이 마감되었습니다" : "참여하기"}
           </RippleLinkButton>
         </div>
       </div>
