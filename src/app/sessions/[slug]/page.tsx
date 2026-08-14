@@ -133,7 +133,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         {/* 제목 + 뱃지 */}
         <div>
           <div className="mb-3 flex items-center gap-2">
-            <h1 className="text-4xl font-extrabold">{themeName}</h1>
+            <h1 className="text-3xl font-extrabold">{themeName}</h1>
             <ThemeTag themeLabel={session.theme_label} size="lg" />
           </div>
         </div>
