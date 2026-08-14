@@ -100,9 +100,9 @@ export function ApplyConsent({
   );
 
   return (
-    <div className="hud-panel hud-panel-glow flex flex-col gap-4 p-6">
+    <div className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-6">
       <div>
-        <h2 className="text-base font-bold" style={{ color: "var(--hud-accent)" }}>
+        <h2 className="text-base font-bold text-foreground">
           참가 전 안내사항
         </h2>
         <p className="mt-1 text-xs text-muted">약관 및 동의 사항을 확인해주세요.</p>

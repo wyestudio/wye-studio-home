@@ -8,9 +8,9 @@ export function ApplyStepper({
   onStepChange: (step: number) => void;
 }) {
   const steps = [
-    { label: "정보", index: 0 },
+    { label: "정보입력", index: 0 },
     { label: "약관동의", index: 1 },
-    { label: "확인", index: 2 },
+    { label: "제출", index: 2 },
   ];
 
   return (
