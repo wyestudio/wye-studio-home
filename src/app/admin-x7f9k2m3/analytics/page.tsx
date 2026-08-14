@@ -132,7 +132,7 @@ export default function AnalyticsDashboard() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-full">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-bold mb-2">분석 대시보드</h1>
           <p className="text-muted">GA4 데이터 기반 최근 28일간의 분석 — 팀원도 쉽게 이해할 수 있도록 주요 지표만 요약해 보여줍니다.</p>
