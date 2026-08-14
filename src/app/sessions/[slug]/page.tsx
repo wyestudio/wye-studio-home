@@ -63,12 +63,9 @@ function SessionMetaList({
   ];
 
   return (
-    <dl className="text-sm sm:text-base">
-      {items.map((item, i) => (
-        <div
-          key={item.label}
-          className={`flex items-center justify-between gap-4 py-2.5 ${i !== 0 ? "border-t border-border" : ""}`}
-        >
+    <dl className="space-y-2 text-sm sm:text-base">
+      {items.map((item) => (
+        <div key={item.label} className="flex items-center justify-between gap-4">
           <dt className="text-muted">{item.label}</dt>
           <dd className="font-semibold text-foreground">{item.value}</dd>
         </div>
