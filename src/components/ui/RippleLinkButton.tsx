@@ -25,7 +25,7 @@ export function RippleLinkButton({
 
   if (disabled) {
     return (
-      <span className={`apply-submit-button pointer-events-none inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm opacity-50 ${className}`}>
+      <span className={`apply-submit-button pointer-events-none inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3.5 font-semibold text-base opacity-50 ${className}`}>
         <span aria-hidden className="apply-submit-fill" />
         <span className="apply-submit-label">{children}</span>
       </span>
@@ -36,7 +36,7 @@ export function RippleLinkButton({
     <Link
       href={href}
       onPointerEnter={handlePointerEnter}
-      className={`apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all ${className}`}
+      className={`apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3.5 font-semibold text-base transition-all ${className}`}
     >
       <span aria-hidden className="apply-submit-fill" />
       <span className="apply-submit-label">{children}</span>

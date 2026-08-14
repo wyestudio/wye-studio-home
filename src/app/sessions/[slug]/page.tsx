@@ -5,6 +5,7 @@ import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { formatKrw, formatSessionDateTime, formatDuration } from "@/lib/format";
 import { RippleLinkButton } from "@/components/ui/RippleLinkButton";
 import { ThemeTag } from "@/components/ui/ThemeTag";
+import { ShareButton } from "@/components/ui/ShareButton";
 import { isDatingTheme, getThemeBaseName } from "@/lib/theme";
 
 const SITE_URL = "https://wouldyouescape.com";
@@ -45,6 +46,26 @@ export async function generateMetadata(
   };
 }
 
+function SessionMetaList({ dateLabel, duration, venueArea }: { dateLabel: string; duration: string; venueArea: string }) {
+  return (
+    <dl className="space-y-3 text-sm sm:text-base">
+      <div>
+        <dt className="font-semibold text-muted">날짜</dt>
+        <dd className="text-foreground">{dateLabel}</dd>
+      </div>
+      <div>
+        <dt className="font-semibold text-muted">시간</dt>
+        <dd className="text-foreground">{duration}</dd>
+      </div>
+      <div>
+        <dt className="font-semibold text-muted">장소</dt>
+        <dd className="text-foreground">{venueArea}</dd>
+        <dd className="text-xs text-muted">정확한 주소는 24시간 전 문자로 안내드립니다.</dd>
+      </div>
+    </dl>
+  );
+}
+
 export default async function SessionDetailPage({ params }: PageProps<"/sessions/[slug]">) {
   const { slug } = await params;
 
@@ -64,7 +85,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
   const ctaHref = `/sessions/${session.slug}/apply`;
   const isDatingSession = isDatingTheme(session.theme_label);
   const themeName = getThemeBaseName(session.theme_label);
+  const dateLabel = formatSessionDateTime(session.start_at);
   const duration = session.end_at ? formatDuration(session.start_at, session.end_at) : "-";
+  const shareUrl = `${SITE_URL}/sessions/${session.slug}`;
 
   const progressSteps = isDatingSession
     ? ["로테이션 소개팅", "팀매칭", "방탈출", "포인트교환"]
@@ -81,93 +104,95 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
   ];
 
   return (
-    <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl px-5 py-10 sm:px-8 sm:py-14 lg:py-20 pb-28">
-      {/* 포스터 + 핵심 정보 */}
-      <div className="mb-12">
-        <div className="flex gap-8 sm:gap-10">
-          {/* 포스터 — 각진 테두리 */}
-          <div className="relative aspect-[4/5] w-40 sm:w-64 lg:w-80 flex-shrink-0 overflow-hidden border border-glass-border bg-surface">
+    <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl px-5 py-10 sm:px-8 sm:py-14 lg:py-20 pb-32">
+      {/* 모바일 레이아웃: 세로 스택 */}
+      <div className="sm:hidden mb-12 flex flex-col gap-6">
+        {/* 포스터 가운데 정렬 */}
+        <div className="flex justify-center">
+          <div className="relative aspect-[4/5] w-56 overflow-hidden border border-glass-border bg-surface">
             <Image
               src="/bar-o-title.png"
               alt="우주이스케이프 바-오 탈출 테마 아트웍"
               fill
               className="object-contain"
-              sizes="(min-width: 640px) 224px, 160px"
+              sizes="224px"
               priority
             />
           </div>
+        </div>
 
-          {/* 우측 정보 */}
-          <div className="flex flex-col justify-between">
-            {/* 제목 + 뱃지 */}
-            <div>
-              <div className="mb-3 flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold">{themeName}</h1>
-                <ThemeTag themeLabel={session.theme_label} />
-              </div>
+        {/* 제목 + 뱃지 */}
+        <div>
+          <div className="mb-3 flex items-center gap-2">
+            <h1 className="text-xl font-extrabold">{themeName}</h1>
+            <ThemeTag themeLabel={session.theme_label} />
+          </div>
+        </div>
 
-              {/* 정보 목록 */}
-              <dl className="space-y-3 text-sm sm:text-base">
-                {/* 날짜 */}
-                <div>
-                  <dt className="font-semibold text-muted">날짜</dt>
-                  <dd className="text-foreground">{formatSessionDateTime(session.start_at)}</dd>
-                </div>
+        {/* 참가비 + 공유버튼 */}
+        <div className="flex items-baseline justify-between">
+          <div>
+            <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
+            <p className="font-bold text-lg">
+              {formatKrw(session.price_krw)}
+              <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
+            </p>
+            <p className="text-[11px] text-muted">8/29 베타 한정 할인가</p>
+          </div>
+          <ShareButton title={session.title} url={shareUrl} />
+        </div>
 
-                {/* 시간 */}
-                <div>
-                  <dt className="font-semibold text-muted">시간</dt>
-                  <dd className="text-foreground">{duration}</dd>
-                </div>
+        {/* 날짜/시간/장소 */}
+        <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+      </div>
 
-                {/* 장소 */}
-                <div>
-                  <dt className="font-semibold text-muted">장소</dt>
-                  <dd className="text-foreground">{session.venue_area}</dd>
-                  <dd className="text-xs text-muted">정확한 주소는 24시간 전 문자로 안내드립니다.</dd>
-                </div>
+      {/* 태블릿+데스크톱 레이아웃: 포스터 좌 + 정보 우 */}
+      <div className="hidden sm:flex gap-8 lg:gap-10 mb-12">
+        {/* 포스터 */}
+        <div className="relative aspect-[4/5] w-64 lg:w-80 flex-shrink-0 overflow-hidden border border-glass-border bg-surface">
+          <Image
+            src="/bar-o-title.png"
+            alt="우주이스케이프 바-오 탈출 테마 아트웍"
+            fill
+            className="object-contain"
+            sizes="(min-width: 1024px) 320px, 256px"
+            priority
+          />
+        </div>
 
-                {/* 참가비 */}
-                <div>
-                  <dt className="font-semibold text-muted">참가비</dt>
-                  <dd>
-                    <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
-                    <p className="font-bold">
-                      {formatKrw(session.price_krw)}
-                      <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
-                    </p>
-                    <p className="text-[11px] text-muted">8/29 베타 한정 할인가</p>
-                  </dd>
-                </div>
-              </dl>
+        {/* 우측 컬럼 */}
+        <div className="flex flex-1 flex-col justify-between">
+          {/* 상단: 제목 + 뱃지 + 정보 (데스크톱만) */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <h1 className="text-2xl lg:text-3xl font-extrabold">{themeName}</h1>
+              <ThemeTag themeLabel={session.theme_label} />
             </div>
+
+            {/* 데스크톱에서만 정보 표시 */}
+            <div className="hidden lg:block">
+              <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+            </div>
+          </div>
+
+          {/* 하단: 참가비 + 공유버튼 */}
+          <div className="flex items-baseline justify-between">
+            <div>
+              <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
+              <p className="font-bold text-3xl lg:text-4xl">
+                {formatKrw(session.price_krw)}
+                <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
+              </p>
+              <p className="text-[11px] text-muted">8/29 베타 한정 할인가</p>
+            </div>
+            <ShareButton title={session.title} url={shareUrl} />
           </div>
         </div>
       </div>
 
-      {/* 진행 순서 */}
-      <section className="mb-12">
-        <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>
-        <div className="flex flex-wrap items-start justify-center gap-x-1 gap-y-4">
-          {progressSteps.map((step, i) => (
-            <div key={step} className="flex items-center gap-1">
-              <div className="flex flex-col items-center gap-2 px-1">
-                <span className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full border border-glow bg-brand-soft text-sm sm:text-base font-bold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
-                  {i + 1}
-                </span>
-                <span className="max-w-[76px] text-center text-xs sm:text-sm font-semibold">{step}</span>
-              </div>
-              {i < progressSteps.length - 1 ? <span className="mb-7 text-border">→</span> : null}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA 버튼 (모바일) */}
-      <div className="mb-12 sm:hidden">
-        <RippleLinkButton href={ctaHref} disabled={session.status === "closed"}>
-          {session.status === "closed" ? "모집이 마감되었습니다" : "참가하기"}
-        </RippleLinkButton>
+      {/* 태블릿 전용: 정보 별도 섹션 */}
+      <div className="hidden sm:block lg:hidden mb-12 mt-8">
+        <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
       </div>
 
       {/* 컨텐츠 소개 */}
@@ -190,6 +215,24 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         </div>
       </section>
 
+      {/* 진행 순서 */}
+      <section className="mb-12">
+        <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>
+        <div className="flex flex-wrap items-start justify-center gap-x-1 gap-y-4">
+          {progressSteps.map((step, i) => (
+            <div key={step} className="flex items-center gap-1">
+              <div className="flex flex-col items-center gap-2 px-1">
+                <span className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full border border-glow bg-brand-soft text-sm sm:text-base font-bold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
+                  {i + 1}
+                </span>
+                <span className="max-w-[76px] text-center text-xs sm:text-sm font-semibold">{step}</span>
+              </div>
+              {i < progressSteps.length - 1 ? <span className="mb-7 text-border">→</span> : null}
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* 유의사항 */}
       <section className="mb-12">
         <h2 className="mb-4 text-sm font-bold text-muted">유의사항</h2>
@@ -208,9 +251,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         </div>
       </section>
 
-      {/* 고정 CTA 버튼 (데스크톱) */}
+      {/* 고정 CTA 버튼 */}
       <div className="fixed inset-x-0 bottom-0 bg-background/90 p-4 backdrop-blur-md">
-        <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl hidden sm:block">
+        <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl">
           <RippleLinkButton href={ctaHref} disabled={session.status === "closed"}>
             {session.status === "closed" ? "모집이 마감되었습니다" : "참가하기"}
           </RippleLinkButton>
