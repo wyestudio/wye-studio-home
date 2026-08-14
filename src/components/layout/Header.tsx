@@ -14,6 +14,7 @@ export function Header() {
   const headerRef = useRef<HTMLElement>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const isHome = pathname === "/";
 
   // 실제 렌더된 헤더 높이를 CSS 변수로 노출 — 홈 히어로의 스크롤 스테이지가 이 값만큼
   // 음수 마진을 줘서, 헤더 아래로 스크롤이 다 지나가야 스크롤텔링이 시작되는 "빈 스크롤
@@ -43,7 +44,7 @@ export function Header() {
       className="sticky top-0 z-20"
     >
       {/* 데스크톱 헤더 */}
-      <div className="hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-6 bg-background/95 backdrop-blur-md">
+      <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-6 ${isHome ? "bg-transparent" : "bg-background/95 backdrop-blur-md"}`}>
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5">
             <Image
