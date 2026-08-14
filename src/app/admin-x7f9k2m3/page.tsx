@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime } from "@/lib/format";
 import { LogoutButton } from "@/components/admin/LogoutButton";
+import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
 
 export const dynamic = "force-dynamic";
 
@@ -46,13 +47,16 @@ export default async function AdminDashboard() {
                     <p className="text-sm text-muted mt-1">{formatSessionDateTime(session.start_at)}</p>
                     <p className="text-sm text-muted mt-1">{session.theme_label}</p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-medium">
-                      상태: <span className="text-glow">{session.status === "open" ? "모집중" : "마감"}</span>
+                  <div className="text-right shrink-0 flex flex-col items-end gap-2">
+                    <div>
+                      <div className="text-sm font-medium">
+                        상태: <span className="text-glow">{session.status === "open" ? "모집중" : "마감"}</span>
+                      </div>
+                      <div className="text-xs text-muted mt-1">
+                        정원: {session.capacity_max}명
+                      </div>
                     </div>
-                    <div className="text-xs text-muted mt-1">
-                      정원: {session.capacity_max}명
-                    </div>
+                    <CopyUrlButton url={`https://wouldyouescape.com/sessions/${session.slug}`} />
                   </div>
                 </div>
               </Link>
