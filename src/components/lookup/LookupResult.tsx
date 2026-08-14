@@ -9,7 +9,8 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { InfoRow } from "./InfoRow";
 import { CompanionPager } from "./CompanionPager";
-import { formatSessionDateTime, formatSessionDate, formatSessionTime, formatRefundTierDeadlines, formatKrw } from "@/lib/format";
+import { RefundInfoDialog } from "./RefundInfoDialog";
+import { formatSessionDateTime, formatSessionDate, formatSessionTime, formatRefundTierDeadlines, formatKrw, calculateRefundAmount } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { getThemeBaseName, isDatingTheme } from "@/lib/theme";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
@@ -21,11 +22,16 @@ export function LookupResult() {
   const router = useRouter();
   const [state, setState] = useState<LookupState | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showRefundInfoDialog, setShowRefundInfoDialog] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
   const [phone, setPhone] = useState<string>("");
   const [confirmationCode, setConfirmationCode] = useState<string>("");
+  const [refundBankName, setRefundBankName] = useState<string>("");
+  const [refundAccountNumber, setRefundAccountNumber] = useState<string>("");
+  const [refundAccountHolder, setRefundAccountHolder] = useState<string>("");
+  const [refundFormError, setRefundFormError] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("lookup:result");
@@ -62,7 +68,11 @@ export function LookupResult() {
     setCancelling(true);
     setCancelError(null);
     try {
-      const response = await cancelApplicationAction(phone, confirmationCode);
+      const refundInfo = state?.result && state.result.payment_status === "confirmed"
+        ? { bankName: refundBankName, accountNumber: refundAccountNumber, accountHolder: refundAccountHolder }
+        : undefined;
+
+      const response = await cancelApplicationAction(phone, confirmationCode, refundInfo, state?.result);
       if (response.error) {
         setCancelError(response.error);
       } else {
@@ -77,10 +87,29 @@ export function LookupResult() {
     }
   }
 
+  function handleCancelClick() {
+    if (state?.result?.payment_status === "confirmed") {
+      setShowRefundInfoDialog(true);
+    } else {
+      setShowCancelDialog(true);
+    }
+  }
+
+  function handleRefundInfoSubmit() {
+    if (!refundBankName.trim() || !refundAccountNumber.trim() || !refundAccountHolder.trim()) {
+      setRefundFormError("모든 항목을 입력해주세요.");
+      return;
+    }
+    setRefundFormError(null);
+    setShowRefundInfoDialog(false);
+    setShowCancelDialog(true);
+  }
+
   if (cancelled) {
     return (
-      <div className="text-center">
-        <p className="text-lg font-semibold text-foreground">취소되었습니다.</p>
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-extrabold">취소되었습니다.</h1>
+        <p className="mt-1 text-sm text-muted">다음 기회에 뵙겠습니다. (제발)</p>
       </div>
     );
   }
@@ -145,7 +174,7 @@ export function LookupResult() {
       {/* 동행자 (그룹일 때만) */}
       {companions.length > 0 ? (
         <div className="mb-6">
-          <p className="mb-3 text-sm font-bold text-muted">동행자</p>
+          <p className="mb-3 text-sm font-bold text-muted">동행자 정보</p>
           <CompanionPager count={companions.length}>
             {(index) => (
               <div className="rounded-xl border border-border bg-surface p-4">
@@ -158,9 +187,11 @@ export function LookupResult() {
 
       {/* 비고 (그룹이고 notes가 있을 때만) */}
       {isGroup && result.notes ? (
-        <div className="mb-6 rounded-xl border border-border bg-surface p-4">
-          <p className="mb-2 text-sm font-bold text-muted">비고</p>
-          <p className="text-sm text-foreground whitespace-pre-wrap">{result.notes}</p>
+        <div className="mb-6">
+          <p className="mb-3 text-sm font-bold text-muted">비고</p>
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-sm text-foreground whitespace-pre-wrap">{result.notes}</p>
+          </div>
         </div>
       ) : null}
 
@@ -219,7 +250,7 @@ export function LookupResult() {
         </Link>
         <Button
           variant="danger"
-          onClick={() => setShowCancelDialog(true)}
+          onClick={handleCancelClick}
           className="flex-1"
         >
           취소하기
@@ -230,12 +261,31 @@ export function LookupResult() {
         <p className="mt-4 text-center text-sm text-danger">{cancelError}</p>
       ) : null}
 
+      {state?.result && (
+        <RefundInfoDialog
+          open={showRefundInfoDialog}
+          refundAmount={calculateRefundAmount(state.result.start_at, state.result.price_krw * state.result.attendees.length)}
+          bankName={refundBankName}
+          accountNumber={refundAccountNumber}
+          accountHolder={refundAccountHolder}
+          error={refundFormError}
+          onBankNameChange={setRefundBankName}
+          onAccountNumberChange={setRefundAccountNumber}
+          onAccountHolderChange={setRefundAccountHolder}
+          onConfirm={handleRefundInfoSubmit}
+          onCancel={() => {
+            setShowRefundInfoDialog(false);
+            setRefundFormError(null);
+          }}
+        />
+      )}
+
       <ConfirmDialog
         open={showCancelDialog}
         title="정말 취소하시겠어요?"
         message="한 번 취소하면 다시 신청해야 합니다."
         cancelLabel="아니요"
-        confirmLabel="네, 취소할게요"
+        confirmLabel="네, 취소"
         onCancel={() => setShowCancelDialog(false)}
         onConfirm={handleCancelConfirm}
         danger
@@ -259,7 +309,7 @@ function AttendeeDisplay({
       />
       <InfoRow label="전화번호" value={formatPhoneDigits(attendee.phone)} />
       <InfoRow label="출생년도" value={`${attendee.birth_year}년생`} />
-      {isDatingSession && attendee.gender ? (
+      {attendee.gender ? (
         <InfoRow label="성별" value={attendee.gender === "M" ? "남성" : "여성"} />
       ) : null}
       {attendee.experience_range ? (

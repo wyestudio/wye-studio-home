@@ -2439,3 +2439,13 @@ $$;
 
 revoke all on function public.check_active_applications(text[]) from public;
 grant execute on function public.check_active_applications(text[]) to anon, authenticated;
+
+-- =========================================================
+-- v16. decrypt_pii() service_role grant 누락 수정 (2026-08-15)
+-- v12-7에서 admin_application_view/admin_attendee_view에 대한 select 권한을
+-- service_role에 부여했지만, 뷰가 내부적으로 호출하는 decrypt_pii()에는
+-- grant를 빠뜨려 어드민 페이지에서 "permission denied for function
+-- decrypt_pii" 에러가 나던 문제 수정. anon/authenticated에는 여전히
+-- 미부여(PII 복호화는 서버 사이드 어드민 전용 유지).
+-- =========================================================
+grant execute on function public.decrypt_pii(bytea) to service_role;

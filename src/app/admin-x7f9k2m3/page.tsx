@@ -9,15 +9,15 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboard() {
   const supabase = createAdminClient();
 
-  const { data: sessions, error } = await supabase
+  const { data: sessions, error: sessionsError } = await supabase
     .from("sessions")
     .select("*")
     .order("start_at", { ascending: false });
 
-  if (error) {
+  if (sessionsError) {
     return (
       <div className="p-6">
-        <div className="text-red-500">세션 목록을 불러올 수 없습니다: {error.message}</div>
+        <div className="text-red-500">세션 목록을 불러올 수 없습니다: {sessionsError.message}</div>
       </div>
     );
   }

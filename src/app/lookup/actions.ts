@@ -1,8 +1,11 @@
 "use server";
 
+import { after } from "next/server";
 import { lookupApplication, cancelApplication } from "@/lib/lookup";
 import { phoneDigits, isValidPhoneDigits } from "@/lib/phone";
 import { deriveLifecycleStatus, type LifecycleStatus } from "@/lib/lookupStatus";
+import { sendCancellationSlackAlert } from "@/lib/slack";
+import { calculateRefundAmount } from "@/lib/format";
 import type { ApplicationLookupResult } from "@/types/domain";
 
 export type LookupState = {
@@ -48,7 +51,9 @@ export async function lookupAction(
 
 export async function cancelApplicationAction(
   phone: string,
-  confirmationCode: string
+  confirmationCode: string,
+  refundInfo?: { bankName: string; accountNumber: string; accountHolder: string },
+  lookupResult?: ApplicationLookupResult
 ): Promise<{ success?: boolean; error?: string }> {
   // 형식 검증
   const phoneDigitsOnly = phoneDigits(phone);
@@ -60,9 +65,34 @@ export async function cancelApplicationAction(
     return { error: "일치하는 신청 내역을 찾을 수 없어요. 전화번호와 접수번호를 다시 확인해주세요." };
   }
 
-  const success = await cancelApplication(phone, confirmationCode);
+  const success = await cancelApplication(phone, confirmationCode, refundInfo);
   if (!success) {
     return { error: "취소 처리 중 오류가 발생했어요. 다시 시도해주세요." };
+  }
+
+  // Slack 알림 발송 (after()로 감싸서 비동기 처리)
+  if (lookupResult) {
+    const wasPaymentConfirmed = lookupResult.payment_status === "confirmed";
+    const refundAmount = wasPaymentConfirmed
+      ? calculateRefundAmount(lookupResult.start_at, lookupResult.price_krw * lookupResult.attendees.length)
+      : undefined;
+
+    after(async () => {
+      try {
+        await sendCancellationSlackAlert({
+          sessionTitle: lookupResult.session_title,
+          confirmationCode: lookupResult.confirmation_code,
+          representative: lookupResult.attendees[0],
+          wasPaymentConfirmed,
+          refundAmount,
+          refundBankName: refundInfo?.bankName,
+          refundAccountNumber: refundInfo?.accountNumber,
+          refundAccountHolder: refundInfo?.accountHolder,
+        });
+      } catch (err) {
+        console.error("[lookup] 취소 알림 발송 중 에러", err);
+      }
+    });
   }
 
   return { success: true };

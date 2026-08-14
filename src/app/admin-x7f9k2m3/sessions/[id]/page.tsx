@@ -17,21 +17,32 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
     .eq("id", params.id)
     .single();
 
-  const { data: applications } = await supabase
-    .from("applications")
-    .select(
-      `
-      id, session_id, confirmation_code, status, payment_status, created_at,
-      application_attendees(id, name_enc, phone_enc, is_representative, gender)
-    `
-    )
+  const { data: applications, error: applicationsError } = await supabase
+    .from("admin_application_view")
+    .select("*")
     .eq("session_id", params.id)
     .order("created_at", { ascending: false });
+
+  const { data: attendees, error: attendeesError } = await supabase
+    .from("admin_attendee_view")
+    .select("*")
+    .eq("session_id", params.id);
 
   if (!session) {
     return (
       <div className="p-6">
         <div className="text-red-500">세션을 찾을 수 없습니다.</div>
+      </div>
+    );
+  }
+
+  if (applicationsError || attendeesError) {
+    return (
+      <div className="p-6">
+        <div className="text-red-500">
+          신청자 목록을 불러올 수 없습니다:{" "}
+          {applicationsError?.message || attendeesError?.message}
+        </div>
       </div>
     );
   }
@@ -57,64 +68,81 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                 <th className="text-left py-3 px-4 font-semibold text-sm">참여자</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">신청 상태</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">입금 상태</th>
+                <th className="text-left py-3 px-4 font-semibold text-sm">환불</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">액션</th>
               </tr>
             </thead>
             <tbody>
               {applications && applications.length > 0 ? (
-                applications.map((app) => (
-                  <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
-                    <td className="py-3 px-4 text-sm font-mono text-glow">{app.confirmation_code}</td>
-                    <td className="py-3 px-4 text-sm">
-                      {app.application_attendees && app.application_attendees.length > 0 ? (
-                        <div className="space-y-1">
-                          {app.application_attendees.map((att: any, idx: number) => (
-                            <div key={idx} className="text-xs">
-                              {att.is_representative && <span className="font-semibold">대표 </span>}
-                              [{att.phone_enc ? "***-****-****" : "정보없음"}]
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-muted">참여자 정보 없음</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      <span
-                        className={
-                          app.status === "confirmed"
-                            ? "text-green-500 font-semibold"
-                            : "text-yellow-500 font-semibold"
-                        }
-                      >
-                        {app.status === "confirmed" ? "확정" : "대기"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      <span
-                        className={
-                          app.payment_status === "confirmed"
-                            ? "text-green-500 font-semibold"
-                            : "text-muted"
-                        }
-                      >
-                        {app.payment_status === "confirmed" ? "입금 확인" : "대기중"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      {app.payment_status !== "confirmed" && app.status === "confirmed" && (
-                        <ConfirmPaymentButton
-                          applicationId={app.id}
-                          sessionId={session.id}
-                          confirmationCode={app.confirmation_code}
-                        />
-                      )}
-                    </td>
-                  </tr>
-                ))
+                applications.map((app: any) => {
+                  const appAttendees = attendees?.filter((a: any) => a.application_id === app.id) || [];
+                  return (
+                    <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
+                      <td className="py-3 px-4 text-sm font-mono text-glow">{app.confirmation_code}</td>
+                      <td className="py-3 px-4 text-sm">
+                        {appAttendees.length > 0 ? (
+                          <div className="space-y-1">
+                            {appAttendees.map((att: any, idx: number) => (
+                              <div key={idx} className="text-xs">
+                                {att.is_representative && <span className="font-semibold">대표 </span>}
+                                {att.name} [{att.phone}]
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted">참여자 정보 없음</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        <span
+                          className={
+                            app.status === "confirmed"
+                              ? "text-green-500 font-semibold"
+                              : app.status === "cancelled"
+                                ? "text-red-500 font-semibold"
+                                : "text-yellow-500 font-semibold"
+                          }
+                        >
+                          {app.status === "confirmed" ? "확정" : app.status === "cancelled" ? "취소" : "대기"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        <span
+                          className={
+                            app.payment_status === "confirmed"
+                              ? "text-green-500 font-semibold"
+                              : app.payment_status === "cancelled"
+                                ? "text-red-500 font-semibold"
+                                : "text-muted"
+                          }
+                        >
+                          {app.payment_status === "confirmed" ? "입금 확인" : app.payment_status === "cancelled" ? "취소됨" : "대기중"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {app.status === "cancelled" && app.refund_bank_name && (
+                          <div className="text-xs space-y-0.5">
+                            <p><strong>{app.refund_bank_name}</strong></p>
+                            <p>{app.refund_account_number}</p>
+                            <p>{app.refund_account_holder}</p>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {app.payment_status !== "confirmed" && app.status === "confirmed" && (
+                          <ConfirmPaymentButton
+                            applicationId={app.id}
+                            sessionId={session.id}
+                            confirmationCode={app.confirmation_code}
+                          />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan={5} className="py-8 px-4 text-center text-muted">
+                  <td colSpan={6} className="py-8 px-4 text-center text-muted">
                     신청이 없습니다.
                   </td>
                 </tr>

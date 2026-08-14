@@ -64,7 +64,7 @@ export function MascotCursor() {
     <div
       ref={wrapperRef}
       aria-hidden
-      className="pointer-events-none fixed left-0 top-0 z-50 opacity-0 transition-opacity duration-200"
+      className="pointer-events-none fixed left-0 top-0 z-[100] opacity-0 transition-opacity duration-200"
       style={{ willChange: "transform" }}
     >
       <Image

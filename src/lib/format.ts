@@ -100,6 +100,13 @@ export function formatRefundTierDeadlines(startAt: string): { full: string; half
   };
 }
 
+export function calculateRefundAmount(startAt: string, totalKrw: number): number {
+  const hoursUntilStart = (new Date(startAt).getTime() - Date.now()) / (60 * 60 * 1000);
+  if (hoursUntilStart >= 48) return totalKrw;
+  if (hoursUntilStart >= 24) return Math.round(totalKrw / 2);
+  return 0;
+}
+
 // Date 객체를 "OO월 OO일(요일)" 형식으로 반환 (SMS 알림용).
 export function formatDate(date: Date): string {
   const month = date.getMonth() + 1;
