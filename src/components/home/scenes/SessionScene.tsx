@@ -28,7 +28,7 @@ export function SessionScene({
       isLast={isLast}
       variant="rise"
     >
-      <div className="mx-auto w-full max-w-4xl px-5 sm:px-8 lg:px-0">{children}</div>
+      <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-3 px-5 sm:grid-cols-2 sm:gap-6 sm:px-8 lg:px-0">{children}</div>
     </SceneShell>
   );
 }

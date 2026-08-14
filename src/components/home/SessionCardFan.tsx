@@ -51,9 +51,9 @@ export function SessionCardFan({ sessions }: { sessions: Session[] }) {
   };
 
   return (
-    <div className="relative w-full flex items-center justify-center py-8 px-4 sm:px-6 sm:py-12">
+    <div className="relative w-full flex items-center justify-center py-6 px-4 sm:px-6 sm:py-8">
       {/* 배경 컨테이너 */}
-      <div className="relative w-full h-96 sm:h-96 lg:h-[420px] flex items-center justify-center">
+      <div className="relative w-full h-64 sm:h-72 lg:h-80 flex items-center justify-center">
         {/* 카드 컨테이너 */}
         <div className="relative w-full max-w-md sm:max-w-lg lg:max-w-2xl h-full flex items-center justify-center">
           {items.map((item, index) => {
@@ -83,7 +83,7 @@ export function SessionCardFan({ sessions }: { sessions: Session[] }) {
                   }
                 }}
               >
-                <div className="h-80 sm:h-80 lg:h-96 w-full">
+                <div className="h-64 sm:h-72 lg:h-80 w-full">
                   {isCenter ? (
                     <div className="w-full h-full">{item.node}</div>
                   ) : (
@@ -100,9 +100,9 @@ export function SessionCardFan({ sessions }: { sessions: Session[] }) {
       <button
         onClick={handlePrev}
         aria-label="이전 회차 보기"
-        className="absolute left-0 sm:left-2 lg:left-4 top-1/2 -translate-y-1/2 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-brand text-brand-foreground transition-opacity hover:opacity-90 active:scale-95 sm:h-12 sm:w-12 lg:h-14 lg:w-14"
+        className="absolute left-2 sm:left-3 lg:left-4 top-1/2 -translate-y-1/2 z-50 flex items-center justify-center p-2 text-white transition-opacity hover:opacity-60 active:scale-95 cursor-pointer"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden className="sm:w-9 sm:h-9 lg:w-10 lg:h-10">
           <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
@@ -111,9 +111,9 @@ export function SessionCardFan({ sessions }: { sessions: Session[] }) {
       <button
         onClick={handleNext}
         aria-label="다음 회차 보기"
-        className="absolute right-0 sm:right-2 lg:right-4 top-1/2 -translate-y-1/2 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-brand text-brand-foreground transition-opacity hover:opacity-90 active:scale-95 sm:h-12 sm:w-12 lg:h-14 lg:w-14"
+        className="absolute right-2 sm:right-3 lg:right-4 top-1/2 -translate-y-1/2 z-50 flex items-center justify-center p-2 text-white transition-opacity hover:opacity-60 active:scale-95 cursor-pointer"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden className="sm:w-9 sm:h-9 lg:w-10 lg:h-10">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </button>
