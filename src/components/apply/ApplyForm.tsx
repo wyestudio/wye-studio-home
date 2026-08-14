@@ -254,6 +254,16 @@ export function ApplyForm({
     }
   }, [state.application, state.attendees, sessionId, themeLabel]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (state.application) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [state.application]);
+
   function updateAttendeeCount(count: number) {
     setAttendeeCount(count);
     setActiveAttendeeIndex((prev) => Math.min(prev, count - 1));
@@ -410,7 +420,7 @@ export function ApplyForm({
 
   return (
     <>
-      <h1 className="mb-6 text-2xl font-extrabold">참가 신청</h1>
+      <h1 className="mb-6 text-2xl font-extrabold">참여 신청</h1>
 
       {/* Sticky 진행 표시줄 */}
       <ApplyStepper currentStep={currentStep} onStepChange={handleStepChange} />

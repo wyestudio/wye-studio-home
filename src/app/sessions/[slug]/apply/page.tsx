@@ -15,7 +15,7 @@ export async function generateMetadata(
     return {};
   }
 
-  const title = `${session.title} 참가 신청 | 우주이스케이프`;
+  const title = `${session.title} 참여 신청 | 우주이스케이프`;
   const description = session.description || "우주이스케이프 회차에 참가 신청하세요.";
   const url = `${SITE_URL}/sessions/${session.slug}/apply`;
 

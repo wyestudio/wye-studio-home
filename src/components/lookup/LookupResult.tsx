@@ -53,6 +53,10 @@ export function LookupResult() {
     }
   }, [router]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   if (!state || !state.result) {
     return null;
   }
