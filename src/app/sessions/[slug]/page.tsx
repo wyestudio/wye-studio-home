@@ -46,22 +46,30 @@ export async function generateMetadata(
   };
 }
 
-function SessionMetaList({ dateLabel, duration, venueArea }: { dateLabel: string; duration: string; venueArea: string }) {
+function SessionMetaList({
+  dateLabel,
+  duration,
+  venueArea,
+  layout = "stack",
+}: {
+  dateLabel: string;
+  duration: string;
+  venueArea: string;
+  layout?: "stack" | "row";
+}) {
+  const items = [
+    { label: "날짜", value: dateLabel },
+    { label: "시간", value: duration },
+    { label: "장소", value: venueArea },
+  ];
   return (
-    <dl className="space-y-3 text-sm sm:text-base">
-      <div>
-        <dt className="font-semibold text-muted">날짜</dt>
-        <dd className="text-foreground">{dateLabel}</dd>
-      </div>
-      <div>
-        <dt className="font-semibold text-muted">시간</dt>
-        <dd className="text-foreground">{duration}</dd>
-      </div>
-      <div>
-        <dt className="font-semibold text-muted">장소</dt>
-        <dd className="text-foreground">{venueArea}</dd>
-        <dd className="text-xs text-muted">정확한 주소는 24시간 전 문자로 안내드립니다.</dd>
-      </div>
+    <dl className={layout === "row" ? "grid grid-cols-3 gap-4 text-sm sm:text-base" : "space-y-3 text-sm sm:text-base"}>
+      {items.map((item) => (
+        <div key={item.label}>
+          <dt className="font-semibold text-muted">{item.label}</dt>
+          <dd className="text-foreground">{item.value}</dd>
+        </div>
+      ))}
     </dl>
   );
 }
@@ -94,6 +102,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
     : ["아이스브레이킹", "방탈출 + 미니게임", "포인트교환"];
 
   const precautions = [
+    { title: "정확한 주소는 추후 안내드려요", desc: "장소는 참가 확정 후 시작 24시간 전에 문자로 정확한 주소를 안내드립니다." },
     { title: "활동형 콘텐츠입니다", desc: "방탈출・보드게임 등 추리/협력 중심 프로그램으로, 팀 게임에 적극적으로 참여 가능한 분만 신청 바랍니다." },
     { title: "시간 엄수 필수", desc: "노쇼 및 지각은 절대 불가합니다. 1부・2부 모두 정시 참여 및 전체 일정 참여 가능자만 신청 바랍니다." },
     { title: "휴대폰 사용 제한", desc: "1부 진행(약 2시간) 동안 휴대폰 사용이 제한되며, 사전 제출에 동의하신 분만 참여 가능합니다." },
@@ -105,8 +114,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
   return (
     <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl px-5 py-10 sm:px-8 sm:py-14 lg:py-20 pb-32">
-      {/* 모바일 레이아웃: 세로 스택 */}
-      <div className="sm:hidden mb-12 flex flex-col gap-6">
+      {/* 모바일 레이아웃: 카드 */}
+      <div className="sm:hidden mb-12 rounded-xl glass-panel p-6 flex flex-col gap-6">
         {/* 포스터 가운데 정렬 */}
         <div className="flex justify-center">
           <div className="relative aspect-[4/5] w-56 overflow-hidden border border-glass-border bg-surface">
@@ -124,20 +133,20 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         {/* 제목 + 뱃지 */}
         <div>
           <div className="mb-3 flex items-center gap-2">
-            <h1 className="text-xl font-extrabold">{themeName}</h1>
-            <ThemeTag themeLabel={session.theme_label} />
+            <h1 className="text-4xl font-extrabold">{themeName}</h1>
+            <ThemeTag themeLabel={session.theme_label} size="lg" />
           </div>
         </div>
 
         {/* 참가비 + 공유버튼 */}
-        <div className="flex items-baseline justify-between">
+        <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
             <p className="font-bold text-lg">
               {formatKrw(session.price_krw)}
               <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
             </p>
-            <p className="text-[11px] text-muted">8/29 베타 한정 할인가</p>
+            <p className="text-xs text-muted">8/29 베타 한정 할인가</p>
           </div>
           <ShareButton title={session.title} url={shareUrl} />
         </div>
@@ -165,8 +174,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           {/* 상단: 제목 + 뱃지 + 정보 (데스크톱만) */}
           <div>
             <div className="mb-3 flex items-center gap-2">
-              <h1 className="text-2xl lg:text-3xl font-extrabold">{themeName}</h1>
-              <ThemeTag themeLabel={session.theme_label} />
+              <h1 className="text-6xl lg:text-5xl font-extrabold">{themeName}</h1>
+              <ThemeTag themeLabel={session.theme_label} size="lg" />
             </div>
 
             {/* 데스크톱에서만 정보 표시 */}
@@ -176,14 +185,14 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           </div>
 
           {/* 하단: 참가비 + 공유버튼 */}
-          <div className="flex items-baseline justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-danger line-through decoration-2">{formatKrw(session.original_price_krw)}</p>
               <p className="font-bold text-3xl lg:text-4xl">
                 {formatKrw(session.price_krw)}
                 <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
               </p>
-              <p className="text-[11px] text-muted">8/29 베타 한정 할인가</p>
+              <p className="text-xs text-muted">8/29 베타 한정 할인가</p>
             </div>
             <ShareButton title={session.title} url={shareUrl} />
           </div>
@@ -192,11 +201,11 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       {/* 태블릿 전용: 정보 별도 섹션 */}
       <div className="hidden sm:block lg:hidden mb-12 mt-8">
-        <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
+        <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} layout="row" />
       </div>
 
       {/* 컨텐츠 소개 */}
-      <section className="mb-12">
+      <section className="mt-4 border-t border-border pt-12 mb-12">
         <h2 className="mb-4 text-sm font-bold text-muted">컨텐츠 소개</h2>
         <div className="space-y-4 text-sm leading-relaxed text-foreground">
           {isDatingSession ? (
