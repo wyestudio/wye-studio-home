@@ -187,7 +187,15 @@ export async function applyAction(
     .rpc("submit_application", {
       p_session_id: sessionId,
       p_depositor_name: depositorName,
-      p_agreed_terms: agreedTerms,
+      p_consent_age_self: consentAgeSelf,
+      p_consent_terms: consentTerms,
+      p_consent_no_rebooking: consentNoRebooking,
+      p_consent_pii: consentPii,
+      p_consent_phone_collection: consentPhoneCollection,
+      p_consent_privacy_policy: consentPrivacyPolicy,
+      p_consent_proxy_for_group: consentProxyForGroup,
+      p_consent_photo: consentPhoto,
+      p_consent_marketing: consentMarketing,
       p_attendees: attendees.map((a) => ({
         name: a.name,
         phone: a.phone,
