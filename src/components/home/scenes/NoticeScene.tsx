@@ -2,7 +2,7 @@
 
 import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
-import { LinkButton } from "@/components/ui/Button";
+import { PointerFillButton } from "@/components/ui/PointerFillButton";
 
 const SOCIAL_LINKS = [
   {
@@ -48,7 +48,7 @@ export function NoticeScene({
   return (
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
       <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-8 text-center">
-        <LinkButton href="/notice">공지사항 보러가기 →</LinkButton>
+        <PointerFillButton href="/notice">공지사항 보러가기 →</PointerFillButton>
         <div className="flex justify-center gap-6 sm:gap-8">
           {SOCIAL_LINKS.map((link) => (
             <a

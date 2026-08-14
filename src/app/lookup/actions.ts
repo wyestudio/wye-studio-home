@@ -2,11 +2,12 @@
 
 import { lookupApplication, cancelApplication } from "@/lib/lookup";
 import { phoneDigits, isValidPhoneDigits } from "@/lib/phone";
+import { deriveLifecycleStatus, type LifecycleStatus } from "@/lib/lookupStatus";
 import type { ApplicationLookupResult } from "@/types/domain";
 
 export type LookupState = {
   error?: string;
-  result?: ApplicationLookupResult;
+  result?: ApplicationLookupResult & { lifecycleStatus: LifecycleStatus };
 };
 
 export async function lookupAction(
@@ -35,7 +36,14 @@ export async function lookupAction(
     return { error: "일치하는 신청 내역을 찾을 수 없어요. 전화번호와 접수번호를 다시 확인해주세요." };
   }
 
-  return { result };
+  const lifecycleStatus = deriveLifecycleStatus({
+    status: result.status,
+    paymentStatus: result.payment_status,
+    startAt: result.start_at,
+    endAt: result.end_at,
+  });
+
+  return { result: { ...result, lifecycleStatus } };
 }
 
 export async function cancelApplicationAction(

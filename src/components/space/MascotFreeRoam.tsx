@@ -62,6 +62,7 @@ export function MascotFreeRoam({
   const speedVarianceRef = useRef([1.0, 0.9, 1.1]); // 마스코트별 개체차
   const targetRef = useRef<(Vec2 | null)[]>([null, null, null]); // 각 마스코트의 목표 좌표
   const pauseUntilRef = useRef<number[]>([0, 0, 0]); // 각 마스코트의 대기 종료 시각 (ms)
+  const moveCountRef = useRef<number[]>([0, 0, 0]); // 각 마스코트의 이동 횟수 (첫 움직임 제한용)
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -70,7 +71,7 @@ export function MascotFreeRoam({
 
     // 콘텐츠 박스를 피하면서 랜덤 좌표를 샘플링 (재사용 가능한 헬퍼)
     // measure()보다 먼저 선언되어야 measure() 내에서 호출 가능 (TDZ 방지)
-    const sampleAvoidingContent = (radius: number, currentPos?: Vec2): Vec2 => {
+    const sampleAvoidingContent = (radius: number, currentPos?: Vec2, avoidContent = true): Vec2 => {
       const { width, height } = rectRef.current;
       const maxAttempts = 10;
 
@@ -80,7 +81,7 @@ export function MascotFreeRoam({
         const candidate = { x, y };
 
         // 콘텐츠 박스(+패딩) 내부 체크
-        if (contentRectRef.current) {
+        if (avoidContent && contentRectRef.current) {
           const padded = {
             x: contentRectRef.current.x - CONTENT_PADDING_PX,
             y: contentRectRef.current.y - CONTENT_PADDING_PX,
@@ -154,8 +155,10 @@ export function MascotFreeRoam({
     const pickTargetFn = (i: number) => {
       const radius = mascotRadiiRef.current[i];
 
-      // 콘텐츠 박스를 피하면서 현재 위치로부터 적절히 떨어진 좌표 샘플링
-      const candidate = sampleAvoidingContent(radius, posRef.current[i]);
+      // 첫 움직임(moveCount === 0)에만 콘텐츠 회피, 이후는 자유롭게 이동
+      const avoidContent = moveCountRef.current[i] === 0;
+      const candidate = sampleAvoidingContent(radius, posRef.current[i], avoidContent);
+      moveCountRef.current[i] += 1;
 
       targetRef.current[i] = candidate;
       const dx = candidate.x - posRef.current[i].x;
@@ -340,9 +343,9 @@ export function MascotFreeRoam({
             hitBoundary = true;
           }
 
-          // 5. 콘텐츠 박스 충돌
+          // 5. 콘텐츠 박스 충돌 (첫 움직임 진행 중에만)
           let hitContent = false;
-          if (contentRectRef.current) {
+          if (contentRectRef.current && moveCountRef.current[i] <= 1) {
             const newVelocity = reflectOffRect(
               i,
               posRef.current[i],
@@ -496,7 +499,7 @@ export function MascotFreeRoam({
 
   if (reduceMotion) {
     return (
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 z-20">
         {MASCOT_ORDER.map((id, i) => {
           const meta = MASCOTS[id];
           const angle = (FALLBACK_ANGLES_DEG[i] * Math.PI) / 180;
@@ -526,7 +529,7 @@ export function MascotFreeRoam({
   const fadeOpacity = clamp01(1 - progress);
 
   return (
-    <div ref={containerRef} className="pointer-events-none absolute inset-0">
+    <div ref={containerRef} className="pointer-events-none absolute inset-0 z-20">
       <div className="absolute inset-0" style={{ opacity: fadeOpacity }}>
         {MASCOT_ORDER.map((id, i) => {
           const meta = MASCOTS[id];

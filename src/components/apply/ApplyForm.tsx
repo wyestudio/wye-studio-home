@@ -11,6 +11,7 @@ import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { formatKrw } from "@/lib/format";
 import { pushDataLayerEvent } from "@/lib/analytics";
 import { isDatingTheme } from "@/lib/theme";
+import { handlePointerFillOrigin } from "@/lib/pointerFillOrigin";
 import {
   isValidKoreanName,
   isValidNickname,
@@ -226,16 +227,6 @@ export function ApplyForm({
     if (e.key === "Backspace" && e.currentTarget.value === "" && prevId) {
       document.getElementById(prevId)?.focus();
     }
-  }
-
-  function handleSubmitPointerEnter(e: React.PointerEvent<HTMLButtonElement>) {
-    const el = e.currentTarget;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty("--origin-x", `${e.clientX - rect.left}px`);
-    el.style.setProperty("--origin-y", `${e.clientY - rect.top}px`);
-    // 버튼의 대각선 길이 × 2를 --fill-size로 계산해 어떤 지점을 눌러도 원이 버튼 전체를 덮도록 함
-    const diagonal = Math.hypot(rect.width, rect.height);
-    el.style.setProperty("--fill-size", `${diagonal * 2}px`);
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -469,7 +460,7 @@ export function ApplyForm({
         <button
           type="submit"
           disabled={pending}
-          onPointerEnter={handleSubmitPointerEnter}
+          onPointerEnter={handlePointerFillOrigin}
           className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50"
         >
           <span aria-hidden className="apply-submit-fill" />

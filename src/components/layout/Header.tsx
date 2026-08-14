@@ -37,15 +37,13 @@ export function Header() {
     { label: "Notice", href: "/notice" },
   ];
 
-  const isSessionDetailPage = pathname ? /^\/sessions\/[^/]+\/?$/.test(pathname) : false;
-
   return (
     <header
       ref={headerRef}
       className="sticky top-0 z-20"
     >
       {/* 데스크톱 헤더 */}
-      <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-6 ${isSessionDetailPage ? "bg-background/95 backdrop-blur-md" : ""}`}>
+      <div className="hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-6 bg-background/95 backdrop-blur-md">
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5">
             <Image

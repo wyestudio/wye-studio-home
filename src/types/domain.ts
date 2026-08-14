@@ -83,6 +83,7 @@ export type ApplicationLookupResult = {
   theme_label: string;
   venue_area: string;
   start_at: string;
+  end_at: string | null;
   event_date: string;
   slot: SessionSlot;
   price_krw: number;
@@ -90,6 +91,7 @@ export type ApplicationLookupResult = {
   payment_status: PaymentStatus;
   confirmation_code: string;
   created_at: string;
+  payment_confirmed_sms_sent_at: string | null;
   notes: string | null;
   waiting_number: number | null;
   attendees: ApplicationAttendee[];

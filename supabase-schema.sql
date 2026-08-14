@@ -2281,6 +2281,105 @@ $$;
 revoke all on function public.lookup_application(text, text) from public;
 grant execute on function public.lookup_application(text, text) to anon, authenticated;
 
+-- v14. lookup_application 확대 (end_at/payment_confirmed_sms_sent_at 추가) (2026-08-14)
+-- 배경: 신청내역 조회 결과 화면 개편 — 입금확인일 표시 + 참여완료 판별용 행사종료시간 필요
+
+drop function if exists public.lookup_application(text, text);
+
+create or replace function public.lookup_application(p_phone_digits text, p_confirmation_code text)
+returns table (
+  session_title text, theme_label text, venue_area text, start_at timestamptz, end_at timestamptz,
+  event_date date, slot text, price_krw int,
+  status text, payment_status text, confirmation_code text,
+  created_at timestamptz, payment_confirmed_sms_sent_at timestamptz, notes text,
+  waiting_number int,
+  attendees jsonb
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+stable
+as $$
+declare
+  v_phone_hash text := hash_phone(p_phone_digits);
+  v_session_id uuid;
+  v_status text;
+  v_theme text;
+  v_gender text;
+  v_waiting_number int;
+begin
+  -- 먼저 세션 정보 조회
+  select ap.session_id, ap.status, s.theme_label
+  into v_session_id, v_status, v_theme
+  from applications ap
+  join sessions s on s.id = ap.session_id
+  join application_attendees aa on aa.application_id = ap.id
+  where ap.confirmation_code = p_confirmation_code
+    and aa.phone_hash = v_phone_hash
+  limit 1;
+
+  -- waiting_number 계산
+  if v_status = 'waiting' then
+    if v_theme = '바-ㅇ탈출(ver.소개팅)' then
+      select aa2.gender into v_gender
+      from application_attendees aa2
+      join applications ap2 on ap2.id = aa2.application_id
+      where ap2.session_id = v_session_id
+        and ap2.confirmation_code = p_confirmation_code
+        and aa2.is_representative
+      limit 1;
+
+      select count(*) into v_waiting_number
+      from application_attendees aa2
+      join applications ap2 on ap2.id = aa2.application_id
+      where ap2.session_id = v_session_id
+        and ap2.status = 'waiting'
+        and aa2.gender = v_gender
+        and ap2.created_at <= (
+          select ap3.created_at from applications ap3
+          where ap3.confirmation_code = p_confirmation_code limit 1
+        );
+    else
+      select count(*) into v_waiting_number
+      from applications ap2
+      where ap2.session_id = v_session_id
+        and ap2.status = 'waiting'
+        and ap2.created_at <= (
+          select ap3.created_at from applications ap3
+          where ap3.confirmation_code = p_confirmation_code limit 1
+        );
+    end if;
+  else
+    v_waiting_number := null;
+  end if;
+
+  return query
+    select s.title, s.theme_label, s.venue_area, s.start_at, s.end_at,
+      s.event_date, s.slot, s.price_krw,
+      ap.status, ap.payment_status, ap.confirmation_code,
+      ap.created_at, ap.payment_confirmed_sms_sent_at, ap.notes,
+      v_waiting_number,
+      (select jsonb_agg(jsonb_build_object(
+          'name', decrypt_pii(aa2.name_enc),
+          'phone', decrypt_pii(aa2.phone_enc),
+          'birth_year', aa2.birth_year,
+          'nickname', aa2.nickname,
+          'gender', aa2.gender,
+          'experience_range', aa2.experience_range,
+          'is_representative', aa2.is_representative
+        ) order by aa2.is_representative desc)
+       from application_attendees aa2 where aa2.application_id = ap.id)
+    from applications ap
+    join sessions s on s.id = ap.session_id
+    join application_attendees aa on aa.application_id = ap.id
+    where ap.confirmation_code = p_confirmation_code
+      and aa.phone_hash = v_phone_hash
+    limit 1;
+end;
+$$;
+
+revoke all on function public.lookup_application(text, text) from public;
+grant execute on function public.lookup_application(text, text) to anon, authenticated;
 
 -- v13-2. cancel_application 신설
 create or replace function public.cancel_application(p_phone_digits text, p_confirmation_code text)
