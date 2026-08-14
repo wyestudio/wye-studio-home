@@ -16,6 +16,22 @@ import {
 } from "@/lib/validation";
 import type { Application, Gender } from "@/types/domain";
 
+export async function checkNicknameAvailability(
+  sessionId: string,
+  nickname: string
+): Promise<{ available: boolean } | { error: string }> {
+  if (!isValidNickname(nickname) || !nickname.trim()) {
+    return { error: "닉네임 형식을 먼저 확인해주세요." };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("check_nickname_available", {
+    p_session_id: sessionId,
+    p_nickname: nickname,
+  });
+  if (error) return { error: "확인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요." };
+  return { available: data as boolean };
+}
+
 export type AttendeeInput = {
   name: string;
   phone: string;
@@ -73,7 +89,15 @@ export async function applyAction(
 ): Promise<ApplyState> {
   const sessionId = String(formData.get("sessionId") ?? "");
   const depositorName = String(formData.get("depositorName") ?? "").trim();
-  const agreedTerms = formData.get("agreedTerms") === "on";
+  const consentAgeSelf = formData.get("consentAgeSelf") === "on";
+  const consentTerms = formData.get("consentTerms") === "on";
+  const consentNoRebooking = formData.get("consentNoRebooking") === "on";
+  const consentPii = formData.get("consentPii") === "on";
+  const consentPhoneCollection = formData.get("consentPhoneCollection") === "on";
+  const consentPrivacyPolicy = formData.get("consentPrivacyPolicy") === "on";
+  const consentProxyForGroup = formData.get("consentProxyForGroup") === "on" || false;
+  const consentPhoto = formData.get("consentPhoto") === "on";
+  const consentMarketing = formData.get("consentMarketing") === "on";
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const attendees = parseAttendees(formData);
 
@@ -96,8 +120,12 @@ export async function applyAction(
   if (!isValidKoreanName(depositorName)) {
     return { error: "입금자명은 한글 2~10자만 가능합니다.", attendees, notes };
   }
-  if (!agreedTerms) {
-    return { error: "약관에 동의해야 신청할 수 있습니다.", attendees, notes };
+
+  // 필수 동의 검증
+  const allRequiredConsents = consentAgeSelf && consentTerms && consentNoRebooking &&
+    consentPii && consentPhoneCollection && consentPrivacyPolicy;
+  if (!allRequiredConsents) {
+    return { error: "필수 약관에 모두 동의해야 신청할 수 있습니다.", attendees, notes };
   }
   if (attendees.length === 0) {
     return { error: "참여 인원을 입력해주세요.", attendees, notes };

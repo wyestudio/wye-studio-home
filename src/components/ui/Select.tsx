@@ -35,6 +35,21 @@ export function Select({
 
   const selectedLabel = options.find((opt) => opt.value === value)?.label || placeholder;
 
+  function handleArrowKey(direction: "up" | "down") {
+    const currentIndex = options.findIndex((opt) => opt.value === value);
+    let nextIndex = currentIndex;
+
+    if (direction === "down" && currentIndex < options.length - 1) {
+      nextIndex = currentIndex + 1;
+    } else if (direction === "up" && currentIndex > 0) {
+      nextIndex = currentIndex - 1;
+    }
+
+    if (nextIndex !== currentIndex) {
+      onChange(options[nextIndex].value);
+    }
+  }
+
   return (
     <div ref={containerRef} className="relative w-full">
       <button
@@ -42,7 +57,15 @@ export function Select({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={(e) => {
-          if (e.key === "Escape") setIsOpen(false);
+          if (e.key === "Escape") {
+            setIsOpen(false);
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            handleArrowKey("down");
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            handleArrowKey("up");
+          }
         }}
         className={`w-full rounded-lg border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow flex items-center justify-between ${
           invalid
@@ -59,7 +82,7 @@ export function Select({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 rounded-lg border border-border bg-surface shadow-lg z-10 overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-2 rounded-lg border border-border bg-surface shadow-lg z-10 overflow-hidden max-h-[220px] overflow-y-auto">
           {options.map((option) => (
             <button
               key={option.value}

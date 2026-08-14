@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useState } from "react";
-import { SessionCardFan } from "@/components/home/SessionCardFan";
+import { SessionCard } from "@/components/home/SessionCard";
 import type { Session } from "@/types/domain";
 
 export function ContentsCenteredCards({ sessions }: { sessions: Session[] }) {
@@ -41,8 +41,10 @@ export function ContentsCenteredCards({ sessions }: { sessions: Session[] }) {
         height: `calc(100dvh - ${spaceToRemove}px)`,
       }}
     >
-      <div className="mx-auto w-full max-w-4xl">
-        <SessionCardFan sessions={sessions} />
+      <div className="mx-auto grid w-full max-w-4xl gap-5 sm:grid-cols-2">
+        {sessions.map((session) => (
+          <SessionCard key={session.id} session={session} compact />
+        ))}
       </div>
     </div>
   );

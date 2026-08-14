@@ -42,6 +42,8 @@ export type AttendeeFieldErrors = {
   nickname?: string;
 };
 
+export type NicknameCheckState = "idle" | "checking" | "available" | "taken";
+
 export function AttendeeCard({
   index,
   attendee,
@@ -59,6 +61,8 @@ export function AttendeeCard({
   onGenderChange,
   onExperienceChange,
   onNicknameChange,
+  nicknameCheckState,
+  onNicknameCheckStart,
 }: {
   index: number;
   attendee: AttendeeState;
@@ -76,6 +80,8 @@ export function AttendeeCard({
   onGenderChange: (value: "M" | "F") => void;
   onExperienceChange: (value: string) => void;
   onNicknameChange: (value: string) => void;
+  nicknameCheckState?: NicknameCheckState;
+  onNicknameCheckStart?: () => void;
 }) {
   const combinedPhone = `${attendee.phone1}${attendee.phone2}${attendee.phone3}`;
   const isFormatInvalid = combinedPhone.length >= 10 && !isValidPhoneDigits(combinedPhone);
@@ -225,15 +231,36 @@ export function AttendeeCard({
           <label htmlFor={`attendee-${index}-nickname`} className="text-sm font-semibold text-foreground">
             닉네임 (선택)
           </label>
-          <input
-            id={`attendee-${index}-nickname`}
-            type="text"
-            placeholder="같은 회차 내에서 다른 참여자와 중복될 수 없어요"
-            value={attendee.nickname}
-            onChange={(e) => onNicknameChange(e.target.value)}
-            className={textInputClassName(!!errors.nickname)}
-          />
+          <div className="flex gap-2">
+            <input
+              id={`attendee-${index}-nickname`}
+              type="text"
+              placeholder="같은 회차 내에서 다른 참여자와 중복될 수 없어요"
+              value={attendee.nickname}
+              onChange={(e) => {
+                onNicknameChange(e.target.value);
+              }}
+              className={textInputClassName(!!errors.nickname)}
+            />
+            {attendee.nickname.trim() && (
+              <button
+                type="button"
+                onClick={onNicknameCheckStart}
+                disabled={nicknameCheckState === "checking" || !attendee.nickname.trim()}
+                className="px-3 py-2.5 rounded-lg border font-semibold text-sm whitespace-nowrap transition-all disabled:pointer-events-none disabled:opacity-50
+                  border-border bg-surface text-foreground hover:border-brand hover:text-brand"
+              >
+                {nicknameCheckState === "checking" ? "확인 중..." : "중복확인"}
+              </button>
+            )}
+          </div>
           <p className="text-xs text-muted">비워두면 이름으로 표시돼요.</p>
+          {nicknameCheckState === "available" && (
+            <p className="text-xs font-semibold text-confirm">사용 가능한 닉네임이에요.</p>
+          )}
+          {nicknameCheckState === "taken" && (
+            <p className="text-xs font-semibold text-danger">이미 사용 중인 닉네임이에요.</p>
+          )}
           {errors.nickname ? <p className="text-xs text-danger">{errors.nickname}</p> : null}
         </div>
       </div>
