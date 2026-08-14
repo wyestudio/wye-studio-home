@@ -2449,3 +2449,75 @@ grant execute on function public.check_active_applications(text[]) to anon, auth
 -- 미부여(PII 복호화는 서버 사이드 어드민 전용 유지).
 -- =========================================================
 grant execute on function public.decrypt_pii(bytea) to service_role;
+
+-- v17. applications 테이블 — 환불 계좌 정보 컬럼 (프로덕션 선반영분 문서화, 2026-08-15)
+-- 취소 기능에서 환불 금액/계좌를 기록해야 해서 추가된 컬럼들.
+-- refund_account_number_enc / refund_account_holder_enc는 PII이므로
+-- encrypt_pii() 함수로 암호화되어 저장됨(복호화는 decrypt_pii() 사용).
+-- refund_bank_name은 PII가 아니므로 평문 저장.
+-- =========================================================
+alter table applications
+  add column if not exists refund_bank_name text,
+  add column if not exists refund_account_number_enc bytea,
+  add column if not exists refund_account_holder_enc bytea;
+
+-- v18. cancel_application() 함수 갱신 — 환불 계좌 정보 저장 (2026-08-15)
+-- v13-2의 2-param 버전에서 3개 환불 파라미터 추가로 확장.
+-- 기존: cancel_application(text, text) — 전화번호 + 접수번호만
+-- 현행: cancel_application(text, text, text, text, text) — 위 2개 + 환불계좌 3개
+-- 환불 파라미터는 모두 optional(기본값 null), DB 저장 시 account 정보는 encrypt_pii() 암호화.
+-- =========================================================
+create or replace function public.cancel_application(p_phone_digits text, p_confirmation_code text, p_refund_bank_name text DEFAULT NULL::text, p_refund_account_number text DEFAULT NULL::text, p_refund_account_holder text DEFAULT NULL::text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions'
+AS $function$
+declare
+  v_phone_hash text := hash_phone(p_phone_digits);
+  v_application_id uuid;
+begin
+  select ap.id into v_application_id
+  from applications ap
+  join application_attendees aa on aa.application_id = ap.id
+  where ap.confirmation_code = p_confirmation_code
+    and aa.phone_hash = v_phone_hash
+    and ap.status <> 'cancelled'
+  limit 1;
+
+  if v_application_id is null then
+    raise exception '이미 취소되었거나 일치하는 신청 내역을 찾을 수 없어요.';
+  end if;
+
+  update applications set
+    status = 'cancelled',
+    payment_status = 'cancelled',
+    refund_bank_name = p_refund_bank_name,
+    refund_account_number_enc = case when p_refund_account_number is not null then encrypt_pii(p_refund_account_number) else null end,
+    refund_account_holder_enc = case when p_refund_account_holder is not null then encrypt_pii(p_refund_account_holder) else null end
+  where id = v_application_id;
+
+  return true;
+end;
+$function$;
+
+-- v19. admin_application_view 갱신 — 환불 정보 컬럼 추가 (2026-08-15)
+-- 어드민 페이지에서 취소된 신청의 환불 계좌 정보를 조회할 수 있도록
+-- refund_bank_name / refund_account_number / refund_account_holder 컬럼 추가.
+-- account 정보는 DB에서 암호화되어 있으므로 복호화(decrypt_pii)해서 노출.
+-- =========================================================
+create or replace view public.admin_application_view as
+select
+  ap.id,
+  ap.session_id,
+  decrypt_pii(ap.depositor_name_enc) as depositor_name,
+  ap.agreed_terms,
+  ap.confirmation_code,
+  ap.status,
+  ap.payment_status,
+  ap.notes,
+  ap.created_at,
+  ap.refund_bank_name,
+  decrypt_pii(ap.refund_account_number_enc) as refund_account_number,
+  decrypt_pii(ap.refund_account_holder_enc) as refund_account_holder
+from applications ap;

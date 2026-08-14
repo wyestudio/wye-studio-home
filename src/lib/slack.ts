@@ -58,7 +58,6 @@ export async function sendCancellationSlackAlert({
   sessionTitle,
   confirmationCode,
   representative,
-  wasPaymentConfirmed,
   refundAmount,
   refundBankName,
   refundAccountNumber,
@@ -67,33 +66,30 @@ export async function sendCancellationSlackAlert({
   sessionTitle: string;
   confirmationCode: string;
   representative: ApplicationAttendee;
-  wasPaymentConfirmed: boolean;
-  refundAmount?: number;
+  refundAmount: number;
   refundBankName?: string;
   refundAccountNumber?: string;
   refundAccountHolder?: string;
 }): Promise<void> {
-  const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+  const webhookUrl = process.env.SLACK_REFUND_WEBHOOK_URL;
   if (!webhookUrl) {
-    console.warn("[slack] SLACK_WEBHOOK_URL이 설정되지 않아 알림을 건너뜁니다.");
+    console.warn("[slack] SLACK_REFUND_WEBHOOK_URL이 설정되지 않아 환불 알림을 건너뜁니다.");
     return;
   }
 
   const textLines = [
-    `🚫 신청 취소 — ${sessionTitle}`,
+    `💰 환불 필요 — ${sessionTitle}`,
     `접수번호: ${confirmationCode}`,
     `신청자: ${representative.name} (${representative.phone})`,
+    "",
+    "💳 환불 금액 및 계좌",
+    `금액: ${formatKrw(refundAmount)}`,
   ];
 
-  if (wasPaymentConfirmed && refundAmount !== undefined) {
-    textLines.push("");
-    textLines.push("💰 환불 예정");
-    textLines.push(`금액: ${formatKrw(refundAmount)}`);
-    if (refundBankName && refundAccountNumber && refundAccountHolder) {
-      textLines.push(`은행: ${refundBankName}`);
-      textLines.push(`계좌: ${refundAccountNumber}`);
-      textLines.push(`예금주: ${refundAccountHolder}`);
-    }
+  if (refundBankName && refundAccountNumber && refundAccountHolder) {
+    textLines.push(`은행: ${refundBankName}`);
+    textLines.push(`계좌: ${refundAccountNumber}`);
+    textLines.push(`예금주: ${refundAccountHolder}`);
   }
 
   const text = textLines.join("\n");
@@ -105,9 +101,9 @@ export async function sendCancellationSlackAlert({
       body: JSON.stringify({ text }),
     });
     if (!res.ok) {
-      console.error(`[slack] 취소 알림 전송 실패: ${res.status} ${await res.text()}`);
+      console.error(`[slack] 환불 알림 전송 실패: ${res.status} ${await res.text()}`);
     }
   } catch (err) {
-    console.error("[slack] 취소 알림 전송 중 에러", err);
+    console.error("[slack] 환불 알림 전송 중 에러", err);
   }
 }

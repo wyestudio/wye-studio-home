@@ -70,12 +70,9 @@ export async function cancelApplicationAction(
     return { error: "취소 처리 중 오류가 발생했어요. 다시 시도해주세요." };
   }
 
-  // Slack 알림 발송 (after()로 감싸서 비동기 처리)
-  if (lookupResult) {
-    const wasPaymentConfirmed = lookupResult.payment_status === "confirmed";
-    const refundAmount = wasPaymentConfirmed
-      ? calculateRefundAmount(lookupResult.start_at, lookupResult.price_krw * lookupResult.attendees.length)
-      : undefined;
+  // 환불 필요한 경우만 Slack 알림 발송 (입금 확정 후 취소일 때) (after()로 감싸서 비동기 처리)
+  if (lookupResult && lookupResult.payment_status === "confirmed") {
+    const refundAmount = calculateRefundAmount(lookupResult.start_at, lookupResult.price_krw * lookupResult.attendees.length);
 
     after(async () => {
       try {
@@ -83,14 +80,13 @@ export async function cancelApplicationAction(
           sessionTitle: lookupResult.session_title,
           confirmationCode: lookupResult.confirmation_code,
           representative: lookupResult.attendees[0],
-          wasPaymentConfirmed,
           refundAmount,
           refundBankName: refundInfo?.bankName,
           refundAccountNumber: refundInfo?.accountNumber,
           refundAccountHolder: refundInfo?.accountHolder,
         });
       } catch (err) {
-        console.error("[lookup] 취소 알림 발송 중 에러", err);
+        console.error("[lookup] 환불 알림 발송 중 에러", err);
       }
     });
   }

@@ -293,6 +293,7 @@ export function LookupResult() {
         onCancel={() => setShowCancelDialog(false)}
         onConfirm={handleCancelConfirm}
         danger
+        error={cancelError}
       />
     </>
   );
