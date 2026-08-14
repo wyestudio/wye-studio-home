@@ -75,6 +75,7 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/
         <ApplyForm
           sessionId={session.id}
           priceKrw={session.price_krw}
+          originalPriceKrw={session.original_price_krw}
           sessionTitle={session.title}
           eventDate={session.event_date}
           themeLabel={session.theme_label}

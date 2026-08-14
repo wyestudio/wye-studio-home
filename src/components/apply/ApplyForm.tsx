@@ -39,6 +39,7 @@ const emptyAttendee: AttendeeState = {
 export function ApplyForm({
   sessionId,
   priceKrw,
+  originalPriceKrw,
   sessionTitle,
   eventDate,
   themeLabel,
@@ -50,6 +51,7 @@ export function ApplyForm({
 }: {
   sessionId: string;
   priceKrw: number;
+  originalPriceKrw: number;
   sessionTitle: string;
   eventDate: string;
   themeLabel: string;
@@ -421,14 +423,21 @@ export function ApplyForm({
 
         {/* 요금 패널 — 모바일: DOM 순서상 1번째(안내사항보다 먼저), 데스크톱: lg:order-2로 2번째 */}
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 lg:order-2">
-          <div className="flex items-start justify-between gap-3">
-            <span className="shrink-0 text-sm font-semibold text-foreground">할인</span>
-            <span className="text-right text-sm font-semibold text-foreground">베타 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }}>5,000원</span> 페이백</span>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">기본가</span>
+            <span className="text-sm font-semibold text-foreground">{formatKrw(originalPriceKrw * attendeeCount)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-foreground">할인 (베타 기간 한정)</span>
+            <span className="text-sm font-semibold text-foreground">-{formatKrw((originalPriceKrw - priceKrw) * attendeeCount)}</span>
           </div>
           <div className="flex items-center justify-between border-t border-border pt-3">
             <span className="text-sm font-semibold text-foreground">요금</span>
             <span className="text-xl font-extrabold text-foreground">{formatKrw(priceKrw * attendeeCount)}</span>
           </div>
+          <p className="text-xs text-muted">
+            베타 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }} className="font-semibold">5,000원</span> 페이백
+          </p>
         </div>
 
         {/* 안내사항 — 모바일: DOM 순서상 2번째(요금 다음), 데스크톱: lg:order-1로 요금보다 앞으로 */}
