@@ -627,7 +627,7 @@ export function ApplyForm({
         {currentStep === 1 && (
           <>
             {/* 단계 2: 약관동의 */}
-            <ApplyConsent partySize={attendeeCount} value={consents} onChange={setConsents} />
+            <ApplyConsent partySize={attendeeCount} value={consents} onChange={setConsents} isDatingSession={isDatingSession} />
             {submitAttempted && validationErrors.some((e) => e.field === "consents") && (
               <p className="text-sm text-danger mt-4">{validationErrors.find((e) => e.field === "consents")!.message}</p>
             )}

@@ -30,10 +30,12 @@ export function ApplyConsent({
   partySize,
   value,
   onChange,
+  isDatingSession = false,
 }: {
   partySize: number;
   value: ConsentState;
   onChange: (next: ConsentState) => void;
+  isDatingSession?: boolean;
 }) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -106,6 +108,11 @@ export function ApplyConsent({
           참가 전 안내사항
         </h2>
         <p className="mt-1 text-xs text-muted">약관 및 동의 사항을 확인해주세요.</p>
+        {isDatingSession && (
+          <p className="mt-2 text-xs text-muted">
+            2부부터는 음주가 가능합니다. 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다.
+          </p>
+        )}
       </div>
 
       {/* 전체 동의 (필수 + 선택) */}
