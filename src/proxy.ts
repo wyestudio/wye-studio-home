@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { verifyAdminToken } from "@/lib/adminAuth";
+import { verifySiteGateToken } from "@/lib/siteGateAuth";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인 시스템은 더 이상
 // 활성 플로우에서 쓰이지 않음. 삭제하지 않고 보존 — 결제 연동 등으로 계정이 다시
@@ -9,17 +10,60 @@ import { verifyAdminToken } from "@/lib/adminAuth";
 // sessions/*/apply는 이제 로그인 없이 누구나 접근 가능해야 해서 가드에서 제외했다.
 const PROTECTED_PATTERN = /^\/(account|auth\/(naver|kakao)\/link)/;
 
+const ADMIN_HOSTS = new Set([
+  "admin.wouldyouescape.com",
+  "test.admin.wouldyouescape.com",
+  "admin.localhost:3000",
+  "test.admin.localhost:3000",
+]);
+
+const SITE_GATE_PATH = process.env.SITE_GATE_PATH || "/site-gate-w3k9m5x7";
+
+function isAdminHost(host: string): boolean {
+  return ADMIN_HOSTS.has(host);
+}
+
 function isAdminProtectedPath(pathname: string): boolean {
   const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
-  // 어드민 경로 중에서 /login 제외
   const adminRegex = new RegExp(`^${adminPath}(?!/login$)`);
   return adminRegex.test(pathname);
 }
 
 export async function proxy(request: NextRequest) {
-  const response = await updateSession(request);
+  const host = request.headers.get("host") || "";
+  const pathname = request.nextUrl.pathname;
+  const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
+  const onAdminHost = isAdminHost(host);
+  const isApiPath = pathname.startsWith("/api/");
 
-  if (PROTECTED_PATTERN.test(request.nextUrl.pathname)) {
+  // 0단계: admin 호스트가 아닌데 /admin-x7f9k2m3으로 직접 접근 시 404
+  if (!onAdminHost && new RegExp(`^${adminPath}(/|$)`).test(pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  // 1단계: 사이트 전체 비밀번호 게이트
+  const sitePassword = process.env.SITE_ACCESS_PASSWORD;
+  if (sitePassword && !isApiPath && !pathname.startsWith(SITE_GATE_PATH)) {
+    const gateCookie = request.cookies.get("site_gate_auth")?.value;
+    if (!gateCookie || !verifySiteGateToken(gateCookie)) {
+      const loginUrl = new URL(`${SITE_GATE_PATH}/login`, request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // 2단계: admin 호스트 → 내부 경로 rewrite 대상 계산
+  let effectivePathname = pathname;
+  let needsRewrite = false;
+  if (onAdminHost && !isApiPath && !pathname.startsWith(adminPath)) {
+    effectivePathname = pathname === "/" ? adminPath : `${adminPath}${pathname}`;
+    needsRewrite = true;
+  }
+
+  // 3단계: PROTECTED_PATTERN 및 admin 인증 체크 (effectivePathname 기준)
+  let earlyResponse: NextResponse | null = null;
+
+  if (PROTECTED_PATTERN.test(effectivePathname)) {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -29,7 +73,7 @@ export async function proxy(request: NextRequest) {
             return request.cookies.getAll();
           },
           setAll() {
-            // Session refresh already handled by updateSession above.
+            // Session refresh already handled by updateSession below.
           },
         },
       }
@@ -41,23 +85,33 @@ export async function proxy(request: NextRequest) {
 
     if (!user) {
       const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
+      loginUrl.searchParams.set("redirect", pathname);
+      earlyResponse = NextResponse.redirect(loginUrl);
     }
   }
 
-  // 어드민 경로 보호 (서명된 토큰 검증)
-  if (isAdminProtectedPath(request.nextUrl.pathname)) {
+  if (!earlyResponse && isAdminProtectedPath(effectivePathname)) {
     const adminCookie = request.cookies.get("admin_auth")?.value;
     if (!adminCookie || !verifyAdminToken(adminCookie)) {
-      const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
-      const loginUrl = new URL(`${adminPath}/login`, request.url);
-      loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
-      return NextResponse.redirect(loginUrl);
+      const loginUrl = onAdminHost
+        ? new URL("/login", request.url)
+        : new URL(`${adminPath}/login`, request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      earlyResponse = NextResponse.redirect(loginUrl);
     }
   }
 
-  return response;
+  if (earlyResponse) return earlyResponse;
+
+  // 4단계: 최종 응답 조립
+  const sessionResponse = await updateSession(request);
+  if (!needsRewrite) return sessionResponse;
+
+  const rewriteUrl = new URL(effectivePathname + request.nextUrl.search, request.url);
+  const rewritten = NextResponse.rewrite(rewriteUrl, { request });
+  // updateSession이 세팅한 쿠키를 rewrite 응답에 옮겨 담기
+  sessionResponse.cookies.getAll().forEach((cookie) => rewritten.cookies.set(cookie));
+  return rewritten;
 }
 
 export const config = {

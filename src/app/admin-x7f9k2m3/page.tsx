@@ -32,7 +32,7 @@ export default async function AdminDashboard() {
           </div>
           <div className="flex gap-2">
             <Link
-              href="/admin-x7f9k2m3/analytics"
+              href="/analytics"
               className="px-3 py-2 text-sm bg-glow text-glow-foreground rounded hover:opacity-90 transition-opacity"
             >
               분석 보기
@@ -46,7 +46,7 @@ export default async function AdminDashboard() {
             sessions.map((session) => (
               <Link
                 key={session.id}
-                href={`/admin-x7f9k2m3/sessions/${session.id}`}
+                href={`/sessions/${session.id}`}
                 className="block p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-start justify-between gap-4">
@@ -64,7 +64,7 @@ export default async function AdminDashboard() {
                         정원: {session.capacity_max}명
                       </div>
                     </div>
-                    <CopyUrlButton url={`https://wouldyouescape.com/sessions/${session.slug}`} />
+                    <CopyUrlButton url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://wouldyouescape.com"}/sessions/${session.slug}`} />
                   </div>
                 </div>
               </Link>

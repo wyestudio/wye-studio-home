@@ -9,7 +9,7 @@ export function LogoutButton() {
   const handleLogout = () => {
     startTransition(async () => {
       await logoutAdmin();
-      window.location.href = "/admin-x7f9k2m3/login";
+      window.location.href = "/login";
     });
   };
 

@@ -2,11 +2,11 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { verifyAdminPassword } from "./actions";
+import { verifySiteGatePassword } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminLoginPage() {
+export default function SiteGateLoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect") || "/";
@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
     setError("");
 
     try {
-      const result = await verifyAdminPassword(password);
+      const result = await verifySiteGatePassword(password);
       if (result.error) {
         setError(result.error);
       } else {
@@ -39,8 +39,8 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold">관리자 로그인</h1>
-            <p className="text-sm text-muted mt-1">운영 대시보드에 접근하려면 비밀번호를 입력해주세요.</p>
+            <h1 className="text-2xl font-bold">사이트 접근</h1>
+            <p className="text-sm text-muted mt-1">이 사이트에 접근하려면 비밀번호를 입력해주세요.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
               disabled={isLoading || !password}
               className="w-full px-4 py-2 bg-glow text-white rounded-md font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
             >
-              {isLoading ? "확인 중..." : "로그인"}
+              {isLoading ? "확인 중..." : "입장"}
             </button>
           </form>
         </div>

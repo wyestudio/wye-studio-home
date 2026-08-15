@@ -13,10 +13,12 @@ export async function sendApplicationSlackAlert({
   session,
   application,
   attendees,
+  isTest = false,
 }: {
   session: Session;
   application: Application;
   attendees: AttendeeInput[];
+  isTest?: boolean;
 }): Promise<void> {
   const webhookUrl = process.env.SLACK_WEBHOOK_URL;
   if (!webhookUrl) {
@@ -29,8 +31,9 @@ export async function sendApplicationSlackAlert({
     .map((a, i) => `${i === 0 ? "대표" : "동행"} ${a.name} (${a.phone})`)
     .join("\n");
 
+  const prefix = isTest ? "[테스트] " : "";
   const text = [
-    `📥 새 신청 — ${session.title}`,
+    `${prefix}📥 새 신청 — ${session.title}`,
     `일시: ${formatSessionDateTime(session.start_at)}`,
     `상태: ${STATUS_LABEL[application.status]} · 인원 ${attendees.length}명`,
     `대표 신청자: ${representative?.name ?? "-"} (${representative?.phone ?? "-"})`,

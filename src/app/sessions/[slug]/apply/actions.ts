@@ -7,6 +7,7 @@ import { getSessionById } from "@/lib/sessions";
 import { sendApplicationSlackAlert } from "@/lib/slack";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { isDatingTheme } from "@/lib/theme";
+import { sendApplicationConfirmationSms } from "@/lib/sms";
 import {
   isValidKoreanName,
   isValidNickname,
@@ -234,7 +235,14 @@ export async function applyAction(
 
   after(async () => {
     try {
-      await Promise.all([sendApplicationSlackAlert({ session, application, attendees })]);
+      const isTest = process.env.NEXT_PUBLIC_IS_TEST_ENV === "true";
+      const tasks = [
+        sendApplicationSlackAlert({ session, application, attendees, isTest }),
+      ];
+      if (!isTest) {
+        tasks.push(sendApplicationConfirmationSms({ session, application, attendees }));
+      }
+      await Promise.all(tasks);
     } catch (err) {
       console.error("[notify] 신청 알림 처리 중 에러", err);
     }

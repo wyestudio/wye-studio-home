@@ -7,6 +7,7 @@ import { Footer } from "@/components/layout/Footer";
 import { StarfieldCanvas } from "@/components/space/StarfieldCanvas";
 import { MascotCursor } from "@/components/space/MascotCursor";
 import { MascotSelectionProvider } from "@/components/space/MascotSelectionContext";
+import TestEnvBanner from "@/components/layout/TestEnvBanner";
 import "./globals.css";
 
 // SUIT(가변 폰트, SIL OFL) — https://github.com/sun-typeface/SUIT
@@ -21,7 +22,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = "https://wouldyouescape.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://wouldyouescape.com";
 const SITE_DESCRIPTION =
   "방탈출과 로테이션 소개팅을 결합한 우주이스케이프 베타 오픈. 8/29 오후·저녁 회차 참가 신청.";
 
@@ -109,6 +110,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <MascotSelectionProvider>
           <StarfieldCanvas />
           <MascotCursor />
+          <TestEnvBanner />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
