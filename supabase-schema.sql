@@ -2669,3 +2669,39 @@ $$;
 
 revoke all on function public.submit_application(uuid, text, boolean, boolean, jsonb, text) from public;
 grant execute on function public.submit_application(uuid, text, boolean, boolean, jsonb, text) to anon, authenticated;
+
+-- v21. admin_application_view 갱신 — agreed_terms 대신 consent_required/
+-- consent_optional 노출 (2026-08-15)
+-- v20에서 submit_application()이 더 이상 agreed_terms를 채우지 않게 되면서
+-- (해당 컬럼은 not null default false로만 남음) 이 뷰의 agreed_terms가 항상
+-- false만 보여주는 죽은 컬럼이 됐다. CREATE OR REPLACE VIEW는 기존 컬럼을
+-- 제거할 수 없어(PostgreSQL 제약) DROP 후 재생성함 — 이 뷰에 의존하는 다른
+-- 뷰/함수가 없음을 pg_depend로 먼저 확인했다.
+drop view if exists public.admin_application_view;
+
+create view public.admin_application_view as
+select
+  ap.id,
+  ap.session_id,
+  decrypt_pii(ap.depositor_name_enc) as depositor_name,
+  ap.consent_required,
+  ap.consent_optional,
+  ap.confirmation_code,
+  ap.status,
+  ap.payment_status,
+  ap.notes,
+  ap.created_at,
+  ap.refund_bank_name,
+  decrypt_pii(ap.refund_account_number_enc) as refund_account_number,
+  decrypt_pii(ap.refund_account_holder_enc) as refund_account_holder
+from applications ap;
+
+grant select on admin_application_view to service_role;
+
+-- v22. sessions 테이블에 service_role SELECT grant 추가 (2026-08-15)
+-- 어드민 페이지(createAdminClient, service_role 키 사용)가 sessions 테이블을
+-- 조회할 때 "permission denied for table sessions"로 대시보드/세션 상세 페이지가
+-- 모두 실패하고 있었음 — v21 검증 중 발견. 언제부터 이 grant가 빠졌는지는
+-- 기록이 없다(ad-hoc 변경 추정). sessions는 원래 "조회는 전체 공개" 정책이라
+-- service_role에 select를 열어줘도 위험 없음.
+grant select on public.sessions to service_role;
