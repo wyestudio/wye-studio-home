@@ -175,7 +175,7 @@ export async function applyAction(
     return { error: "비고는 200자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.", attendees, notes };
   }
 
-  const consentRequired = consentAgeSelf && consentTerms && consentNoRebooking && consentPii && consentPhoneCollection && consentPrivacyPolicy && consentProxyForGroup;
+  const consentRequired = consentAgeSelf && consentTerms && consentNoRebooking && consentPii && consentPhoneCollection && consentPrivacyPolicy && (attendees.length <= 1 || consentProxyForGroup);
   if (!consentRequired) {
     return { error: "필수 약관에 모두 동의해야 신청할 수 있습니다.", attendees, notes };
   }
