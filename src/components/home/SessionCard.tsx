@@ -27,9 +27,9 @@ export function SessionCard({ session, compact = false }: { session: Session; co
       }`}
     >
       {/* 태그 + 타이틀 */}
-      <div className={`flex flex-col ${compact ? "gap-1 sm:gap-2" : "gap-2"}`}>
-        <ThemeTag themeLabel={session.theme_label} />
-        <h3 className={`font-extrabold leading-tight ${compact ? "text-xl sm:text-3xl" : "text-2xl sm:text-3xl"}`} style={{ color: "var(--hud-accent)" }}>
+      <div className={`flex items-center gap-2 ${compact ? "sm:gap-3" : "gap-3"}`}>
+        <ThemeTag themeLabel={session.theme_label} className={`font-extrabold leading-tight flex-shrink-0 ${compact ? "text-xl sm:text-3xl" : "text-2xl sm:text-3xl"}`} />
+        <h3 className="text-xs sm:text-sm font-semibold text-muted leading-tight flex-shrink-0">
           {themeBaseName}
         </h3>
       </div>

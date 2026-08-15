@@ -93,10 +93,10 @@ export function ApplyComplete({
           <div className="flex flex-col gap-2 pr-6">
             <p className="text-sm font-bold text-muted">신청 정보</p>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold" style={{ color: accentColor }}>
+              <ThemeTag themeLabel={themeLabel} className="text-lg font-bold" />
+              <span className="text-xs font-semibold text-muted">
                 {getThemeBaseName(themeLabel)}
               </span>
-              <ThemeTag themeLabel={themeLabel} />
             </div>
             <p className="text-sm text-foreground">{formatSessionDateTime(startAt)}</p>
             <p className="text-sm text-muted">{venueArea}</p>

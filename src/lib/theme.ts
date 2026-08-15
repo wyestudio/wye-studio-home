@@ -10,7 +10,7 @@ export function isDatingTheme(themeLabel: string | undefined): boolean {
 }
 
 export function getThemeTag(themeLabel: string | undefined): string {
-  return isDatingTheme(themeLabel) ? "소개팅" : "모임";
+  return isDatingTheme(themeLabel) ? "소개팅" : "그룹";
 }
 
 export function getThemeBaseName(themeLabel: string | undefined): string {

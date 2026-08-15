@@ -157,10 +157,10 @@ export function LookupResult() {
       {/* 신청 정보 카드 (헤더 없음) */}
       <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold" style={{ color: accentColor }}>
+          <ThemeTag themeLabel={result.theme_label} className="text-lg font-bold" />
+          <span className="text-xs font-semibold text-muted">
             {getThemeBaseName(result.theme_label)}
           </span>
-          <ThemeTag themeLabel={result.theme_label} />
         </div>
         <InfoRow label="날짜" value={formatSessionDate(result.event_date)} />
         <InfoRow label="시간" value={formatSessionTime(result.start_at)} />

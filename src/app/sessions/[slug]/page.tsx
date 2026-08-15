@@ -155,9 +155,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
         {/* 제목 + 뱃지 */}
         <div>
-          <div className="mb-3 flex items-center gap-2">
-            <h1 className="text-3xl font-extrabold">{themeName}</h1>
-            <ThemeTag themeLabel={session.theme_label} size="lg" />
+          <div className="mb-3 flex items-center gap-3">
+            <ThemeTag themeLabel={session.theme_label} className="text-3xl font-extrabold" />
+            <h1 className="text-lg font-semibold text-muted">{themeName}</h1>
           </div>
         </div>
 
@@ -199,9 +199,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         <div className="flex flex-1 flex-col justify-between">
           {/* 상단: 제목 + 뱃지 + 정보 (데스크톱만) */}
           <div>
-            <div className="mb-3 flex items-center gap-2">
-              <h1 className="text-6xl lg:text-5xl font-extrabold">{themeName}</h1>
-              <ThemeTag themeLabel={session.theme_label} size="lg" />
+            <div className="mb-3 flex items-center gap-3">
+              <ThemeTag themeLabel={session.theme_label} className="text-5xl lg:text-6xl font-extrabold" />
+              <h1 className="text-lg font-semibold text-muted">{themeName}</h1>
             </div>
 
             {/* 데스크톱에서만 정보 표시 */}

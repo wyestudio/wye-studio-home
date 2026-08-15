@@ -92,8 +92,9 @@ html.custom-cursor-active label {
    사각형 + 얇은 네온 흰 테두리로 단순화. 이전 배경은 color-mix로 만든 완전
    불투명 그라디언트라 backdrop-filter blur를 줘도 뒤가 전혀 안 비쳤는데
    ("불투명한 디스플레이 느낌" 피드백), 진짜 알파 투명도가 있는 배경으로
-   바꿔서 실제로 뒤 별빛이 흐릿하게 비치게 한다. --hud-accent는 테마 텍스트
-   색(회차 카드 제목 등)에만 쓰고 테두리/글로우는 항상 흰색으로 통일. */
+   바꿔서 실제로 뒤 별빛이 흐릿하게 비치게 한다. 기본은 흰 테두리,
+   group/dating variant는 테마색 테두리로 재정의. --hud-accent는 테마 텍스트
+   색(회차 카드 제목 등)과 테두리에도 쓰임. */
 .hud-panel {
   --hud-accent: var(--glow);
   position: relative;
@@ -153,10 +154,20 @@ html.custom-cursor-active label {
 
 .hud-panel-group {
   --hud-accent: #3dffb0;
+  border-color: rgba(61, 255, 176, 0.4);
+}
+
+.hud-panel-group:hover {
+  border-color: rgba(61, 255, 176, 0.7);
 }
 
 .hud-panel-dating {
   --hud-accent: #ff5ec4;
+  border-color: rgba(255, 94, 196, 0.4);
+}
+
+.hud-panel-dating:hover {
+  border-color: rgba(255, 94, 196, 0.7);
 }
 
 /* 회차 테마가 없는 일반 콘텐츠 카드용 — 새 색을 또 만들지 않고 히어로/CTA에서

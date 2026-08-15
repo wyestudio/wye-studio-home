@@ -23,9 +23,9 @@ export function ApplySessionSummary({
 
   return (
     <div className={`hud-panel relative flex flex-col gap-5 p-6 ${colorVariant}`}>
-      <div className="flex flex-col gap-2">
-        <ThemeTag themeLabel={themeLabel} />
-        <h3 className="text-2xl font-extrabold leading-tight" style={{ color: "var(--hud-accent)" }}>
+      <div className="flex items-center gap-3">
+        <ThemeTag themeLabel={themeLabel} className="text-2xl font-extrabold" />
+        <h3 className="text-sm font-semibold text-muted leading-tight">
           {themeBaseName}
         </h3>
       </div>
