@@ -22,6 +22,7 @@ import {
 import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
 import { AttendeeCard, type NicknameCheckState } from "@/components/apply/AttendeeCard";
 import { AttendeeTabs } from "@/components/apply/AttendeeTabs";
+import { ValidationToast } from "@/components/apply/ValidationToast";
 import { type AttendeeState, type AttendeeField, type ValidationError } from "@/components/apply/types";
 
 const initialState: ApplyState = {};
@@ -85,6 +86,8 @@ export function ApplyForm({
   const [notes, setNotes] = useState("");
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [pendingFocusId, setPendingFocusId] = useState<string | null>(null);
   const [nicknameCheckState, setNicknameCheckState] = useState<Record<number, NicknameCheckState>>(
     () => {
       const initial: Record<number, NicknameCheckState> = {};
@@ -107,6 +110,47 @@ export function ApplyForm({
   const displayError = themeConflictActive
     ? "같은 테마에 이미 신청하신 분이 포함되어 있어요. 중복 신청은 불가합니다."
     : state.error;
+
+  const ATTENDEE_FIELD_ORDER = ["name", "phone", "birthYear", "gender", "nickname"] as const;
+
+  function findFirstStep1ErrorTarget(errors: ValidationError[]) {
+    let bestIndex: number | null = null;
+    let bestPriority = Infinity;
+    for (const err of errors) {
+      const match = /^attendee-(\d+)-(.+)$/.exec(err.field);
+      if (!match) continue;
+      const idx = Number(match[1]);
+      const priority = ATTENDEE_FIELD_ORDER.indexOf(match[2] as typeof ATTENDEE_FIELD_ORDER[number]);
+      if (priority === -1) continue;
+      if (bestIndex === null || idx < bestIndex || (idx === bestIndex && priority < bestPriority)) {
+        bestIndex = idx;
+        bestPriority = priority;
+      }
+    }
+    if (bestIndex !== null) {
+      const field = ATTENDEE_FIELD_ORDER[bestPriority];
+      const id = field === "phone" ? `attendee-${bestIndex}-phone1`
+        : field === "gender" ? `attendee-${bestIndex}-gender-group`
+        : `attendee-${bestIndex}-${field}`;
+      return { id, attendeeIndex: bestIndex };
+    }
+    if (errors.some((e) => e.field === "notes")) return { id: "notes", attendeeIndex: null };
+    if (errors.some((e) => e.field === "depositorName")) return { id: "depositorName", attendeeIndex: null };
+    return null;
+  }
+
+  const CONSENT_FIELD_ORDER: Array<[keyof ConsentState, string]> = [
+    ["ageSelf", "age-self"], ["terms", "terms"], ["pii", "pii"], ["privacyPolicy", "privacy-policy"],
+    ["noRebooking", "no-rebooking"], ["phoneCollection", "phone-collection"], ["proxyForGroup", "proxy-for-group"],
+  ];
+
+  function findFirstConsentErrorId(): string | null {
+    for (const [key, id] of CONSENT_FIELD_ORDER) {
+      if (key === "proxyForGroup" && attendeeCount <= 1) continue;
+      if (!consents[key]) return id;
+    }
+    return null;
+  }
 
   const validateStep1 = useCallback((): ValidationError[] => {
     const errors: ValidationError[] = [];
@@ -264,6 +308,19 @@ export function ApplyForm({
     }
   }, [state.application]);
 
+  useEffect(() => {
+    if (!pendingFocusId) return;
+    const el = document.getElementById(pendingFocusId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (pendingFocusId.endsWith("-gender-group")) {
+      el.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus({ preventScroll: true });
+    } else {
+      el.focus?.({ preventScroll: true });
+    }
+    setPendingFocusId(null);
+  }, [pendingFocusId, activeAttendeeIndex]);
+
   function updateAttendeeCount(count: number) {
     setAttendeeCount(count);
     setActiveAttendeeIndex((prev) => Math.min(prev, count - 1));
@@ -332,6 +389,16 @@ export function ApplyForm({
       const errors = validateStep1();
       if (errors.length > 0) {
         setSubmitAttempted(true);
+        const target = findFirstStep1ErrorTarget(errors);
+        if (target) {
+          if (target.attendeeIndex !== null) setActiveAttendeeIndex(target.attendeeIndex);
+          setToastMessage(
+            target.attendeeIndex !== null && target.attendeeIndex > 0
+              ? "동행자 정보를 확인해주세요."
+              : "신청자 정보를 확인해주세요."
+          );
+          setPendingFocusId(target.id);
+        }
         return;
       }
 
@@ -352,6 +419,11 @@ export function ApplyForm({
       const errors = validateStep2();
       if (errors.length > 0) {
         setSubmitAttempted(true);
+        const id = findFirstConsentErrorId();
+        if (id) {
+          setToastMessage("약관 동의를 확인해주세요.");
+          setPendingFocusId(id);
+        }
         return;
       }
       setCurrentStep(2);
@@ -420,6 +492,8 @@ export function ApplyForm({
 
   return (
     <>
+      <ValidationToast message={toastMessage} onClose={() => setToastMessage(null)} />
+
       <h1 className="mb-6 text-2xl font-extrabold">참여 신청</h1>
 
       {/* Sticky 진행 표시줄 */}

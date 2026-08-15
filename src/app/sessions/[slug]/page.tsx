@@ -67,7 +67,7 @@ function SessionMetaList({
       {items.map((item) => (
         <div key={item.label} className="flex items-center justify-between gap-4">
           <dt className="text-muted">{item.label}</dt>
-          <dd className="font-semibold text-foreground">{item.value}</dd>
+          <dd className="font-semibold text-foreground text-right">{item.value}</dd>
         </div>
       ))}
     </dl>

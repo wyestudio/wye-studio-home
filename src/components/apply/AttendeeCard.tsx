@@ -182,7 +182,7 @@ export function AttendeeCard({
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-foreground">성별</label>
-          <div className="flex gap-2">
+          <div id={`attendee-${index}-gender-group`} className="flex gap-2">
             <button
               type="button"
               disabled={isDatingSession && femaleClosed}
