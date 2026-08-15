@@ -110,7 +110,7 @@ export async function applyAction(
   const consentPii = formData.get("consentPii") === "on";
   const consentPhoneCollection = formData.get("consentPhoneCollection") === "on";
   const consentPrivacyPolicy = formData.get("consentPrivacyPolicy") === "on";
-  const consentProxyForGroup = formData.get("consentProxyForGroup") === "on" || false;
+  const consentProxyForGroup = formData.get("consentProxyForGroup") === "on";
   const consentPhoto = formData.get("consentPhoto") === "on";
   const consentMarketing = formData.get("consentMarketing") === "on";
   const notes = String(formData.get("notes") ?? "").trim() || null;
@@ -136,12 +136,6 @@ export async function applyAction(
     return { error: "입금자명은 한글 2~10자만 가능합니다.", attendees, notes };
   }
 
-  // 필수 동의 검증
-  const allRequiredConsents = consentAgeSelf && consentTerms && consentNoRebooking &&
-    consentPii && consentPhoneCollection && consentPrivacyPolicy;
-  if (!allRequiredConsents) {
-    return { error: "필수 약관에 모두 동의해야 신청할 수 있습니다.", attendees, notes };
-  }
   if (attendees.length === 0) {
     return { error: "참여 인원을 입력해주세요.", attendees, notes };
   }
@@ -180,6 +174,13 @@ export async function applyAction(
     return { error: "비고는 200자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.", attendees, notes };
   }
 
+  const consentRequired = consentAgeSelf && consentTerms && consentNoRebooking && consentPii && consentPhoneCollection && consentPrivacyPolicy && consentProxyForGroup;
+  if (!consentRequired) {
+    return { error: "필수 약관에 모두 동의해야 신청할 수 있습니다.", attendees, notes };
+  }
+
+  const consentOptional = consentPhoto && consentMarketing;
+
   const digitCounts = new Map<string, number>();
   for (const attendee of attendees) {
     const digits = phoneDigits(attendee.phone);
@@ -202,15 +203,8 @@ export async function applyAction(
     .rpc("submit_application", {
       p_session_id: sessionId,
       p_depositor_name: depositorName,
-      p_consent_age_self: consentAgeSelf,
-      p_consent_terms: consentTerms,
-      p_consent_no_rebooking: consentNoRebooking,
-      p_consent_pii: consentPii,
-      p_consent_phone_collection: consentPhoneCollection,
-      p_consent_privacy_policy: consentPrivacyPolicy,
-      p_consent_proxy_for_group: consentProxyForGroup,
-      p_consent_photo: consentPhoto,
-      p_consent_marketing: consentMarketing,
+      p_consent_required: consentRequired,
+      p_consent_optional: consentOptional,
       p_attendees: attendees.map((a) => ({
         name: a.name,
         phone: a.phone,

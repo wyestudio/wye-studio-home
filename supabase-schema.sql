@@ -124,8 +124,9 @@ create table applications (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references sessions(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
-  depositor_name text not null,
-  agreed_terms boolean not null default false,
+  depositor_name_enc bytea not null,
+  consent_required boolean not null default false,
+  consent_optional boolean not null default false,
   confirmation_code text not null unique,
   status text not null default 'waiting' check (status in ('waiting', 'confirmed', 'cancelled')),
   payment_status text not null default 'pending' check (payment_status in ('pending', 'confirmed', 'cancelled')),
@@ -1949,17 +1950,17 @@ grant select, update on applications to service_role;
 grant select on session_venues to service_role;
 
 
--- v12-8. submit_application() 파라미터 복구 (p_notes 재추가)
--- v12-4에서 정원/대기 로직 재작성 시 실수로 p_notes를 제거했는데, 비고(notes)
--- 기능은 여전히 UI/검증/저장에서 쓰이고 있어서 클라이언트 호출과 DB 함수
--- 시그니처가 불일치하는 PostgREST 에러 발생. v11-3의 5-파라미터 패턴을
--- v12-4의 최신 로직 위에 복원.
+-- v12-9. submit_application() 파라미터 재정리 (약관 분류)
+-- p_agreed_terms를 p_consent_required/p_consent_optional로 분리
+-- 필수 약관(이용약관, 개인정보, 등)과 선택 약관(마케팅, 사진 촬영 등)을 분리해서 저장
+drop function if exists public.submit_application(uuid, text, boolean, jsonb, text);
 drop function if exists public.submit_application(uuid, text, boolean, jsonb);
 
 create or replace function public.submit_application(
   p_session_id uuid,
   p_depositor_name text,
-  p_agreed_terms boolean,
+  p_consent_required boolean,
+  p_consent_optional boolean,
   p_attendees jsonb,
   p_notes text default null
 )
@@ -1982,8 +1983,8 @@ declare
   v_self_dup_phones text;
   v_waiting_number int;
 begin
-  if not p_agreed_terms then
-    raise exception '약관에 동의해야 신청할 수 있습니다.';
+  if not p_consent_required then
+    raise exception '필수 약관에 동의해야 신청할 수 있습니다.';
   end if;
 
   select * into v_session from sessions where id = p_session_id for update;
@@ -2101,8 +2102,8 @@ begin
   end if;
 
   -- 신청 행 삽입
-  insert into applications (session_id, depositor_name_enc, agreed_terms, confirmation_code, status, notes)
-  values (p_session_id, encrypt_pii(p_depositor_name), p_agreed_terms, v_code, v_status, p_notes)
+  insert into applications (session_id, depositor_name_enc, consent_required, consent_optional, confirmation_code, status, notes)
+  values (p_session_id, encrypt_pii(p_depositor_name), p_consent_required, p_consent_optional, v_code, v_status, p_notes)
   returning * into v_app;
 
   -- 참여자 행 삽입
@@ -2155,7 +2156,7 @@ begin
     v_waiting_number := null;
   end if;
 
-  return (v_app.id, v_app.session_id, p_depositor_name, v_app.agreed_terms,
+  return (v_app.id, v_app.session_id, p_depositor_name, true,
     v_app.confirmation_code, v_app.status, v_app.payment_status, v_waiting_number, v_app.created_at)::public.application_result;
 exception
   when unique_violation then
@@ -2163,8 +2164,8 @@ exception
 end;
 $$;
 
-revoke all on function public.submit_application(uuid, text, boolean, jsonb, text) from public;
-grant execute on function public.submit_application(uuid, text, boolean, jsonb, text) to anon, authenticated;
+revoke all on function public.submit_application(uuid, text, boolean, boolean, jsonb, text) from public;
+grant execute on function public.submit_application(uuid, text, boolean, boolean, jsonb, text) to anon, authenticated;
 
 -- v12-9. 8/29 회차 시각 변경 — 모임 13:00 / 소개팅 18:00 (2026-08-13)
 update sessions

@@ -6,8 +6,8 @@ export function isValidKoreanName(name: string): boolean {
   return KOREAN_NAME_PATTERN.test(name.trim());
 }
 
-// 닉네임: 한글/영문(소문자만)/숫자, 공백/특수문자/대문자 불허
-export const NICKNAME_PATTERN = /^[가-힣a-z0-9]{1,12}$/;
+// 닉네임: 한글(완성형+자모)/영문(소문자만)/숫자, 공백/특수문자/대문자 불허
+export const NICKNAME_PATTERN = /^[가-힣ㄱ-ㅎㅏ-ㅣa-z0-9]{1,12}$/;
 export function isValidNickname(nickname: string): boolean {
   if (!nickname || nickname.trim() === "") return true; // 선택 필드
   return NICKNAME_PATTERN.test(nickname.trim());
