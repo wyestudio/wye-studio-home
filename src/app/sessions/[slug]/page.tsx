@@ -263,16 +263,16 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       {/* 진행 순서 */}
       <section className="mb-12">
         <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>
-        <div className="flex flex-wrap items-start justify-center gap-x-1 gap-y-4">
+        <div className="flex flex-wrap items-start justify-center gap-x-6 sm:gap-x-12 gap-y-6">
           {progressSteps.map((step, i) => (
-            <div key={step} className="flex items-center gap-1">
-              <div className="flex flex-col items-center gap-2 px-1">
+            <div key={step} className="flex items-center gap-2 sm:gap-3">
+              <div className="flex w-20 sm:w-24 flex-col items-center gap-2">
                 <span className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full border border-glow bg-brand-soft text-sm sm:text-base font-bold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
                   {i + 1}
                 </span>
-                <span className="max-w-[76px] text-center text-xs sm:text-sm font-semibold">{step}</span>
+                <span className="text-center text-xs sm:text-sm font-semibold">{step}</span>
               </div>
-              {i < progressSteps.length - 1 ? <span className="mb-7 text-border">→</span> : null}
+              {i < progressSteps.length - 1 ? <span className="mt-2 sm:mt-3 text-border">→</span> : null}
             </div>
           ))}
         </div>
