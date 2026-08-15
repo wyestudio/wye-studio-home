@@ -58,7 +58,10 @@ export default async function AdminDashboard() {
                   <div className="text-right shrink-0 flex flex-col items-end gap-2">
                     <div>
                       <div className="text-sm font-medium">
-                        상태: <span className="text-glow">{session.status === "open" ? "모집중" : "마감"}</span>
+                        상태:{" "}
+                        <span className={session.status === "cancelled" ? "text-red-500" : "text-glow"}>
+                          {session.status === "open" ? "모집중" : session.status === "cancelled" ? "비활성화" : "마감"}
+                        </span>
                       </div>
                       <div className="text-xs text-muted mt-1">
                         정원: {session.capacity_max}명

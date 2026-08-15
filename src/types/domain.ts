@@ -1,5 +1,5 @@
 export type SessionSlot = "afternoon" | "evening";
-export type SessionStatus = "open" | "closed";
+export type SessionStatus = "open" | "closed" | "cancelled";
 export type ApplicationStatus = "waiting" | "confirmed" | "cancelled";
 export type PaymentStatus = "pending" | "confirmed" | "cancelled";
 export type Gender = "M" | "F";
@@ -11,6 +11,9 @@ export type Session = {
   slot: SessionSlot;
   title: string;
   theme_label: string;
+  // 크로스테마 배타 판정 단위 — 같은 컨텐츠(예: "바-ㅇ탈출")를 공유하는
+  // 소개팅/그룹 세션은 같은 값을 가지며, 이 값이 같은 사람은 1건만 신청 가능
+  content_group: string;
   start_at: string;
   end_at: string | null;
   venue_area: string;

@@ -33,9 +33,12 @@ export async function GET(request: NextRequest) {
     const now = new Date();
     const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
+    // status='closed'는 정원마감(참가자에게는 정상 진행되는 회차)이라 리마인더
+    // 대상에 포함해야 한다 — 최소인원 미달로 비활성화된('cancelled') 회차만 제외.
     const { data: sessions, error: sessionsError } = await supabase
       .from("sessions")
-      .select("id, title, start_at, theme_label")
+      .select("id, title, event_date, start_at, end_at, theme_label")
+      .neq("status", "cancelled")
       .gte("start_at", now.toISOString())
       .lte("start_at", oneDayLater.toISOString());
 
@@ -58,8 +61,9 @@ export async function GET(request: NextRequest) {
     // 해당 세션들의 확정된 신청 조회 (reminder_sms_sent_at이 null인 것만)
     const { data: applications, error: appError } = await supabase
       .from("applications")
-      .select("id, session_id, confirmation_code, status")
+      .select("id, session_id, confirmation_code, status, payment_status")
       .eq("status", "confirmed")
+      .eq("payment_status", "confirmed")
       .is("reminder_sms_sent_at", null)
       .in("session_id", sessionIds);
 
@@ -108,14 +112,14 @@ export async function GET(request: NextRequest) {
         // 장소 정보 조회
         const { data: venue } = await supabase
           .from("session_venues")
-          .select("venue_name")
+          .select("venue_name, venue_address")
           .eq("session_id", session.id)
           .single();
 
         const venueName = venue?.venue_name || "미정";
 
         // SMS 발송
-        await sendEventReminderSms(session, app as any, attendee.phone, venueName);
+        await sendEventReminderSms(session, app as any, attendee.phone, venueName, venue?.venue_address ?? null);
 
         // reminder_sms_sent_at 기록
         await supabase

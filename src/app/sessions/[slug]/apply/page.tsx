@@ -65,11 +65,20 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/
 
   return (
     <div className="mx-auto max-w-[860px] px-5 py-10">
-      {session.status === "closed" ? (
+      {session.status !== "open" ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-glass-border bg-surface p-6 text-center">
-          <p className="text-lg font-bold">정원이 다 차서 마감되었습니다.</p>
-          <p className="text-sm text-muted">다음 정식 오픈 때 뵙겠습니다.</p>
-          <p className="text-sm text-muted">신청해주셔서 감사합니다.</p>
+          {session.status === "cancelled" ? (
+            <>
+              <p className="text-lg font-bold">부득이한 사정으로 취소된 회차입니다.</p>
+              <p className="text-sm text-muted">신청해주셔서 감사합니다.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-bold">정원이 다 차서 마감되었습니다.</p>
+              <p className="text-sm text-muted">다음 정식 오픈 때 뵙겠습니다.</p>
+              <p className="text-sm text-muted">신청해주셔서 감사합니다.</p>
+            </>
+          )}
         </div>
       ) : (
         <ApplyForm

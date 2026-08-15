@@ -299,8 +299,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       {/* 고정 CTA 버튼 */}
       <div className="fixed inset-x-0 bottom-0 bg-background/90 p-4 backdrop-blur-md">
         <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl">
-          <RippleLinkButton href={ctaHref} disabled={session.status === "closed"}>
-            {session.status === "closed" ? "모집이 마감되었습니다" : "참여하기"}
+          <RippleLinkButton href={ctaHref} disabled={session.status !== "open"}>
+            {session.status === "cancelled" ? "취소된 회차입니다" : session.status === "closed" ? "모집이 마감되었습니다" : "참여하기"}
           </RippleLinkButton>
         </div>
       </div>

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime } from "@/lib/format";
 import { ConfirmPaymentButton } from "./ConfirmPaymentButton";
+import { CancelApplicationButton } from "./CancelApplicationButton";
+import { PromoteWaitlistButton } from "./PromoteWaitlistButton";
+import { DeactivateSessionButton } from "./DeactivateSessionButton";
 
 export const dynamic = "force-dynamic";
 
@@ -54,10 +57,27 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
           ← 돌아가기
         </Link>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">{session.title}</h1>
-          <p className="text-muted">{formatSessionDateTime(session.start_at)}</p>
-          <p className="text-sm text-muted mt-1">정원: {session.capacity_max}명</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{session.title}</h1>
+            <p className="text-muted">{formatSessionDateTime(session.start_at)}</p>
+            <p className="text-sm text-muted mt-1">정원: {session.capacity_max}명</p>
+            <p className="text-sm mt-1">
+              상태:{" "}
+              <span
+                className={
+                  session.status === "open"
+                    ? "text-glow"
+                    : session.status === "cancelled"
+                      ? "text-red-500 font-semibold"
+                      : "text-muted"
+                }
+              >
+                {session.status === "open" ? "모집중" : session.status === "cancelled" ? "비활성화(취소)" : "마감"}
+              </span>
+            </p>
+          </div>
+          {session.status !== "cancelled" && <DeactivateSessionButton sessionId={session.id} />}
         </div>
 
         <div className="overflow-x-auto">
@@ -129,13 +149,21 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                         )}
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        {app.payment_status !== "confirmed" && app.status === "confirmed" && (
-                          <ConfirmPaymentButton
-                            applicationId={app.id}
-                            sessionId={session.id}
-                            confirmationCode={app.confirmation_code}
-                          />
-                        )}
+                        <div className="flex flex-col items-start gap-1">
+                          {app.payment_status !== "confirmed" && app.status === "confirmed" && (
+                            <ConfirmPaymentButton
+                              applicationId={app.id}
+                              sessionId={session.id}
+                              confirmationCode={app.confirmation_code}
+                            />
+                          )}
+                          {app.status === "waiting" && (
+                            <PromoteWaitlistButton applicationId={app.id} sessionId={session.id} />
+                          )}
+                          {app.status !== "cancelled" && (
+                            <CancelApplicationButton applicationId={app.id} sessionId={session.id} />
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

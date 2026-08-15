@@ -8,7 +8,7 @@ import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
 import { Reveal } from "@/components/ui/Reveal";
 
 const PRINCIPLES = [
-  { title: "술 없이 진행해요", desc: "누구나 부담 없이 즐길 수 있도록 음주를 제공하지 않아요." },
+  { title: "음주는 상품별로 달라요", desc: "그룹 버전은 음주 없이 진행하고, 소개팅 버전은 2부부터 음주가 함께해요." },
   { title: "개인정보는 암호화해 보관해요", desc: "이름·전화번호는 암호화되어 저장되고, 운영진도 필요할 때만 열람해요." },
   { title: "소개팅 회차는 성비를 관리해요", desc: "남/여 정원을 따로 두고, 정원이 안 찼을 때 자동으로 채우지 않아요." },
 ];
