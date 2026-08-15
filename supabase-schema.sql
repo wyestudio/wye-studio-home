@@ -2522,3 +2522,150 @@ select
   decrypt_pii(ap.refund_account_number_enc) as refund_account_number,
   decrypt_pii(ap.refund_account_holder_enc) as refund_account_holder
 from applications ap;
+
+-- v20. submit_application() 재작성 — p_agreed_terms를 p_consent_required/
+-- p_consent_optional로 분리 (2026-08-15)
+-- 배경: main의 actions.ts가 이미 p_consent_required/p_consent_optional로 RPC를
+-- 호출하도록 배포돼 있었는데(41743a7), 프로덕션 DB 함수는 여전히 p_agreed_terms
+-- 1개만 받는 옛 시그니처였음 — 즉 배포 이후 모든 신청이 "Could not find the
+-- function" 에러로 100% 실패하고 있었다. 이 마이그레이션으로 복구함.
+--
+-- 주의: 프로덕션의 실제 함수 정의(pg_get_functiondef로 직접 확인)는 이 파일의
+-- v12-9 섹션과 이미 달랐다 — 출생년도 검증이 1987~2006 통합 범위로 바뀌어 있었고,
+-- application_attendees에 experience_range를 저장하며, 전원 성별 필수 검증이
+-- 추가돼 있었다. 이 변경이 언제 어떻게 반영됐는지는 기록이 없다(ad-hoc 변경 재발
+-- 사례). 이번 v20은 그 "실제로 살아있던 로직"을 그대로 보존하면서 파라미터만
+-- 교체한 것이다 — 즉 v12-9 섹션은 이미 실제 프로덕션 상태와 다른 죽은 기록이며,
+-- v20이 실제로 프로덕션/테스트 양쪽에 적용된 최종 상태다.
+--
+-- 알려진 잔여 이슈: admin_application_view(v19)가 여전히 ap.agreed_terms를
+-- 참조한다. applications.agreed_terms 컬럼은 이제 이 함수에서 채워지지 않아
+-- (항상 default false) 어드민 화면의 "동의 여부"가 부정확하게 표시된다.
+-- consent_required/consent_optional 기준으로 뷰를 갱신하는 후속 마이그레이션 필요.
+alter table public.applications
+  add column if not exists consent_required boolean not null default false,
+  add column if not exists consent_optional boolean not null default false;
+
+drop function if exists public.submit_application(uuid, text, boolean, jsonb, text);
+
+create or replace function public.submit_application(
+  p_session_id uuid,
+  p_depositor_name text,
+  p_consent_required boolean,
+  p_consent_optional boolean,
+  p_attendees jsonb,
+  p_notes text default null
+)
+returns public.application_result
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_session sessions%rowtype;
+  v_group_size int;
+  v_current_total int;
+  v_gender_total int;
+  v_gender text;
+  v_new_total int;
+  v_status text;
+  v_code text;
+  v_app applications%rowtype;
+  v_dup_phones text;
+  v_self_dup_phones text;
+  v_waiting_number int;
+begin
+  if not p_consent_required then raise exception '필수 약관에 동의해야 신청할 수 있습니다.'; end if;
+  select * into v_session from sessions where id = p_session_id for update;
+  if not found then raise exception '존재하지 않는 회차입니다.'; end if;
+  if v_session.status <> 'open' then raise exception '이미 마감된 회차입니다.'; end if;
+
+  v_group_size := jsonb_array_length(p_attendees);
+  if v_group_size is null or v_group_size < 1 then raise exception '참여 인원을 입력해주세요.'; end if;
+
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    if v_group_size <> 1 then raise exception '소개팅 회차는 1인 신청만 가능합니다.'; end if;
+    v_gender := p_attendees->0->>'gender';
+    if v_gender is null or v_gender not in ('M', 'F') then raise exception '성별을 선택해주세요.'; end if;
+  end if;
+
+  if exists (select 1 from jsonb_array_elements(p_attendees) a where (a->>'birth_year')::int not between 1987 and 2006) then
+    raise exception '참여자 출생년도는 1987~2006년 범위만 가능합니다.';
+  end if;
+
+  if exists (select 1 from jsonb_array_elements(p_attendees) a where a->>'gender' is null or a->>'gender' not in ('M', 'F')) then
+    raise exception '모든 참여자의 성별을 선택해주세요.';
+  end if;
+
+  select string_agg(distinct phone, ',') into v_self_dup_phones
+  from (select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone from jsonb_array_elements(p_attendees) a group by 1 having count(*) > 1) t;
+  if v_self_dup_phones is not null then raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요.' using detail = v_self_dup_phones; end if;
+
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',')
+  into v_dup_phones from jsonb_array_elements(p_attendees) a
+  where exists (select 1 from application_attendees aa join applications ap on ap.id = aa.application_id where ap.status <> 'cancelled' and aa.phone_hash = hash_phone(a->>'phone'));
+  if v_dup_phones is not null then raise exception '다른 테마에 이미 신청하신 분이 포함되어 있어요. 한 테마만 신청 가능합니다.' using detail = v_dup_phones; end if;
+
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    select coalesce(count(*), 0) into v_current_total from application_attendees aa join applications ap on ap.id = aa.application_id
+    where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting') and aa.gender = v_gender;
+  else
+    select coalesce(sum(cnt), 0) into v_current_total from (select ap.id, count(*) as cnt from applications ap join application_attendees aa on aa.application_id = ap.id where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting') group by ap.id) t;
+  end if;
+
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    if v_gender = 'M' and v_session.male_closed then raise exception '정원마감: 남성 참여자의 정원이 마감되었습니다.'; end if;
+    if v_gender = 'F' and v_session.female_closed then raise exception '정원마감: 여성 참여자의 정원이 마감되었습니다.'; end if;
+    if v_current_total + 1 > v_session.capacity_max_female then raise exception '정원마감: 정원이 모두 찼습니다.'; end if;
+  else
+    if v_current_total + v_group_size > v_session.capacity_max then raise exception '정원마감: 정원이 모두 찼습니다.'; end if;
+  end if;
+
+  for i in 1..20 loop
+    v_code := (100000 + floor(random() * 900000))::int::text;
+    exit when not exists (select 1 from applications where confirmation_code = v_code);
+  end loop;
+
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    v_status := case when v_current_total + 1 <= (case when v_gender = 'M' then v_session.capacity_confirm_line_male else v_session.capacity_confirm_line_female end) then 'confirmed' else 'waiting' end;
+  else
+    v_status := case when v_current_total + v_group_size <= v_session.capacity_confirm_line then 'confirmed' else 'waiting' end;
+  end if;
+
+  insert into applications (session_id, depositor_name_enc, consent_required, consent_optional, confirmation_code, status, notes)
+  values (p_session_id, encrypt_pii(p_depositor_name), p_consent_required, p_consent_optional, v_code, v_status, p_notes) returning * into v_app;
+
+  insert into application_attendees (application_id, session_id, is_representative, name_enc, phone_enc, phone_hash, birth_year, nickname, gender, experience_range)
+  select v_app.id, p_session_id, (ord = 1), encrypt_pii(a->>'name'), encrypt_pii(a->>'phone'), hash_phone(a->>'phone'),
+    (a->>'birth_year')::int, nullif(a->>'nickname', ''), nullif(a->>'gender', ''), nullif(a->>'experience_range', '')
+  from jsonb_array_elements(p_attendees) with ordinality as t(a, ord);
+
+  v_new_total := v_current_total + v_group_size;
+
+  if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+    if v_gender = 'M' and v_current_total + 1 >= v_session.capacity_max_male then update sessions set male_closed = true where id = p_session_id; end if;
+    if v_gender = 'F' and v_current_total + 1 >= v_session.capacity_max_female then update sessions set female_closed = true where id = p_session_id; end if;
+    if (select count(*) from sessions where id = p_session_id and male_closed and female_closed) > 0 then update sessions set status = 'closed' where id = p_session_id; end if;
+  else
+    if v_new_total >= v_session.capacity_max then update sessions set status = 'closed' where id = p_session_id; end if;
+  end if;
+
+  if v_app.status = 'waiting' then
+    if v_session.theme_label = '바-ㅇ탈출(ver.소개팅)' then
+      select count(*) into v_waiting_number from application_attendees aa join applications ap on ap.id = aa.application_id
+      where ap.session_id = p_session_id and ap.status = 'waiting' and aa.gender = v_gender and ap.created_at <= v_app.created_at group by ap.session_id;
+    else
+      select count(*) into v_waiting_number from applications ap where ap.session_id = p_session_id and ap.status = 'waiting' and ap.created_at <= v_app.created_at;
+    end if;
+  else
+    v_waiting_number := null;
+  end if;
+
+  return (v_app.id, v_app.session_id, p_depositor_name, true, v_app.confirmation_code, v_app.status, v_app.payment_status, v_waiting_number, v_app.created_at)::public.application_result;
+exception
+  when unique_violation then raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end;
+$$;
+
+revoke all on function public.submit_application(uuid, text, boolean, boolean, jsonb, text) from public;
+grant execute on function public.submit_application(uuid, text, boolean, boolean, jsonb, text) to anon, authenticated;
