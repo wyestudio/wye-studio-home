@@ -53,7 +53,7 @@ export default async function AdminDashboard() {
                   <div className="flex-1 min-w-0">
                     <h2 className="font-semibold text-foreground truncate">{session.title}</h2>
                     <p className="text-sm text-muted mt-1">{formatSessionDateTime(session.start_at)}</p>
-                    <p className="text-sm text-muted mt-1">{session.theme_label}</p>
+                    <p className="text-sm text-muted mt-1">{session.theme_name}({session.session_type})</p>
                   </div>
                   <div className="text-right shrink-0 flex flex-col items-end gap-2">
                     <div>

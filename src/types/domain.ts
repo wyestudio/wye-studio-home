@@ -3,6 +3,7 @@ export type SessionStatus = "open" | "closed" | "cancelled";
 export type ApplicationStatus = "waiting" | "confirmed" | "cancelled";
 export type PaymentStatus = "pending" | "confirmed" | "cancelled";
 export type Gender = "M" | "F";
+export type SessionType = "그룹" | "소개팅";
 
 export type Session = {
   id: string;
@@ -11,6 +12,9 @@ export type Session = {
   slot: SessionSlot;
   title: string;
   theme_label: string;
+  // v24부터 theme_label을 대체 — 테마명("바-ㅇ탈출")과 타입을 별도 컬럼으로 분리
+  theme_name: string;
+  session_type: SessionType;
   // 크로스테마 배타 판정 단위 — 같은 컨텐츠(예: "바-ㅇ탈출")를 공유하는
   // 소개팅/그룹 세션은 같은 값을 가지며, 이 값이 같은 사람은 1건만 신청 가능
   content_group: string;
@@ -22,7 +26,7 @@ export type Session = {
   capacity_min: number;
   capacity_confirm_line: number;
   capacity_max: number;
-  // 소개팅(theme_label='소개팅') 회차만 값이 있음 — 성비 분리 정원, 비소개팅은 null
+  // 소개팅(session_type='소개팅') 회차만 값이 있음 — 성비 분리 정원, 그룹은 null
   capacity_confirm_line_male: number | null;
   capacity_confirm_line_female: number | null;
   capacity_max_male: number | null;
@@ -87,6 +91,8 @@ export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200+";
 export type ApplicationLookupResult = {
   session_title: string;
   theme_label: string;
+  theme_name: string;
+  session_type: SessionType;
   venue_area: string;
   start_at: string;
   end_at: string | null;

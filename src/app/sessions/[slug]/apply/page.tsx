@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { ApplyForm } from "@/components/apply/ApplyForm";
+import { formatShortDate } from "@/lib/format";
 
 const SITE_URL = "https://wouldyouescape.com";
 
@@ -15,12 +16,13 @@ export async function generateMetadata(
     return {};
   }
 
-  const title = `${session.title} 참여 신청 | 우주이스케이프`;
+  const pageTitle = `${session.theme_name}(${session.session_type})·${formatShortDate(session.start_at)}·참여신청`;
+  const socialTitle = `우주이스케이프 | ${pageTitle}`;
   const description = session.description || "우주이스케이프 회차에 참가 신청하세요.";
   const url = `${SITE_URL}/sessions/${session.slug}/apply`;
 
   return {
-    title,
+    title: pageTitle,
     description,
     robots: {
       index: false,
@@ -30,7 +32,7 @@ export async function generateMetadata(
       canonical: url,
     },
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       url,
       type: "website",
@@ -39,7 +41,7 @@ export async function generateMetadata(
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: socialTitle,
       description,
     },
   };
@@ -87,7 +89,8 @@ export default async function ApplyPage({ params }: PageProps<"/sessions/[slug]/
           originalPriceKrw={session.original_price_krw}
           sessionTitle={session.title}
           eventDate={session.event_date}
-          themeLabel={session.theme_label}
+          themeName={session.theme_name}
+          sessionType={session.session_type}
           maleClosed={session.male_closed}
           femaleClosed={session.female_closed}
           startAt={session.start_at}

@@ -121,14 +121,14 @@ export async function applyAction(
     return { error: "잘못된 접근입니다." };
   }
 
-  // theme_label을 알아야 소개팅 전용 검증(1인 신청/성별 필수)을 할 수 있어서
+  // session_type을 알아야 소개팅 전용 검증(1인 신청/성별 필수)을 할 수 있어서
   // 성공 이후(after() 안)가 아니라 여기서 먼저 조회한다 — 알림 발송 때 다시
   // 조회하지 않고 이 값을 그대로 재사용한다.
   const session = await getSessionById(sessionId);
   if (!session) {
     return { error: "잘못된 접근입니다." };
   }
-  const isDatingSession = isDatingTheme(session.theme_label);
+  const isDatingSession = isDatingTheme(session.session_type);
 
   if (!depositorName) {
     return { error: "입금자명을 입력해주세요.", attendees, notes };

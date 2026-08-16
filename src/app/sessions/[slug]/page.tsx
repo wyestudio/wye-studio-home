@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { getSessionBySlug, getSessionById } from "@/lib/sessions";
-import { formatKrw, formatSessionDateTime, formatDuration } from "@/lib/format";
+import { formatKrw, formatSessionDateTime, formatDuration, formatShortDate } from "@/lib/format";
 import { RippleLinkButton } from "@/components/ui/RippleLinkButton";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { ShareButton } from "@/components/ui/ShareButton";
-import { isDatingTheme, getThemeBaseName } from "@/lib/theme";
+import { isDatingTheme } from "@/lib/theme";
 import { eligibleBirthYearRangeLabel } from "@/lib/eligibility";
 
 const SITE_URL = "https://wouldyouescape.com";
@@ -21,18 +21,19 @@ export async function generateMetadata(
     return {};
   }
 
-  const title = `${session.title} | 우주이스케이프`;
+  const pageTitle = `${session.theme_name}(${session.session_type})·${formatShortDate(session.start_at)}`;
+  const socialTitle = `우주이스케이프 | ${pageTitle}`;
   const description = session.description || "방탈출과 로테이션 소개팅을 결합한 우주이스케이프 회차입니다.";
   const url = `${SITE_URL}/sessions/${session.slug}`;
 
   return {
-    title,
+    title: pageTitle,
     description,
     alternates: {
       canonical: url,
     },
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       url,
       type: "website",
@@ -41,7 +42,7 @@ export async function generateMetadata(
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: socialTitle,
       description,
     },
   };
@@ -108,8 +109,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
   }
 
   const ctaHref = `/sessions/${session.slug}/apply`;
-  const isDatingSession = isDatingTheme(session.theme_label);
-  const themeName = getThemeBaseName(session.theme_label);
+  const isDatingSession = isDatingTheme(session.session_type);
+  const themeName = session.theme_name;
   const dateLabel = formatSessionDateTime(session.start_at);
   const duration = session.end_at ? formatDuration(session.start_at, session.end_at) : "-";
   const shareUrl = `${SITE_URL}/sessions/${session.slug}`;
@@ -156,7 +157,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         {/* 제목 + 뱃지 */}
         <div>
           <div className="mb-3 flex items-center gap-3">
-            <ThemeTag themeLabel={session.theme_label} className="text-3xl font-extrabold" />
+            <ThemeTag sessionType={session.session_type} className="text-3xl font-extrabold" />
             <h1 className="text-lg font-semibold text-muted">{themeName}</h1>
           </div>
         </div>
@@ -200,7 +201,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           {/* 상단: 제목 + 뱃지 + 정보 (데스크톱만) */}
           <div>
             <div className="mb-3 flex items-center gap-3">
-              <ThemeTag themeLabel={session.theme_label} className="text-5xl lg:text-6xl font-extrabold" />
+              <ThemeTag sessionType={session.session_type} className="text-5xl lg:text-6xl font-extrabold" />
               <h1 className="text-lg font-semibold text-muted">{themeName}</h1>
             </div>
 

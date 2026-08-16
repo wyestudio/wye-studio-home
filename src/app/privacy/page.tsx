@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "개인정보처리방침 | 우주이스케이프",
+  title: "개인정보처리방침",
   description: "wouldyouescape(우주이스케이프) 개인정보처리방침",
+  openGraph: { title: "우주이스케이프 | 개인정보처리방침" },
+  twitter: { title: "우주이스케이프 | 개인정보처리방침" },
 };
 
 export default function PrivacyPage() {

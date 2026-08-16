@@ -37,6 +37,12 @@ export function formatSessionDateTime(startAt: string): string {
   return `${month}/${day}(${weekday}) ${hh}:${mm}`;
 }
 
+// 브라우저 탭 title 등 짧은 표기가 필요한 곳에서 쓰는 "M/D" 형식(요일/시간 없음).
+export function formatShortDate(startAt: string): string {
+  const { month, day } = seoulParts(startAt);
+  return `${month}/${day}`;
+}
+
 export function formatSessionDate(eventDate: string): string {
   const d = new Date(eventDate + "T00:00:00");
   const month = d.getMonth() + 1;

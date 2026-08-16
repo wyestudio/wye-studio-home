@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     // 대상에 포함해야 한다 — 최소인원 미달로 비활성화된('cancelled') 회차만 제외.
     const { data: sessions, error: sessionsError } = await supabase
       .from("sessions")
-      .select("id, title, event_date, start_at, end_at, theme_label")
+      .select("id, title, event_date, start_at, end_at, theme_label, theme_name, session_type")
       .neq("status", "cancelled")
       .gte("start_at", now.toISOString())
       .lte("start_at", oneDayLater.toISOString());

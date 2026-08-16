@@ -1,22 +1,23 @@
 "use client";
 
 import { formatSessionDateTime, formatDuration } from "@/lib/format";
-import { isDatingTheme, getThemeBaseName } from "@/lib/theme";
+import { isDatingTheme } from "@/lib/theme";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 
 export function ApplySessionSummary({
-  themeLabel,
+  themeName,
+  sessionType,
   startAt,
   endAt,
   venueArea,
 }: {
-  themeLabel: string;
+  themeName: string;
+  sessionType: string;
   startAt: string;
   endAt: string | null;
   venueArea: string;
 }) {
-  const colorVariant = isDatingTheme(themeLabel) ? "hud-panel-dating" : "hud-panel-group";
-  const themeBaseName = getThemeBaseName(themeLabel);
+  const colorVariant = isDatingTheme(sessionType) ? "hud-panel-dating" : "hud-panel-group";
   const duration = endAt ? formatDuration(startAt, endAt) : null;
   const dateTime = formatSessionDateTime(startAt);
   const infoLine = [dateTime, duration, venueArea].filter(Boolean).join(" · ");
@@ -24,9 +25,9 @@ export function ApplySessionSummary({
   return (
     <div className={`hud-panel relative flex flex-col gap-5 p-6 ${colorVariant}`}>
       <div className="flex items-center gap-3">
-        <ThemeTag themeLabel={themeLabel} className="text-2xl font-extrabold" />
+        <ThemeTag sessionType={sessionType} className="text-2xl font-extrabold" />
         <h3 className="text-sm font-semibold text-muted leading-tight">
-          {themeBaseName}
+          {themeName}
         </h3>
       </div>
       <p className="text-xs text-muted">{infoLine}</p>

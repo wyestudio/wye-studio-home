@@ -28,7 +28,10 @@ const SITE_DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "우주이스케이프",
+  title: {
+    default: "우주이스케이프",
+    template: "우주이스케이프 | %s",
+  },
   description: SITE_DESCRIPTION,
   keywords: [
     "방탈출",

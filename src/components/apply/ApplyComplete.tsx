@@ -5,14 +5,15 @@ import { useEffect, useState } from "react";
 import { formatRefundTierDeadlines, formatSessionDateTime } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { ThemeTag } from "@/components/ui/ThemeTag";
-import { getThemeBaseName, isDatingTheme } from "@/lib/theme";
+import { isDatingTheme } from "@/lib/theme";
 import type { Application } from "@/types/domain";
 import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
 
 export function ApplyComplete({
   application,
   attendees,
-  themeLabel,
+  themeName,
+  sessionType,
   sessionTitle,
   eventDate,
   startAt,
@@ -21,7 +22,8 @@ export function ApplyComplete({
 }: {
   application: Application;
   attendees: AttendeeInput[];
-  themeLabel: string;
+  themeName: string;
+  sessionType: string;
   sessionTitle: string;
   eventDate: string;
   startAt: string;
@@ -53,7 +55,7 @@ export function ApplyComplete({
   const isGroup = attendees.length > 1;
   const representative = attendees[0];
   const smsRecipientLabel = isGroup ? "대표 신청자" : "신청자";
-  const accentColor = isDatingTheme(themeLabel) ? "#ff5ec4" : "#3dffb0";
+  const accentColor = isDatingTheme(sessionType) ? "#ff5ec4" : "#3dffb0";
 
   return (
     <div className="mx-auto max-w-[560px]">
@@ -93,9 +95,9 @@ export function ApplyComplete({
           <div className="flex flex-col gap-2 pr-6">
             <p className="text-sm font-bold text-muted">신청 정보</p>
             <div className="flex items-center gap-2">
-              <ThemeTag themeLabel={themeLabel} className="text-lg font-bold" />
+              <ThemeTag sessionType={sessionType} className="text-lg font-bold" />
               <span className="text-xs font-semibold text-muted">
-                {getThemeBaseName(themeLabel)}
+                {themeName}
               </span>
             </div>
             <p className="text-sm text-foreground">{formatSessionDateTime(startAt)}</p>

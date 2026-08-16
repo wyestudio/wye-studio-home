@@ -12,7 +12,7 @@ import { CompanionPager } from "./CompanionPager";
 import { RefundInfoDialog } from "./RefundInfoDialog";
 import { formatSessionDateTime, formatSessionDate, formatSessionTime, formatRefundTierDeadlines, formatKrw, calculateRefundAmount } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
-import { getThemeBaseName, isDatingTheme } from "@/lib/theme";
+import { isDatingTheme } from "@/lib/theme";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { LIFECYCLE_LABEL, LIFECYCLE_TONE } from "@/lib/lookupStatus";
 import { cancelApplicationAction, type LookupState } from "@/app/lookup/actions";
@@ -66,7 +66,7 @@ export function LookupResult() {
   const representative = result.attendees[0];
   const companions = result.attendees.slice(1);
   const smsRecipientLabel = isGroup ? "대표 신청자" : "신청자";
-  const accentColor = isDatingTheme(result.theme_label) ? "#ff5ec4" : "#3dffb0";
+  const accentColor = isDatingTheme(result.session_type) ? "#ff5ec4" : "#3dffb0";
 
   async function handleCancelConfirm() {
     setCancelling(true);
@@ -157,9 +157,9 @@ export function LookupResult() {
       {/* 신청 정보 카드 (헤더 없음) */}
       <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
         <div className="flex items-center gap-2">
-          <ThemeTag themeLabel={result.theme_label} className="text-lg font-bold" />
+          <ThemeTag sessionType={result.session_type} className="text-lg font-bold" />
           <span className="text-xs font-semibold text-muted">
-            {getThemeBaseName(result.theme_label)}
+            {result.theme_name}
           </span>
         </div>
         <InfoRow label="날짜" value={formatSessionDate(result.event_date)} />
@@ -171,7 +171,7 @@ export function LookupResult() {
       <div className="mb-6">
         <p className="mb-3 text-sm font-bold text-muted">신청자 정보</p>
         <div className="rounded-xl border border-border bg-surface p-4">
-          <AttendeeDisplay attendee={representative} isDatingSession={isDatingTheme(result.theme_label)} />
+          <AttendeeDisplay attendee={representative} isDatingSession={isDatingTheme(result.session_type)} />
         </div>
       </div>
 
@@ -182,7 +182,7 @@ export function LookupResult() {
           <CompanionPager count={companions.length}>
             {(index) => (
               <div className="rounded-xl border border-border bg-surface p-4">
-                <AttendeeDisplay attendee={companions[index]} isDatingSession={isDatingTheme(result.theme_label)} />
+                <AttendeeDisplay attendee={companions[index]} isDatingSession={isDatingTheme(result.session_type)} />
               </div>
             )}
           </CompanionPager>

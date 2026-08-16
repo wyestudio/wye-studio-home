@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "이용약관 | 우주이스케이프",
+  title: "이용약관",
   description: "wouldyouescape(우주이스케이프) 이용약관",
+  openGraph: { title: "우주이스케이프 | 이용약관" },
+  twitter: { title: "우주이스케이프 | 이용약관" },
 };
 
 export default function TermsPage() {

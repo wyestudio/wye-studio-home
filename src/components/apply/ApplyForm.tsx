@@ -57,7 +57,8 @@ export function ApplyForm({
   originalPriceKrw,
   sessionTitle,
   eventDate,
-  themeLabel,
+  themeName,
+  sessionType,
   maleClosed = false,
   femaleClosed = false,
   startAt,
@@ -69,14 +70,15 @@ export function ApplyForm({
   originalPriceKrw: number;
   sessionTitle: string;
   eventDate: string;
-  themeLabel: string;
+  themeName: string;
+  sessionType: string;
   maleClosed?: boolean;
   femaleClosed?: boolean;
   startAt: string;
   endAt: string | null;
   venueArea: string;
 }) {
-  const isDatingSession = isDatingTheme(themeLabel);
+  const isDatingSession = isDatingTheme(sessionType);
   const [state, formAction, pending] = useActionState(applyAction, initialState);
   const [attendeeCount, setAttendeeCount] = useState(1);
   const [activeAttendeeIndex, setActiveAttendeeIndex] = useState(0);
@@ -281,8 +283,8 @@ export function ApplyForm({
   }, [validationErrors, attendees, conflictPhones]);
 
   useEffect(() => {
-    pushDataLayerEvent("신청 시작", { sessionId, themeLabel });
-  }, [sessionId, themeLabel]);
+    pushDataLayerEvent("신청 시작", { sessionId, themeLabel: sessionType });
+  }, [sessionId, sessionType]);
 
   useEffect(() => {
     if (state.application && !completeEventSent.current) {
@@ -290,13 +292,13 @@ export function ApplyForm({
       const representative = state.attendees?.[0];
       pushDataLayerEvent("신청 완료", {
         sessionId,
-        themeLabel,
+        themeLabel: sessionType,
         confirmationCode: state.application.confirmation_code,
         birthYear: representative?.birthYear,
         gender: representative?.gender,
       });
     }
-  }, [state.application, state.attendees, sessionId, themeLabel]);
+  }, [state.application, state.attendees, sessionId, sessionType]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -470,7 +472,8 @@ export function ApplyForm({
       <ApplyComplete
         application={state.application}
         attendees={state.attendees ?? []}
-        themeLabel={themeLabel}
+        themeName={themeName}
+        sessionType={sessionType}
         sessionTitle={sessionTitle}
         eventDate={eventDate}
         startAt={startAt}

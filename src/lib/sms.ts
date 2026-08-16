@@ -4,25 +4,21 @@ import type { Application, Session } from "@/types/domain";
 import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { formatKrw, formatSessionDate, formatSessionTime, formatDuration } from "@/lib/format";
-import { getThemeTag, isDatingTheme } from "@/lib/theme";
+import { isDatingTheme } from "@/lib/theme";
 
-// WYE-73(참가~종료 프로세스 문서화) 5장 문자 발송 양식이 요구하는 {테마명}은
-// 8/29 베타 회차 테마 이름이 아직 확정되지 않아(문서 6장 "확인 필요 항목")
-// 잠정적으로 session.title을 그대로 사용한다. 테마명이 확정되면 이 자리를
-// 교체할 것.
 function themeName(session: Session): string {
-  return session.title;
+  return session.theme_name;
 }
 
 function productLabel(session: Session): string {
-  return `${getThemeTag(session.theme_label)} 버전`;
+  return `${session.session_type} 버전`;
 }
 
 // 그룹 3시간 30분 / 소개팅 4시간 30분(WYE-73 5장 치환값 기준). end_at이 있으면
 // 실제 시각 차이를 우선한다 — 향후 회차 시간이 바뀌어도 하드코딩값과 어긋나지 않도록.
 function durationLabel(session: Session): string {
   if (session.end_at) return formatDuration(session.start_at, session.end_at);
-  return isDatingTheme(session.theme_label) ? "4시간 30분" : "3시간 30분";
+  return isDatingTheme(session.session_type) ? "4시간 30분" : "3시간 30분";
 }
 
 function phoneDigits(phone: string) {
@@ -151,7 +147,7 @@ export async function sendEventReminderSms(
   const eventDateStr = formatSessionDate(session.event_date);
   const startTimeStr = formatSessionTime(session.start_at);
   const addressText = venueAddress ? ` (${venueAddress})` : "";
-  const dating = isDatingTheme(session.theme_label);
+  const dating = isDatingTheme(session.session_type);
 
   const bullets = [
     "만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.",

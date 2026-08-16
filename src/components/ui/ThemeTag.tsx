@@ -1,4 +1,4 @@
-import { isDatingTheme, getThemeTag } from "@/lib/theme";
+import { isDatingTheme } from "@/lib/theme";
 
 function GroupIcon({ className }: { className: string }) {
   return (
@@ -19,10 +19,9 @@ function HeartIcon({ className }: { className: string }) {
   );
 }
 
-export function ThemeTag({ themeLabel, className = "" }: { themeLabel: string; className?: string }) {
-  const isDating = isDatingTheme(themeLabel);
+export function ThemeTag({ sessionType, className = "" }: { sessionType: string; className?: string }) {
+  const isDating = isDatingTheme(sessionType);
   const accentColor = isDating ? "#ff5ec4" : "#3dffb0";
-  const tagText = getThemeTag(themeLabel);
   const Icon = isDating ? HeartIcon : GroupIcon;
 
   return (
@@ -33,7 +32,7 @@ export function ThemeTag({ themeLabel, className = "" }: { themeLabel: string; c
       }}
     >
       <Icon className="w-[1em] h-[1em]" />
-      <span>{tagText}</span>
+      <span>{sessionType}</span>
     </div>
   );
 }

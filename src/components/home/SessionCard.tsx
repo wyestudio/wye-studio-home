@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { formatKrw, formatSessionDateTime, formatDuration } from "@/lib/format";
-import { isDatingTheme, getThemeBaseName } from "@/lib/theme";
+import { isDatingTheme } from "@/lib/theme";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import type { Session } from "@/types/domain";
 
@@ -14,8 +14,8 @@ function SessionCardField({ label, value }: { label: string; value: string }) {
 }
 
 export function SessionCard({ session, compact = false }: { session: Session; compact?: boolean }) {
-  const colorVariant = isDatingTheme(session.theme_label) ? "hud-panel-dating" : "hud-panel-group";
-  const themeBaseName = getThemeBaseName(session.theme_label);
+  const colorVariant = isDatingTheme(session.session_type) ? "hud-panel-dating" : "hud-panel-group";
+  const themeBaseName = session.theme_name;
   const duration = session.end_at ? formatDuration(session.start_at, session.end_at) : null;
   const dateTime = formatSessionDateTime(session.start_at);
 
@@ -28,7 +28,7 @@ export function SessionCard({ session, compact = false }: { session: Session; co
     >
       {/* 태그 + 타이틀 */}
       <div className={`flex items-center gap-2 ${compact ? "sm:gap-3" : "gap-3"}`}>
-        <ThemeTag themeLabel={session.theme_label} className={`font-extrabold leading-tight flex-shrink-0 ${compact ? "text-xl sm:text-3xl" : "text-2xl sm:text-3xl"}`} />
+        <ThemeTag sessionType={session.session_type} className={`font-extrabold leading-tight flex-shrink-0 ${compact ? "text-xl sm:text-3xl" : "text-2xl sm:text-3xl"}`} />
         <h3 className="text-xs sm:text-sm font-semibold text-muted leading-tight flex-shrink-0">
           {themeBaseName}
         </h3>

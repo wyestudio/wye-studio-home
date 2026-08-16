@@ -3,7 +3,6 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { getSessionBySlug } from "@/lib/sessions";
 import { formatSessionDateTime } from "@/lib/format";
-import { getThemeBaseName } from "@/lib/theme";
 
 export const alt = "우주이스케이프 — 방탈출로 시작하는 자연스러운 만남";
 export const size = { width: 1200, height: 630 };
@@ -59,7 +58,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     );
   }
 
-  const themeName = getThemeBaseName(session.theme_label);
+  const themeName = session.theme_name;
   const dateTime = formatSessionDateTime(session.start_at);
   const location = session.venue_area;
 
