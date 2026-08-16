@@ -156,9 +156,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
         {/* 제목 + 뱃지 */}
         <div>
-          <div className="mb-3 flex items-center gap-3">
-            <ThemeTag sessionType={session.session_type} className="text-3xl font-extrabold" />
-            <h1 className="text-lg font-semibold text-muted">{themeName}</h1>
+          <div className="mb-3 flex flex-col items-start gap-1">
+            <h1 className="text-xl font-extrabold text-foreground">{themeName}</h1>
+            <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-lg font-bold" />
           </div>
         </div>
 
@@ -200,9 +200,9 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         <div className="flex flex-1 flex-col justify-between">
           {/* 상단: 제목 + 뱃지 + 정보 (데스크톱만) */}
           <div>
-            <div className="mb-3 flex items-center gap-3">
-              <ThemeTag sessionType={session.session_type} className="text-5xl lg:text-6xl font-extrabold" />
-              <h1 className="text-lg font-semibold text-muted">{themeName}</h1>
+            <div className="mb-3 flex flex-col items-start gap-1">
+              <h1 className="text-2xl font-extrabold text-foreground">{themeName}</h1>
+              <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-2xl lg:text-3xl font-bold" />
             </div>
 
             {/* 데스크톱에서만 정보 표시 */}

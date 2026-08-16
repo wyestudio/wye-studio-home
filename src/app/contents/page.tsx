@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ContentsCenteredCards } from "@/components/contents/ContentsCenteredCards";
+import { ContentsSessionShowcase } from "@/components/contents/ContentsSessionShowcase";
 import { getUpcomingSessions } from "@/lib/sessions";
 
 export const metadata: Metadata = {
@@ -11,5 +11,5 @@ export const metadata: Metadata = {
 export default async function ContentsPage() {
   const sessions = await getUpcomingSessions();
 
-  return <ContentsCenteredCards sessions={sessions} />;
+  return <ContentsSessionShowcase sessions={sessions} />;
 }

@@ -19,7 +19,7 @@ function HeartIcon({ className }: { className: string }) {
   );
 }
 
-export function ThemeTag({ sessionType, className = "" }: { sessionType: string; className?: string }) {
+export function ThemeTag({ sessionType, label, className = "" }: { sessionType: string; label?: string; className?: string }) {
   const isDating = isDatingTheme(sessionType);
   const accentColor = isDating ? "#ff5ec4" : "#3dffb0";
   const Icon = isDating ? HeartIcon : GroupIcon;
@@ -32,7 +32,7 @@ export function ThemeTag({ sessionType, className = "" }: { sessionType: string;
       }}
     >
       <Icon className="w-[1em] h-[1em]" />
-      <span>{sessionType}</span>
+      <span>{label ?? sessionType}</span>
     </div>
   );
 }
