@@ -72,9 +72,14 @@ export async function proxy(request: NextRequest) {
   }
 
   // 2단계: admin 호스트 → 내부 경로 rewrite 대상 계산
+  // site-gate 로그인 경로는 제외해야 함 — 안 그러면 admin 호스트에서
+  // "/site-gate.../login"이 "/admin-x7f9k2m3/site-gate.../login"으로 감싸져
+  // 보호된 어드민 경로로 오인되고, "/login"으로 튕겼다가 거기서 다시 site-gate가
+  // 발동해 무한 리다이렉트 루프에 빠진다(SITE_ACCESS_PASSWORD가 설정된 test.admin.*
+  // 호스트에서 실제로 재현됨).
   let effectivePathname = pathname;
   let needsRewrite = false;
-  if (onAdminHost && !isApiPath && !pathname.startsWith(adminPath)) {
+  if (onAdminHost && !isApiPath && !pathname.startsWith(SITE_GATE_PATH) && !pathname.startsWith(adminPath)) {
     effectivePathname = pathname === "/" ? adminPath : `${adminPath}${pathname}`;
     needsRewrite = true;
   }
