@@ -406,7 +406,7 @@ export function ApplyForm({
 
       setCheckingConflicts(true);
       const phones = attendees.map((a) => `${a.phone1}${a.phone2}${a.phone3}`);
-      const result = await checkActiveApplicationConflicts(phones);
+      const result = await checkActiveApplicationConflicts(phones, sessionId);
       setCheckingConflicts(false);
 
       if (!("error" in result) && result.conflictPhones.length > 0) {

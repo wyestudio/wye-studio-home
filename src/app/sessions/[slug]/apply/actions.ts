@@ -34,7 +34,8 @@ export async function checkNicknameAvailability(
 }
 
 export async function checkActiveApplicationConflicts(
-  phones: string[]
+  phones: string[],
+  sessionId: string
 ): Promise<{ conflictPhones: string[] } | { error: string }> {
   const digitsOnly = phones.map((p) => phoneDigits(p)).filter(Boolean);
   if (digitsOnly.length === 0) return { conflictPhones: [] };
@@ -42,6 +43,7 @@ export async function checkActiveApplicationConflicts(
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("check_active_applications", {
     p_phones: digitsOnly,
+    p_session_id: sessionId,
   });
 
   if (error) return { error: "확인 중 오류가 발생했어요." };

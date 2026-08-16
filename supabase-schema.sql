@@ -2419,8 +2419,11 @@ grant execute on function public.cancel_application(text, text) to anon, authent
 -- v15. check_active_applications() 신규 — 참가 신청 1단계 사전 중복 체크
 -- (submit_application()의 크로스테마 활성 신청 판정 로직과 동일 기준.
 --  제출 전에 미리 확인만 하고, 최종 검증은 여전히 submit_application()이 담당)
+-- v24. p_session_id 파라미터 추가 — submit_application()의 v23 content_group
+-- 스코프(같은 컨텐츠 안에서만 중복 차단)와 일치하도록 수정. 기존 버전은
+-- content_group 필터가 없어 전역 기준으로 체크했음(v23 리팩터링 시 갱신 누락).
 -- =========================================================
-create or replace function public.check_active_applications(p_phones text[])
+create or replace function public.check_active_applications(p_phones text[], p_session_id uuid)
 returns text[]
 language sql
 security definer
@@ -2433,13 +2436,15 @@ as $$
     select 1
     from application_attendees aa
     join applications ap on ap.id = aa.application_id
+    join sessions s on s.id = ap.session_id
     where ap.status <> 'cancelled'
       and aa.phone_hash = hash_phone(phone)
+      and s.content_group = (select content_group from sessions where id = p_session_id)
   );
 $$;
 
-revoke all on function public.check_active_applications(text[]) from public;
-grant execute on function public.check_active_applications(text[]) to anon, authenticated;
+revoke all on function public.check_active_applications(text[], uuid) from public;
+grant execute on function public.check_active_applications(text[], uuid) to anon, authenticated;
 
 -- =========================================================
 -- v16. decrypt_pii() service_role grant 누락 수정 (2026-08-15)
