@@ -1,8 +1,19 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
+import { isProductionHost } from "@/lib/hosts";
 
 const BASE_URL = "https://wouldyouescape.com";
 
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const host = (await headers()).get("host") || "";
+
+  // admin/test 서브도메인 등 프로덕션이 아닌 호스트는 전체 비공개 — 실제 콘텐츠는
+  // proxy.ts의 인증 게이트로 이미 막혀있지만, 크롤러가 그 사실을 robots.txt로도
+  // 확인할 수 있도록 명시한다.
+  if (!isProductionHost(host)) {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
+
   return {
     rules: {
       userAgent: "*",

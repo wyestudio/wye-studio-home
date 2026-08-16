@@ -3,6 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { verifyAdminToken } from "@/lib/adminAuth";
 import { verifySiteGateToken } from "@/lib/siteGateAuth";
+import { isProductionHost } from "@/lib/hosts";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인 시스템은 더 이상
 // 활성 플로우에서 쓰이지 않음. 삭제하지 않고 보존 — 결제 연동 등으로 계정이 다시
@@ -29,16 +30,34 @@ function isAdminProtectedPath(pathname: string): boolean {
   return adminRegex.test(pathname);
 }
 
+// 프로덕션이 아닌 호스트(admin/test 서브도메인, Vercel 프리뷰 등)에서 나가는 모든
+// 응답에 색인 차단 헤더를 강제한다 — 인증 게이트를 우회해 접근 가능한 로그인
+// 페이지 등이 실수로 검색에 노출되는 걸 막는 마지막 방어선.
+function tagRobots(response: NextResponse, blockIndexing: boolean): NextResponse {
+  if (blockIndexing) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const pathname = request.nextUrl.pathname;
   const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
   const onAdminHost = isAdminHost(host);
   const isApiPath = pathname.startsWith("/api/");
+  const blockIndexing = !isProductionHost(host);
+
+  // robots.txt는 어떤 게이트/리라이트도 타지 않고 항상 src/app/robots.ts로
+  // 직행시킨다 — 그래야 크롤러가 admin/test 호스트에서도 실제 disallow 규칙을
+  // 받아볼 수 있다 (로그인 리다이렉트로 가려지면 크롤러가 차단 여부를 알 수 없음).
+  if (pathname === "/robots.txt") {
+    return NextResponse.next();
+  }
 
   // 0단계: admin 호스트가 아닌데 /admin-x7f9k2m3으로 직접 접근 시 404
   if (!onAdminHost && new RegExp(`^${adminPath}(/|$)`).test(pathname)) {
-    return new NextResponse(null, { status: 404 });
+    return tagRobots(new NextResponse(null, { status: 404 }), blockIndexing);
   }
 
   // 1단계: 사이트 전체 비밀번호 게이트
@@ -48,7 +67,7 @@ export async function proxy(request: NextRequest) {
     if (!gateCookie || !verifySiteGateToken(gateCookie)) {
       const loginUrl = new URL(`${SITE_GATE_PATH}/login`, request.url);
       loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
+      return tagRobots(NextResponse.redirect(loginUrl), blockIndexing);
     }
   }
 
@@ -101,17 +120,17 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  if (earlyResponse) return earlyResponse;
+  if (earlyResponse) return tagRobots(earlyResponse, blockIndexing);
 
   // 4단계: 최종 응답 조립
   const sessionResponse = await updateSession(request);
-  if (!needsRewrite) return sessionResponse;
+  if (!needsRewrite) return tagRobots(sessionResponse, blockIndexing);
 
   const rewriteUrl = new URL(effectivePathname + request.nextUrl.search, request.url);
   const rewritten = NextResponse.rewrite(rewriteUrl, { request });
   // updateSession이 세팅한 쿠키를 rewrite 응답에 옮겨 담기
   sessionResponse.cookies.getAll().forEach((cookie) => rewritten.cookies.set(cookie));
-  return rewritten;
+  return tagRobots(rewritten, blockIndexing);
 }
 
 export const config = {
