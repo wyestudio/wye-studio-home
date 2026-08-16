@@ -167,7 +167,7 @@ About 페이지는 배포 환경에서는 `NEXT_PUBLIC_ABOUT_ENABLED` 환경변�
 
 **SMS 3단계 함수**: `sendApplicationConfirmationSms`(신청확인, **현재 비활성**)·`sendPaymentConfirmedSms`(입금확인)·`sendEventReminderSms`(참가확정 상기) 구현. 1단계는 8/11에 비활성화한 상태 그대로 유지, 2·3단계는 아래 어드민/크론 페이지에서 실제 호출함.
 
-**어드민 페이지** (`/admin-x7f9k2m3/**`, `proxy.ts`에서 `ADMIN_PATH`로 보호): 비밀번호 입력(`/admin-x7f9k2m3/login`, `ADMIN_PASSWORD` 환경변수) 후 쿠키(`admin_auth`, 24시간) 발급. 대시보드(`/admin-x7f9k2m3`)에서 세션 목록 조회, `/admin-x7f9k2m3/sessions/[id]`에서 신청자 목록 + 입금확인 버튼(클릭 시 `payment_status` 업데이트 + `sendPaymentConfirmedSms` 발송).
+**어드민 페이지** (`/admin/**`, `proxy.ts`에서 `ADMIN_PATH`로 보호): 비밀번호 입력(`/admin/login`, `ADMIN_PASSWORD` 환경변수) 후 쿠키(`admin_auth`, 24시간) 발급. 대시보드(`/admin`)에서 세션 목록 조회, `/admin/sessions/[id]`에서 신청자 목록 + 입금확인 버튼(클릭 시 `payment_status` 업데이트 + `sendPaymentConfirmedSms` 발송).
 
 **크론 API** (`/api/cron/reminder`, `CRON_SECRET` 토큰 인증): 24시간 이내 시작하는 확정 신청 조회 후, `reminder_sms_sent_at` null인 대표 신청자에게 `sendEventReminderSms` 발송. 외부 크론 서비스(cron-job.org 등)에서 매 5~15분 호출 설정 필요.
 

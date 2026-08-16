@@ -19,14 +19,14 @@ const ADMIN_HOSTS = new Set([
 ]);
 
 const SITE_GATE_PATH = process.env.SITE_GATE_PATH || "/site-gate-w3k9m5x7";
+const ADMIN_PATH = process.env.ADMIN_PATH || "/admin";
 
 function isAdminHost(host: string): boolean {
   return ADMIN_HOSTS.has(host);
 }
 
 function isAdminProtectedPath(pathname: string): boolean {
-  const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
-  const adminRegex = new RegExp(`^${adminPath}(?!/login$)`);
+  const adminRegex = new RegExp(`^${ADMIN_PATH}(?!/login$)`);
   return adminRegex.test(pathname);
 }
 
@@ -43,7 +43,6 @@ function tagRobots(response: NextResponse, blockIndexing: boolean): NextResponse
 export async function proxy(request: NextRequest) {
   const host = request.headers.get("host") || "";
   const pathname = request.nextUrl.pathname;
-  const adminPath = process.env.ADMIN_PATH || "/admin-x7f9k2m3";
   const onAdminHost = isAdminHost(host);
   const isApiPath = pathname.startsWith("/api/");
   const blockIndexing = !isProductionHost(host);
@@ -55,8 +54,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 0단계: admin 호스트가 아닌데 /admin-x7f9k2m3으로 직접 접근 시 404
-  if (!onAdminHost && new RegExp(`^${adminPath}(/|$)`).test(pathname)) {
+  // 0단계: admin 호스트가 아닌데 /admin으로 직접 접근 시 404
+  if (!onAdminHost && new RegExp(`^${ADMIN_PATH}(/|$)`).test(pathname)) {
     return tagRobots(new NextResponse(null, { status: 404 }), blockIndexing);
   }
 
@@ -73,14 +72,14 @@ export async function proxy(request: NextRequest) {
 
   // 2단계: admin 호스트 → 내부 경로 rewrite 대상 계산
   // site-gate 로그인 경로는 제외해야 함 — 안 그러면 admin 호스트에서
-  // "/site-gate.../login"이 "/admin-x7f9k2m3/site-gate.../login"으로 감싸져
+  // "/site-gate.../login"이 "/admin/site-gate.../login"으로 감싸져
   // 보호된 어드민 경로로 오인되고, "/login"으로 튕겼다가 거기서 다시 site-gate가
   // 발동해 무한 리다이렉트 루프에 빠진다(SITE_ACCESS_PASSWORD가 설정된 test.admin.*
   // 호스트에서 실제로 재현됨).
   let effectivePathname = pathname;
   let needsRewrite = false;
-  if (onAdminHost && !isApiPath && !pathname.startsWith(SITE_GATE_PATH) && !pathname.startsWith(adminPath)) {
-    effectivePathname = pathname === "/" ? adminPath : `${adminPath}${pathname}`;
+  if (onAdminHost && !isApiPath && !pathname.startsWith(SITE_GATE_PATH) && !pathname.startsWith(ADMIN_PATH)) {
+    effectivePathname = pathname === "/" ? ADMIN_PATH : `${ADMIN_PATH}${pathname}`;
     needsRewrite = true;
   }
 
@@ -119,7 +118,7 @@ export async function proxy(request: NextRequest) {
     if (!adminCookie || !verifyAdminToken(adminCookie)) {
       const loginUrl = onAdminHost
         ? new URL("/login", request.url)
-        : new URL(`${adminPath}/login`, request.url);
+        : new URL(`${ADMIN_PATH}/login`, request.url);
       loginUrl.searchParams.set("redirect", pathname);
       earlyResponse = NextResponse.redirect(loginUrl);
     }

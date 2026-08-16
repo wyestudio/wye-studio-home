@@ -60,9 +60,9 @@
 /sessions/[slug]/apply     참가 신청 폼 (로그인 불필요. 비소개팅은 인원 선택+그룹 신청, 소개팅은 1인+성별 선택만)
 /lookup                    Check(참여내역 조회) — 전화번호 + 접수번호로 신청 내역 확인. 네비 라벨만 영문화, URL은 유지
 /notice                    Notice — 공지사항(NoticeSection) + FAQ(FaqSection) 한 페이지에 통합 — 홈에도 FaqSection이 동일하게 중복 노출됨(의도됨)
-/admin-x7f9k2m3/login      어드민 로그인 — 비밀번호 입력 (ADMIN_PASSWORD 환경변수), 성공 시 admin_auth 쿠키 발급(24시간, httpOnly)
-/admin-x7f9k2m3            어드민 대시보드 — 세션 목록 (상태(모집중/마감/비활성화)/정원/확정·대기 인원 표시), proxy.ts에서 ADMIN_PATH로 보호
-/admin-x7f9k2m3/sessions/[id]  세션별 신청자 목록 (대표 신청자 표시, 상태 필터) + 행별 액션(입금확인/대기→확정 전환/신청취소 버튼, 각각 문자2/6/4 발송) + 세션 단위 "회차 비활성화" 버튼(문자7, 확정·대기 전체 일괄취소, 2026-08-15 추가)
+/admin/login      어드민 로그인 — 비밀번호 입력 (ADMIN_PASSWORD 환경변수), 성공 시 admin_auth 쿠키 발급(24시간, httpOnly)
+/admin            어드민 대시보드 — 세션 목록 (상태(모집중/마감/비활성화)/정원/확정·대기 인원 표시), proxy.ts에서 ADMIN_PATH로 보호
+/admin/sessions/[id]  세션별 신청자 목록 (대표 신청자 표시, 상태 필터) + 행별 액션(입금확인/대기→확정 전환/신청취소 버튼, 각각 문자2/6/4 발송) + 세션 단위 "회차 비활성화" 버튼(문자7, 확정·대기 전체 일괄취소, 2026-08-15 추가)
 /api/cron/reminder         크론 전용 API — CRON_SECRET 토큰 인증, 24시간 이내 시작하는 세션(취소된 세션 제외) 중 입금까지 확인된 확정 신청에 대해 대표 신청자에게 전날안내(문자3) SMS 발송 (reminder_sms_sent_at 기록)
 
 --- 아래는 휴면 처리됨(2026-08-09) — 코드는 남아있지만 어디서도 링크하지 않음 ---
@@ -84,7 +84,7 @@
 - **application_attendees** (v7 신규, v12 강화, v23부터 테마별 출생년도 재분리) — 그룹 신청의 참여자 개개인(대표 신청자 포함 전원 한 행씩). `name_enc`/`phone_enc`(v8, 암호화됨)/`phone_hash`(v8, 매칭 전용 HMAC)/`birth_year`/`nickname`(선택, 평문)/`is_representative`/`gender`(v9, `'M'|'F'`, v20부터 전 테마 필수)/`experience_range`(v20 신규). `unique(session_id, nickname)`으로 같은 회차 내 닉네임 중복만 방지. select/insert 정책 없음 — 완전히 잠김.
 - **테마 상호배타 → 컨텐츠 그룹 단위로 재정의** (v12 도입, v23 스코프 수정) — v12에서 "같은 사람이 어떤 테마든 1건만" 규칙을 도입했는데, 실제로는 세션/테마 필터가 전혀 없는 완전 전역 체크였다(실수가 아니라 당시엔 컨텐츠가 "바-ㅇ탈출" 하나뿐이라 결과가 같았을 뿐). WYE-73 문서화 과정에서 의도가 "같은 컨텐츠 안에서만 배타"임이 확인돼, v23에서 `sessions.content_group`을 신설하고 배타 체크를 `content_group` 일치 조건으로 스코프를 좁혔다. 지금은 소개팅/그룹 세션 모두 `content_group = 'baotalchul'`로 동일해서 기존과 동작이 같지만, 향후 새 컨텐츠(예: 대관형, 신규 방탈출 테마)가 생기면 서로 다른 `content_group`을 부여해 독립적으로 신청받을 수 있다. 취소된 신청은 여전히 카운트에서 제외됨(`status <> 'cancelled'`).
 - **waiting_number** (v12) — 대기자(`status='waiting'`)에게만 계산되는 같은 세션/같은 성별 내 대기 순번. 확정자는 null. 자동 승격 로직은 없음(v12에서 완전 삭제) — 운영자가 어드민 페이지의 "대기→확정 전환" 버튼으로 수동 처리.
-- **어드민 뷰/액션** (v12 뷰 신설, 2026-08-15 액션 확장) — `admin_attendee_view`/`admin_application_view`를 `/admin-x7f9k2m3` 어드민 페이지 UI에서 조회. 신청 행별 액션 3종: 입금확인(문자2, 기존)/신청취소(문자4, 신규)/대기→확정 전환(문자6, 신규) — 각각 상태 가드(취소 아닌 확정만 입금확인, 취소 아닌 것만 취소, 대기인 것만 전환) 포함. 세션 단위 액션: "회차 비활성화"(문자7, 신규) — `sessions.status`를 `'cancelled'`로 바꾸고 그 세션의 confirmed/waiting 신청 전체를 일괄 cancelled 처리 + 각 대표 신청자에게 SMS. 마감 재오픈(`male_closed`/`female_closed`/`status` 리셋)은 여전히 SQL 수동 처리.
+- **어드민 뷰/액션** (v12 뷰 신설, 2026-08-15 액션 확장) — `admin_attendee_view`/`admin_application_view`를 `/admin` 어드민 페이지 UI에서 조회. 신청 행별 액션 3종: 입금확인(문자2, 기존)/신청취소(문자4, 신규)/대기→확정 전환(문자6, 신규) — 각각 상태 가드(취소 아닌 확정만 입금확인, 취소 아닌 것만 취소, 대기인 것만 전환) 포함. 세션 단위 액션: "회차 비활성화"(문자7, 신규) — `sessions.status`를 `'cancelled'`로 바꾸고 그 세션의 confirmed/waiting 신청 전체를 일괄 cancelled 처리 + 각 대표 신청자에게 SMS. 마감 재오픈(`male_closed`/`female_closed`/`status` 리셋)은 여전히 SQL 수동 처리.
 - **PII 암호화** (v8, 2026-08-09) — 전화번호로 중복/조회를 체크하는 구조라 보안에 더 신경써야 한다는 판단으로, `application_attendees.name/phone`과 `applications.depositor_name`을 평문으로 저장하지 않음. 상세는 "보안 강화" 섹션 참고. 키는 **Supabase Vault**에 `app_pii_key`라는 이름으로 저장. `encrypt_pii(text) returns bytea` / `decrypt_pii(bytea) returns text` 래퍼와 `hash_phone(text) returns text` HMAC 해시 함수로 처리.
 - **submit_application()** (v7 `apply_and_recompute()` 대체, v8 암호화, v9 소개팅 분기, v12 대기 로직 재설계, v20 파라미터 정리, v23 배타 스코프+출생년도 재분리) — SECURITY DEFINER, `anon`+`authenticated` 실행 가능. 참여자 배열(jsonb)을 받아 ①약관 동의 ②(소개팅만) 그룹 크기 1 강제 + 성별 필수 ③출생년도 범위(**테마별 분기 — 소개팅 1990~1999 / 그룹 1987~2006**, v23에서 복원) ④컨텐츠 그룹 상호배타(전화번호 해시 + `content_group` 기준, v23) ⑤정원 초과 여부를 순서대로 검증 후 `applications`+`application_attendees`를 한 트랜잭션에 삽입. **그룹 전체가 들어갈 자리가 없으면 신청 자체를 거부**(부분 확정 없음, `"정원마감:"` 접두사 에러로 구분). 자동 승격 로직 없음(v12에서 완전 삭제).
   - ⚠️ v20 주석에 기록된 드리프트 이력: 한때 출생년도 검증이 ad-hoc하게 전 테마 통합 1987~2006으로 바뀌어 있었던 적이 있음(언제/누가 바꿨는지 기록 없음) — v23에서 테마별 분기로 복원했지만, 이 함수는 프로덕션 DB를 직접 고친 이력이 있었다는 뜻이니 향후 동작이 이 파일과 다르게 느껴지면 `pg_get_functiondef`로 실제 정의를 직접 대조할 것.
@@ -145,7 +145,7 @@
 # 앞으로 할 일 (순서대로)
 
 1. **문자1(신청확인) SMS 실발송 검증** — 2026-08-15 오후 코드상으로는 이미 재활성화됨(위 "문자 알림 7종" 참고). ⚠️ Vercel Production 환경에 SOLAPI 키(`SOLAPI_API_KEY`/`SOLAPI_API_SECRET`/`SOLAPI_SENDER_NUMBER`)가 실제로 설정돼 있는지, 그리고 팀원 반복 테스트로 인한 요금 문제 재발 방지책(테스트 환경 분리는 `NEXT_PUBLIC_IS_TEST_ENV`로 이미 됨)이 충분한지 반드시 확인 후 실사용 트래픽을 받을 것.
-2. **어드민 비밀번호/크론 시크릿 환경변수 설정** — 어드민 페이지(`/admin-x7f9k2m3/login`)가 작동하려면 `.env.local`의 `ADMIN_PASSWORD`를 설정해야 하고(현재 비어있어 로그인이 항상 실패), 크론 API(`/api/cron/reminder`)가 작동하려면 `CRON_SECRET`을 설정해야 함(현재 없어 모든 크론 요청이 401). Vercel Production 환경변수에도 모두 등록 필요.
+2. **어드민 비밀번호/크론 시크릿 환경변수 설정** — 어드민 페이지(`/admin/login`)가 작동하려면 `.env.local`의 `ADMIN_PASSWORD`를 설정해야 하고(현재 비어있어 로그인이 항상 실패), 크론 API(`/api/cron/reminder`)가 작동하려면 `CRON_SECRET`을 설정해야 함(현재 없어 모든 크론 요청이 401). Vercel Production 환경변수에도 모두 등록 필요.
 3. **외부 크론 서비스 실제 등록** — `/api/cron/reminder` 라우트는 완성되었지만, cron-job.org 같은 외부 서비스에 실제 등록하지 않아서 문자3(전날안내)이 자동 실행되지 않음. 위 `CRON_SECRET` 설정 후 `https://wouldyouescape.com/api/cron/reminder?token=[CRON_SECRET]`을 5~15분 주기로 호출하도록 등록할 것.
 3-1. **`session_venues.venue_address` 실데이터 입력** (2026-08-15 컬럼 신설) — 문자3(전날안내) 템플릿이 이 값을 쓰는데 기존 8/29 세션 2건 모두 아직 비어있음. SQL Editor에서 실제 주소로 채워둘 것.
 4. **동시성 검증** — Node.js 스크립트(임시, 스크래치패드 작성)로 모임/소개팅 각각 정원 근처까지 동시 신청을 `Promise.all`로 보냄 — 모임은 확정 24건 + 대기 1~26번을 정확히 받는지, 소개팅은 성별 각 12명 확정 + 대기 1~18번을 받는지, 51명 이상/성별 31명 이상은 모두 "정원마감:" 에러로 거부되는지 확인. `waiting_number` 순번이 race condition 없이 정확한지 검증. 테스트 후 생성된 신청 데이터는 `delete from applications where confirmation_code in (...)`로 정리.
