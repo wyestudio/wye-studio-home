@@ -99,37 +99,40 @@ function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
 
 function PreOpenCard({ originalPriceKrw, priceKrw }: { originalPriceKrw: number; priceKrw: number }) {
   return (
-    <div className="mt-6 rounded-xl border border-border bg-surface p-6">
-      <span className="mb-3 inline-block rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold tracking-wide text-brand-foreground">
+    <div
+      className="mt-6 rounded-xl border border-brand/50 p-6 shadow-[0_16px_36px_-14px_rgba(0,0,0,0.55)]"
+      style={{ background: "linear-gradient(135deg, rgba(58,68,140,0.8), rgba(90,104,200,0.8))" }}
+    >
+      <span className="mb-3 inline-block rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold tracking-wide text-white">
         PRE-OPEN ONLY
       </span>
       <h3 className="mb-3 text-lg font-extrabold text-foreground">프리오픈 참여자 혜택</h3>
-      <ul className="flex flex-col gap-2 text-sm text-foreground">
+      <ul className="flex flex-col gap-2 text-sm font-semibold text-foreground">
         <li className="flex gap-2">
           <span aria-hidden>✔</span>
           <span>
-            프리오픈 한정 참가비 <span className="font-bold text-brand">24,000원</span> 할인
+            프리오픈 한정 참가비 <span className="font-extrabold">24,000원</span> 할인
           </span>
         </li>
         <li className="flex gap-2">
           <span aria-hidden>✔</span>
           <span>
-            SNS 리뷰 인증 시 <span className="font-bold text-brand">5,000원</span> 페이백 제공
+            SNS 리뷰 인증 시 <span className="font-extrabold">5,000원</span> 페이백 제공
           </span>
         </li>
         <li className="flex gap-2">
           <span aria-hidden>✔</span>
           <span>
-            지인쿠폰, 본인쿠폰 총 <span className="font-bold text-brand">2종의 쿠폰</span> 제공
+            지인쿠폰, 본인쿠폰 총 <span className="font-extrabold">2종의 쿠폰</span> 제공
           </span>
         </li>
       </ul>
-      <div className="mt-4 flex items-center justify-between rounded-lg bg-brand-soft px-4 py-3">
-        <span className="text-sm text-muted">참가비</span>
+      <div className="mt-4 flex items-center justify-between border-t border-white/15 pt-4">
+        <span className="text-sm text-foreground/70">참가비</span>
         <span className="text-right">
-          <span className="mr-2 text-xs text-muted line-through">{formatKrw(originalPriceKrw)}</span>
-          <span className="text-lg font-extrabold text-foreground">{formatKrw(priceKrw)}</span>
-          <span className="ml-1 text-xs text-muted">/ 인</span>
+          <span className="mr-2 text-xs text-foreground/50 line-through">{formatKrw(originalPriceKrw)}</span>
+          <span className="text-lg font-extrabold text-brand">{formatKrw(priceKrw)}</span>
+          <span className="ml-1 text-xs text-foreground/70">/ 인</span>
         </span>
       </div>
     </div>
@@ -177,6 +180,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
   const ctaHref = `/sessions/${session.slug}/apply`;
   const isDatingSession = isDatingTheme(session.session_type);
+  const themeAccentColor = isDatingSession ? "#ff5ec4" : "#3dffb0";
   const themeName = session.theme_name;
   const dateLabel = formatSessionDateDotted(session.start_at);
   const duration = session.end_at ? formatDuration(session.start_at, session.end_at) : "-";
@@ -358,8 +362,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         {/* 제목 + 뱃지 */}
         <div>
           <div className="mb-3 flex flex-col items-start gap-1">
-            <h1 className="text-xl font-extrabold text-foreground">{themeName}</h1>
-            <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-lg font-bold" />
+            <h1 className="text-2xl font-extrabold text-foreground">{themeName}</h1>
+            <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-xl font-bold" />
           </div>
         </div>
 
@@ -371,7 +375,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
               {formatKrw(session.price_krw)}
               <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>
             </p>
-            <p className="text-xs text-muted">8/29 베타 한정 할인가</p>
+            <p className="text-xs text-muted">8/29 pre-open 한정 할인가</p>
           </div>
           <ShareButton title={session.title} url={shareUrl} />
         </div>
@@ -399,21 +403,11 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
         {/* 우측 컬럼 */}
         <div className="flex flex-1 flex-col justify-between">
-          {/* 상단: 제목 + 뱃지 + 정보 (데스크톱만) */}
+          {/* 상단: 제목 + 뱃지 */}
           <div>
             <div className="mb-3 flex flex-col items-start gap-1">
-              <h1 className="text-2xl font-extrabold text-foreground">{themeName}</h1>
-              <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-2xl lg:text-3xl font-bold" />
-            </div>
-
-            {/* 데스크톱에서만 정보 표시 */}
-            <div className="hidden lg:block">
-              <div className="rounded-xl glass-panel p-6">
-                <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
-              </div>
-              <div className="mt-4">
-                <EligibilityCard isDatingSession={isDatingSession} />
-              </div>
+              <h1 className="text-3xl font-extrabold text-foreground">{themeName}</h1>
+              <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-3xl lg:text-4xl font-bold" />
             </div>
           </div>
 
@@ -425,15 +419,15 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
                 {formatKrw(session.price_krw)}
                 <span className="ml-1 text-sm lg:text-xs font-normal text-muted">/ 인당</span>
               </p>
-              <p className="text-sm lg:text-xs text-muted">8/29 베타 한정 할인가</p>
+              <p className="text-sm lg:text-xs text-muted">8/29 pre-open 한정 할인가</p>
             </div>
             <ShareButton title={session.title} url={shareUrl} />
           </div>
         </div>
       </div>
 
-      {/* 태블릿 전용: 정보 별도 섹션 */}
-      <div className="hidden sm:block lg:hidden mb-12 mt-8">
+      {/* 태블릿+데스크톱: 정보 별도 섹션 (포스터/가격 블록 아래) */}
+      <div className="hidden sm:block mb-12 mt-8">
         <div className="rounded-xl glass-panel p-6">
           <SessionMetaList dateLabel={dateLabel} duration={duration} venueArea={session.venue_area} />
         </div>
@@ -447,7 +441,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       {/* 추천 대상 */}
       <section className="mt-12 mb-12">
-        <SectionHeading eyebrow="FOR YOU" title="이런 분들에게 추천드려요" align="left" className="mb-6" />
+        <SectionHeading eyebrow="FOR YOU" title="이런 분들에게 추천드려요" align="left" className="mb-6" eyebrowColor={themeAccentColor} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {FOR_YOU_CARDS.map((card) => (
             <div key={card.title} className="flex gap-3 rounded-xl border border-border bg-surface p-5">
@@ -465,7 +459,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       {/* 컨텐츠 구성 */}
       <section className="mb-12">
-        <SectionHeading eyebrow="CONTENTS" title="컨텐츠 구성" align="left" className="mb-8" />
+        <SectionHeading eyebrow="CONTENTS" title="컨텐츠 구성" align="left" className="mb-8" eyebrowColor={themeAccentColor} />
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           {contentSteps.map((step, i) => (
             <div key={step.title} className="relative rounded-xl border border-border bg-surface p-5 pt-6">
@@ -483,8 +477,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       {/* 진행 순서 */}
       <section className="mb-12">
-        <SectionHeading eyebrow="SCHEDULE" title="진행 순서" align="left" className="mb-8" />
-        <div className="flex flex-col">
+        <SectionHeading eyebrow="SCHEDULE" title="진행 순서" align="center" className="mb-8" eyebrowColor={themeAccentColor} />
+        <div className="mx-auto flex max-w-xl flex-col">
           {schedule.map((item, i) => (
             <div key={item.time} className="flex gap-4 pb-6 last:pb-0">
               <div className="flex flex-col items-center">
@@ -499,12 +493,12 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
             </div>
           ))}
         </div>
-        <p className="mt-2 text-xs text-muted">*자세한 타임테이블은 현장 상황에 따라 상이할 수 있습니다.</p>
+        <p className="mx-auto mt-2 max-w-xl text-center text-xs text-muted">*자세한 타임테이블은 현장 상황에 따라 상이할 수 있습니다.</p>
       </section>
 
       {/* 참가 전 꼭 확인해주세요 */}
       <section className="mb-12">
-        <SectionHeading eyebrow="PLEASE CHECK" title="참가 전 꼭 확인해주세요" align="left" className="mb-8" />
+        <SectionHeading eyebrow="PLEASE CHECK" title="참가 전 꼭 확인해주세요" align="left" className="mb-8" eyebrowColor={themeAccentColor} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {precautions.map((item, i) => (
             <div key={item.title} className="flex gap-4 rounded-xl border border-border bg-surface p-5">
@@ -522,7 +516,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       {/* 자주 묻는 질문 */}
       <section className="mb-12">
-        <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" align="left" className="mb-6" />
+        <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" align="left" className="mb-6" eyebrowColor={themeAccentColor} />
         <FlatFaqAccordion items={faqItems} />
       </section>
 
