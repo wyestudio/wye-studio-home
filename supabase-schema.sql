@@ -3152,6 +3152,12 @@ create table sms_templates (
   updated_at timestamptz not null default now()
 );
 
+-- applications/session_venues와 같은 이유로 anon/authenticated에는 grant를
+-- 아예 안 준다 — 다만 service_role도 새 테이블 생성 시 자동으로 권한이 붙지
+-- 않는다는 걸 처음엔 놓쳤음(2026-08-17 발견): 관리자 페이지가 service_role로
+-- 이 테이블을 직접 SELECT/UPDATE하므로 명시적 grant가 반드시 필요하다.
+grant select, update on sms_templates to service_role;
+
 insert into sms_templates (key, label, body, placeholders) values
 (
   'application_confirmation', '문자1 · 신청확인',
