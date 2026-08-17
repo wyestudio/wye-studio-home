@@ -255,16 +255,21 @@ export function AttendeeCard({
             )}
           </div>
           <p className="text-xs text-muted">비워두면 이름으로 표시돼요.</p>
-          {nicknameCheckState === "available" && (
-            <p className="text-xs font-semibold text-confirm">사용 가능한 닉네임이에요.</p>
+          {errors.nickname ? (
+            <p className="text-xs text-danger">{errors.nickname}</p>
+          ) : (
+            <>
+              {nicknameCheckState === "available" && (
+                <p className="text-xs font-semibold text-confirm">사용 가능한 닉네임이에요.</p>
+              )}
+              {nicknameCheckState === "taken" && (
+                <p className="text-xs font-semibold text-danger">이미 사용 중인 닉네임이에요.</p>
+              )}
+              {nicknameCheckState === "error" && (
+                <p className="text-xs font-semibold text-danger">확인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.</p>
+              )}
+            </>
           )}
-          {nicknameCheckState === "taken" && (
-            <p className="text-xs font-semibold text-danger">이미 사용 중인 닉네임이에요.</p>
-          )}
-          {nicknameCheckState === "error" && (
-            <p className="text-xs font-semibold text-danger">확인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.</p>
-          )}
-          {errors.nickname ? <p className="text-xs text-danger">{errors.nickname}</p> : null}
         </div>
       </div>
       {isConflict ? (
