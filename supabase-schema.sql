@@ -3299,3 +3299,36 @@ update sessions
   set start_at = '2026-08-29T19:00:00+09:00',
       end_at = '2026-08-29T23:30:00+09:00'  -- 기존 4.5시간 진행시간 유지
   where slug = '0829-dating';
+
+-- v28. hash_phone() 운영 배포 drift 수정 — 하드코딩된 salt → Vault 키 (2026-08-17)
+-- 발견 경위: 운영 DB의 실제 배포된 hash_phone()이 이 파일의 v8 정의(위 550행 부근, Vault의
+-- app_pii_key 사용)와 다르게 `hmac(..., 'phone-hash-salt', 'sha256')`라는 하드코딩 리터럴
+-- salt를 쓰고 있었다(발견 당시 실제 실행 결과로 확인). 이 리포지토리가 public이라 salt 값이
+-- 그대로 노출돼 있었고, 전화번호를 알면 누구나 동일한 해시를 미리 계산해
+-- application_attendees.phone_hash와 대조함으로써 특정 번호의 신청 여부를 알아낼 수 있는
+-- 상태였다 — 언제/왜 이렇게 배포됐는지 기록이 없는 ad-hoc drift(v20 주석의 출생년도 검증
+-- drift와 같은 유형).
+--
+-- 이 파일의 v8 정의를 그대로 재배포하면 실패한다: 운영의 get_pii_key()는 bytea를 반환하는데
+-- (테스트 프로젝트는 text를 반환) hmac()에는 bytea/bytea 또는 text/text 오버로드만 있어
+-- `hmac(text, bytea, text)` 타입 불일치로 에러가 난다. encrypt_pii/decrypt_pii가 이미
+-- `encode(get_pii_key(), 'escape')`로 text 변환하는 것과 동일한 패턴을 hash_phone에도
+-- 적용해 수정.
+--
+-- 수정 시점 기준 운영 DB의 applications/application_attendees가 0건이라 기존 phone_hash
+-- 재해시 마이그레이션은 불필요했음(신규 데이터부터 바로 올바른 키로 저장됨).
+create or replace function public.hash_phone(p_phone text)
+returns text
+language sql
+security definer
+set search_path = public, extensions
+stable
+as $$
+  select encode(
+    hmac(regexp_replace(p_phone, '[^0-9]', '', 'g'), encode(public.get_pii_key(), 'escape'), 'sha256'),
+    'hex'
+  );
+$$;
+revoke all on function public.hash_phone(text) from public;
+-- decrypt_pii와 마찬가지로 anon/authenticated에 직접 grant하지 않는다 — submit_application()
+-- 등 SECURITY DEFINER 함수 내부에서만 호출되며, 그 함수들은 이미 소유자 권한으로 실행된다.
