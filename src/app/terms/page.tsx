@@ -241,7 +241,7 @@ export default function TermsPage() {
         </div>
 
         {/* 부칙 */}
-        <div className="border-t border-border/40 pt-6">
+        <div className="pt-6">
           <h2 className="mb-4 font-bold text-muted">부칙</h2>
           <p className="text-muted">이 약관은 2026년 8월 14일부터 시행합니다.</p>
           <p className="mt-4 text-center text-xs text-muted">
