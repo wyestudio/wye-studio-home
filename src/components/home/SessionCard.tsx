@@ -68,11 +68,6 @@ export function SessionCard({
           <p className={`font-extrabold ${sizeCompact ? `text-xl ${sm("sm:text-2xl")}` : "text-2xl"}`}>
             {formatKrw(session.price_krw)}
             {!compact && <span className="ml-1 text-xs font-normal text-muted">/ 인당</span>}
-            {compact && (
-              <span className="ml-3 text-xs font-semibold text-muted">
-                (<span style={{ color: "var(--brand)" }}>5,000원</span> 페이백 포함)
-              </span>
-            )}
           </p>
           <p className="text-xs font-semibold text-muted">8/29 pre-open 한정 할인가</p>
         </div>
