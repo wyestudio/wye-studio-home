@@ -19,10 +19,11 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
 · 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
 · 인원: {{attendee_count}}명
 · 접수번호: {{confirmation_code}}
+· 입금자명: {{depositor_name}}
 · 입금액: {{price}}
-· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
 
-30분 내 입금이 확인되지 않으면 예약이 취소될 수 있습니다. 입금자명은 신청자 성함으로 부탁드립니다.
+30분 내 입금이 확인되지 않으면 예약이 취소될 수 있습니다.
 
 [환불 규정]
 체험 시작 48시간 전까지 100% / 24시간 전까지 50% / 이후 환불 불가
@@ -103,8 +104,9 @@ www.wouldyouescape.com/lookup
 · 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
 · 인원: {{attendee_count}}명
 · 접수번호: {{confirmation_code}}
+· 입금자명: {{depositor_name}}
 · 입금액: {{price}}
-· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
 · 입금기한: 문자 수신 후 24시간 이내
 
 기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
@@ -144,8 +146,13 @@ function themeName(session: Session): string {
 }
 
 function productLabel(session: Session): string {
-  return `${session.session_type} 버전`;
+  return `${session.session_type} 방탈출`;
 }
+
+// SMS는 신청자 본인에게만 가는 채널이라 BANK_ACCOUNT(화면 표시용, 마스킹됨)와
+// 별개로 마스킹 안 된 값을 쓴다.
+const BANK_ACCOUNT_NUMBER_SMS = "3333-05-2843942";
+const BANK_ACCOUNT_HOLDER_SMS = "김시온";
 
 // 그룹 3시간 30분 / 소개팅 4시간 30분(WYE-73 5장 치환값 기준). end_at이 있으면
 // 실제 시각 차이를 우선한다 — 향후 회차 시간이 바뀌어도 하드코딩값과 어긋나지 않도록.
@@ -203,6 +210,9 @@ export async function sendApplicationConfirmationSms({
     confirmation_code: application.confirmation_code,
     price: formatKrw(session.price_krw),
     bank_name: BANK_ACCOUNT.bankName,
+    account_number: BANK_ACCOUNT_NUMBER_SMS,
+    account_holder: BANK_ACCOUNT_HOLDER_SMS,
+    depositor_name: application.depositor_name,
   });
 
   try {
@@ -331,7 +341,8 @@ export async function sendWaitlistPromotedSms(
   session: Session,
   application: Application,
   representative: { name: string; phone: string },
-  attendeeCount: number
+  attendeeCount: number,
+  depositorName: string
 ): Promise<void> {
   const senderNumber = process.env.SOLAPI_SENDER_NUMBER;
   const messageService = getSolapiMessageService();
@@ -354,6 +365,9 @@ export async function sendWaitlistPromotedSms(
     confirmation_code: application.confirmation_code,
     price: formatKrw(session.price_krw),
     bank_name: BANK_ACCOUNT.bankName,
+    account_number: BANK_ACCOUNT_NUMBER_SMS,
+    account_holder: BANK_ACCOUNT_HOLDER_SMS,
+    depositor_name: depositorName,
   });
 
   try {

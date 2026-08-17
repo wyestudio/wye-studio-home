@@ -30,6 +30,15 @@ async function getAttendeeCount(supabase: ReturnType<typeof createAdminClient>, 
   return count ?? 1;
 }
 
+async function getDepositorName(supabase: ReturnType<typeof createAdminClient>, applicationId: string) {
+  const { data } = await supabase
+    .from("admin_application_view")
+    .select("depositor_name")
+    .eq("id", applicationId)
+    .single();
+  return (data?.depositor_name as string) ?? "";
+}
+
 export async function confirmPayment(applicationId: string, sessionId: string) {
   const cookieStore = await cookies();
   const adminCookie = cookieStore.get("admin_auth")?.value;
@@ -178,6 +187,7 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
     return { error: "대표 신청자를 찾을 수 없습니다." };
   }
   const attendeeCount = await getAttendeeCount(supabase, applicationId);
+  const depositorName = await getDepositorName(supabase, applicationId);
 
   const { error: updateError } = await supabase
     .from("applications")
@@ -188,7 +198,7 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
     return { error: "업데이트 실패: " + updateError.message };
   }
 
-  await sendWaitlistPromotedSms(session, application, representative, attendeeCount);
+  await sendWaitlistPromotedSms(session, application, representative, attendeeCount, depositorName);
 
   console.log(`[admin] 대기자 확정 전환됨: ${applicationId} (${application.confirmation_code})`);
 

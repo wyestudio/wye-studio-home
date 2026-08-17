@@ -3168,16 +3168,17 @@ $body$[우주이스케이프] 신청 접수 완료
 · 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
 · 인원: {{attendee_count}}명
 · 접수번호: {{confirmation_code}}
+· 입금자명: {{depositor_name}}
 · 입금액: {{price}}
-· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
 
-30분 내 입금이 확인되지 않으면 예약이 취소될 수 있습니다. 입금자명은 신청자 성함으로 부탁드립니다.
+30분 내 입금이 확인되지 않으면 예약이 취소될 수 있습니다.
 
 [환불 규정]
 체험 시작 48시간 전까지 100% / 24시간 전까지 50% / 이후 환불 불가
 
 문의: 카카오톡 채널 우주이스케이프$body$,
-  array['name','theme_name','product_label','event_date','start_time','end_time','duration','attendee_count','confirmation_code','price','bank_name']
+  array['name','theme_name','product_label','event_date','start_time','end_time','duration','attendee_count','confirmation_code','price','bank_name','account_number','account_holder','depositor_name']
 ),
 (
   'payment_confirmed', '문자2 · 입금확인',
@@ -3267,14 +3268,15 @@ $body$[우주이스케이프] 자리가 생겼습니다 · 입금 안내
 · 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
 · 인원: {{attendee_count}}명
 · 접수번호: {{confirmation_code}}
+· 입금자명: {{depositor_name}}
 · 입금액: {{price}}
-· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
 · 입금기한: 문자 수신 후 24시간 이내
 
 기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
 
 문의: 카카오톡 채널 우주이스케이프$body$,
-  array['name','theme_name','product_label','event_date','start_time','end_time','duration','attendee_count','confirmation_code','price','bank_name']
+  array['name','theme_name','product_label','event_date','start_time','end_time','duration','attendee_count','confirmation_code','price','bank_name','account_number','account_holder','depositor_name']
 ),
 (
   'minimum_not_met_cancellation', '문자7 · 최소인원미달취소',
