@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { updateSmsTemplate } from "./actions";
+import { PlaceholderHints } from "./PlaceholderHints";
 
 export function SmsTemplateEditor({
   templateKey,
@@ -45,14 +46,14 @@ export function SmsTemplateEditor({
 
   return (
     <div className="border border-border rounded-lg p-4">
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <div>
-          <h2 className="font-semibold text-foreground">{label}</h2>
-          <p className="text-xs text-muted mt-1">
-            사용 가능한 변수: {placeholders.map((p) => `{{${p}}}`).join(", ")}
-          </p>
-        </div>
+      <div className="flex items-start justify-between gap-4 mb-3">
+        <h2 className="font-semibold text-foreground">{label}</h2>
         <span className="text-xs text-muted shrink-0">마지막 수정: {updatedAt}</span>
+      </div>
+
+      <div className="mb-3">
+        <p className="text-xs text-muted mb-1.5">사용 가능한 변수 (hover로 설명 확인, 클릭하면 복사돼요)</p>
+        <PlaceholderHints placeholders={placeholders} />
       </div>
 
       <textarea
