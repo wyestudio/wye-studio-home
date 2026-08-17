@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
-const PLACEHOLDER_INFO: Record<string, { label: string; example: string }> = {
+export const PLACEHOLDER_INFO: Record<string, { label: string; example: string }> = {
   name: { label: "신청자 이름", example: "홍길동" },
   theme_name: { label: "테마명", example: "바-ㅇ탈출" },
-  product_label: { label: "그룹/소개팅 버전 표기", example: "그룹 버전" },
+  product_label: { label: "그룹/소개팅 방탈출 표기", example: "그룹 방탈출" },
   event_date: { label: "진행 날짜", example: "8/29(토)" },
   start_time: { label: "시작 시각", example: "13:00" },
   end_time: { label: "종료 시각 (~포함, 없으면 빈 값)", example: "~17:00" },
@@ -15,6 +15,9 @@ const PLACEHOLDER_INFO: Record<string, { label: string; example: string }> = {
   confirmation_code: { label: "접수번호", example: "384920" },
   price: { label: "입금액", example: "69,000원" },
   bank_name: { label: "입금 은행명", example: "카카오뱅크" },
+  account_number: { label: "입금 계좌번호", example: "3333-05-2843942" },
+  account_holder: { label: "예금주", example: "김시온" },
+  depositor_name: { label: "신청 시 입력한 입금자명", example: "홍길동" },
   venue_name: { label: "장소명", example: "뮤트스페이스 신림점" },
   venue_address_text: { label: "장소 주소 (괄호 포함, 없으면 빈 값)", example: " (서울 관악구 ...)" },
   reapply_url: { label: "재신청 링크", example: "www.wouldyouescape.com/sessions/0829-meeting" },

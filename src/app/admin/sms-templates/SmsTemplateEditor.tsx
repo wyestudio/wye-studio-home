@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { updateSmsTemplate } from "./actions";
-import { PlaceholderHints } from "./PlaceholderHints";
+import { PlaceholderHints, PLACEHOLDER_INFO } from "./PlaceholderHints";
+
+function renderPreview(body: string): string {
+  return body.replace(/\{\{(\w+)\}\}/g, (match, key) => PLACEHOLDER_INFO[key]?.example ?? match);
+}
 
 export function SmsTemplateEditor({
   templateKey,
@@ -24,6 +28,7 @@ export function SmsTemplateEditor({
   const [saved, setSaved] = useState(false);
 
   const isDirty = body !== savedBody;
+  const preview = useMemo(() => renderPreview(body), [body]);
 
   async function handleSave() {
     setIsLoading(true);
@@ -56,27 +61,38 @@ export function SmsTemplateEditor({
         <PlaceholderHints placeholders={placeholders} />
       </div>
 
-      <textarea
-        value={body}
-        onChange={(e) => {
-          setBody(e.target.value);
-          setSaved(false);
-        }}
-        rows={12}
-        className="w-full mt-2 p-3 text-sm font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-glow"
-      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div>
+          <textarea
+            value={body}
+            onChange={(e) => {
+              setBody(e.target.value);
+              setSaved(false);
+            }}
+            rows={14}
+            className="w-full p-3 text-sm font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-glow"
+          />
 
-      <div className="flex items-center gap-3 mt-3">
-        <button
-          onClick={handleSave}
-          disabled={isLoading || !isDirty}
-          className="px-3 py-1.5 text-xs bg-glow text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-        >
-          {isLoading ? "저장중..." : "저장"}
-        </button>
-        {saved && !isDirty && <span className="text-glow text-xs font-semibold">✓ 저장됨</span>}
-        {isDirty && !isLoading && <span className="text-xs text-muted">저장되지 않은 변경사항</span>}
-        {error && <span className="text-red-500 text-xs">{error}</span>}
+          <div className="flex items-center gap-3 mt-3">
+            <button
+              onClick={handleSave}
+              disabled={isLoading || !isDirty}
+              className="px-3 py-1.5 text-xs bg-glow text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+            >
+              {isLoading ? "저장중..." : "저장"}
+            </button>
+            {saved && !isDirty && <span className="text-glow text-xs font-semibold">✓ 저장됨</span>}
+            {isDirty && !isLoading && <span className="text-xs text-muted">저장되지 않은 변경사항</span>}
+            {error && <span className="text-red-500 text-xs">{error}</span>}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs text-muted mb-1.5">실제 발송 예시 (샘플 값 기준 미리보기)</p>
+          <div className="h-[calc(100%-1.375rem)] min-h-[280px] whitespace-pre-wrap rounded border border-border bg-background p-3 text-sm text-foreground">
+            {preview}
+          </div>
+        </div>
       </div>
     </div>
   );
