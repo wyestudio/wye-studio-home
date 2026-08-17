@@ -132,7 +132,7 @@ export async function sendPaymentConfirmedSms(
 
 export async function sendEventReminderSms(
   session: Session,
-  application: Application,
+  application: Pick<Application, "confirmation_code">,
   representativePhone: string,
   venueName: string,
   venueAddress: string | null
