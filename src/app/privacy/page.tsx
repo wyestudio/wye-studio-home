@@ -494,7 +494,7 @@ export default function PrivacyPage() {
         </div>
 
         {/* 부칙 */}
-        <div className="border-t border-border/40 pt-6">
+        <div className="pt-6">
           <p className="text-center text-xs text-muted">
             wouldyouescape (우주이스케이프) · 본 방침은 2026년 8월 14일부터 시행됩니다.
           </p>
