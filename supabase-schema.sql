@@ -3099,3 +3099,164 @@ $function$;
 grant execute on function public.lookup_application(text, text) to anon, authenticated;
 
 commit;
+
+-- =========================================================
+-- v25. sms_templates 테이블 신설 — 문자 포맷 관리자 편집 기능 (2026-08-17)
+-- 배경: 7종 SMS(문자5 제외, 사용 안 함) 문구가 src/lib/sms.ts에 하드코딩된
+-- 문자열 배열로 박혀 있어 문구를 바꾸려면 코드 수정+배포가 필요했다. 운영자가
+-- 배포 없이 관리자 페이지(/admin/sms-templates)에서 {{변수}} 플레이스홀더가
+-- 있는 본문 텍스트를 직접 고칠 수 있도록 이 테이블을 신설한다.
+--
+-- applications/session_venues처럼 anon/authenticated에 grant를 아예 주지
+-- 않아 service_role(관리자 서버 액션)만 접근 가능하다 — RLS 정책도 grant가
+-- 없으므로 불필요.
+--
+-- 문자3(전날안내)은 그룹/소개팅 문구가 구조적으로 달라(음주 안내 불릿 등)
+-- event_reminder_group/event_reminder_dating 두 행으로 분리했다.
+--
+-- src/lib/sms.ts는 이 테이블에서 body를 조회해 렌더링하되, 행이 없거나
+-- 조회 실패 시 코드 내 DEFAULT_TEMPLATES로 폴백한다(운영 SMS 발송이 DB
+-- 조회 실패로 끊기면 안 되므로 폴백은 필수) — 아래 시드 값과 DEFAULT_TEMPLATES는
+-- 반드시 동일하게 유지할 것.
+-- =========================================================
+create table sms_templates (
+  key text primary key,
+  label text not null,
+  body text not null,
+  placeholders text[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+
+insert into sms_templates (key, label, body, placeholders) values
+(
+  'application_confirmation', '문자1 · 신청확인',
+$body$[우주이스케이프] 신청 접수 완료
+
+{{name}}님, 신청이 접수되었습니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+· 접수번호: {{confirmation_code}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+
+30분 내 입금이 확인되지 않으면 예약이 취소될 수 있습니다. 입금자명은 신청자 성함으로 부탁드립니다.
+
+[환불 규정]
+체험 시작 48시간 전까지 100% / 24시간 전까지 50% / 이후 환불 불가
+
+문의: 카카오톡 채널 우주이스케이프$body$,
+  array['name','theme_name','product_label','event_date','start_time','end_time','duration','attendee_count','confirmation_code','price','bank_name']
+),
+(
+  'payment_confirmed', '문자2 · 입금확인',
+$body$[우주이스케이프] 예약이 확정되었습니다
+
+{{name}}님, 입금이 확인되어 예약이 확정되었습니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+· 접수번호: {{confirmation_code}}
+
+상세 장소와 준비물은 체험 전날 다시 안내드립니다.
+예약 조회·취소는 아래에서 가능합니다.
+www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프$body$,
+  array['name','theme_name','product_label','event_date','start_time','end_time','duration','attendee_count','confirmation_code']
+),
+(
+  'event_reminder_group', '문자3 · 전날안내(그룹)',
+$body$[우주이스케이프] 내일 뵙겠습니다
+
+내일 진행되는 체험 안내드립니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요, 10분 전까지 도착)
+· 장소: {{venue_name}}{{venue_address_text}}
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증
+
+[꼭 확인해 주세요]
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 입장 시 음주하신 것으로 확인되면 출입이 제한될 수 있습니다.
+· 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 동행자가 있으시다면 위 내용을 함께 전달해 주세요.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다.
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프$body$,
+  array['theme_name','product_label','event_date','start_time','duration','venue_name','venue_address_text']
+),
+(
+  'event_reminder_dating', '문자3 · 전날안내(소개팅)',
+$body$[우주이스케이프] 내일 뵙겠습니다
+
+내일 진행되는 체험 안내드립니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요, 10분 전까지 도착)
+· 장소: {{venue_name}}{{venue_address_text}}
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증
+
+[꼭 확인해 주세요]
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 입장 시 음주하신 것으로 확인되면 출입이 제한될 수 있습니다.
+· 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 2부부터는 음주가 가능합니다. 소주·맥주 외에 다른 주류를 원하실 경우 개인 지참(BYOB)도 가능합니다.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다.
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프$body$,
+  array['theme_name','product_label','event_date','start_time','duration','venue_name','venue_address_text']
+),
+(
+  'application_cancelled', '문자4 · 미입금취소',
+$body$[우주이스케이프] 미입금으로 예약이 취소되었습니다
+
+{{name}}님, 접수번호 {{confirmation_code}} 건은 입금이 확인되지 않아 예약을 취소했습니다.
+
+다시 신청하시려면 아래에서 진행해 주세요.
+{{reapply_url}}
+
+이미 입금하셨다면 카카오톡 채널로 알려주시기 바랍니다.
+
+문의: 카카오톡 채널 우주이스케이프$body$,
+  array['name','confirmation_code','reapply_url']
+),
+(
+  'waitlist_promoted', '문자6 · 공석입금안내',
+$body$[우주이스케이프] 자리가 생겼습니다 · 입금 안내
+
+{{name}}님, 통화드린 대로 아래 체험 참가가 가능합니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+· 접수번호: {{confirmation_code}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+· 입금기한: 문자 수신 후 24시간 이내
+
+기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
+
+문의: 카카오톡 채널 우주이스케이프$body$,
+  array['name','theme_name','product_label','event_date','start_time','end_time','duration','attendee_count','confirmation_code','price','bank_name']
+),
+(
+  'minimum_not_met_cancellation', '문자7 · 최소인원미달취소',
+$body$[우주이스케이프] {{event_date}} 체험 취소 안내
+
+{{name}}님, 아래 체험이 최소 진행 인원에 미달하여 부득이하게 취소되었습니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}
+
+결제하신 {{refund_amount}}은 전액 환불되며, 영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다.
+
+일정을 비워두셨을 텐데 불편을 드려 죄송합니다.
+
+문의: 카카오톡 채널 우주이스케이프$body$,
+  array['event_date','name','theme_name','product_label','start_time','refund_amount']
+);

@@ -5,6 +5,139 @@ import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { formatKrw, formatSessionDate, formatSessionTime, formatDuration } from "@/lib/format";
 import { isDatingTheme } from "@/lib/theme";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+// sms_templates 테이블이 비어있거나 조회 실패 시 쓰는 폴백 — 운영 SMS 발송이
+// DB 조회 실패로 끊기면 안 되므로 필수. supabase-schema.sql의 v25 시드값과
+// 반드시 동일하게 유지할 것(관리자 페이지에서 수정한 내용과는 별개로, 이건
+// "DB에 아무것도 없을 때" 쓰는 원본 문구다).
+const DEFAULT_TEMPLATES: Record<string, string> = {
+  application_confirmation: `[우주이스케이프] 신청 접수 완료
+
+{{name}}님, 신청이 접수되었습니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+· 접수번호: {{confirmation_code}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+
+30분 내 입금이 확인되지 않으면 예약이 취소될 수 있습니다. 입금자명은 신청자 성함으로 부탁드립니다.
+
+[환불 규정]
+체험 시작 48시간 전까지 100% / 24시간 전까지 50% / 이후 환불 불가
+
+문의: 카카오톡 채널 우주이스케이프`,
+
+  payment_confirmed: `[우주이스케이프] 예약이 확정되었습니다
+
+{{name}}님, 입금이 확인되어 예약이 확정되었습니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+· 접수번호: {{confirmation_code}}
+
+상세 장소와 준비물은 체험 전날 다시 안내드립니다.
+예약 조회·취소는 아래에서 가능합니다.
+www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프`,
+
+  event_reminder_group: `[우주이스케이프] 내일 뵙겠습니다
+
+내일 진행되는 체험 안내드립니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요, 10분 전까지 도착)
+· 장소: {{venue_name}}{{venue_address_text}}
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증
+
+[꼭 확인해 주세요]
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 입장 시 음주하신 것으로 확인되면 출입이 제한될 수 있습니다.
+· 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 동행자가 있으시다면 위 내용을 함께 전달해 주세요.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다.
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프`,
+
+  event_reminder_dating: `[우주이스케이프] 내일 뵙겠습니다
+
+내일 진행되는 체험 안내드립니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요, 10분 전까지 도착)
+· 장소: {{venue_name}}{{venue_address_text}}
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증
+
+[꼭 확인해 주세요]
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 입장 시 음주하신 것으로 확인되면 출입이 제한될 수 있습니다.
+· 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 2부부터는 음주가 가능합니다. 소주·맥주 외에 다른 주류를 원하실 경우 개인 지참(BYOB)도 가능합니다.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다.
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프`,
+
+  application_cancelled: `[우주이스케이프] 미입금으로 예약이 취소되었습니다
+
+{{name}}님, 접수번호 {{confirmation_code}} 건은 입금이 확인되지 않아 예약을 취소했습니다.
+
+다시 신청하시려면 아래에서 진행해 주세요.
+{{reapply_url}}
+
+이미 입금하셨다면 카카오톡 채널로 알려주시기 바랍니다.
+
+문의: 카카오톡 채널 우주이스케이프`,
+
+  waitlist_promoted: `[우주이스케이프] 자리가 생겼습니다 · 입금 안내
+
+{{name}}님, 통화드린 대로 아래 체험 참가가 가능합니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}{{end_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+· 접수번호: {{confirmation_code}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} 3333-05-2843942 (예금주 김시온)
+· 입금기한: 문자 수신 후 24시간 이내
+
+기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
+
+문의: 카카오톡 채널 우주이스케이프`,
+
+  minimum_not_met_cancellation: `[우주이스케이프] {{event_date}} 체험 취소 안내
+
+{{name}}님, 아래 체험이 최소 진행 인원에 미달하여 부득이하게 취소되었습니다.
+· 체험: {{theme_name}} 방탈출 베타테스터 ({{product_label}})
+· 일시: {{event_date}} {{start_time}}
+
+결제하신 {{refund_amount}}은 전액 환불되며, 영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다.
+
+일정을 비워두셨을 텐데 불편을 드려 죄송합니다.
+
+문의: 카카오톡 채널 우주이스케이프`,
+};
+
+async function getTemplateBody(key: string): Promise<string> {
+  const fallback = DEFAULT_TEMPLATES[key];
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase.from("sms_templates").select("body").eq("key", key).single();
+    return data?.body || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function renderTemplate(body: string, vars: Record<string, string>): string {
+  return body.replace(/\{\{(\w+)\}\}/g, (match, key) => (key in vars ? vars[key] : match));
+}
 
 function themeName(session: Session): string {
   return session.theme_name;
@@ -57,24 +190,20 @@ export async function sendApplicationConfirmationSms({
   if (!representative) return;
 
   const endTime = session.end_at ? `~${formatSessionTime(session.end_at)}` : "";
-  const text = [
-    "[우주이스케이프] 신청 접수 완료",
-    "",
-    `${representative.name}님, 신청이 접수되었습니다.`,
-    `· 체험: ${themeName(session)} 방탈출 베타테스터 (${productLabel(session)})`,
-    `· 일시: ${formatSessionDate(session.event_date)} ${formatSessionTime(session.start_at)}${endTime} (${durationLabel(session)} 소요)`,
-    `· 인원: ${attendees.length}명`,
-    `· 접수번호: ${application.confirmation_code}`,
-    `· 입금액: ${formatKrw(session.price_krw)}`,
-    `· 입금계좌: ${BANK_ACCOUNT.bankName} 3333-05-2843942 (예금주 김시온)`,
-    "",
-    "30분 내 입금이 확인되지 않으면 예약이 취소될 수 있습니다. 입금자명은 신청자 성함으로 부탁드립니다.",
-    "",
-    "[환불 규정]",
-    "체험 시작 48시간 전까지 100% / 24시간 전까지 50% / 이후 환불 불가",
-    "",
-    "문의: 카카오톡 채널 우주이스케이프",
-  ].join("\n");
+  const body = await getTemplateBody("application_confirmation");
+  const text = renderTemplate(body, {
+    name: representative.name,
+    theme_name: themeName(session),
+    product_label: productLabel(session),
+    event_date: formatSessionDate(session.event_date),
+    start_time: formatSessionTime(session.start_at),
+    end_time: endTime,
+    duration: durationLabel(session),
+    attendee_count: String(attendees.length),
+    confirmation_code: application.confirmation_code,
+    price: formatKrw(session.price_krw),
+    bank_name: BANK_ACCOUNT.bankName,
+  });
 
   try {
     await messageService.send({
@@ -102,21 +231,18 @@ export async function sendPaymentConfirmedSms(
   }
 
   const endTime = session.end_at ? `~${formatSessionTime(session.end_at)}` : "";
-  const text = [
-    "[우주이스케이프] 예약이 확정되었습니다",
-    "",
-    `${representative.name}님, 입금이 확인되어 예약이 확정되었습니다.`,
-    `· 체험: ${themeName(session)} 방탈출 베타테스터 (${productLabel(session)})`,
-    `· 일시: ${formatSessionDate(session.event_date)} ${formatSessionTime(session.start_at)}${endTime} (${durationLabel(session)} 소요)`,
-    `· 인원: ${attendeeCount}명`,
-    `· 접수번호: ${application.confirmation_code}`,
-    "",
-    "상세 장소와 준비물은 체험 전날 다시 안내드립니다.",
-    "예약 조회·취소는 아래에서 가능합니다.",
-    "www.wouldyouescape.com/lookup",
-    "",
-    "문의: 카카오톡 채널 우주이스케이프",
-  ].join("\n");
+  const body = await getTemplateBody("payment_confirmed");
+  const text = renderTemplate(body, {
+    name: representative.name,
+    theme_name: themeName(session),
+    product_label: productLabel(session),
+    event_date: formatSessionDate(session.event_date),
+    start_time: formatSessionTime(session.start_at),
+    end_time: endTime,
+    duration: durationLabel(session),
+    attendee_count: String(attendeeCount),
+    confirmation_code: application.confirmation_code,
+  });
 
   try {
     await messageService.send({
@@ -144,39 +270,19 @@ export async function sendEventReminderSms(
     return;
   }
 
-  const eventDateStr = formatSessionDate(session.event_date);
-  const startTimeStr = formatSessionTime(session.start_at);
   const addressText = venueAddress ? ` (${venueAddress})` : "";
   const dating = isDatingTheme(session.session_type);
-
-  const bullets = [
-    "만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.",
-    "입장 시 음주하신 것으로 확인되면 출입이 제한될 수 있습니다.",
-    "1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.",
-    ...(dating
-      ? ["2부부터는 음주가 가능합니다. 소주·맥주 외에 다른 주류를 원하실 경우 개인 지참(BYOB)도 가능합니다."]
-      : ["동행자가 있으시다면 위 내용을 함께 전달해 주세요."]),
-  ];
-
-  const text = [
-    "[우주이스케이프] 내일 뵙겠습니다",
-    "",
-    `내일 진행되는 체험 안내드립니다.`,
-    `· 체험: ${themeName(session)} 방탈출 베타테스터 (${productLabel(session)})`,
-    `· 일시: ${eventDateStr} ${startTimeStr} (${durationLabel(session)} 소요, 10분 전까지 도착)`,
-    `· 장소: ${venueName}${addressText}`,
-    "· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.",
-    "· 준비물: 신분증",
-    "",
-    "[꼭 확인해 주세요]",
-    ...bullets.map((b) => `· ${b}`),
-    "",
-    "[참석이 어려우시다면]",
-    "대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다.",
-    "취소: www.wouldyouescape.com/lookup",
-    "",
-    "문의: 카카오톡 채널 우주이스케이프",
-  ].join("\n");
+  const templateKey = dating ? "event_reminder_dating" : "event_reminder_group";
+  const body = await getTemplateBody(templateKey);
+  const text = renderTemplate(body, {
+    theme_name: themeName(session),
+    product_label: productLabel(session),
+    event_date: formatSessionDate(session.event_date),
+    start_time: formatSessionTime(session.start_at),
+    duration: durationLabel(session),
+    venue_name: venueName,
+    venue_address_text: addressText,
+  });
 
   try {
     await messageService.send({
@@ -202,18 +308,12 @@ export async function sendApplicationCancelledSms(
     return;
   }
 
-  const text = [
-    "[우주이스케이프] 미입금으로 예약이 취소되었습니다",
-    "",
-    `${representative.name}님, 접수번호 ${application.confirmation_code} 건은 입금이 확인되지 않아 예약을 취소했습니다.`,
-    "",
-    "다시 신청하시려면 아래에서 진행해 주세요.",
-    `www.wouldyouescape.com/sessions/${session.slug}`,
-    "",
-    "이미 입금하셨다면 카카오톡 채널로 알려주시기 바랍니다.",
-    "",
-    "문의: 카카오톡 채널 우주이스케이프",
-  ].join("\n");
+  const body = await getTemplateBody("application_cancelled");
+  const text = renderTemplate(body, {
+    name: representative.name,
+    confirmation_code: application.confirmation_code,
+    reapply_url: `www.wouldyouescape.com/sessions/${session.slug}`,
+  });
 
   try {
     await messageService.send({
@@ -241,22 +341,20 @@ export async function sendWaitlistPromotedSms(
   }
 
   const endTime = session.end_at ? `~${formatSessionTime(session.end_at)}` : "";
-  const text = [
-    "[우주이스케이프] 자리가 생겼습니다 · 입금 안내",
-    "",
-    `${representative.name}님, 통화드린 대로 아래 체험 참가가 가능합니다.`,
-    `· 체험: ${themeName(session)} 방탈출 베타테스터 (${productLabel(session)})`,
-    `· 일시: ${formatSessionDate(session.event_date)} ${formatSessionTime(session.start_at)}${endTime} (${durationLabel(session)} 소요)`,
-    `· 인원: ${attendeeCount}명`,
-    `· 접수번호: ${application.confirmation_code}`,
-    `· 입금액: ${formatKrw(session.price_krw)}`,
-    `· 입금계좌: ${BANK_ACCOUNT.bankName} 3333-05-2843942 (예금주 김시온)`,
-    "· 입금기한: 문자 수신 후 24시간 이내",
-    "",
-    "기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.",
-    "",
-    "문의: 카카오톡 채널 우주이스케이프",
-  ].join("\n");
+  const body = await getTemplateBody("waitlist_promoted");
+  const text = renderTemplate(body, {
+    name: representative.name,
+    theme_name: themeName(session),
+    product_label: productLabel(session),
+    event_date: formatSessionDate(session.event_date),
+    start_time: formatSessionTime(session.start_at),
+    end_time: endTime,
+    duration: durationLabel(session),
+    attendee_count: String(attendeeCount),
+    confirmation_code: application.confirmation_code,
+    price: formatKrw(session.price_krw),
+    bank_name: BANK_ACCOUNT.bankName,
+  });
 
   try {
     await messageService.send({
@@ -283,19 +381,15 @@ export async function sendMinimumNotMetCancellationSms(
     return;
   }
 
-  const text = [
-    `[우주이스케이프] ${formatSessionDate(session.event_date)} 체험 취소 안내`,
-    "",
-    `${representative.name}님, 아래 체험이 최소 진행 인원에 미달하여 부득이하게 취소되었습니다.`,
-    `· 체험: ${themeName(session)} 방탈출 베타테스터 (${productLabel(session)})`,
-    `· 일시: ${formatSessionDate(session.event_date)} ${formatSessionTime(session.start_at)}`,
-    "",
-    `결제하신 ${formatKrw(session.price_krw * attendeeCount)}은 전액 환불되며, 영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다.`,
-    "",
-    "일정을 비워두셨을 텐데 불편을 드려 죄송합니다.",
-    "",
-    "문의: 카카오톡 채널 우주이스케이프",
-  ].join("\n");
+  const body = await getTemplateBody("minimum_not_met_cancellation");
+  const text = renderTemplate(body, {
+    event_date: formatSessionDate(session.event_date),
+    name: representative.name,
+    theme_name: themeName(session),
+    product_label: productLabel(session),
+    start_time: formatSessionTime(session.start_at),
+    refund_amount: formatKrw(session.price_krw * attendeeCount),
+  });
 
   try {
     await messageService.send({
