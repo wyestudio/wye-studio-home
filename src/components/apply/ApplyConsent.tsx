@@ -258,7 +258,7 @@ export function ApplyConsent({
               </button>
               {expandedItems.has("no-rebooking") && (
                 <div className="mt-2 p-2 bg-surface rounded text-xs text-muted leading-relaxed max-h-[120px] overflow-y-auto">
-                  팀 대항 방탈출 특성상 이미 참가한 테마는 정답을 알고 있어 공정성이 훼손됩니다. <strong>베타테스트 참가 이력을 포함해,</strong> 이미 참가한 테마는 다시 신청할 수 없습니다. 재참여를 원하시면 <strong>다른 테마</strong>를 선택해 주세요. (약관 제5조)
+                  팀 대항 방탈출 특성상 이미 참가한 테마는 정답을 알고 있어 공정성이 훼손됩니다. <strong>pre-open 테스트 참가 이력을 포함해,</strong> 이미 참가한 테마는 다시 신청할 수 없습니다. 재참여를 원하시면 <strong>다른 테마</strong>를 선택해 주세요. (약관 제5조)
                 </div>
               )}
             </div>

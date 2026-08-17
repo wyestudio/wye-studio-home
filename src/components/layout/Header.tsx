@@ -59,19 +59,7 @@ export function Header() {
               우주이스케이프
             </span>
           </Link>
-          <div className="relative hidden sm:block" aria-hidden>
-            <span className="animate-hammer-swing absolute -left-2 -top-1.5 text-sm">
-              🔨
-            </span>
-            <Image
-              src="/mascot-kape.png"
-              alt=""
-              width={36}
-              height={26}
-              className="animate-mascot-bob"
-            />
-          </div>
-          <Badge tone="confirm">BETA</Badge>
+          <Badge tone="confirm">PRE-OPEN</Badge>
         </div>
         {/* 데스크톱 네비게이션 */}
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-bold text-muted">
@@ -107,19 +95,7 @@ export function Header() {
                 우주이스케이프
               </span>
             </Link>
-            <div className="relative hidden sm:block" aria-hidden>
-              <span className="animate-hammer-swing absolute -left-2 -top-1.5 text-sm">
-                🔨
-              </span>
-              <Image
-                src="/mascot-kape.png"
-                alt=""
-                width={36}
-                height={26}
-                className="animate-mascot-bob"
-              />
-            </div>
-            <Badge tone="confirm">BETA</Badge>
+            <Badge tone="confirm">PRE-OPEN</Badge>
           </div>
           {/* 모바일 햄버거 버튼 */}
           <button

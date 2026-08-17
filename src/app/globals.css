@@ -194,18 +194,8 @@ html.custom-cursor-active label {
   50% { transform: translateY(-3px) rotate(3deg); }
 }
 
-@keyframes hammer-swing {
-  0%, 100% { transform: rotate(-10deg); }
-  50% { transform: rotate(-55deg); }
-}
-
 .animate-mascot-bob {
   animation: mascot-bob 1.1s ease-in-out infinite;
-}
-
-.animate-hammer-swing {
-  animation: hammer-swing 1.1s ease-in-out infinite;
-  transform-origin: 90% 80%;
 }
 
 @keyframes drift {
@@ -229,7 +219,6 @@ html.custom-cursor-active label {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-mascot-bob,
-  .animate-hammer-swing,
   .animate-drift,
   .animate-glow-pulse {
     animation: none;

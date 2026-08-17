@@ -680,7 +680,7 @@ export function ApplyForm({
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">할인</span>
-                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-bold bg-confirm-soft text-confirm">BETA</span>
+                      <span className="inline-block rounded-full px-2 py-0.5 text-xs font-bold bg-confirm-soft text-confirm">PRE-OPEN</span>
                     </span>
                     <span className="text-sm font-bold text-danger">
                       -{formatKrw(originalPriceKrw - priceKrw)}
@@ -693,7 +693,7 @@ export function ApplyForm({
                   <span className="text-xl font-extrabold text-foreground">{formatKrw(priceKrw * attendeeCount)}</span>
                 </div>
                 <p className="text-sm text-muted text-right font-semibold mt-3">
-                  베타 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }}>5,000원</span> 페이백
+                  pre-open 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }}>5,000원</span> 페이백
                 </p>
               </div>
 
