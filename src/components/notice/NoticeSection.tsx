@@ -3,14 +3,14 @@ import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
 
 const NOTICES: { title: string; date: string; body: string }[] = [
   {
-    title: "🎉 우주이스케이프 pre-open 안내",
-    date: "2026.08.11",
-    body: "방탈출과 로테이션 소개팅을 결합한 우주이스케이프가 pre-open으로 문을 열었어요. 로그인 없이 신청 시점에 인적정보만 입력하면 바로 참가할 수 있어요.",
+    title: "🎉 우주이스케이프를 소개합니다.",
+    date: "2026.08.14",
+    body: "안녕하세요, 우주이스케이프입니다. 저희는 팀대항 방탈출, 파티형 방탈출을 시작으로 다양한 형태의 이색 방탈출 컨텐츠를 기획하고 제작하는 사람들입니다. 저희 우주를 탐험해주세요. 감사합니다.\nwould you escape?",
   },
   {
-    title: "8/29(토) 첫 시즌 신청 접수 중",
-    date: "2026.08.11",
-    body: "오후(모임)/저녁(소개팅) 2개 회차로 첫 시즌을 시작해요. 정원이 차면 마감되니 서둘러 신청해주세요.",
+    title: "[바-ㅇ탈출] 프리오픈 소식",
+    date: "2026.08.29",
+    body: "우주이스케이프의 첫 번째 파티형 방탈출 [바-ㅇ탈출]이 프리오픈했습니다. 이번 프리오픈은 그룹 방탈출과 소개팅 방탈출, 2개의 회차로 진행됩니다. 원하시는 회차를 선택해 지금 바로 참가 신청해주세요.",
   },
 ];
 
@@ -28,7 +28,7 @@ export function NoticeSection() {
                 <p className="font-semibold">{notice.title}</p>
                 <p className="text-xs text-muted">{notice.date}</p>
               </div>
-              <p className="text-sm text-muted">{notice.body}</p>
+              <p className="whitespace-pre-line text-sm text-muted">{notice.body}</p>
             </HudCard>
           ))}
         </div>
