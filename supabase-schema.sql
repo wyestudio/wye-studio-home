@@ -3293,3 +3293,9 @@ $body$[우주이스케이프] {{event_date}} 체험 취소 안내
 문의: 카카오톡 채널 우주이스케이프$body$,
   array['event_date','name','theme_name','product_label','start_time','refund_amount']
 );
+
+-- v27. 8/29 소개팅 회차 시작 시각 변경 18:00 → 19:00 (2026-08-17)
+update sessions
+  set start_at = '2026-08-29T19:00:00+09:00',
+      end_at = '2026-08-29T23:30:00+09:00'  -- 기존 4.5시간 진행시간 유지
+  where slug = '0829-dating';
