@@ -3101,6 +3101,31 @@ grant execute on function public.lookup_application(text, text) to anon, authent
 commit;
 
 -- =========================================================
+-- v26. check_nickname_available() 정식 기록 + 운영 grant 누락 수정 (2026-08-17)
+-- 배경: 참가 신청 1단계 "중복확인" 버튼이 호출하는 이 함수가 test 프로젝트에는
+-- 있었지만(supabase-schema-clean.sql에만 기록된 ad-hoc 함수, 이 파일엔 없었음)
+-- 운영 프로젝트에는 anon/authenticated EXECUTE grant가 아예 빠져 있었다 —
+-- 그래서 운영에서 버튼을 누르면 매번 권한 오류가 나고, 프론트가 그 에러를
+-- 조용히 삼켜(NicknameCheckState "idle"로 복귀) 사용자에게는 "그냥 아무 반응
+-- 없음"으로 보였다. 최종 제출(submit_application())의 unique 제약 검증
+-- 자체는 이 문제와 무관하게 항상 정상 동작했음 — 실제로 중복 닉네임이
+-- 등록되지는 않았고, 사전 확인 버튼만 무력화돼 있었다.
+-- 86c0741(check_active_applications 운영 무력화)과 동일한 유형의 드리프트.
+-- =========================================================
+create or replace function public.check_nickname_available(p_session_id uuid, p_nickname text)
+returns boolean
+language sql stable security definer set search_path to 'public'
+as $$
+  select not exists (
+    select 1 from application_attendees
+    where session_id = p_session_id and nickname = p_nickname and nickname is not null
+  );
+$$;
+
+revoke all on function public.check_nickname_available(uuid, text) from public;
+grant execute on function public.check_nickname_available(uuid, text) to anon, authenticated;
+
+-- =========================================================
 -- v25. sms_templates 테이블 신설 — 문자 포맷 관리자 편집 기능 (2026-08-17)
 -- 배경: 7종 SMS(문자5 제외, 사용 안 함) 문구가 src/lib/sms.ts에 하드코딩된
 -- 문자열 배열로 박혀 있어 문구를 바꾸려면 코드 수정+배포가 필요했다. 운영자가

@@ -239,6 +239,22 @@ export function ApplyForm({
       }
     });
 
+    // 그룹 내 닉네임 중복 검사 (빈 닉네임은 제외 — 여러 명이 비워도 중복 아님)
+    const nicknameCounts = new Map<string, number>();
+    attendees.forEach((attendee) => {
+      const nickname = attendee.nickname.trim();
+      if (nickname) nicknameCounts.set(nickname, (nicknameCounts.get(nickname) ?? 0) + 1);
+    });
+    attendees.forEach((attendee, i) => {
+      const nickname = attendee.nickname.trim();
+      if (nickname && (nicknameCounts.get(nickname) ?? 0) > 1) {
+        errors.push({
+          field: `attendee-${i}-nickname`,
+          message: "그룹 안에서 닉네임이 중복돼요. 참여자별로 다른 닉네임을 입력해주세요.",
+        });
+      }
+    });
+
     return errors;
   }, [depositorName, attendees, notes]);
 
@@ -375,7 +391,7 @@ export function ApplyForm({
       const result = await checkNicknameAvailability(sessionId, nickname);
 
       if ("error" in result) {
-        setNicknameCheckState((prev) => ({ ...prev, [attendeeIndex]: "idle" }));
+        setNicknameCheckState((prev) => ({ ...prev, [attendeeIndex]: "error" }));
       } else {
         setNicknameCheckState((prev) => ({
           ...prev,
@@ -401,6 +417,15 @@ export function ApplyForm({
           );
           setPendingFocusId(target.id);
         }
+        return;
+      }
+
+      const takenIndex = attendees.findIndex((_, i) => nicknameCheckState[i] === "taken");
+      if (takenIndex !== -1) {
+        setSubmitAttempted(true);
+        setActiveAttendeeIndex(takenIndex);
+        setToastMessage("이미 사용 중인 닉네임이 있어요. 다른 닉네임으로 바꿔주세요.");
+        setPendingFocusId(`attendee-${takenIndex}-nickname`);
         return;
       }
 
