@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { getSessionBySlug, getSessionById } from "@/lib/sessions";
-import { formatKrw, formatSessionDateTime, formatDuration, formatShortDate } from "@/lib/format";
+import { formatKrw, formatSessionDateDotted, formatDuration, formatShortDate } from "@/lib/format";
 import { RippleLinkButton } from "@/components/ui/RippleLinkButton";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { ShareButton } from "@/components/ui/ShareButton";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { isDatingTheme } from "@/lib/theme";
 import { eligibleBirthYearRangeLabel } from "@/lib/eligibility";
+import { FlatFaqAccordion, type FaqItem } from "./FlatFaqAccordion";
 
 const SITE_URL = "https://wouldyouescape.com";
 
@@ -58,20 +62,21 @@ function SessionMetaList({
   venueArea: string;
 }) {
   const items = [
-    { label: "날짜", value: dateLabel },
-    { label: "시간", value: duration },
-    { label: "장소", value: venueArea },
+    { emoji: "📅", label: "날짜", value: dateLabel },
+    { emoji: "📍", label: "장소", value: `${venueArea} (신청자 개별 안내)` },
+    { emoji: "🕐", label: "시간", value: duration },
+    { emoji: "💳", label: "결제", value: "무통장입금" },
   ];
 
   return (
-    <dl className="space-y-2 text-sm sm:text-base">
+    <div className="grid grid-cols-2 gap-4">
       {items.map((item) => (
-        <div key={item.label} className="flex items-center justify-between gap-4">
-          <dt className="text-muted">{item.label}</dt>
-          <dd className="font-semibold text-foreground text-right">{item.value}</dd>
+        <div key={item.label} className="text-xs text-muted sm:text-sm">
+          <span aria-hidden>{item.emoji}</span> {item.label}
+          <strong className="mt-1 block text-sm font-bold text-foreground sm:text-base">{item.value}</strong>
         </div>
       ))}
-    </dl>
+    </div>
   );
 }
 
@@ -92,6 +97,68 @@ function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
   );
 }
 
+function PreOpenCard({ originalPriceKrw, priceKrw }: { originalPriceKrw: number; priceKrw: number }) {
+  return (
+    <div className="mt-6 rounded-xl border border-border bg-surface p-6">
+      <span className="mb-3 inline-block rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold tracking-wide text-brand-foreground">
+        PRE-OPEN ONLY
+      </span>
+      <h3 className="mb-3 text-lg font-extrabold text-foreground">프리오픈 참여자 혜택</h3>
+      <ul className="flex flex-col gap-2 text-sm text-foreground">
+        <li className="flex gap-2">
+          <span aria-hidden>✔</span>
+          <span>
+            프리오픈 한정 참가비 <span className="font-bold text-brand">24,000원</span> 할인
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <span aria-hidden>✔</span>
+          <span>
+            SNS 리뷰 인증 시 <span className="font-bold text-brand">5,000원</span> 페이백 제공
+          </span>
+        </li>
+        <li className="flex gap-2">
+          <span aria-hidden>✔</span>
+          <span>
+            지인쿠폰, 본인쿠폰 총 <span className="font-bold text-brand">2종의 쿠폰</span> 제공
+          </span>
+        </li>
+      </ul>
+      <div className="mt-4 flex items-center justify-between rounded-lg bg-brand-soft px-4 py-3">
+        <span className="text-sm text-muted">참가비</span>
+        <span className="text-right">
+          <span className="mr-2 text-xs text-muted line-through">{formatKrw(originalPriceKrw)}</span>
+          <span className="text-lg font-extrabold text-foreground">{formatKrw(priceKrw)}</span>
+          <span className="ml-1 text-xs text-muted">/ 인</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const FOR_YOU_CARDS = [
+  {
+    emoji: "🙋",
+    title: "어색한 1:1 대화가 부담스러운 분",
+    desc: "방탈출이라는 공통 목표가 있어 자연스럽게 말이 트여요",
+  },
+  {
+    emoji: "🔍",
+    title: "조건만이 아닌 사람 자체를 알아가고 싶은 분",
+    desc: "스펙이나 프로필이 아니라, 방탈출 속 행동과 대화 속에서 그 사람의 진짜 모습을 볼 수 있어요",
+  },
+  {
+    emoji: "🧩",
+    title: "방탈출・이색 액티비티를 좋아하는 분",
+    desc: "게임하듯 즐기다 보면 시간이 어느새 훌쩍 지나가요",
+  },
+  {
+    emoji: "🎉",
+    title: "새로운 형태의 만남을 시도해보고 싶은 분",
+    desc: "뻔한 술자리 소개팅 말고, 콘텐츠가 있는 만남",
+  },
+];
+
 export default async function SessionDetailPage({ params }: PageProps<"/sessions/[slug]">) {
   const { slug } = await params;
 
@@ -111,30 +178,164 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
   const ctaHref = `/sessions/${session.slug}/apply`;
   const isDatingSession = isDatingTheme(session.session_type);
   const themeName = session.theme_name;
-  const dateLabel = formatSessionDateTime(session.start_at);
+  const dateLabel = formatSessionDateDotted(session.start_at);
   const duration = session.end_at ? formatDuration(session.start_at, session.end_at) : "-";
   const shareUrl = `${SITE_URL}/sessions/${session.slug}`;
 
-  const progressSteps = isDatingSession
-    ? ["로테이션 소개팅", "팀매칭", "방탈출", "포인트교환"]
-    : ["아이스브레이킹", "방탈출 + 미니게임", "포인트교환"];
+  const contentSteps = isDatingSession
+    ? [
+        {
+          emoji: "💘",
+          title: "로테이션 소개팅 & 랜덤 팀 편성",
+          desc: "로테이션으로 대화를 나누며 방탈출을 같이 할 팀원을 탐색해요. 짧은 대화만으로도 은근히 나와 잘 맞는 사람이 누군지 감이 올 거예요.",
+        },
+        {
+          emoji: "🚪",
+          title: "방탈출 플레이",
+          desc: "팀별로 제한 시간 안에 함께 문제를 풀며 포인트를 수집합니다. 협동 과정에서 자연스럽게 서로의 성향이 드러나요.",
+        },
+        {
+          emoji: "💬",
+          title: "프리토크 & 교류타임 + 포인트로 상품교환",
+          desc: "1부 컨텐츠 종료 후 다과와 함께하는 자유 대화 시간. 마음에 든 상대와 연락처를 교환할 수 있어요. 추가로, 방탈출을 하며 수집했던 포인트로 여러가지 상품을 교환해보세요!",
+        },
+      ]
+    : [
+        {
+          emoji: "🧊",
+          title: "아이스브레이킹",
+          desc: "배정된 팀원과 간단한 스몰토크로 친해지는 시간. 팀은 저희가 방탈출 경험수 밸런스 조정해서 정해드려요.",
+        },
+        {
+          emoji: "🚪",
+          title: "방탈출 플레이",
+          desc: "팀별로 제한 시간 안에 함께 문제를 풀며 포인트를 수집합니다. 협동 과정에서 자연스럽게 팀워크가 발휘돼요.",
+        },
+        {
+          emoji: "💬",
+          title: "프리토크 & 교류 타임 + 포인트로 상품교환",
+          desc: "1부 컨텐츠 종료 후 다과와 함께하는 자유 대화 시간. 마음에 든 사람과 수다떨며 교류할 수 있어요. 추가로, 방탈출을 하며 수집했던 포인트로 여러가지 상품을 교환해보세요!",
+        },
+      ];
 
-  const precautions = [
-    { title: "정확한 주소는 추후 안내드려요", desc: "장소는 참가 확정 후 시작 24시간 전에 문자로 정확한 주소를 안내드립니다." },
+  const schedule: { planet: Planet; time: string; title: string; desc: string }[] = isDatingSession
+    ? [
+        { planet: "mercury", time: "19:00", title: "현장 접수 & 로테이션 소개팅", desc: "참여 확인 후 이름표 배부, 로테이션 소개팅 진행" },
+        { planet: "venus", time: "20:00", title: "팀 매칭 및 1부 컨텐츠 안내", desc: "방탈출 진행 규칙 안내 및 설명" },
+        { planet: "earth", time: "20:30", title: "방탈출 진행 + 미니게임", desc: "팀별 방탈출 진행. 돌발 미니게임 발생" },
+        { planet: "mars", time: "22:00", title: "2부 다과 타임 & 상품교환", desc: "자유롭게 대화하며 수집한 포인트로 상품 교환. (22:30부터 자율 퇴장 가능)" },
+      ]
+    : [
+        { planet: "mercury", time: "13:00", title: "현장 접수 & 팀별 배치 확인", desc: "참여 확인 후 이름표 배부, 팀별 좌석 안내에 따라 착석" },
+        { planet: "venus", time: "13:40", title: "1부 컨텐츠 안내", desc: "방탈출 진행 규칙 안내 및 설명" },
+        { planet: "earth", time: "14:00", title: "방탈출 진행 + 미니게임", desc: "팀별 방탈출 진행. 돌발 미니게임 발생" },
+        { planet: "mars", time: "15:30", title: "2부 다과 타임 & 상품교환", desc: "자유롭게 대화하며 수집한 포인트로 상품 교환 후 자율 퇴장" },
+      ];
+
+  const precautions: { title: string; desc: ReactNode }[] = [
     {
-      title: "출생년도 제한이 있어요",
-      desc: isDatingSession
-        ? "또래끼리 즐기실 수 있도록 1990~1999년생만 신청 가능합니다."
-        : `20대·30대가 함께하실 수 있도록 ${eligibleBirthYearRangeLabel(false)}만 신청 가능합니다.`,
+      title: "시작 24시간 이내 환불 불가",
+      desc: (
+        <>
+          테마 시작 <span className="font-bold text-foreground">24시간 전</span> 이후부터는 환불이 불가합니다. 추가로,{" "}
+          <span className="font-bold text-foreground">노쇼 및 지각 시 입금액은 환불드리지 않으며</span> 추후 이용이 제한될 수 있습니다.
+        </>
+      ),
     },
-    { title: "활동형 콘텐츠입니다", desc: "방탈출・보드게임 등 추리/협력 중심 프로그램으로, 팀 게임에 적극적으로 참여 가능한 분만 신청 바랍니다." },
-    { title: "시간 엄수 필수", desc: "노쇼 및 지각은 절대 불가합니다. 1부・2부 모두 정시 참여 및 전체 일정 참여 가능자만 신청 바랍니다." },
-    { title: "휴대폰 사용 제한", desc: "1부 진행(약 2시간) 동안 휴대폰 사용이 제한되며, 사전 제출에 동의하신 분만 참여 가능합니다." },
-    { title: "건강한 경쟁 매너 필수", desc: "미니게임 및 경쟁 요소가 포함되어 있습니다. 과도한 몰입 없이 즐겁게 참여 가능한 분을 지향합니다." },
-    { title: "운영 방해 행위 제재", desc: "만취자 및 타인에게 불쾌감을 주는 행위 발생 시 즉시 퇴장 조치됩니다." },
-    { title: "촬영 금지", desc: "행사 중 사진 및 영상 촬영은 전면 금지됩니다." },
-    { title: "매너 있는 교류 필수", desc: "과도한 신체 접촉 및 불쾌감을 유발하는 언행은 엄격히 제한됩니다." },
+    {
+      title: "참가 가능 나이 제한",
+      desc: (
+        <>
+          비슷한 연령끼리 즐기실 수 있도록 (
+          <span className="font-bold text-foreground">
+            소개팅은 {eligibleBirthYearRangeLabel(true)}, 그룹은 {eligibleBirthYearRangeLabel(false)}
+          </span>
+          )만 신청 가능합니다.
+        </>
+      ),
+    },
+    {
+      title: "결제는 무통장입금만 가능",
+      desc: (
+        <>
+          신청 후 <span className="font-bold text-foreground">30분 내 미입금 시 자동 취소</span>됩니다.
+        </>
+      ),
+    },
+    {
+      title: "진행 장소는 추후 안내",
+      desc: "정확한 참여 장소는 참여 확정 후 테마 시작 24시간 전에 문자로 안내드립니다.",
+    },
+    {
+      title: "활동형 콘텐츠",
+      desc: (
+        <>
+          방탈출은 협력 중심 프로그램으로 구성되어 있어, <span className="font-bold text-foreground">팀 게임에 적극적으로 참여 가능한 분만</span> 신청
+          바랍니다.
+        </>
+      ),
+    },
+    {
+      title: "휴대폰 사용 제한",
+      desc: (
+        <>
+          1부 진행 동안 사진 촬영을 포함한 <span className="font-bold text-foreground">모든 전자기기 사용이 제한</span>됩니다. 사전 휴대폰 제출에
+          동의하신 분만 참여 가능합니다.
+        </>
+      ),
+    },
+    {
+      title: "건강한 경쟁 매너 필수",
+      desc: (
+        <>
+          1부 전반적으로 경쟁 요소가 포함되어 있습니다. 과한 몰입보다 <span className="font-bold text-foreground">즐겁게 참여</span> 부탁드립니다.
+        </>
+      ),
+    },
+    {
+      title: "매너 있는 교류 필수",
+      desc: (
+        <>
+          타 참여자 및 진행자에게{" "}
+          <span className="font-bold text-foreground">과도한 신체 접촉 및 불쾌감을 유발하는 언행은 즉시 퇴장</span>됩니다.
+        </>
+      ),
+    },
   ];
+
+  const faqItems: FaqItem[] = isDatingSession
+    ? [
+        {
+          q: "혼자 또는 친구와 신청해도 되나요?",
+          a: "1인 개별 신청만 가능합니다. 지인과 개별 신청해도 팀 편성 시 랜덤으로 흩어질 수 있어요.",
+        },
+        {
+          q: "방탈출을 못 해봤는데 참여할 수 있나요?",
+          a: "전혀 문제없어요! 난이도는 초보자도 즐길 수 있는 수준으로 구성되며, 방탈출만이 아닌 미니게임들도 구성되어 있어 아쉬움 없이 모두 참여 가능합니다.",
+        },
+        {
+          q: "남녀 비율은 어떻게 되나요?",
+          a: "최대한 1:1 비율에 가깝게 팀을 편성하며, 신청 현황에 따라 조정될 수 있습니다.",
+        },
+        {
+          q: "옷차림이나 준비물이 있나요?",
+          a: "단정한 옷차림과 신분증만 지참해주세요.",
+        },
+      ]
+    : [
+        {
+          q: "혼자 또는 친구와 신청해도 되나요?",
+          a: "혼자 또는 친구와 함께 모두 가능합니다. 친구와 함께 신청 시 같은 팀으로 편성되고 싶으신 분들은 비고란에 작성해주시면 최대한 반영해드리겠습니다.",
+        },
+        {
+          q: "방탈출을 못 해봤는데 참여할 수 있나요?",
+          a: "전혀 문제없어요! 난이도는 초보자도 즐길 수 있는 수준으로 구성되며, 방탈출만이 아닌 미니게임들도 구성되어 있어 아쉬움 없이 모두 참여 가능합니다.",
+        },
+        {
+          q: "옷차림이나 준비물이 있나요?",
+          a: "단정한 옷차림과 신분증만 지참해주세요.",
+        },
+      ];
 
   return (
     <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl px-5 py-10 sm:px-8 sm:py-14 lg:py-20 pb-32">
@@ -241,50 +442,72 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         </div>
       </div>
 
-      {/* 컨텐츠 소개 */}
-      <section className="mt-4 border-t border-border pt-12 mb-12">
-        <h2 className="mb-4 text-sm font-bold text-muted">컨텐츠 소개</h2>
-        <div className="space-y-4 text-sm leading-relaxed text-foreground">
-          {isDatingSession ? (
-            <>
-              <p>소개팅과 방탈출을 결합한 신개념 프로그램입니다. 제한시간 안에 문제를 풀며 자연스럽게 <span className="font-bold text-brand">이성에게 매력을 어필</span>할 수 있어요.</p>
-              <p>단순한 대화가 아니라 같은 팀이 되어 문제를 해결하는 방식이라 어색함은 줄이고, <span className="font-bold text-brand">몰입감과 재미는 극대화</span>했습니다.</p>
-              <p>문제 풀이뿐 아니라 다양한 미니게임과 차별화된 콘텐츠로 <span className="font-bold text-brand">각자의 매력이 자연스럽게 드러나도록</span> 구성했습니다.</p>
-            </>
-          ) : (
-            <>
-              <p>방탈출과 협동 게임을 결합한 신개념 친목 프로그램입니다. 제한시간 안에 문제를 풀며 자연스럽게 <span className="font-bold text-brand">새로운 사람들과 가까워질</span> 수 있어요.</p>
-              <p>단순한 대화가 아니라 같은 팀이 되어 문제를 해결하는 방식이라 어색함은 줄이고, <span className="font-bold text-brand">몰입감과 재미는 극대화</span>했습니다.</p>
-              <p>문제 풀이뿐 아니라 다양한 미니게임과 차별화된 콘텐츠로 <span className="font-bold text-brand">서로 가까워질 수 있도록</span> 구성했습니다.</p>
-            </>
-          )}
-        </div>
-      </section>
+      {/* PRE-OPEN ONLY 혜택 카드 */}
+      <PreOpenCard originalPriceKrw={session.original_price_krw} priceKrw={session.price_krw} />
 
-      {/* 진행 순서 */}
-      <section className="mb-12">
-        <h2 className="mb-3 text-sm font-bold text-muted">진행 순서</h2>
-        <div className="flex flex-wrap items-start justify-center gap-x-6 sm:gap-x-12 gap-y-6">
-          {progressSteps.map((step, i) => (
-            <div key={step} className="flex items-center gap-2 sm:gap-3">
-              <div className="flex w-20 sm:w-24 flex-col items-center gap-2">
-                <span className="flex h-10 w-10 sm:h-14 sm:w-14 items-center justify-center rounded-full border border-glow bg-brand-soft text-sm sm:text-base font-bold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
-                  {i + 1}
-                </span>
-                <span className="text-center text-xs sm:text-sm font-semibold">{step}</span>
+      {/* 추천 대상 */}
+      <section className="mt-12 mb-12">
+        <SectionHeading eyebrow="FOR YOU" title="이런 분들에게 추천드려요" align="left" className="mb-6" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {FOR_YOU_CARDS.map((card) => (
+            <div key={card.title} className="flex gap-3 rounded-xl border border-border bg-surface p-5">
+              <span className="text-2xl" aria-hidden>
+                {card.emoji}
+              </span>
+              <div>
+                <p className="font-bold text-foreground">{card.title}</p>
+                <p className="mt-1 text-xs text-muted">{card.desc}</p>
               </div>
-              {i < progressSteps.length - 1 ? <span className="mt-2 sm:mt-3 text-border">→</span> : null}
             </div>
           ))}
         </div>
       </section>
 
-      {/* 유의사항 */}
+      {/* 컨텐츠 구성 */}
       <section className="mb-12">
-        <h2 className="mb-4 text-sm font-bold text-muted">유의사항</h2>
-        <div className="space-y-0">
+        <SectionHeading eyebrow="CONTENTS" title="컨텐츠 구성" align="left" className="mb-8" />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          {contentSteps.map((step, i) => (
+            <div key={step.title} className="relative rounded-xl border border-border bg-surface p-5 pt-6">
+              <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold text-brand-foreground">
+                STEP {i + 1}
+              </span>
+              <p className="mb-2 font-bold text-foreground">
+                {step.emoji} {step.title}
+              </p>
+              <p className="text-xs leading-relaxed text-muted">{step.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 진행 순서 */}
+      <section className="mb-12">
+        <SectionHeading eyebrow="SCHEDULE" title="진행 순서" align="left" className="mb-8" />
+        <div className="flex flex-col">
+          {schedule.map((item, i) => (
+            <div key={item.time} className="flex gap-4 pb-6 last:pb-0">
+              <div className="flex flex-col items-center">
+                <PlanetDot planet={item.planet} className="mt-1" />
+                {i < schedule.length - 1 ? <div className="mt-1 w-px flex-1 bg-border" /> : null}
+              </div>
+              <div className="pb-1">
+                <p className="text-xs font-extrabold text-brand">{item.time}</p>
+                <p className="mt-0.5 font-bold text-foreground">{item.title}</p>
+                <p className="mt-1 text-xs text-muted">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-muted">*자세한 타임테이블은 현장 상황에 따라 상이할 수 있습니다.</p>
+      </section>
+
+      {/* 참가 전 꼭 확인해주세요 */}
+      <section className="mb-12">
+        <SectionHeading eyebrow="PLEASE CHECK" title="참가 전 꼭 확인해주세요" align="left" className="mb-8" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {precautions.map((item, i) => (
-            <div key={i} className={`flex gap-4 p-4 ${i !== precautions.length - 1 ? "border-b border-border/40" : ""}`}>
+            <div key={item.title} className="flex gap-4 rounded-xl border border-border bg-surface p-5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-xs font-bold text-danger">
                 {i + 1}
               </span>
@@ -295,6 +518,12 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
             </div>
           ))}
         </div>
+      </section>
+
+      {/* 자주 묻는 질문 */}
+      <section className="mb-12">
+        <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" align="left" className="mb-6" />
+        <FlatFaqAccordion items={faqItems} />
       </section>
 
       {/* 고정 CTA 버튼 */}
