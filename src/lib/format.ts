@@ -43,6 +43,15 @@ export function formatShortDate(startAt: string): string {
   return `${month}/${day}`;
 }
 
+// 세션 상세 페이지 히어로 카드용 "YYYY.M.D (요일) HH:mm" 형식(연도 포함, 점 구분).
+export function formatSessionDateDotted(startAt: string): string {
+  const { month, day, weekday, hour, minute } = seoulParts(startAt);
+  const year = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", year: "numeric" }).format(new Date(startAt));
+  const hh = hour.toString().padStart(2, "0");
+  const mm = minute.toString().padStart(2, "0");
+  return `${year}.${month}.${day} (${weekday}) ${hh}:${mm}`;
+}
+
 export function formatSessionDate(eventDate: string): string {
   const d = new Date(eventDate + "T00:00:00");
   const month = d.getMonth() + 1;
