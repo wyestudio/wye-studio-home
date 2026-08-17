@@ -1,0 +1,20 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping production
+        run: |
+          curl -X GET "https://wouldyouescape.com/api/cron/keepalive" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            -w "\nHTTP Status: %{http_code}\n"
+      - name: Ping test
+        run: |
+          curl -X GET "https://test.wouldyouescape.com/api/cron/keepalive" \
+            -H "x-cron-secret: ${{ secrets.TEST_CRON_SECRET }}" \
+            -w "\nHTTP Status: %{http_code}\n"
