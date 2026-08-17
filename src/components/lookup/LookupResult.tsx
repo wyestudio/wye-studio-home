@@ -217,7 +217,7 @@ export function LookupResult() {
                 {formatKrw(result.price_krw)} × {result.attendees.length}명 = {formatKrw(result.price_krw * result.attendees.length)}
               </p>
               <p className="mt-1 text-xs text-muted">
-                베타 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }} className="font-semibold">5,000원</span> 페이백
+                pre-open 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }} className="font-semibold">5,000원</span> 페이백
               </p>
             </div>
           </div>

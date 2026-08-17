@@ -74,7 +74,7 @@ export function SessionCard({
               </span>
             )}
           </p>
-          <p className="text-xs font-semibold text-muted">8/29 베타 한정 할인가</p>
+          <p className="text-xs font-semibold text-muted">8/29 pre-open 한정 할인가</p>
         </div>
         <div className={`${mobileLayout ? "" : "sm:hidden"} text-xs font-semibold`} style={{ color: "var(--hud-accent)" }}>
           자세히 보기 →
