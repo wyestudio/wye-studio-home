@@ -5,6 +5,7 @@ import { ConfirmPaymentButton } from "./ConfirmPaymentButton";
 import { CancelApplicationButton } from "./CancelApplicationButton";
 import { PromoteWaitlistButton } from "./PromoteWaitlistButton";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
+import { SendReminderButton } from "./SendReminderButton";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,12 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
               </span>
             </p>
           </div>
-          {session.status !== "cancelled" && <DeactivateSessionButton sessionId={session.id} />}
+          {session.status !== "cancelled" && (
+            <div className="flex flex-col items-end gap-2">
+              <SendReminderButton sessionId={session.id} />
+              <DeactivateSessionButton sessionId={session.id} />
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto">

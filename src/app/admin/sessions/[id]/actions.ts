@@ -9,6 +9,7 @@ import {
   sendMinimumNotMetCancellationSms,
 } from "@/lib/sms";
 import { requireAdminAuth } from "@/lib/adminAuth";
+import { sendSessionReminders } from "@/lib/reminderSms";
 
 async function getRepresentative(supabase: ReturnType<typeof createAdminClient>, applicationId: string) {
   const { data, error } = await supabase
@@ -264,4 +265,32 @@ export async function deactivateSession(sessionId: string) {
   console.log(`[admin] 회차 비활성화됨: ${sessionId} (신청 ${successCount}건 취소+안내)`);
 
   return { success: true, count: successCount, total: applications?.length ?? 0, errors: errors.length > 0 ? errors : undefined };
+}
+
+// 문자3(전날안내) — 외부 크론 없이도 운영자가 원하는 시점에 수동으로 발송할 수
+// 있도록 세션 단위 버튼. /api/cron/reminder와 동일한 발송 로직을 공유한다.
+export async function sendSessionReminderAdmin(
+  sessionId: string
+): Promise<{ error: string } | { success: true; count: number; total: number; errors?: string[] }> {
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
+  const supabase = createAdminClient();
+
+  const { data: session, error: sessError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+
+  if (sessError || !session) {
+    return { error: "세션 정보를 찾을 수 없습니다." };
+  }
+
+  const result = await sendSessionReminders(supabase, session);
+
+  console.log(`[admin] 전날안내 문자 수동 발송됨: ${sessionId} (${result.count}/${result.total}건)`);
+
+  return { success: true, ...result };
 }
