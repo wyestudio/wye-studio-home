@@ -3332,3 +3332,152 @@ $$;
 revoke all on function public.hash_phone(text) from public;
 -- decrypt_pii와 마찬가지로 anon/authenticated에 직접 grant하지 않는다 — submit_application()
 -- 등 SECURITY DEFINER 함수 내부에서만 호출되며, 그 함수들은 이미 소유자 권한으로 실행된다.
+
+-- =========================================================
+-- v29. sms_templates 본문 어드민 수정사항 코드 동기화 (2026-08-17)
+-- 배경: v25 시드 이후 운영자가 /admin/sms-templates 화면에서 7개 템플릿
+-- body를 전부 수정했다("베타테스터" 표기를 "[프리오픈]"으로 바꾸고, 문구
+-- 구조/필드 순서도 상당 부분 재작성). 이 파일의 v25 INSERT 블록은 최초
+-- 시드값 그대로 남겨두고(과거 기록 보존), 아래 UPDATE로 운영 DB의 현재
+-- 실제 값을 기록한다 — src/lib/sms.ts의 DEFAULT_TEMPLATES 폴백도 동일한
+-- 값으로 동기화했다(2026-08-17 운영 DB 조회 결과 기준).
+--
+-- 이미 운영 DB에는 반영되어 있는 값이므로 이 UPDATE 문들을 실제로 다시
+-- 실행할 필요는 없다 — git에 변경 이력을 남기기 위한 기록용.
+-- =========================================================
+update sms_templates set body =
+$body$[우주이스케이프] 신청 접수 안내문자입니다.
+
+{{name}}님, 신청이 접수되었습니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 날짜: {{event_date}}
+· 시간: {{start_time}}
+· 인원: {{attendee_count}}명
+
+· 입금자명: {{depositor_name}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
+
+계좌이체 시 입금확인 후 참여 확정 문자가 발송됩니다.
+참여신청 후 30분 이내에 입금이 확인되지 않을 경우 신청이 취소될 수 있습니다.
+
+문의: 카카오톡 채널 우주이스케이프$body$
+where key = 'application_confirmation';
+
+update sms_templates set body =
+$body$[우주이스케이프] 참여 확정 안내문자입니다.
+
+{{name}}님, 입금이 확인되어 참여가 확정되었습니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 날짜: {{event_date}}
+· 시간: {{start_time}}
+· 인원: {{attendee_count}}명
+
+상세 장소는 체험 전날 다시 안내드립니다.
+
+신청 조회·취소는 아래에서 가능합니다.
+www.wouldyouescape.com/lookup
+
+[환불 규정]
+· 48시간 전 취소: 전액 환불
+· 24시간 전 취소: 50% 환불
+· 24시간 이내 취소: 환불불가
+
+문의: 카카오톡 채널 우주이스케이프$body$
+where key = 'payment_confirmed';
+
+update sms_templates set body =
+$body$[우주이스케이프] 참여 하루 전 안내문자입니다.
+
+{{name}}님, 내일 진행되는 테마 안내드립니다.
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} (10분 전까지 도착)
+· 장소: 서울특별시 관악구 봉천로 333 지하 뮤트스페이스 더클래식 봉천점 1층
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등)
+
+[꼭 확인해 주세요]
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 음주 시 입장이 불가능하며, 이로 인한 입장제한 시 환불이 불가능합니다.
+· 방탈출 특성상 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 동행자가 있으시다면 위 내용을 함께 전달해 주세요.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다. (24시간 이내 취소 환불불가)
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프$body$
+where key = 'event_reminder_group';
+
+update sms_templates set body =
+$body$[우주이스케이프] 참여 하루 전 안내문자입니다.
+
+{{name}}님, 내일 진행되는 테마 안내드립니다.
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} (10분 전까지 도착)
+· 장소: 서울특별시 관악구 봉천로 333 지하 뮤트스페이스 더클래식 봉천점 1층
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등)
+
+[꼭 확인해 주세요]
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 음주 시 입장이 불가능하며, 이로 인한 입장제한 시 환불이 불가능합니다.
+· 방탈출 특성상 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 2부부터는 음주가 가능합니다. 소주·맥주 외에 다른 주류를 원하실 경우 개인 지참(BYOB)도 가능합니다.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다. (24시간 이내 취소 환불불가)
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프$body$
+where key = 'event_reminder_dating';
+
+update sms_templates set body =
+$body$[우주이스케이프] 미입금 신청취소 안내문자입니다.
+
+{{name}}님, 접수번호 {{confirmation_code}} 건은 입금이 확인되지 않아 신청이 취소되었습니다.
+
+다시 신청하시려면 아래에서 진행해 주세요.
+{{reapply_url}}
+
+이미 입금하셨다면 카카오톡 채널로 문의 바랍니다.
+
+문의: 카카오톡 채널 우주이스케이프$body$
+where key = 'application_cancelled';
+
+update sms_templates set body =
+$body$[우주이스케이프] 공석신청 입금 안내문자입니다.
+
+{{name}}님, 유선 상 안내드린 대로 아래 테마 참여가 가능합니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 날짜: {{event_date}}
+· 시간: {{start_time}}
+· 인원: {{attendee_count}}명
+
+· 입금자명: {{depositor_name}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
+· 입금기한: 문자 수신 후 24시간 이내
+
+기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
+
+문의: 카카오톡 채널 우주이스케이프$body$
+where key = 'waitlist_promoted';
+
+update sms_templates set body =
+$body$[우주이스케이프] 인원미달 취소 안내문자입니다.
+
+{{name}}님, 신청하신 테마가 최소 진행 인원에 미달하여 부득이하게 취소되었습니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}}
+
+결제하신 {{refund_amount}}은 전액 환불되며, 영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다.
+
+일정을 비워두셨을 텐데 불편을 드려 죄송합니다.
+
+문의: 카카오톡 채널 우주이스케이프$body$
+where key = 'minimum_not_met_cancellation';
