@@ -3,7 +3,10 @@ import { BetaAnalyticsDataClient } from "@google-analytics/data";
 
 const propertyId = process.env.GA4_PROPERTY_ID;
 const serviceAccountEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+// Vercel 환경변수에 PEM 키를 저장하면 개행이 실제 줄바꿈이 아니라 "\n" 두 글자로
+// 들어가는 경우가 있어(대시보드 입력창이 여러 줄을 그대로 보존하지 못함) 디코더가
+// 파싱에 실패한다("DECODER routines::unsupported") — 여기서 되돌려준다.
+const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, "\n");
 
 if (!propertyId || !serviceAccountEmail || !privateKey) {
   throw new Error("GA4 환경변수가 설정되지 않았습니다");
