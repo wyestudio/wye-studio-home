@@ -139,7 +139,7 @@ function PreOpenCard({ originalPriceKrw, priceKrw }: { originalPriceKrw: number;
   );
 }
 
-const FOR_YOU_CARDS = [
+const DATING_FOR_YOU_CARDS = [
   {
     emoji: "🙋",
     title: "어색한 1:1 대화가 부담스러운 분",
@@ -162,6 +162,29 @@ const FOR_YOU_CARDS = [
   },
 ];
 
+const GROUP_FOR_YOU_CARDS = [
+  {
+    emoji: "🙋",
+    title: "새로운 사람들과 편하게 어울리고 싶은 분",
+    desc: "혼자 와도 팀 배정으로 자연스럽게 어울릴 수 있어요",
+  },
+  {
+    emoji: "🤝",
+    title: "낯가림 없이 자연스럽게 친해지고 싶은 분",
+    desc: "방탈출이라는 공통 목표 덕분에 어색함 없이 금방 가까워져요",
+  },
+  {
+    emoji: "🧩",
+    title: "방탈출・이색 액티비티를 좋아하는 분",
+    desc: "게임하듯 즐기다 보면 시간이 어느새 훌쩍 지나가요",
+  },
+  {
+    emoji: "🎉",
+    title: "친구・지인과 색다른 모임을 즐기고 싶은 분",
+    desc: "뻔한 술자리 모임 말고, 콘텐츠가 있는 만남",
+  },
+];
+
 export default async function SessionDetailPage({ params }: PageProps<"/sessions/[slug]">) {
   const { slug } = await params;
 
@@ -181,6 +204,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
   const ctaHref = `/sessions/${session.slug}/apply`;
   const isDatingSession = isDatingTheme(session.session_type);
   const themeAccentColor = isDatingSession ? "#ff5ec4" : "#3dffb0";
+  const forYouCards = isDatingSession ? DATING_FOR_YOU_CARDS : GROUP_FOR_YOU_CARDS;
   const themeName = session.theme_name;
   const dateLabel = formatSessionDateDotted(session.start_at);
   const duration = session.end_at ? formatDuration(session.start_at, session.end_at) : "-";
@@ -443,7 +467,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       <section className="mt-12 mb-12">
         <SectionHeading eyebrow="FOR YOU" title="이런 분들에게 추천드려요" align="left" className="mb-6" eyebrowColor={themeAccentColor} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {FOR_YOU_CARDS.map((card) => (
+          {forYouCards.map((card) => (
             <div key={card.title} className="flex gap-3 rounded-xl border border-border bg-surface p-5">
               <span className="text-2xl" aria-hidden>
                 {card.emoji}
