@@ -11,6 +11,20 @@ const nextConfig: NextConfig = {
           "/contents?utm_source=instagram&utm_medium=profile&utm_campaign=preopening",
         permanent: false,
       },
+      {
+        // 인스타그램 게시물(소개팅 회차)용 짧은 링크.
+        source: "/ig-dating.go",
+        destination:
+          "/sessions/0829-dating?utm_source=instagram&utm_medium=post&utm_campaign=0829_dating",
+        permanent: false,
+      },
+      {
+        // 인스타그램 게시물(모임 회차)용 짧은 링크.
+        source: "/ig-meeting.go",
+        destination:
+          "/sessions/0829-meeting?utm_source=instagram&utm_medium=post&utm_campaign=0829_meeting",
+        permanent: false,
+      },
     ];
   },
   async headers() {
