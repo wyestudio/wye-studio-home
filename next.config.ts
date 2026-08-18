@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        // 인스타그램 프로필에는 UTM 파라미터가 붙은 URL을 그대로 노출하지 않기 위해
+        // 짧은 링크(/ig.go)를 걸어두고 실제 목적지로 리다이렉트한다.
+        source: "/ig.go",
+        destination:
+          "/contents?utm_source=instagram&utm_medium=profile&utm_campaign=preopening",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

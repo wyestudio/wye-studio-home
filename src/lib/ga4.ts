@@ -179,7 +179,7 @@ export async function getApplyFunnel(): Promise<FunnelStep[]> {
       if (row.dimensionValues && row.metricValues) {
         const eventName = row.dimensionValues[0]?.value || "";
         const count = parseInt(row.metricValues[0]?.value || "0", 10);
-        if (eventName === "신청 시작" || eventName === "신청 완료") {
+        if (eventName === "apply_start" || eventName === "apply_complete") {
           eventMap.set(eventName, count);
         }
       }
@@ -188,11 +188,11 @@ export async function getApplyFunnel(): Promise<FunnelStep[]> {
     return [
       {
         step: "신청 폼 진입",
-        events: eventMap.get("신청 시작") || 0,
+        events: eventMap.get("apply_start") || 0,
       },
       {
         step: "신청 완료",
-        events: eventMap.get("신청 완료") || 0,
+        events: eventMap.get("apply_complete") || 0,
       },
     ];
   } catch (error) {
