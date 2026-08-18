@@ -14,12 +14,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const debug = request.nextUrl.searchParams.get("debug") === "1";
-    const errors: Record<string, string> = {};
     const catchNamed = (name: string) => (err: unknown) => {
-      const message = err instanceof Error ? err.message : String(err);
       console.error(`Analytics ${name} error:`, err);
-      errors[name] = message;
       return [];
     };
 
@@ -35,7 +31,6 @@ export async function GET(request: NextRequest) {
       landingPages,
       topPages,
       applyFunnel,
-      ...(debug ? { _debugErrors: errors } : {}),
     });
   } catch (error) {
     console.error("Analytics API error:", error);
