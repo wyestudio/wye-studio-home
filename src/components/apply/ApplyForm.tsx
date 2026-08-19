@@ -208,6 +208,13 @@ export function ApplyForm({
         });
       }
 
+      if (!attendee.experienceRange) {
+        errors.push({
+          field: `attendee-${i}-experienceRange`,
+          message: getValidationErrorMessage("experienceRange", "required"),
+        });
+      }
+
       if (attendee.nickname && !isValidNickname(attendee.nickname)) {
         errors.push({
           field: `attendee-${i}-nickname`,

@@ -204,7 +204,7 @@ export function AttendeeCard({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-foreground">방탈출 경험 횟수 (선택)</label>
+          <label className="text-sm font-semibold text-foreground">방탈출 경험 횟수</label>
           <div className="flex flex-wrap gap-2">
             {EXPERIENCE_RANGES.map((range) => (
               <button
