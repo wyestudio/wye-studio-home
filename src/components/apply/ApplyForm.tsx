@@ -540,6 +540,11 @@ export function ApplyForm({
           <>
             {/* 단계 1: 정보 입력 */}
             <div className="flex flex-col gap-5 mb-20">
+              <div className="flex gap-2 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm font-bold text-danger">
+                <span className="shrink-0" aria-hidden>⚠️</span>
+                <span>참여 시 신분증 검사가 진행됩니다. 정확한 정보를 입력해주세요.</span>
+              </div>
+
               {!isDatingSession && (
                 <Field label="인원" htmlFor="attendeeCount">
                   <Select
