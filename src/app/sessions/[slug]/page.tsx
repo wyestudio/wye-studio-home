@@ -337,13 +337,12 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
     {
       title: (
         <>
-          <span style={{ color: themeAccentColor }}>활동형</span> 콘텐츠
+          동일 테마 <span style={{ color: themeAccentColor }}>중복 참여 불가</span>
         </>
       ),
       desc: (
         <>
-          방탈출은 협력 중심 프로그램으로 구성되어 있어, <span className="text-foreground">팀 게임에 적극적으로 참여 가능한 분만</span> 신청
-          바랍니다.
+          동일 테마로 진행되는 회차들은 <span className="text-foreground">1인 1번만 참여 가능</span>합니다. (그룹, 소개팅 무관)
         </>
       ),
     },
