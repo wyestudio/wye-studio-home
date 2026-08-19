@@ -100,18 +100,26 @@ const GUIDE_ITEMS: GuideItem[] = [
   },
 ];
 
+type Period = "weekly" | "monthly";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  weekly: "최근 7일",
+  monthly: "최근 28일",
+};
+
 export default function AnalyticsDashboard() {
   const [trafficSources, setTrafficSources] = useState<TrafficSource[]>([]);
   const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
   const [topPages, setTopPages] = useState<PageView[]>([]);
   const [applyFunnel, setApplyFunnel] = useState<FunnelStep[]>([]);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<Period>("monthly");
   const [selectedGuideId, setSelectedGuideId] = useState("path");
 
   const selectedGuide = GUIDE_ITEMS.find((item) => item.id === selectedGuideId) || GUIDE_ITEMS[0];
 
   useEffect(() => {
-    fetch("/api/admin/analytics")
+    fetch(`/api/admin/analytics?period=${period}`)
       .then((res) => res.json())
       .then((data) => {
         setTrafficSources(data.trafficSources || []);
@@ -121,7 +129,13 @@ export default function AnalyticsDashboard() {
       })
       .catch((err) => console.error("Failed to fetch analytics:", err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [period]);
+
+  const handlePeriodChange = (next: Period) => {
+    setLoading(true);
+    setPeriod(next);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background p-6 flex items-center justify-center">
@@ -133,9 +147,26 @@ export default function AnalyticsDashboard() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">분석 대시보드</h1>
-          <p className="text-muted">GA4 데이터 기반 최근 28일간의 분석 — 팀원도 쉽게 이해할 수 있도록 주요 지표만 요약해 보여줍니다.</p>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">분석 대시보드</h1>
+            <p className="text-muted">GA4 데이터 기반 {PERIOD_LABELS[period]}간의 분석 — 팀원도 쉽게 이해할 수 있도록 주요 지표만 요약해 보여줍니다.</p>
+          </div>
+          <div className="flex gap-2 shrink-0">
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => handlePeriodChange(p)}
+                className={`px-4 py-2 rounded-lg border text-sm font-semibold transition-all ${
+                  period === p
+                    ? "border-glow bg-glow/10 text-foreground"
+                    : "border-border bg-background/50 text-muted hover:text-foreground hover:bg-muted/30"
+                }`}
+              >
+                {p === "weekly" ? "주간" : "월간"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-8">
@@ -373,7 +404,7 @@ export default function AnalyticsDashboard() {
         </div>
 
         <div className="mt-12 text-xs text-muted border-t border-border pt-6">
-          <p>• 데이터 기준: 최근 28일</p>
+          <p>• 데이터 기준: {PERIOD_LABELS[period]}</p>
           <p>• 업데이트: 매시간 1회 (캐시)</p>
           <p>• GA4 측정 ID: G-EG7FHGECVK</p>
         </div>
