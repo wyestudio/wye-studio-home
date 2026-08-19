@@ -238,8 +238,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
     ? [
         {
           emoji: "💘",
-          title: "로테이션 소개팅 & 랜덤 팀 편성",
-          desc: "로테이션으로 대화를 나누며 방탈출을 같이 할 팀원을 탐색해요. 짧은 대화만으로도 은근히 나와 잘 맞는 사람이 누군지 감이 올 거예요.",
+          title: "단체 소개팅 & 팀 매칭",
+          desc: "단체 소개팅 시간 동안 방탈출을 같이 할 팀원을 탐색해요. 짧은 대화만으로도 은근히 나와 잘 맞는 사람이 누군지 감이 올 거예요.",
         },
         {
           emoji: "🚪",
@@ -248,7 +248,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         },
         {
           emoji: "💬",
-          title: "프리토크 & 교류타임 + 포인트로 상품교환",
+          title: "프리토킹 & 상품교환",
           desc: "1부 컨텐츠 종료 후 다과와 함께하는 자유 대화 시간. 마음에 든 상대와 연락처를 교환할 수 있어요. 추가로, 방탈출을 하며 수집했던 포인트로 여러가지 상품을 교환해보세요!",
         },
       ]
@@ -265,14 +265,14 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         },
         {
           emoji: "💬",
-          title: "프리토크 & 교류 타임 + 포인트로 상품교환",
+          title: "프리토킹 & 상품교환",
           desc: "1부 컨텐츠 종료 후 다과와 함께하는 자유 대화 시간. 마음에 든 사람과 수다떨며 교류할 수 있어요. 추가로, 방탈출을 하며 수집했던 포인트로 여러가지 상품을 교환해보세요!",
         },
       ];
 
   const schedule: { planet: Planet; time: string; title: string; desc: string }[] = isDatingSession
     ? [
-        { planet: "mercury", time: "19:00", title: "현장 접수 & 로테이션 소개팅", desc: "참여 확인 후 이름표 배부, 로테이션 소개팅 진행" },
+        { planet: "mercury", time: "19:00", title: "현장 접수 & 단체 소개팅", desc: "참여 확인 후 이름표 배부, 단체 소개팅 진행" },
         { planet: "venus", time: "20:00", title: "팀 매칭 및 1부 컨텐츠 안내", desc: "방탈출 진행 규칙 안내 및 설명" },
         { planet: "earth", time: "20:30", title: "방탈출 진행 + 미니게임", desc: "팀별 방탈출 진행. 돌발 미니게임 발생" },
         { planet: "mars", time: "22:00", title: "2부 다과 타임 & 상품교환", desc: "자유롭게 대화하며 수집한 포인트로 상품 교환. (22:30부터 자율 퇴장 가능)" },
