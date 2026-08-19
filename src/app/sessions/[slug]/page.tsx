@@ -404,6 +404,10 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           q: "옷차림이나 준비물이 있나요?",
           a: "단정한 옷차림과 신분증만 지참해주세요.",
         },
+        {
+          q: "식사 제공 되나요?",
+          a: "식사는 별도로 제공되지 않지만, 커피 또는 아이스티와 함께 간단한 다과가 준비됩니다. 원활한 참여를 위해 식사를 미리 하고 오시는 것을 권장드립니다.",
+        },
       ]
     : [
         {
@@ -417,6 +421,10 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         {
           q: "옷차림이나 준비물이 있나요?",
           a: "단정한 옷차림과 신분증만 지참해주세요.",
+        },
+        {
+          q: "식사 제공 되나요?",
+          a: "식사는 별도로 제공되지 않지만, 커피 또는 아이스티와 함께 간단한 다과가 준비됩니다. 원활한 참여를 위해 식사를 미리 하고 오시는 것을 권장드립니다.",
         },
       ];
 
