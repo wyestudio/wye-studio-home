@@ -79,7 +79,7 @@ export function LookupForm() {
               inputMode="numeric"
               maxLength={6}
               required
-              placeholder="12345"
+              placeholder="123456"
               invalid={!!confirmationCodeError}
               value={confirmationCode}
               onChange={(e) => {
