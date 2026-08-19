@@ -26,6 +26,14 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
+        // 당근마켓 프로필에는 UTM 파라미터가 붙은 URL을 그대로 노출하지 않기 위해
+        // 짧은 링크(/dg.go)를 걸어두고 실제 목적지로 리다이렉트한다.
+        source: "/dg.go",
+        destination:
+          "/contents?utm_source=daangn&utm_medium=profile&utm_campaign=preopening",
+        permanent: false,
+      },
+      {
         // 당근마켓 게시물(소개팅 회차)용 짧은 링크.
         source: "/dg-dating.go",
         destination:
