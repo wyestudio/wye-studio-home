@@ -693,7 +693,7 @@ export function ApplyForm({
                   <span className="text-xl font-extrabold text-foreground">{formatKrw(priceKrw * attendeeCount)}</span>
                 </div>
                 <p className="text-sm text-muted text-right font-semibold mt-3">
-                  pre-open 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }}>5,000원</span> 페이백
+                  pre-open 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }}>5,000원</span> 페이백 (SNS 리뷰 업로드 후 7일 유지 시)
                 </p>
               </div>
 

@@ -84,7 +84,7 @@ function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
   const accentColor = isDatingSession ? "#ff5ec4" : "#3dffb0";
   const eligibilityText = isDatingSession
     ? "1990~1999년생만 신청 가능"
-    : "20·30대 신체 건강한 남녀만 신청 가능";
+    : "20·30대 남녀만 신청 가능";
   return (
     <div
       className="rounded-xl p-6 text-sm sm:text-base border"
@@ -98,12 +98,18 @@ function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
 }
 
 function PreOpenCard({ originalPriceKrw, priceKrw }: { originalPriceKrw: number; priceKrw: number }) {
+  const emphasisColor = "var(--danger)";
   return (
     <div
-      className="mt-6 rounded-xl border border-brand/50 p-6 shadow-[0_16px_36px_-14px_rgba(0,0,0,0.55)]"
-      style={{ background: "linear-gradient(135deg, rgba(58,68,140,0.8), rgba(90,104,200,0.8))" }}
+      className="mt-6 rounded-xl border-2 p-6"
+      style={{
+        background: "linear-gradient(135deg, rgba(140,42,58,0.55), rgba(200,80,90,0.55))",
+        borderColor: "var(--danger)",
+        boxShadow:
+          "0 16px 36px -14px rgba(0,0,0,0.55), 0 0 32px -6px var(--danger), inset 0 0 0 1px rgba(255,107,107,0.3)",
+      }}
     >
-      <span className="mb-3 inline-block rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold tracking-wide text-white">
+      <span className="mb-3 inline-block rounded-full bg-danger px-3 py-1 text-[11px] font-extrabold tracking-wide text-white">
         PRE-OPEN ONLY
       </span>
       <h3 className="mb-3 text-lg font-extrabold text-foreground">프리오픈 참여자 혜택</h3>
@@ -111,19 +117,35 @@ function PreOpenCard({ originalPriceKrw, priceKrw }: { originalPriceKrw: number;
         <li className="flex gap-2">
           <span aria-hidden>✔</span>
           <span>
-            프리오픈 한정 참가비 <span className="font-extrabold">24,000원</span> 할인
+            프리오픈 한정 참가비{" "}
+            <span className="font-extrabold" style={{ color: emphasisColor }}>
+              24,000원
+            </span>{" "}
+            할인
           </span>
         </li>
         <li className="flex gap-2">
           <span aria-hidden>✔</span>
           <span>
-            SNS 리뷰 인증 시 <span className="font-extrabold">5,000원</span> 페이백 제공
+            SNS 리뷰 인증 시{" "}
+            <span className="font-extrabold" style={{ color: emphasisColor }}>
+              5,000원
+            </span>{" "}
+            페이백 제공 (SNS 리뷰 업로드 후 7일 유지 시)
           </span>
         </li>
         <li className="flex gap-2">
           <span aria-hidden>✔</span>
           <span>
-            지인쿠폰, 본인쿠폰 총 <span className="font-extrabold">2종의 쿠폰</span> 제공
+            다음 테마{" "}
+            <span className="font-extrabold" style={{ color: emphasisColor }}>
+              할인 쿠폰
+            </span>{" "}
+            + 지인 선물용{" "}
+            <span className="font-extrabold" style={{ color: emphasisColor }}>
+              할인 쿠폰
+            </span>{" "}
+            (총 2종) 제공
           </span>
         </li>
       </ul>
@@ -131,7 +153,9 @@ function PreOpenCard({ originalPriceKrw, priceKrw }: { originalPriceKrw: number;
         <span className="text-sm text-foreground/70">참가비</span>
         <span className="text-right">
           <span className="mr-2 text-xs text-foreground/50 line-through">{formatKrw(originalPriceKrw)}</span>
-          <span className="text-lg font-extrabold text-brand">{formatKrw(priceKrw)}</span>
+          <span className="text-2xl font-extrabold" style={{ color: emphasisColor }}>
+            {formatKrw(priceKrw)}
+          </span>
           <span className="ml-1 text-xs text-foreground/70">/ 인</span>
         </span>
       </div>
@@ -158,7 +182,7 @@ const DATING_FOR_YOU_CARDS = [
   {
     emoji: "🎉",
     title: "새로운 형태의 만남을 시도해보고 싶은 분",
-    desc: "뻔한 술자리 소개팅 말고, 콘텐츠가 있는 만남",
+    desc: "뻔한 술자리 소개팅 말고, 콘텐츠가 있는 만남을 즐길 수 있어요",
   },
 ];
 
@@ -181,7 +205,7 @@ const GROUP_FOR_YOU_CARDS = [
   {
     emoji: "🎉",
     title: "친구・지인과 색다른 모임을 즐기고 싶은 분",
-    desc: "뻔한 술자리 모임 말고, 콘텐츠가 있는 만남",
+    desc: "뻔한 술자리 모임 말고, 콘텐츠가 있는 만남을 즐길 수 있어요",
   },
 ];
 
@@ -260,22 +284,30 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         { planet: "mars", time: "15:30", title: "2부 다과 타임 & 상품교환", desc: "자유롭게 대화하며 수집한 포인트로 상품 교환 후 자율 퇴장" },
       ];
 
-  const precautions: { title: string; desc: ReactNode }[] = [
+  const precautions: { title: ReactNode; desc: ReactNode }[] = [
     {
-      title: "시작 24시간 이내 환불 불가",
+      title: (
+        <>
+          시작 24시간 이내 <span style={{ color: themeAccentColor }}>환불 불가</span>
+        </>
+      ),
       desc: (
         <>
-          테마 시작 <span className="font-bold text-foreground">24시간 전</span> 이후부터는 환불이 불가합니다. 추가로,{" "}
-          <span className="font-bold text-foreground">노쇼 및 지각 시 입금액은 환불드리지 않으며</span> 추후 이용이 제한될 수 있습니다.
+          테마 시작 <span className="text-foreground">24시간 전</span> 이후부터는 환불이 불가합니다. 추가로,{" "}
+          <span className="text-foreground">노쇼 및 지각 시 입금액은 환불드리지 않으며</span> 추후 이용이 제한될 수 있습니다.
         </>
       ),
     },
     {
-      title: "참가 가능 나이 제한",
+      title: (
+        <>
+          참가 가능 <span style={{ color: themeAccentColor }}>나이 제한</span>
+        </>
+      ),
       desc: (
         <>
           비슷한 연령끼리 즐기실 수 있도록 (
-          <span className="font-bold text-foreground">
+          <span className="text-foreground">
             소개팅은 {eligibleBirthYearRangeLabel(true)}, 그룹은 {eligibleBirthYearRangeLabel(false)}
           </span>
           )만 신청 가능합니다.
@@ -283,49 +315,73 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
       ),
     },
     {
-      title: "결제는 무통장입금만 가능",
+      title: (
+        <>
+          결제는 <span style={{ color: themeAccentColor }}>무통장입금</span>만 가능
+        </>
+      ),
       desc: (
         <>
-          신청 후 <span className="font-bold text-foreground">30분 내 미입금 시 자동 취소</span>됩니다.
+          신청 후 <span className="text-foreground">30분 내 미입금 시 자동 취소</span>됩니다.
         </>
       ),
     },
     {
-      title: "진행 장소는 추후 안내",
+      title: (
+        <>
+          진행 장소는 <span style={{ color: themeAccentColor }}>추후 안내</span>
+        </>
+      ),
       desc: "정확한 참여 장소는 참여 확정 후 테마 시작 24시간 전에 문자로 안내드립니다.",
     },
     {
-      title: "활동형 콘텐츠",
+      title: (
+        <>
+          <span style={{ color: themeAccentColor }}>활동형</span> 콘텐츠
+        </>
+      ),
       desc: (
         <>
-          방탈출은 협력 중심 프로그램으로 구성되어 있어, <span className="font-bold text-foreground">팀 게임에 적극적으로 참여 가능한 분만</span> 신청
+          방탈출은 협력 중심 프로그램으로 구성되어 있어, <span className="text-foreground">팀 게임에 적극적으로 참여 가능한 분만</span> 신청
           바랍니다.
         </>
       ),
     },
     {
-      title: "휴대폰 사용 제한",
+      title: (
+        <>
+          휴대폰 <span style={{ color: themeAccentColor }}>사용 제한</span>
+        </>
+      ),
       desc: (
         <>
-          1부 진행 동안 사진 촬영을 포함한 <span className="font-bold text-foreground">모든 전자기기 사용이 제한</span>됩니다. 사전 휴대폰 제출에
+          1부 진행 동안 사진 촬영을 포함한 <span className="text-foreground">모든 전자기기 사용이 제한</span>됩니다. 사전 휴대폰 제출에
           동의하신 분만 참여 가능합니다.
         </>
       ),
     },
     {
-      title: "건강한 경쟁 매너 필수",
+      title: (
+        <>
+          건강한 경쟁 <span style={{ color: themeAccentColor }}>매너 필수</span>
+        </>
+      ),
       desc: (
         <>
-          1부 전반적으로 경쟁 요소가 포함되어 있습니다. 과한 몰입보다 <span className="font-bold text-foreground">즐겁게 참여</span> 부탁드립니다.
+          1부 전반적으로 경쟁 요소가 포함되어 있습니다. 과한 몰입보다 <span className="text-foreground">즐겁게 참여</span> 부탁드립니다.
         </>
       ),
     },
     {
-      title: "매너 있는 교류 필수",
+      title: (
+        <>
+          매너 있는 <span style={{ color: themeAccentColor }}>교류 필수</span>
+        </>
+      ),
       desc: (
         <>
           타 참여자 및 진행자에게{" "}
-          <span className="font-bold text-foreground">과도한 신체 접촉 및 불쾌감을 유발하는 언행은 즉시 퇴장</span>됩니다.
+          <span className="text-foreground">과도한 신체 접촉 및 불쾌감을 유발하는 언행은 즉시 퇴장</span>됩니다.
         </>
       ),
     },
@@ -517,7 +573,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
             </div>
           ))}
         </div>
-        <p className="mx-auto mt-2 max-w-xl text-center text-xs text-muted">*자세한 타임테이블은 현장 상황에 따라 상이할 수 있습니다.</p>
+        <p className="mx-auto mt-6 max-w-xl text-center text-xs text-muted">*자세한 타임테이블은 현장 상황에 따라 상이할 수 있습니다.</p>
       </section>
 
       {/* 참가 전 꼭 확인해주세요 */}
@@ -525,12 +581,12 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         <SectionHeading eyebrow="PLEASE CHECK" title="참가 전 꼭 확인해주세요" align="left" className="mb-8" eyebrowColor={themeAccentColor} />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {precautions.map((item, i) => (
-            <div key={item.title} className="flex gap-4 rounded-xl border border-border bg-surface p-5">
+            <div key={i} className="flex gap-4 rounded-xl border border-border bg-surface p-5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-xs font-bold text-danger">
                 {i + 1}
               </span>
               <div className="flex flex-col gap-1">
-                <p className="font-semibold text-foreground">{item.title}</p>
+                <p className="font-bold text-foreground">{item.title}</p>
                 <p className="text-xs text-muted">{item.desc}</p>
               </div>
             </div>
