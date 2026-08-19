@@ -156,7 +156,7 @@ function themeName(session: Session): string {
 }
 
 function productLabel(session: Session): string {
-  return `${session.session_type} 방탈출`;
+  return `${session.session_type} 파티형 방탈출`;
 }
 
 // SMS는 신청자 본인에게만 가는 채널이라 BANK_ACCOUNT(화면 표시용, 마스킹됨)와

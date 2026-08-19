@@ -42,7 +42,7 @@ export function SessionCard({
       {/* 태그 */}
       <ThemeTag
         sessionType={session.session_type}
-        label={`${session.session_type} 방탈출`}
+        label={`${session.session_type} 파티형 방탈출`}
         className={`font-extrabold leading-tight ${sizeCompact ? `text-xl ${sm("sm:text-3xl")}` : `text-2xl ${sm("sm:text-3xl")}`}`}
       />
 
