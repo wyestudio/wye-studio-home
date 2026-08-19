@@ -39,12 +39,12 @@ export interface FunnelStep {
   events: number;
 }
 
-export async function getTrafficSources(): Promise<TrafficSource[]> {
+export async function getTrafficSources(startDate: string = "28daysAgo"): Promise<TrafficSource[]> {
   const response = await analyticsDataClient.runReport({
     property: `properties/${propertyId}`,
     dateRanges: [
       {
-        startDate: "28daysAgo",
+        startDate,
         endDate: "today",
       },
     ],
@@ -77,12 +77,12 @@ export async function getTrafficSources(): Promise<TrafficSource[]> {
     }));
 }
 
-export async function getLandingPages(): Promise<LandingPage[]> {
+export async function getLandingPages(startDate: string = "28daysAgo"): Promise<LandingPage[]> {
   const response = await analyticsDataClient.runReport({
     property: `properties/${propertyId}`,
     dateRanges: [
       {
-        startDate: "28daysAgo",
+        startDate,
         endDate: "today",
       },
     ],
@@ -115,12 +115,12 @@ export async function getLandingPages(): Promise<LandingPage[]> {
     }));
 }
 
-export async function getTopPages(): Promise<PageView[]> {
+export async function getTopPages(startDate: string = "28daysAgo"): Promise<PageView[]> {
   const response = await analyticsDataClient.runReport({
     property: `properties/${propertyId}`,
     dateRanges: [
       {
-        startDate: "28daysAgo",
+        startDate,
         endDate: "today",
       },
     ],
@@ -153,13 +153,13 @@ export async function getTopPages(): Promise<PageView[]> {
     }));
 }
 
-export async function getApplyFunnel(): Promise<FunnelStep[]> {
+export async function getApplyFunnel(startDate: string = "28daysAgo"): Promise<FunnelStep[]> {
   try {
     const response = await analyticsDataClient.runReport({
       property: `properties/${propertyId}`,
       dateRanges: [
         {
-          startDate: "28daysAgo",
+          startDate,
           endDate: "today",
         },
       ],
