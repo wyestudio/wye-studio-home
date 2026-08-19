@@ -25,6 +25,20 @@ const nextConfig: NextConfig = {
           "/sessions/0829-meeting?utm_source=instagram&utm_medium=post&utm_campaign=0829_meeting",
         permanent: false,
       },
+      {
+        // 당근마켓 게시물(소개팅 회차)용 짧은 링크.
+        source: "/dg-dating.go",
+        destination:
+          "/sessions/0829-dating?utm_source=daangn&utm_medium=post&utm_campaign=0829_dating",
+        permanent: false,
+      },
+      {
+        // 당근마켓 게시물(모임 회차)용 짧은 링크.
+        source: "/dg-meeting.go",
+        destination:
+          "/sessions/0829-meeting?utm_source=daangn&utm_medium=post&utm_campaign=0829_meeting",
+        permanent: false,
+      },
     ];
   },
   async headers() {
