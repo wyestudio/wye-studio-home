@@ -4,6 +4,25 @@ html {
   scrollbar-gutter: stable;
 }
 
+.copy-protected {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.copy-protected input,
+.copy-protected textarea,
+.copy-protected [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+.copy-protected img,
+.copy-protected svg {
+  -webkit-user-drag: none;
+}
+
 :root {
   --background: #050619;
   --background-deep: #070821;

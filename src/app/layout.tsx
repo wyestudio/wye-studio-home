@@ -8,6 +8,7 @@ import { StarfieldCanvas } from "@/components/space/StarfieldCanvas";
 import { MascotCursor } from "@/components/space/MascotCursor";
 import { MascotSelectionProvider } from "@/components/space/MascotSelectionContext";
 import TestEnvBanner from "@/components/layout/TestEnvBanner";
+import { CopyProtectionProvider } from "@/components/layout/CopyProtection";
 import "./globals.css";
 
 // SUIT(가변 폰트, SIL OFL) — https://github.com/sun-typeface/SUIT
@@ -110,14 +111,16 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        <MascotSelectionProvider>
-          <StarfieldCanvas />
-          <MascotCursor />
-          <TestEnvBanner />
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </MascotSelectionProvider>
+        <CopyProtectionProvider>
+          <MascotSelectionProvider>
+            <StarfieldCanvas />
+            <MascotCursor />
+            <TestEnvBanner />
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </MascotSelectionProvider>
+        </CopyProtectionProvider>
       </body>
     </html>
   );
