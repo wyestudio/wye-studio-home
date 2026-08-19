@@ -443,7 +443,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         <div>
           <div className="mb-3 flex flex-col items-start gap-1">
             <h1 className="text-2xl font-extrabold text-foreground">{themeName}</h1>
-            <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-xl font-bold" />
+            <ThemeTag sessionType={session.session_type} label={`${session.session_type} 파티형 방탈출`} className="text-xl font-bold" />
           </div>
         </div>
 
@@ -487,7 +487,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           <div>
             <div className="mb-3 flex flex-col items-start gap-1">
               <h1 className="text-3xl font-extrabold text-foreground">{themeName}</h1>
-              <ThemeTag sessionType={session.session_type} label={`${session.session_type} 방탈출`} className="text-3xl lg:text-4xl font-bold" />
+              <ThemeTag sessionType={session.session_type} label={`${session.session_type} 파티형 방탈출`} className="text-3xl lg:text-4xl font-bold" />
             </div>
           </div>
 
