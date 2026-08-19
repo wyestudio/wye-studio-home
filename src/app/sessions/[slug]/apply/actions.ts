@@ -160,6 +160,10 @@ export async function applyAction(
     if (!attendee.gender || (attendee.gender !== "M" && attendee.gender !== "F")) {
       return { error: "모든 참여자의 성별을 선택해주세요.", attendees, notes };
     }
+    // 방탈출 경험 횟수 (모든 테마에서 필수)
+    if (!attendee.experienceRange) {
+      return { error: "모든 참여자의 방탈출 경험 횟수를 선택해주세요.", attendees, notes };
+    }
     // 닉네임 (선택, 입력했을 때만 검사)
     if (attendee.nickname && !isValidNickname(attendee.nickname)) {
       return { error: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다.", attendees, notes };
