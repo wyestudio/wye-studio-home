@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { formatKrw, formatSessionDateDotted, formatDuration, formatShortDate } from "@/lib/format";
 import { RippleLinkButton } from "@/components/ui/RippleLinkButton";
+import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { LiveViewerBadge } from "@/components/ui/LiveViewerBadge";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { ShareButton } from "@/components/ui/ShareButton";
@@ -609,6 +610,8 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" align="left" className="mb-6" eyebrowColor={themeAccentColor} />
         <FlatFaqAccordion items={faqItems} />
       </section>
+
+      <KakaoChannelButton raised />
 
       {/* 고정 CTA 버튼 */}
       <div className="fixed inset-x-0 bottom-0">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LookupForm } from "@/components/lookup/LookupForm";
+import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 
 export const metadata: Metadata = {
   title: "신청내역 조회",
@@ -12,6 +13,7 @@ export default function LookupPage() {
     <div className="mx-auto max-w-md px-5 py-10">
       <h1 className="mb-6 text-2xl font-extrabold">신청내역 조회</h1>
       <LookupForm />
+      <KakaoChannelButton />
     </div>
   );
 }
