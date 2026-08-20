@@ -9,7 +9,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // sms_templates 테이블이 비어있거나 조회 실패 시 쓰는 폴백 — 운영 SMS 발송이
 // DB 조회 실패로 끊기면 안 되므로 필수. supabase-schema.sql의 최신 시드/업데이트
-// 값(v29 기준)과 반드시 동일하게 유지할 것 — 어드민 페이지에서 body를 수정하면
+// 값(v32 기준)과 반드시 동일하게 유지할 것 — 어드민 페이지에서 body를 수정하면
 // 이 값과 다시 어긋나므로, 어드민 수정 시 이 파일과 schema.sql도 같이 동기화한다.
 const DEFAULT_TEMPLATES: Record<string, string> = {
   application_confirmation: `[우주이스케이프] 신청 접수 안내문자입니다.
@@ -17,8 +17,7 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
 {{name}}님, 신청이 접수되었습니다.
 · 접수번호: {{confirmation_code}}
 · 테마: [프리오픈] {{theme_name}} ({{product_label}})
-· 날짜: {{event_date}}
-· 시간: {{start_time}}
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
 · 인원: {{attendee_count}}명
 
 · 입금자명: {{depositor_name}}
@@ -28,15 +27,15 @@ const DEFAULT_TEMPLATES: Record<string, string> = {
 계좌이체 시 입금확인 후 참여 확정 문자가 발송됩니다.
 참여신청 후 30분 이내에 입금이 확인되지 않을 경우 신청이 취소될 수 있습니다.
 
-문의: 카카오톡 채널 우주이스케이프`,
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat`,
 
   payment_confirmed: `[우주이스케이프] 참여 확정 안내문자입니다.
 
 {{name}}님, 입금이 확인되어 참여가 확정되었습니다.
 · 접수번호: {{confirmation_code}}
 · 테마: [프리오픈] {{theme_name}} ({{product_label}})
-· 날짜: {{event_date}}
-· 시간: {{start_time}}
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
 · 인원: {{attendee_count}}명
 
 상세 장소는 체험 전날 다시 안내드립니다.
@@ -49,18 +48,20 @@ www.wouldyouescape.com/lookup
 · 24시간 전 취소: 50% 환불
 · 24시간 이내 취소: 환불불가
 
-문의: 카카오톡 채널 우주이스케이프`,
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat`,
 
   event_reminder_group: `[우주이스케이프] 참여 하루 전 안내문자입니다.
 
 {{name}}님, 내일 진행되는 테마 안내드립니다.
 · 테마: [프리오픈] {{theme_name}} ({{product_label}})
-· 일시: {{event_date}} {{start_time}} (10분 전까지 도착)
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
 · 장소: 서울특별시 관악구 봉천로 333 지하 뮤트스페이스 더클래식 봉천점 1층
 · 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
-· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등)
+· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등), 단정한 옷차림(가슴 부위에 옷핀을 부착하니 참고해 주세요.)
 
 [꼭 확인해 주세요]
+· 원활한 진행을 위해 시작 시간 10분 전까지 도착해주세요.
 · 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
 · 음주 시 입장이 불가능하며, 이로 인한 입장제한 시 환불이 불가능합니다.
 · 방탈출 특성상 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
@@ -70,18 +71,20 @@ www.wouldyouescape.com/lookup
 대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다. (24시간 이내 취소 환불불가)
 취소: www.wouldyouescape.com/lookup
 
-문의: 카카오톡 채널 우주이스케이프`,
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat`,
 
   event_reminder_dating: `[우주이스케이프] 참여 하루 전 안내문자입니다.
 
 {{name}}님, 내일 진행되는 테마 안내드립니다.
 · 테마: [프리오픈] {{theme_name}} ({{product_label}})
-· 일시: {{event_date}} {{start_time}} (10분 전까지 도착)
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
 · 장소: 서울특별시 관악구 봉천로 333 지하 뮤트스페이스 더클래식 봉천점 1층
 · 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
-· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등)
+· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등), 단정한 옷차림(가슴 부위에 옷핀을 부착하니 참고해 주세요.)
 
 [꼭 확인해 주세요]
+· 원활한 진행을 위해 시작 시간 10분 전까지 도착해주세요.
 · 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
 · 음주 시 입장이 불가능하며, 이로 인한 입장제한 시 환불이 불가능합니다.
 · 방탈출 특성상 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
@@ -91,7 +94,8 @@ www.wouldyouescape.com/lookup
 대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다. (24시간 이내 취소 환불불가)
 취소: www.wouldyouescape.com/lookup
 
-문의: 카카오톡 채널 우주이스케이프`,
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat`,
 
   application_cancelled: `[우주이스케이프] 미입금 신청취소 안내문자입니다.
 
@@ -102,15 +106,15 @@ www.wouldyouescape.com/lookup
 
 이미 입금하셨다면 카카오톡 채널로 문의 바랍니다.
 
-문의: 카카오톡 채널 우주이스케이프`,
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat`,
 
   waitlist_promoted: `[우주이스케이프] 공석신청 입금 안내문자입니다.
 
 {{name}}님, 유선 상 안내드린 대로 아래 테마 참여가 가능합니다.
 · 접수번호: {{confirmation_code}}
 · 테마: [프리오픈] {{theme_name}} ({{product_label}})
-· 날짜: {{event_date}}
-· 시간: {{start_time}}
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
 · 인원: {{attendee_count}}명
 
 · 입금자명: {{depositor_name}}
@@ -120,20 +124,22 @@ www.wouldyouescape.com/lookup
 
 기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
 
-문의: 카카오톡 채널 우주이스케이프`,
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat`,
 
   minimum_not_met_cancellation: `[우주이스케이프] 인원미달 취소 안내문자입니다.
 
 {{name}}님, 신청하신 테마가 최소 진행 인원에 미달하여 부득이하게 취소되었습니다.
 · 접수번호: {{confirmation_code}}
 · 테마: [프리오픈] {{theme_name}} ({{product_label}})
-· 일시: {{event_date}} {{start_time}}
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
 
 결제하신 {{refund_amount}}은 전액 환불되며, 영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다.
 
 일정을 비워두셨을 텐데 불편을 드려 죄송합니다.
 
-문의: 카카오톡 채널 우주이스케이프`,
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat`,
 };
 
 async function getTemplateBody(key: string): Promise<string> {
@@ -276,9 +282,32 @@ export async function sendPaymentConfirmedSms(
   }
 }
 
+export async function buildEventReminderText(
+  session: Session,
+  representativeName: string,
+  venueName: string,
+  venueAddress: string | null
+): Promise<string> {
+  const addressText = venueAddress ? ` (${venueAddress})` : "";
+  const dating = isDatingTheme(session.session_type);
+  const templateKey = dating ? "event_reminder_dating" : "event_reminder_group";
+  const body = await getTemplateBody(templateKey);
+  return renderTemplate(body, {
+    name: representativeName,
+    theme_name: themeName(session),
+    product_label: productLabel(session),
+    event_date: formatSessionDate(session.event_date),
+    start_time: formatSessionTime(session.start_at),
+    duration: durationLabel(session),
+    venue_name: venueName,
+    venue_address_text: addressText,
+  });
+}
+
 export async function sendEventReminderSms(
   session: Session,
   application: Pick<Application, "confirmation_code">,
+  representativeName: string,
   representativePhone: string,
   venueName: string,
   venueAddress: string | null
@@ -290,19 +319,7 @@ export async function sendEventReminderSms(
     return;
   }
 
-  const addressText = venueAddress ? ` (${venueAddress})` : "";
-  const dating = isDatingTheme(session.session_type);
-  const templateKey = dating ? "event_reminder_dating" : "event_reminder_group";
-  const body = await getTemplateBody(templateKey);
-  const text = renderTemplate(body, {
-    theme_name: themeName(session),
-    product_label: productLabel(session),
-    event_date: formatSessionDate(session.event_date),
-    start_time: formatSessionTime(session.start_at),
-    duration: durationLabel(session),
-    venue_name: venueName,
-    venue_address_text: addressText,
-  });
+  const text = await buildEventReminderText(session, representativeName, venueName, venueAddress);
 
   try {
     await messageService.send({
@@ -412,6 +429,7 @@ export async function sendMinimumNotMetCancellationSms(
     theme_name: themeName(session),
     product_label: productLabel(session),
     start_time: formatSessionTime(session.start_at),
+    duration: durationLabel(session),
     refund_amount: formatKrw(session.price_krw * attendeeCount),
   });
 

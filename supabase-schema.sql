@@ -3609,3 +3609,396 @@ exception
   when unique_violation then raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
 end;
 $function$;
+
+-- =========================================================
+-- v31. submit_application() 재작성 — 동시성 버그 2건 수정 (2026-08-20)
+-- 배경: wouldyouescape_test에서 Promise.all 기반 동시 신청 스트레스
+-- 테스트(모임 60건/소개팅 70건 동시 신청) 진행 중 발견.
+--
+-- 버그1) 대기 순번(waiting_number) 중복 — 기존엔 `ap.created_at <=
+-- v_app.created_at`로 순번을 셌는데, created_at 기본값이 now()(트랜잭션
+-- *시작* 시각)라 동시 요청이 몰리면 실제 커밋 순서와 now() 값 순서가
+-- 어긋날 수 있었다. 재현 결과 대기자 두 명이 똑같이 "12번"을 받고
+-- 13번은 아무도 못 받는 현상 확인. 수정: 이미 INSERT된 자기 자신을
+-- 제외한 현재 대기 건수를 세고 +1 하는 방식으로 교체 — sessions
+-- 행 락으로 함수 전체가 완전히 직렬화되므로 타임스탬프에 의존하지
+-- 않아도 정확하다.
+--
+-- 버그2) 소개팅 정원 체크가 성별 무관하게 capacity_max_female만
+-- 참조하고 있었다(`v_current_total + 1 > v_session.capacity_max_female`,
+-- 남성 신청에도 동일). 지금은 capacity_max_male=capacity_max_female=30
+-- 이라 겉으로 드러나지 않았지만 잠재 버그였음. 수정: 바로 아래
+-- 확정/대기 판정과 동일하게 성별 분기 추가.
+--
+-- wouldyouescape_test에서 수정 적용 후 동일 스트레스 테스트 재실행 —
+-- 대기 순번 중복 사라짐(1..26, 1..18 정확히 순차) 확인 후 프로덕션
+-- 동일 적용 완료.
+-- =========================================================
+create or replace function public.submit_application(
+  p_session_id uuid, p_depositor_name text, p_consent_required boolean,
+  p_consent_optional boolean, p_attendees jsonb, p_notes text default null::text
+) returns application_result
+language plpgsql security definer set search_path to 'public', 'extensions'
+as $function$
+declare
+  v_session sessions%rowtype;
+  v_group_size int; v_current_total int; v_gender_total int; v_gender text;
+  v_new_total int; v_status text; v_code text; v_app applications%rowtype;
+  v_dup_phones text; v_self_dup_phones text; v_waiting_number int;
+begin
+  if not p_consent_required then raise exception '필수 약관에 동의해야 신청할 수 있습니다.'; end if;
+  select * into v_session from sessions where id = p_session_id for update;
+  if not found then raise exception '존재하지 않는 회차입니다.'; end if;
+  if v_session.status <> 'open' then raise exception '이미 마감된 회차입니다.'; end if;
+
+  v_group_size := jsonb_array_length(p_attendees);
+  if v_group_size is null or v_group_size < 1 then raise exception '참여 인원을 입력해주세요.'; end if;
+
+  if v_session.session_type = '소개팅' then
+    if v_group_size <> 1 then raise exception '소개팅 회차는 1인 신청만 가능합니다.'; end if;
+    v_gender := p_attendees->0->>'gender';
+    if v_gender is null or v_gender not in ('M', 'F') then raise exception '성별을 선택해주세요.'; end if;
+  end if;
+
+  if v_session.session_type = '소개팅' then
+    if exists (select 1 from jsonb_array_elements(p_attendees) a where (a->>'birth_year')::int not between 1990 and 2001) then
+      raise exception '참여자 출생년도는 1990~2001년 범위만 가능합니다.';
+    end if;
+  else
+    if exists (select 1 from jsonb_array_elements(p_attendees) a where (a->>'birth_year')::int not between 1987 and 2006) then
+      raise exception '참여자 출생년도는 1987~2006년 범위만 가능합니다.';
+    end if;
+  end if;
+
+  if exists (select 1 from jsonb_array_elements(p_attendees) a where a->>'gender' is null or a->>'gender' not in ('M', 'F')) then
+    raise exception '모든 참여자의 성별을 선택해주세요.';
+  end if;
+
+  select string_agg(distinct phone, ',') into v_self_dup_phones
+  from (select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone from jsonb_array_elements(p_attendees) a group by 1 having count(*) > 1) t;
+  if v_self_dup_phones is not null then raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요.' using detail = v_self_dup_phones; end if;
+
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',')
+  into v_dup_phones from jsonb_array_elements(p_attendees) a
+  where exists (
+    select 1 from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    join sessions s on s.id = ap.session_id
+    where ap.status <> 'cancelled'
+      and aa.phone_hash = hash_phone(a->>'phone')
+      and s.content_group = v_session.content_group
+  );
+  if v_dup_phones is not null then raise exception '다른 테마에 이미 신청하신 분이 포함되어 있어요. 한 테마만 신청 가능합니다.' using detail = v_dup_phones; end if;
+
+  if v_session.session_type = '소개팅' then
+    select coalesce(count(*), 0) into v_current_total from application_attendees aa join applications ap on ap.id = aa.application_id
+    where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting') and aa.gender = v_gender;
+  else
+    select coalesce(sum(cnt), 0) into v_current_total from (select ap.id, count(*) as cnt from applications ap join application_attendees aa on aa.application_id = ap.id where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting') group by ap.id) t;
+  end if;
+
+  if v_session.session_type = '소개팅' then
+    if v_gender = 'M' and v_session.male_closed then raise exception '정원마감: 남성 참여자의 정원이 마감되었습니다.'; end if;
+    if v_gender = 'F' and v_session.female_closed then raise exception '정원마감: 여성 참여자의 정원이 마감되었습니다.'; end if;
+    if v_current_total + 1 > (case when v_gender = 'M' then v_session.capacity_max_male else v_session.capacity_max_female end) then raise exception '정원마감: 정원이 모두 찼습니다.'; end if;
+  else
+    if v_current_total + v_group_size > v_session.capacity_max then raise exception '정원마감: 정원이 모두 찼습니다.'; end if;
+  end if;
+
+  for i in 1..20 loop
+    v_code := (100000 + floor(random() * 900000))::int::text;
+    exit when not exists (select 1 from applications where confirmation_code = v_code);
+  end loop;
+
+  if v_session.session_type = '소개팅' then
+    v_status := case when v_current_total + 1 <= (case when v_gender = 'M' then v_session.capacity_confirm_line_male else v_session.capacity_confirm_line_female end) then 'confirmed' else 'waiting' end;
+  else
+    v_status := case when v_current_total + v_group_size <= v_session.capacity_confirm_line then 'confirmed' else 'waiting' end;
+  end if;
+
+  insert into applications (session_id, depositor_name_enc, consent_required, consent_optional, confirmation_code, status, notes)
+  values (p_session_id, encrypt_pii(p_depositor_name), p_consent_required, p_consent_optional, v_code, v_status, p_notes) returning * into v_app;
+
+  insert into application_attendees (application_id, session_id, is_representative, name_enc, phone_enc, phone_hash, birth_year, nickname, gender, experience_range)
+  select v_app.id, p_session_id, (ord = 1), encrypt_pii(a->>'name'), encrypt_pii(a->>'phone'), hash_phone(a->>'phone'),
+    (a->>'birth_year')::int, nullif(a->>'nickname', ''), nullif(a->>'gender', ''), nullif(a->>'experience_range', '')
+  from jsonb_array_elements(p_attendees) with ordinality as t(a, ord);
+
+  v_new_total := v_current_total + v_group_size;
+
+  if v_session.session_type = '소개팅' then
+    if v_gender = 'M' and v_current_total + 1 >= v_session.capacity_max_male then update sessions set male_closed = true where id = p_session_id; end if;
+    if v_gender = 'F' and v_current_total + 1 >= v_session.capacity_max_female then update sessions set female_closed = true where id = p_session_id; end if;
+    if (select count(*) from sessions where id = p_session_id and male_closed and female_closed) > 0 then update sessions set status = 'closed' where id = p_session_id; end if;
+  else
+    if v_new_total >= v_session.capacity_max then update sessions set status = 'closed' where id = p_session_id; end if;
+  end if;
+
+  if v_app.status = 'waiting' then
+    if v_session.session_type = '소개팅' then
+      select count(*) + 1 into v_waiting_number from application_attendees aa join applications ap on ap.id = aa.application_id
+      where ap.session_id = p_session_id and ap.status = 'waiting' and aa.gender = v_gender and ap.id <> v_app.id;
+    else
+      select count(*) + 1 into v_waiting_number from applications ap where ap.session_id = p_session_id and ap.status = 'waiting' and ap.id <> v_app.id;
+    end if;
+  else
+    v_waiting_number := null;
+  end if;
+
+  return (v_app.id, v_app.session_id, p_depositor_name, true, v_app.confirmation_code, v_app.status, v_app.payment_status, v_waiting_number, v_app.created_at)::public.application_result;
+exception
+  when unique_violation then raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end;
+$function$;
+
+-- =========================================================
+-- v32. 운영 drift 수정 2건 (2026-08-20)
+-- 배경: 동시성 스트레스 테스트 여파로 test/운영 전체 함수 목록을
+-- md5(pg_get_functiondef())로 대조하던 중 발견. 둘 다 언제/누가
+-- 운영에 ad-hoc하게 반영했는지 기록이 없음 — v20 주석의 hash_phone/
+-- check_active_applications drift와 같은 패턴.
+--
+-- (1) get_session_stats() — 운영이 v9-3(위 참고)과 완전히 다른
+-- 컬럼명(confirmed_total/confirmed_male/...)으로 재작성돼 있었음.
+-- src/types/domain.ts가 기대하는 필드명(confirmed_count/
+-- male_confirmed_count/...)은 test=v9-3 쪽과 일치 — 즉 운영 버전은
+-- 클라이언트가 이 RPC를 호출하면 모든 필드가 undefined로 나오는
+-- 상태였다. 다행히 getSessionStats()를 부르는 화면이 아직 없어서
+-- (04 실시간 모집 현황 페이지 미구현) 실사용자 영향은 없었음.
+-- 수정: 운영도 test/v9-3과 동일한 정의로 재적용.
+--
+-- (2) rls_auto_enable() 이벤트 트리거 — "Automatic RLS"(신규 테이블
+-- 생성 시 RLS 자동 활성화) 기능이 test에는 ensure_rls 이벤트
+-- 트리거로 살아있었지만 운영에는 아예 없었음. 운영에 남아있던
+-- rls_auto_enable() 함수도 RETURNS trigger로 되어 있어 애초에
+-- 이벤트 트리거로 쓸 수 없는 깨진 형태였음(new.relname 참조 —
+-- 일반 트리거 문법이 잘못 섞여든 흔적). 기존 테이블은 전부 이미
+-- RLS가 켜져있어 지금까지 데이터 노출은 없었으나, 새 테이블을
+-- 실수로 RLS 없이 만들면 막아줄 안전망이 운영에만 빠진 상태였음.
+-- 수정: 함수를 test와 동일한 event_trigger 반환 타입으로 재생성하고
+-- ensure_rls 이벤트 트리거를 CREATE TABLE/CREATE TABLE AS/SELECT INTO
+-- 태그로 동일하게 생성.
+-- =========================================================
+drop function if exists get_session_stats(uuid);
+
+create or replace function get_session_stats(p_session_id uuid)
+returns table (
+  confirmed_count int, waiting_count int,
+  male_confirmed_count int, male_waiting_count int,
+  female_confirmed_count int, female_waiting_count int
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    coalesce(sum(case when ap.status = 'confirmed' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and aa.gender = 'M' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' and aa.gender = 'M' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and aa.gender = 'F' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' and aa.gender = 'F' then 1 else 0 end), 0)::int
+  from application_attendees aa
+  join applications ap on ap.id = aa.application_id
+  where ap.session_id = p_session_id;
+$$;
+
+revoke all on function get_session_stats(uuid) from public;
+grant execute on function get_session_stats(uuid) to anon, authenticated;
+
+drop function if exists public.rls_auto_enable();
+
+create function public.rls_auto_enable()
+returns event_trigger
+language plpgsql
+security definer
+set search_path to 'public'
+as $function$ begin execute 'alter table ' || quote_ident(pg_event_trigger_table_spec()) || ' enable row level security'; exception when others then null; end; $function$;
+
+drop event trigger if exists ensure_rls;
+create event trigger ensure_rls on ddl_command_end
+when tag in ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+execute function public.rls_auto_enable();
+
+-- =========================================================
+-- v33. sms_templates 어드민 수정사항 재동기화 + 문자3/문자7 플레이스홀더
+-- 누락 버그 수정 (2026-08-20)
+-- 배경: v29(2026-08-17) 기록 이후 운영자가 /admin/sms-templates에서 7개
+-- 템플릿을 다시 수정했다(카카오톡 채널 링크 추가, "· 날짜:/· 시간:" 두 줄을
+-- "· 일시: ... ({{duration}} 소요)" 한 줄로 통합, 문자3에 도착안내/복장 문구
+-- 추가). 이 파일의 v29 UPDATE 블록은 그대로 남겨두고(과거 기록 보존), 이
+-- 블록으로 2026-08-20 기준 운영 DB의 실제 값을 다시 기록한다.
+--
+-- 같은 시점에 코드 버그 2건도 발견해 수정했다 — sms_templates 본문은 이미
+-- 맞게 고쳐져 있었지만, 문자를 실제로 렌더링하는 src/lib/sms.ts 쪽이 본문이
+-- 요구하는 변수를 다 채우지 못하고 있었다:
+--   1) event_reminder_group/dating 본문이 {{name}}을 쓰는데 sendEventReminderSms가
+--      대표 신청자 이름을 아예 넘기지 않아 문자에 "{{name}}님"이 그대로 노출될
+--      뻔했다. buildEventReminderText/sendEventReminderSms에 representativeName
+--      파라미터를 추가하고, 크론/어드민이 공유하는 getSessionReminderPreview
+--      (관리자 확인창 미리보기)도 함께 고쳤다.
+--   2) minimum_not_met_cancellation 본문이 {{duration}}을 쓰는데
+--      sendMinimumNotMetCancellationSms가 duration을 넘기지 않아 "{{duration}}"이
+--      그대로 노출될 뻔했다.
+-- 두 문자 다 2026-08-20 기준 reminder_sms_sent_at/최소인원미달취소 실사용
+-- 이력이 0건이라(운영 DB 확인) 실제 고객에게 깨진 문자가 나간 적은 없다.
+--
+-- 이미 운영 DB에는 반영되어 있는 값이므로 이 UPDATE 문들을 실제로 다시
+-- 실행할 필요는 없다 — git에 변경 이력을 남기기 위한 기록용
+-- (2026-08-20 운영 DB 조회 결과 기준, src/lib/sms.ts의 DEFAULT_TEMPLATES
+-- 폴백도 동일한 값으로 동기화했다).
+-- =========================================================
+update sms_templates set body =
+$body$[우주이스케이프] 신청 접수 안내문자입니다.
+
+{{name}}님, 신청이 접수되었습니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+
+· 입금자명: {{depositor_name}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
+
+계좌이체 시 입금확인 후 참여 확정 문자가 발송됩니다.
+참여신청 후 30분 이내에 입금이 확인되지 않을 경우 신청이 취소될 수 있습니다.
+
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat$body$
+where key = 'application_confirmation';
+
+update sms_templates set body =
+$body$[우주이스케이프] 참여 확정 안내문자입니다.
+
+{{name}}님, 입금이 확인되어 참여가 확정되었습니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+
+상세 장소는 체험 전날 다시 안내드립니다.
+
+신청 조회·취소는 아래에서 가능합니다.
+www.wouldyouescape.com/lookup
+
+[환불 규정]
+· 48시간 전 취소: 전액 환불
+· 24시간 전 취소: 50% 환불
+· 24시간 이내 취소: 환불불가
+
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat$body$
+where key = 'payment_confirmed';
+
+update sms_templates set body =
+$body$[우주이스케이프] 참여 하루 전 안내문자입니다.
+
+{{name}}님, 내일 진행되는 테마 안내드립니다.
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+· 장소: 서울특별시 관악구 봉천로 333 지하 뮤트스페이스 더클래식 봉천점 1층
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등), 단정한 옷차림(가슴 부위에 옷핀을 부착하니 참고해 주세요.)
+
+[꼭 확인해 주세요]
+· 원활한 진행을 위해 시작 시간 10분 전까지 도착해주세요.
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 음주 시 입장이 불가능하며, 이로 인한 입장제한 시 환불이 불가능합니다.
+· 방탈출 특성상 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 동행자가 있으시다면 위 내용을 함께 전달해 주세요.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다. (24시간 이내 취소 환불불가)
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat$body$
+where key = 'event_reminder_group';
+
+update sms_templates set body =
+$body$[우주이스케이프] 참여 하루 전 안내문자입니다.
+
+{{name}}님, 내일 진행되는 테마 안내드립니다.
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+· 장소: 서울특별시 관악구 봉천로 333 지하 뮤트스페이스 더클래식 봉천점 1층
+· 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+· 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등), 단정한 옷차림(가슴 부위에 옷핀을 부착하니 참고해 주세요.)
+
+[꼭 확인해 주세요]
+· 원활한 진행을 위해 시작 시간 10분 전까지 도착해주세요.
+· 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+· 음주 시 입장이 불가능하며, 이로 인한 입장제한 시 환불이 불가능합니다.
+· 방탈출 특성상 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+· 2부부터는 음주가 가능합니다. 소주·맥주 외에 다른 주류를 원하실 경우 개인 지참(BYOB)도 가능합니다.
+
+[참석이 어려우시다면]
+대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다. (24시간 이내 취소 환불불가)
+취소: www.wouldyouescape.com/lookup
+
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat$body$
+where key = 'event_reminder_dating';
+
+update sms_templates set body =
+$body$[우주이스케이프] 미입금 신청취소 안내문자입니다.
+
+{{name}}님, 접수번호 {{confirmation_code}} 건은 입금이 확인되지 않아 신청이 취소되었습니다.
+
+다시 신청하시려면 아래에서 진행해 주세요.
+{{reapply_url}}
+
+이미 입금하셨다면 카카오톡 채널로 문의 바랍니다.
+
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat$body$
+where key = 'application_cancelled';
+
+update sms_templates set body =
+$body$[우주이스케이프] 공석신청 입금 안내문자입니다.
+
+{{name}}님, 유선 상 안내드린 대로 아래 테마 참여가 가능합니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+· 인원: {{attendee_count}}명
+
+· 입금자명: {{depositor_name}}
+· 입금액: {{price}}
+· 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
+· 입금기한: 문자 수신 후 24시간 이내
+
+기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
+
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat$body$
+where key = 'waitlist_promoted';
+
+update sms_templates set body =
+$body$[우주이스케이프] 인원미달 취소 안내문자입니다.
+
+{{name}}님, 신청하신 테마가 최소 진행 인원에 미달하여 부득이하게 취소되었습니다.
+· 접수번호: {{confirmation_code}}
+· 테마: [프리오픈] {{theme_name}} ({{product_label}})
+· 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+
+결제하신 {{refund_amount}}은 전액 환불되며, 영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다.
+
+일정을 비워두셨을 텐데 불편을 드려 죄송합니다.
+
+문의: 카카오톡 채널 우주이스케이프
+https://pf.kakao.com/_EGNBX/chat$body$
+where key = 'minimum_not_met_cancellation';
+
+-- placeholders 메타데이터(어드민 편집 화면 안내용, 렌더링에는 영향 없음)가
+-- 본문에서 실제로 쓰는 변수와 어긋나 있던 것도 함께 바로잡는다.
+update sms_templates set placeholders = array['name','theme_name','product_label','event_date','start_time','duration','venue_name','venue_address_text']
+where key = 'event_reminder_group';
+
+update sms_templates set placeholders = array['name','theme_name','product_label','event_date','start_time','duration','venue_name','venue_address_text']
+where key = 'event_reminder_dating';
+
+update sms_templates set placeholders = array['event_date','name','theme_name','product_label','start_time','duration','refund_amount']
+where key = 'minimum_not_met_cancellation';

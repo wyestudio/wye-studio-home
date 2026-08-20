@@ -160,7 +160,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                         <ApplicationDetailDialog application={app} attendees={appAttendees} />
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        <div className="flex flex-col items-start gap-1">
+                        <div className="flex flex-row flex-wrap items-center gap-1">
                           {app.payment_status !== "confirmed" && app.status === "confirmed" && (
                             <ConfirmPaymentButton
                               applicationId={app.id}
