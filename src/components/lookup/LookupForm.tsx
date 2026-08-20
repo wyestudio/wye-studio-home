@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Field, Input } from "@/components/ui/Input";
 import { getValidationErrorMessage } from "@/lib/validation";
 import { formatPhoneInput, phoneDigits, isValidPhoneDigits } from "@/lib/phone";
-import { lookupAction, type LookupState } from "@/app/lookup/actions";
+import { lookupAction, type LookupState } from "@/app/(site)/lookup/actions";
 
 const initialState: LookupState = {};
 

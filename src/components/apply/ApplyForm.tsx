@@ -7,7 +7,7 @@ import { ApplyComplete } from "@/components/apply/ApplyComplete";
 import { ApplySessionSummary } from "@/components/apply/ApplySessionSummary";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
 import { ApplyConsent, type ConsentState } from "@/components/apply/ApplyConsent";
-import { applyAction, checkNicknameAvailability, checkActiveApplicationConflicts, type ApplyState } from "@/app/sessions/[slug]/apply/actions";
+import { applyAction, checkNicknameAvailability, checkActiveApplicationConflicts, type ApplyState } from "@/app/(site)/sessions/[slug]/apply/actions";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { formatKrw } from "@/lib/format";
 import { pushDataLayerEvent } from "@/lib/analytics";

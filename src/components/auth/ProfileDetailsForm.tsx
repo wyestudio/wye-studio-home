@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { completeProfileAction, type ProfileState } from "@/app/signup/profile/actions";
+import { completeProfileAction, type ProfileState } from "@/app/(site)/signup/profile/actions";
 
 const initialState: ProfileState = {};
 

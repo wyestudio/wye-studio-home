@@ -1,7 +1,7 @@
 import "server-only";
 import { SolapiMessageService } from "solapi";
 import type { Application, Session } from "@/types/domain";
-import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
+import type { AttendeeInput } from "@/app/(site)/sessions/[slug]/apply/actions";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { formatKrw, formatSessionDate, formatSessionTime, formatDuration } from "@/lib/format";
 import { isDatingTheme } from "@/lib/theme";

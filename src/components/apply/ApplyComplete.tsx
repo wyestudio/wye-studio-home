@@ -8,7 +8,7 @@ import { ThemeTag } from "@/components/ui/ThemeTag";
 import { isDatingTheme } from "@/lib/theme";
 import { useCopyProtectionExemption } from "@/components/layout/CopyProtection";
 import type { Application } from "@/types/domain";
-import type { AttendeeInput } from "@/app/sessions/[slug]/apply/actions";
+import type { AttendeeInput } from "@/app/(site)/sessions/[slug]/apply/actions";
 
 export function ApplyComplete({
   application,

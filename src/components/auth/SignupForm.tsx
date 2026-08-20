@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
-import { signupAction, type SignupState } from "@/app/signup/actions";
+import { signupAction, type SignupState } from "@/app/(site)/signup/actions";
 
 const initialState: SignupState = {};
 

@@ -8,7 +8,7 @@ export const contentType = "image/png";
 
 export default async function Image() {
   const [fontData, mascotBuffer] = await Promise.all([
-    readFile(join(process.cwd(), "src/app/fonts/NotoSansKR-Bold-subset.woff")),
+    readFile(join(process.cwd(), "src/app/(site)/fonts/NotoSansKR-Bold-subset.woff")),
     readFile(join(process.cwd(), "public/mascot-kape.png")),
   ]);
   const mascotSrc = `data:image/png;base64,${mascotBuffer.toString("base64")}`;
