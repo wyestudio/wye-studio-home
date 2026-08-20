@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ContentsSessionShowcase } from "@/components/contents/ContentsSessionShowcase";
+import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { getUpcomingSessions } from "@/lib/sessions";
 
 export const metadata: Metadata = {
@@ -11,5 +12,10 @@ export const metadata: Metadata = {
 export default async function ContentsPage() {
   const sessions = await getUpcomingSessions();
 
-  return <ContentsSessionShowcase sessions={sessions} />;
+  return (
+    <>
+      <ContentsSessionShowcase sessions={sessions} />
+      <KakaoChannelButton />
+    </>
+  );
 }

@@ -5,6 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { formatKrw, formatSessionDateDotted, formatDuration, formatShortDate } from "@/lib/format";
 import { RippleLinkButton } from "@/components/ui/RippleLinkButton";
+import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
+import { LiveViewerBadge } from "@/components/ui/LiveViewerBadge";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -609,12 +611,19 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
         <FlatFaqAccordion items={faqItems} />
       </section>
 
+      <KakaoChannelButton raised />
+
       {/* 고정 CTA 버튼 */}
-      <div className="fixed inset-x-0 bottom-0 bg-background/90 p-4 backdrop-blur-md">
-        <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl">
-          <RippleLinkButton href={ctaHref} disabled={session.status !== "open"}>
-            {session.status === "cancelled" ? "취소된 회차입니다" : session.status === "closed" ? "모집이 마감되었습니다" : "참여하기"}
-          </RippleLinkButton>
+      <div className="fixed inset-x-0 bottom-0">
+        <div className="mx-auto max-w-2xl px-5 pb-3 sm:max-w-3xl sm:px-8 lg:max-w-4xl">
+          <LiveViewerBadge scopeKey={`session:${session.slug}`} />
+        </div>
+        <div className="bg-background/90 p-4 backdrop-blur-md">
+          <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl">
+            <RippleLinkButton href={ctaHref} disabled={session.status !== "open"}>
+              {session.status === "cancelled" ? "취소된 회차입니다" : session.status === "closed" ? "모집이 마감되었습니다" : "참여하기"}
+            </RippleLinkButton>
+          </div>
         </div>
       </div>
     </div>

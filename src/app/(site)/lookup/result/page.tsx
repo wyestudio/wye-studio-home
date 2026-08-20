@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LookupResult } from "@/components/lookup/LookupResult";
+import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 
 export const metadata: Metadata = {
   title: "신청내역 조회결과",
@@ -11,6 +12,7 @@ export default function LookupResultPage() {
   return (
     <div className="mx-auto max-w-[640px] px-5 py-10">
       <LookupResult />
+      <KakaoChannelButton />
     </div>
   );
 }
