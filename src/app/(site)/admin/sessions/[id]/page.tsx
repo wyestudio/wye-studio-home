@@ -6,6 +6,7 @@ import { CancelApplicationButton } from "./CancelApplicationButton";
 import { PromoteWaitlistButton } from "./PromoteWaitlistButton";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
 import { SendReminderButton } from "./SendReminderButton";
+import { ApplicationDetailDialog } from "./ApplicationDetailDialog";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +96,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                 <th className="text-left py-3 px-4 font-semibold text-sm">신청 상태</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">입금 상태</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">환불</th>
+                <th className="text-left py-3 px-4 font-semibold text-sm">상세</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">액션</th>
               </tr>
             </thead>
@@ -155,6 +157,9 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                         )}
                       </td>
                       <td className="py-3 px-4 text-sm">
+                        <ApplicationDetailDialog application={app} attendees={appAttendees} />
+                      </td>
+                      <td className="py-3 px-4 text-sm">
                         <div className="flex flex-col items-start gap-1">
                           {app.payment_status !== "confirmed" && app.status === "confirmed" && (
                             <ConfirmPaymentButton
@@ -176,7 +181,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 px-4 text-center text-muted">
+                  <td colSpan={7} className="py-8 px-4 text-center text-muted">
                     신청이 없습니다.
                   </td>
                 </tr>
