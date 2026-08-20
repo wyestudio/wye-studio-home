@@ -1,7 +1,74 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Session } from "@/types/domain";
-import { sendEventReminderSms } from "@/lib/sms";
+import { sendEventReminderSms, buildEventReminderText } from "@/lib/sms";
+
+export type ReminderRecipient = {
+  name: string;
+  phone: string;
+  confirmationCode: string;
+};
+
+export type ReminderPreview = {
+  total: number;
+  recipients: ReminderRecipient[];
+  messagePreview: string;
+  skipped?: string[];
+};
+
+// 어드민 "전날안내 발송" 확인창에 실제 수신자·문구를 미리 보여주기 위한 조회 전용
+// 함수. sendSessionReminders와 같은 대상 조건(확정+입금확인+미발송)을 공유한다.
+export async function getSessionReminderPreview(
+  supabase: SupabaseClient,
+  session: Session
+): Promise<ReminderPreview> {
+  const { data: applications, error: appsError } = await supabase
+    .from("applications")
+    .select("id, confirmation_code")
+    .eq("session_id", session.id)
+    .eq("status", "confirmed")
+    .eq("payment_status", "confirmed")
+    .is("reminder_sms_sent_at", null);
+
+  const { data: venue } = await supabase
+    .from("session_venues")
+    .select("venue_name, venue_address")
+    .eq("session_id", session.id)
+    .single();
+
+  const venueName = venue?.venue_name || "미정";
+  const messagePreview = await buildEventReminderText(session, "OOO", venueName, venue?.venue_address ?? null);
+
+  if (appsError || !applications || applications.length === 0) {
+    return { total: 0, recipients: [], messagePreview };
+  }
+
+  const recipients: ReminderRecipient[] = [];
+  const skipped: string[] = [];
+
+  for (const app of applications) {
+    const { data: attendee } = await supabase
+      .from("admin_attendee_view")
+      .select("name, phone")
+      .eq("application_id", app.id)
+      .eq("is_representative", true)
+      .single();
+
+    if (!attendee?.phone || !attendee?.name) {
+      skipped.push(`신청 ${app.confirmation_code}: 대표 신청자 연락처 없음`);
+      continue;
+    }
+
+    recipients.push({ name: attendee.name, phone: attendee.phone, confirmationCode: app.confirmation_code });
+  }
+
+  return {
+    total: applications.length,
+    recipients,
+    messagePreview,
+    skipped: skipped.length > 0 ? skipped : undefined,
+  };
+}
 
 // 크론(/api/cron/reminder)과 어드민 "전날안내 발송" 버튼이 공유하는 발송 로직 —
 // 세션 하나를 받아 확정+입금확인된, 아직 리마인더를 못 받은 신청 전체에 발송한다.
@@ -35,17 +102,17 @@ export async function sendSessionReminders(
     try {
       const { data: attendee } = await supabase
         .from("admin_attendee_view")
-        .select("phone")
+        .select("name, phone")
         .eq("application_id", app.id)
         .eq("is_representative", true)
         .single();
 
-      if (!attendee?.phone) {
+      if (!attendee?.phone || !attendee?.name) {
         errors.push(`신청 ${app.confirmation_code}: 대표 신청자 연락처 없음`);
         continue;
       }
 
-      await sendEventReminderSms(session, app, attendee.phone, venueName, venue?.venue_address ?? null);
+      await sendEventReminderSms(session, app, attendee.name, attendee.phone, venueName, venue?.venue_address ?? null);
 
       await supabase
         .from("applications")

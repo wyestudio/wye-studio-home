@@ -9,7 +9,7 @@ import {
   sendMinimumNotMetCancellationSms,
 } from "@/lib/sms";
 import { requireAdminAuth } from "@/lib/adminAuth";
-import { sendSessionReminders } from "@/lib/reminderSms";
+import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
 
 async function getRepresentative(supabase: ReturnType<typeof createAdminClient>, applicationId: string) {
   const { data, error } = await supabase
@@ -203,6 +203,57 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
   console.log(`[admin] 대기자 확정 전환됨: ${applicationId} (${application.confirmation_code})`);
 
   return { success: true };
+}
+
+// "회차 비활성화" 확인창에 실제로 취소될 신청 건수(확정/대기 구분)를 미리 보여주기 위한 조회.
+export async function getDeactivatePreview(
+  sessionId: string
+): Promise<{ error: string } | { success: true; confirmedCount: number; waitingCount: number }> {
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
+  const supabase = createAdminClient();
+
+  const { data: applications, error } = await supabase
+    .from("applications")
+    .select("status")
+    .eq("session_id", sessionId)
+    .in("status", ["confirmed", "waiting"]);
+
+  if (error) {
+    return { error: "신청 목록을 불러올 수 없습니다: " + error.message };
+  }
+
+  const confirmedCount = (applications ?? []).filter((a) => a.status === "confirmed").length;
+  const waitingCount = (applications ?? []).filter((a) => a.status === "waiting").length;
+
+  return { success: true, confirmedCount, waitingCount };
+}
+
+// "전날안내 발송" 확인창에 실제 수신자 목록·문구를 미리 보여주기 위한 조회.
+export async function getReminderPreview(
+  sessionId: string
+): Promise<{ error: string } | ({ success: true } & ReminderPreview)> {
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
+  const supabase = createAdminClient();
+
+  const { data: session, error: sessError } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+
+  if (sessError || !session) {
+    return { error: "세션 정보를 찾을 수 없습니다." };
+  }
+
+  const preview = await getSessionReminderPreview(supabase, session);
+
+  return { success: true, ...preview };
 }
 
 // 문자7(최소인원 미달 취소) — 어드민이 세션 단위로 "회차 비활성화" 버튼을
