@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Field, Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SocialLoginButtons } from "@/components/auth/SocialLoginButtons";
-import { loginAction, type LoginState } from "@/app/login/actions";
+import { loginAction, type LoginState } from "@/app/(site)/login/actions";
 
 const initialState: LoginState = {};
 

@@ -3,6 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 import { verifyAdminToken } from "@/lib/adminAuth";
 import { verifySiteGateToken } from "@/lib/siteGateAuth";
+import { verifyGateToken as verifyOydGateToken, getGateCookieName as getOydGateCookieName } from "@/lib/openYourDreamGateAuth";
 import { isProductionHost } from "@/lib/hosts";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인 시스템은 더 이상
@@ -20,6 +21,7 @@ const ADMIN_HOSTS = new Set([
 
 const SITE_GATE_PATH = process.env.SITE_GATE_PATH || "/site-gate-w3k9m5x7";
 const ADMIN_PATH = process.env.ADMIN_PATH || "/admin";
+const OYD_GATE_PATH = "/openyourdream/gate";
 
 function isAdminHost(host: string): boolean {
   return ADMIN_HOSTS.has(host);
@@ -67,6 +69,20 @@ export async function proxy(request: NextRequest) {
       const loginUrl = new URL(`${SITE_GATE_PATH}/login`, request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return tagRobots(NextResponse.redirect(loginUrl), blockIndexing);
+    }
+  }
+
+  // 1.5단계: 꿈의 포문(openyourdream) 자체 게이트 — 실물 명함(포스터)에 인쇄된
+  // 번호를 아는 사람만 입장 가능. 사이트 전체 비밀번호 게이트와는 독립적으로
+  // 항상 적용된다(위 1단계를 통과했는지 여부와 무관하게 추가로 걸림).
+  if (pathname === "/openyourdream" || pathname.startsWith("/openyourdream/")) {
+    if (!pathname.startsWith(OYD_GATE_PATH)) {
+      const oydGateCookie = request.cookies.get(getOydGateCookieName())?.value;
+      if (!oydGateCookie || !verifyOydGateToken(oydGateCookie)) {
+        const gateUrl = new URL(OYD_GATE_PATH, request.url);
+        gateUrl.searchParams.set("redirect", pathname);
+        return tagRobots(NextResponse.redirect(gateUrl), blockIndexing);
+      }
     }
   }
 

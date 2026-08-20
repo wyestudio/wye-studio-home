@@ -304,13 +304,15 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           참가 가능 <span style={{ color: themeAccentColor }}>나이 제한</span>
         </>
       ),
-      desc: (
+      desc: isDatingSession ? (
         <>
-          비슷한 연령끼리 즐기실 수 있도록 (
-          <span className="text-foreground">
-            소개팅은 {eligibleBirthYearRangeLabel(true)}, 그룹은 {eligibleBirthYearRangeLabel(false)}
-          </span>
-          )만 신청 가능합니다.
+          소개팅 회차: 비슷한 연령끼리 즐기실 수 있도록{" "}
+          <span className="text-foreground">{eligibleBirthYearRangeLabel(true)}만</span> 신청 가능합니다.
+        </>
+      ) : (
+        <>
+          그룹 회차: 비슷한 연령끼리 즐기실 수 있도록{" "}
+          <span className="text-foreground">{eligibleBirthYearRangeLabel(false)}만</span> 신청 가능합니다.
         </>
       ),
     },

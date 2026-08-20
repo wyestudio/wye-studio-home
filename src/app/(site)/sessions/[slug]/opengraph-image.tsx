@@ -13,7 +13,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const session = await getSessionBySlug(slug);
 
   const [fontData, mascotBuffer] = await Promise.all([
-    readFile(join(process.cwd(), "src/app/fonts/NotoSansKR-Bold-subset.woff")),
+    readFile(join(process.cwd(), "src/app/(site)/fonts/NotoSansKR-Bold-subset.woff")),
     readFile(join(process.cwd(), "public/mascot-kape.png")),
   ]);
   const mascotSrc = `data:image/png;base64,${mascotBuffer.toString("base64")}`;

@@ -9,7 +9,7 @@ import { MascotCursor } from "@/components/space/MascotCursor";
 import { MascotSelectionProvider } from "@/components/space/MascotSelectionContext";
 import TestEnvBanner from "@/components/layout/TestEnvBanner";
 import { CopyProtectionProvider } from "@/components/layout/CopyProtection";
-import "./globals.css";
+import "../globals.css";
 
 // SUIT(가변 폰트, SIL OFL) — https://github.com/sun-typeface/SUIT
 const suit = localFont({

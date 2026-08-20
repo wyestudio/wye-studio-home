@@ -15,7 +15,7 @@ import { formatPhoneDigits } from "@/lib/phone";
 import { isDatingTheme } from "@/lib/theme";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { LIFECYCLE_LABEL, LIFECYCLE_TONE } from "@/lib/lookupStatus";
-import { cancelApplicationAction, type LookupState } from "@/app/lookup/actions";
+import { cancelApplicationAction, type LookupState } from "@/app/(site)/lookup/actions";
 import type { ApplicationAttendee } from "@/types/domain";
 
 export function LookupResult() {
