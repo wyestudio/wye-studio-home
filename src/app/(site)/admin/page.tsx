@@ -4,7 +4,7 @@ import { formatSessionDateTime } from "@/lib/format";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
 import { getSessionStats } from "@/lib/sessions";
-import { formatCapacityLine, formatHeadcountLine } from "@/lib/sessionStatsFormat";
+import { formatCapacityLine, formatHeadcountLine, countUnpaidConfirmed } from "@/lib/sessionStatsFormat";
 import type { Session, SessionStats } from "@/types/domain";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +35,12 @@ export default async function AdminDashboard() {
       }
     })
   );
+
+  const { data: applications } = await supabase
+    .from("admin_application_view")
+    .select("id, session_id, status, payment_status");
+  const { data: attendees } = await supabase.from("admin_attendee_view").select("application_id");
+  const unpaidConfirmedBySessionId = countUnpaidConfirmed(applications ?? [], attendees ?? []);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -79,6 +85,9 @@ export default async function AdminDashboard() {
                       <p className="text-sm text-muted mt-1">{formatSessionDateTime(session.start_at)}</p>
                       <p className="text-xs text-muted mt-1">{formatCapacityLine(session)}</p>
                       {stats && <p className="text-xs text-muted mt-1">{formatHeadcountLine(stats)}</p>}
+                      <p className="text-xs text-muted mt-1">
+                        입금 확인 전 인원: {unpaidConfirmedBySessionId.get(session.id) ?? 0}명
+                      </p>
                     </div>
                     <div className="text-right shrink-0 flex flex-col items-end gap-2">
                       <div className="text-sm font-medium">
