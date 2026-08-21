@@ -11,6 +11,7 @@ import { ThemeTag } from "@/components/ui/ThemeTag";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
+import { DifficultyStars } from "@/components/ui/DifficultyStars";
 import { isDatingTheme } from "@/lib/theme";
 import { eligibleBirthYearRangeLabel } from "@/lib/eligibility";
 import { FlatFaqAccordion, type FaqItem } from "./FlatFaqAccordion";
@@ -455,6 +456,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
           <div className="mb-3 flex flex-col items-start gap-1">
             <h1 className="text-2xl font-extrabold text-foreground">{themeName}</h1>
             <ThemeTag sessionType={session.session_type} label={`${session.session_type} 파티형 방탈출`} className="text-xl font-bold" />
+            <DifficultyStars rating={session.difficulty} className="mt-1" />
           </div>
         </div>
 
@@ -499,6 +501,7 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
             <div className="mb-3 flex flex-col items-start gap-1">
               <h1 className="text-3xl font-extrabold text-foreground">{themeName}</h1>
               <ThemeTag sessionType={session.session_type} label={`${session.session_type} 파티형 방탈출`} className="text-3xl lg:text-4xl font-bold" />
+              <DifficultyStars rating={session.difficulty} className="mt-2 text-lg" />
             </div>
           </div>
 
