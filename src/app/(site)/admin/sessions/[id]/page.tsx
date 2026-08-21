@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime } from "@/lib/format";
-import { ConfirmPaymentButton } from "./ConfirmPaymentButton";
-import { CancelApplicationButton } from "./CancelApplicationButton";
-import { PromoteWaitlistButton } from "./PromoteWaitlistButton";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
 import { SendReminderButton } from "./SendReminderButton";
 import { ApplicationDetailDialog } from "./ApplicationDetailDialog";
+import { ApplicationActionMenu } from "./ApplicationActionMenu";
+import { getSessionStats } from "@/lib/sessions";
+import { formatCapacityLine, formatHeadcountLine } from "@/lib/sessionStatsFormat";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +52,18 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
     );
   }
 
+  const stats = await getSessionStats(session.id).catch((err) => {
+    console.error(`[admin] 세션 통계 조회 실패: ${session.id}`, err);
+    return null;
+  });
+
+  const unpaidConfirmedCount = (applications ?? [])
+    .filter((app: any) => app.status === "confirmed" && app.payment_status !== "confirmed")
+    .reduce(
+      (sum: number, app: any) => sum + (attendees ?? []).filter((a: any) => a.application_id === app.id).length,
+      0
+    );
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-5xl mx-auto">
@@ -61,9 +73,10 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">{session.title}</h1>
+            <h1 className="text-3xl font-bold mb-2">
+              {session.session_type} {session.theme_name}
+            </h1>
             <p className="text-muted">{formatSessionDateTime(session.start_at)}</p>
-            <p className="text-sm text-muted mt-1">정원: {session.capacity_max}명</p>
             <p className="text-sm mt-1">
               상태:{" "}
               <span
@@ -87,16 +100,27 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
           )}
         </div>
 
+        {stats && (
+          <div className="mb-8 rounded-lg border border-border p-4 space-y-1.5">
+            <p className="text-xl font-semibold text-foreground">{formatCapacityLine(session)}</p>
+            <p className="text-xl font-semibold text-foreground">{formatHeadcountLine(stats)}</p>
+            <p className="text-xl font-semibold text-foreground">입금 확인 전 인원: {unpaidConfirmedCount}명</p>
+          </div>
+        )}
+
+        <p className="text-sm text-muted mb-2">💡 접수번호를 클릭하면 신청 상세 정보를 확인할 수 있습니다.</p>
+
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 font-semibold text-sm">접수번호</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">참여자</th>
+                <th className="text-left py-3 px-4 font-semibold text-sm">성별</th>
+                <th className="text-left py-3 px-4 font-semibold text-sm">출생년도</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">신청 상태</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">입금 상태</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">환불</th>
-                <th className="text-left py-3 px-4 font-semibold text-sm">상세</th>
                 <th className="text-left py-3 px-4 font-semibold text-sm">액션</th>
               </tr>
             </thead>
@@ -106,7 +130,9 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                   const appAttendees = attendees?.filter((a: any) => a.application_id === app.id) || [];
                   return (
                     <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
-                      <td className="py-3 px-4 text-sm font-mono text-glow">{app.confirmation_code}</td>
+                      <td className="py-3 px-4 text-sm">
+                        <ApplicationDetailDialog application={app} attendees={appAttendees} />
+                      </td>
                       <td className="py-3 px-4 text-sm">
                         {appAttendees.length > 0 ? (
                           <div className="space-y-1">
@@ -119,6 +145,32 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                           </div>
                         ) : (
                           <span className="text-muted">참여자 정보 없음</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {appAttendees.length > 0 ? (
+                          <div className="space-y-1">
+                            {appAttendees.map((att: any, idx: number) => (
+                              <div key={idx} className="text-xs">
+                                {att.gender === "M" ? "남" : att.gender === "F" ? "여" : "-"}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-sm">
+                        {appAttendees.length > 0 ? (
+                          <div className="space-y-1">
+                            {appAttendees.map((att: any, idx: number) => (
+                              <div key={idx} className="text-xs">
+                                {att.birth_year ?? "-"}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted">-</span>
                         )}
                       </td>
                       <td className="py-3 px-4 text-sm">
@@ -157,31 +209,19 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                         )}
                       </td>
                       <td className="py-3 px-4 text-sm">
-                        <ApplicationDetailDialog application={app} attendees={appAttendees} />
-                      </td>
-                      <td className="py-3 px-4 text-sm">
-                        <div className="flex flex-row flex-wrap items-center gap-1">
-                          {app.payment_status !== "confirmed" && app.status === "confirmed" && (
-                            <ConfirmPaymentButton
-                              applicationId={app.id}
-                              sessionId={session.id}
-                              confirmationCode={app.confirmation_code}
-                            />
-                          )}
-                          {app.status === "waiting" && (
-                            <PromoteWaitlistButton applicationId={app.id} sessionId={session.id} />
-                          )}
-                          {app.status !== "cancelled" && (
-                            <CancelApplicationButton applicationId={app.id} sessionId={session.id} />
-                          )}
-                        </div>
+                        <ApplicationActionMenu
+                          applicationId={app.id}
+                          sessionId={session.id}
+                          status={app.status}
+                          paymentStatus={app.payment_status}
+                        />
                       </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-8 px-4 text-center text-muted">
+                  <td colSpan={8} className="py-8 px-4 text-center text-muted">
                     신청이 없습니다.
                   </td>
                 </tr>

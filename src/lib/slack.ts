@@ -1,13 +1,13 @@
 import "server-only";
 import type { Application, Session, ApplicationAttendee } from "@/types/domain";
 import type { AttendeeInput } from "@/app/(site)/sessions/[slug]/apply/actions";
-import { formatSessionDateTime, formatKrw } from "@/lib/format";
+import { formatKrw, formatDateTimeDotted } from "@/lib/format";
+import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
+import { getSessionStats } from "@/lib/sessions";
+import { createClient } from "@/lib/supabase/server";
 
-const STATUS_LABEL: Record<Application["status"], string> = {
-  confirmed: "확정",
-  waiting: "대기",
-  cancelled: "취소",
-};
+const GENDER_LABEL: Record<"M" | "F", string> = { M: "남", F: "여" };
+const SESSION_TYPE_ORDER = ["그룹", "소개팅"];
 
 export async function sendApplicationSlackAlert({
   session,
@@ -27,21 +27,34 @@ export async function sendApplicationSlackAlert({
   }
 
   const representative = attendees[0];
-  const attendeeLines = attendees
-    .map((a, i) => `${i === 0 ? "대표" : "동행"} ${a.name} (${a.phone})`)
-    .join("\n");
+  const deadline = new Date(new Date(application.created_at).getTime() + 30 * 60 * 1000).toISOString();
 
   const prefix = isTest ? "[테스트] " : "";
-  const text = [
-    `${prefix}📥 새 신청 — ${session.title}`,
-    `일시: ${formatSessionDateTime(session.start_at)}`,
-    `상태: ${STATUS_LABEL[application.status]} · 인원 ${attendees.length}명`,
-    `대표 신청자: ${representative?.name ?? "-"} (${representative?.phone ?? "-"})`,
-    `입금자명: ${application.depositor_name}`,
+  const lines = [
+    `${prefix}📥 새신청 - [${session.session_type} 방탈출]`,
     `접수번호: ${application.confirmation_code}`,
+    `신청자명: ${representative?.name ?? "-"}${representative?.nickname ? ` (${representative.nickname})` : ""}`,
+    `출생년도: ${representative?.birthYear ?? "-"}년`,
+    `성별: ${representative?.gender ? GENDER_LABEL[representative.gender] : "-"}`,
+    `방탈출 횟수: ${representative?.experienceRange ? EXPERIENCE_RANGE_LABELS[representative.experienceRange] : "-"}`,
+    `인원: ${attendees.length}명`,
     "",
-    attendeeLines,
-  ].join("\n");
+    `입금자명: ${application.depositor_name}`,
+    `입금액: ${formatKrw(session.price_krw * attendees.length)}`,
+    `신청일시: ${formatDateTimeDotted(application.created_at)}`,
+    `입금기한: ${formatDateTimeDotted(deadline)}`,
+  ];
+
+  try {
+    const headcountLines = await buildCurrentHeadcountLines(session);
+    if (headcountLines.length > 0) {
+      lines.push("", "[현재 신청 인원]", ...headcountLines);
+    }
+  } catch (err) {
+    console.error("[slack] 인원 현황 조회 실패", err);
+  }
+
+  const text = lines.join("\n");
 
   try {
     const res = await fetch(webhookUrl, {
@@ -55,6 +68,35 @@ export async function sendApplicationSlackAlert({
   } catch (err) {
     console.error("[slack] 알림 전송 중 에러", err);
   }
+}
+
+// 같은 컨텐츠 그룹(현재 베타는 그룹 회차 1개 + 소개팅 회차 1개)에 속한 세션들의
+// 확정/대기 인원을 세션 타입별로 합산해 "그룹 확정: 남 8 · 여 15 / 대기: ..." 줄로 만든다.
+async function buildCurrentHeadcountLines(session: Session): Promise<string[]> {
+  const supabase = await createClient();
+  const { data: siblingSessions, error } = await supabase
+    .from("sessions")
+    .select("id, session_type")
+    .eq("content_group", session.content_group)
+    .neq("status", "cancelled");
+
+  if (error || !siblingSessions) return [];
+
+  const totals = new Map<string, { mc: number; fc: number; mw: number; fw: number }>();
+  for (const s of siblingSessions) {
+    const stats = await getSessionStats(s.id);
+    const acc = totals.get(s.session_type) ?? { mc: 0, fc: 0, mw: 0, fw: 0 };
+    acc.mc += stats.male_confirmed_count;
+    acc.fc += stats.female_confirmed_count;
+    acc.mw += stats.male_waiting_count;
+    acc.fw += stats.female_waiting_count;
+    totals.set(s.session_type, acc);
+  }
+
+  return SESSION_TYPE_ORDER.filter((type) => totals.has(type)).map((type) => {
+    const t = totals.get(type)!;
+    return `${type} 확정: 남 ${t.mc} · 여 ${t.fc} / 대기: 남 ${t.mw} · 여 ${t.fw}`;
+  });
 }
 
 export async function sendCancellationSlackAlert({

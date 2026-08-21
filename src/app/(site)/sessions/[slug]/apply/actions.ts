@@ -212,6 +212,8 @@ export async function applyAction(
       p_depositor_name: depositorName,
       p_consent_required: consentRequired,
       p_consent_optional: consentOptional,
+      p_consent_photo: consentPhoto,
+      p_consent_marketing: consentMarketing,
       p_attendees: attendees.map((a) => ({
         name: a.name,
         phone: a.phone,

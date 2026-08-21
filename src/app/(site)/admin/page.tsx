@@ -3,6 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime } from "@/lib/format";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
+import { getSessionStats } from "@/lib/sessions";
+import { formatCapacityLine, formatHeadcountLine } from "@/lib/sessionStatsFormat";
+import type { Session, SessionStats } from "@/types/domain";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +24,17 @@ export default async function AdminDashboard() {
       </div>
     );
   }
+
+  const statsBySessionId = new Map<string, SessionStats>();
+  await Promise.all(
+    (sessions ?? []).map(async (session: Session) => {
+      try {
+        statsBySessionId.set(session.id, await getSessionStats(session.id));
+      } catch (err) {
+        console.error(`[admin] 세션 통계 조회 실패: ${session.id}`, err);
+      }
+    })
+  );
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -49,35 +63,36 @@ export default async function AdminDashboard() {
 
         <div className="space-y-4">
           {sessions && sessions.length > 0 ? (
-            sessions.map((session) => (
-              <Link
-                key={session.id}
-                href={`/sessions/${session.id}`}
-                className="block p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h2 className="font-semibold text-foreground truncate">{session.title}</h2>
-                    <p className="text-sm text-muted mt-1">{formatSessionDateTime(session.start_at)}</p>
-                    <p className="text-sm text-muted mt-1">{session.theme_name}({session.session_type})</p>
-                  </div>
-                  <div className="text-right shrink-0 flex flex-col items-end gap-2">
-                    <div>
+            sessions.map((session) => {
+              const stats = statsBySessionId.get(session.id);
+              return (
+                <Link
+                  key={session.id}
+                  href={`/admin/sessions/${session.id}`}
+                  className="block p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="font-semibold text-foreground truncate">
+                        {session.session_type} {session.theme_name}
+                      </h2>
+                      <p className="text-sm text-muted mt-1">{formatSessionDateTime(session.start_at)}</p>
+                      <p className="text-xs text-muted mt-1">{formatCapacityLine(session)}</p>
+                      {stats && <p className="text-xs text-muted mt-1">{formatHeadcountLine(stats)}</p>}
+                    </div>
+                    <div className="text-right shrink-0 flex flex-col items-end gap-2">
                       <div className="text-sm font-medium">
                         상태:{" "}
                         <span className={session.status === "cancelled" ? "text-red-500" : "text-glow"}>
                           {session.status === "open" ? "모집중" : session.status === "cancelled" ? "비활성화" : "마감"}
                         </span>
                       </div>
-                      <div className="text-xs text-muted mt-1">
-                        정원: {session.capacity_max}명
-                      </div>
+                      <CopyUrlButton url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://wouldyouescape.com"}/sessions/${session.slug}`} />
                     </div>
-                    <CopyUrlButton url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://wouldyouescape.com"}/sessions/${session.slug}`} />
                   </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              );
+            })
           ) : (
             <div className="text-center py-8 text-muted">
               등록된 세션이 없습니다.
