@@ -52,6 +52,15 @@ export function formatSessionDateDotted(startAt: string): string {
   return `${year}.${month}.${day} (${weekday}) ${hh}:${mm}`;
 }
 
+// 슬랙 알림 등에서 쓰는 "YYYY.M.D HH:mm" 형식(연도 포함, 요일 없음, 점 구분).
+export function formatDateTimeDotted(iso: string): string {
+  const { month, day, hour, minute } = seoulParts(iso);
+  const year = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", year: "numeric" }).format(new Date(iso));
+  const hh = hour.toString().padStart(2, "0");
+  const mm = minute.toString().padStart(2, "0");
+  return `${year}.${month}.${day} ${hh}:${mm}`;
+}
+
 export function formatSessionDate(eventDate: string): string {
   const d = new Date(eventDate + "T00:00:00");
   const month = d.getMonth() + 1;

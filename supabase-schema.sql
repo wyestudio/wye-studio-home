@@ -4010,3 +4010,182 @@ where key = 'minimum_not_met_cancellation';
 -- 적용 후 검증, 운영(jilghhbbtjyybzbgwdhq)에도 동일 적용 완료.
 -- =========================================================
 alter table sessions add column difficulty smallint not null default 3 check (difficulty between 1 and 5);
+
+-- =========================================================
+-- v35. submit_application() 재작성 — consent_photo/consent_marketing 실제 저장
+-- + admin_application_view v22 (2026-08-21)
+--
+-- 배경: 어드민 상세 페이지의 "선택 약관 동의" 한 줄을 사진·영상 촬영 동의 /
+-- 마케팅 수신 동의 두 줄로 분리 표시하려고 마이그레이션을 준비하던 중,
+-- applications.consent_photo/consent_marketing 컬럼이 **이미 DB에 존재**한다는
+-- 걸 발견했다(not null default false). 이 리포의 supabase-schema.sql에는
+-- 전혀 기록돼 있지 않은 ad-hoc 컬럼 — 언제/누가 추가했는지 기록 없음. 실사용
+-- 데이터를 확인해보니 10건 전부 consent_photo=consent_marketing=false로,
+-- consent_optional 값과 무관하게 항상 동일 — 즉 submit_application()이 이
+-- 두 컬럼을 전혀 참조하지 않아 기본값만 깔려있던 "죽은 컬럼"이었다. 같은
+-- 방식으로 consent_no_rebooking/consent_phone_collection/consent_proxy_for_group
+-- 컬럼도 존재하지만(각각 재예약불가 동의/전화번호수집 동의/그룹 대리신청 동의로
+-- 추정되는 이름), 이번 작업 범위 밖이라 손대지 않고 그대로 둔다.
+--
+-- 이번 마이그레이션으로 처음 consent_photo/consent_marketing에 실제 신청자
+-- 값을 저장하기 시작한다. 기존 6-param 시그니처는 유지하고 끝에
+-- p_consent_photo/p_consent_marketing 2개만 추가(default false — 컬럼
+-- 자체 기본값과 동일해 배포 스큐 구간에도 안전).
+--
+-- ⚠️ 6-param 버전을 남겨둔 채 8-param을 create or replace로 추가하면 두
+-- overload가 동시에 존재해 6개 named param만 넘기는 호출이 "function is not
+-- unique" 에러를 낼 수 있다 — 반드시 6-param 버전을 drop한 뒤 8-param
+-- 하나만 남길 것.
+--
+-- wouldyouescape_test(ksjyfcafhlmqirfeksrp)에서 old-style(6-param)/
+-- new-style(8-param) 호출 둘 다 정상 동작 + consent_photo/marketing 저장
+-- 검증 완료 후 운영(jilghhbbtjyybzbgwdhq)에 동일 적용 완료.
+-- =========================================================
+drop function if exists public.submit_application(uuid, text, boolean, boolean, jsonb, text);
+
+create or replace function public.submit_application(
+  p_session_id uuid, p_depositor_name text, p_consent_required boolean,
+  p_consent_optional boolean, p_attendees jsonb, p_notes text default null::text,
+  p_consent_photo boolean default false, p_consent_marketing boolean default false
+) returns application_result
+language plpgsql security definer set search_path to 'public', 'extensions'
+as $function$
+declare
+  v_session sessions%rowtype;
+  v_group_size int; v_current_total int; v_gender_total int; v_gender text;
+  v_new_total int; v_status text; v_code text; v_app applications%rowtype;
+  v_dup_phones text; v_self_dup_phones text; v_waiting_number int;
+begin
+  if not p_consent_required then raise exception '필수 약관에 동의해야 신청할 수 있습니다.'; end if;
+  select * into v_session from sessions where id = p_session_id for update;
+  if not found then raise exception '존재하지 않는 회차입니다.'; end if;
+  if v_session.status <> 'open' then raise exception '이미 마감된 회차입니다.'; end if;
+
+  v_group_size := jsonb_array_length(p_attendees);
+  if v_group_size is null or v_group_size < 1 then raise exception '참여 인원을 입력해주세요.'; end if;
+
+  if v_session.session_type = '소개팅' then
+    if v_group_size <> 1 then raise exception '소개팅 회차는 1인 신청만 가능합니다.'; end if;
+    v_gender := p_attendees->0->>'gender';
+    if v_gender is null or v_gender not in ('M', 'F') then raise exception '성별을 선택해주세요.'; end if;
+  end if;
+
+  if v_session.session_type = '소개팅' then
+    if exists (select 1 from jsonb_array_elements(p_attendees) a where (a->>'birth_year')::int not between 1990 and 2001) then
+      raise exception '참여자 출생년도는 1990~2001년 범위만 가능합니다.';
+    end if;
+  else
+    if exists (select 1 from jsonb_array_elements(p_attendees) a where (a->>'birth_year')::int not between 1987 and 2006) then
+      raise exception '참여자 출생년도는 1987~2006년 범위만 가능합니다.';
+    end if;
+  end if;
+
+  if exists (select 1 from jsonb_array_elements(p_attendees) a where a->>'gender' is null or a->>'gender' not in ('M', 'F')) then
+    raise exception '모든 참여자의 성별을 선택해주세요.';
+  end if;
+
+  select string_agg(distinct phone, ',') into v_self_dup_phones
+  from (select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone from jsonb_array_elements(p_attendees) a group by 1 having count(*) > 1) t;
+  if v_self_dup_phones is not null then raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요.' using detail = v_self_dup_phones; end if;
+
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',')
+  into v_dup_phones from jsonb_array_elements(p_attendees) a
+  where exists (
+    select 1 from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    join sessions s on s.id = ap.session_id
+    where ap.status <> 'cancelled'
+      and aa.phone_hash = hash_phone(a->>'phone')
+      and s.content_group = v_session.content_group
+  );
+  if v_dup_phones is not null then raise exception '다른 테마에 이미 신청하신 분이 포함되어 있어요. 한 테마만 신청 가능합니다.' using detail = v_dup_phones; end if;
+
+  if v_session.session_type = '소개팅' then
+    select coalesce(count(*), 0) into v_current_total from application_attendees aa join applications ap on ap.id = aa.application_id
+    where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting') and aa.gender = v_gender;
+  else
+    select coalesce(sum(cnt), 0) into v_current_total from (select ap.id, count(*) as cnt from applications ap join application_attendees aa on aa.application_id = ap.id where ap.session_id = p_session_id and ap.status in ('confirmed', 'waiting') group by ap.id) t;
+  end if;
+
+  if v_session.session_type = '소개팅' then
+    if v_gender = 'M' and v_session.male_closed then raise exception '정원마감: 남성 참여자의 정원이 마감되었습니다.'; end if;
+    if v_gender = 'F' and v_session.female_closed then raise exception '정원마감: 여성 참여자의 정원이 마감되었습니다.'; end if;
+    if v_current_total + 1 > (case when v_gender = 'M' then v_session.capacity_max_male else v_session.capacity_max_female end) then raise exception '정원마감: 정원이 모두 찼습니다.'; end if;
+  else
+    if v_current_total + v_group_size > v_session.capacity_max then raise exception '정원마감: 정원이 모두 찼습니다.'; end if;
+  end if;
+
+  for i in 1..20 loop
+    v_code := (100000 + floor(random() * 900000))::int::text;
+    exit when not exists (select 1 from applications where confirmation_code = v_code);
+  end loop;
+
+  if v_session.session_type = '소개팅' then
+    v_status := case when v_current_total + 1 <= (case when v_gender = 'M' then v_session.capacity_confirm_line_male else v_session.capacity_confirm_line_female end) then 'confirmed' else 'waiting' end;
+  else
+    v_status := case when v_current_total + v_group_size <= v_session.capacity_confirm_line then 'confirmed' else 'waiting' end;
+  end if;
+
+  insert into applications (session_id, depositor_name_enc, consent_required, consent_optional, consent_photo, consent_marketing, confirmation_code, status, notes)
+  values (p_session_id, encrypt_pii(p_depositor_name), p_consent_required, p_consent_optional, p_consent_photo, p_consent_marketing, v_code, v_status, p_notes) returning * into v_app;
+
+  insert into application_attendees (application_id, session_id, is_representative, name_enc, phone_enc, phone_hash, birth_year, nickname, gender, experience_range)
+  select v_app.id, p_session_id, (ord = 1), encrypt_pii(a->>'name'), encrypt_pii(a->>'phone'), hash_phone(a->>'phone'),
+    (a->>'birth_year')::int, nullif(a->>'nickname', ''), nullif(a->>'gender', ''), nullif(a->>'experience_range', '')
+  from jsonb_array_elements(p_attendees) with ordinality as t(a, ord);
+
+  v_new_total := v_current_total + v_group_size;
+
+  if v_session.session_type = '소개팅' then
+    if v_gender = 'M' and v_current_total + 1 >= v_session.capacity_max_male then update sessions set male_closed = true where id = p_session_id; end if;
+    if v_gender = 'F' and v_current_total + 1 >= v_session.capacity_max_female then update sessions set female_closed = true where id = p_session_id; end if;
+    if (select count(*) from sessions where id = p_session_id and male_closed and female_closed) > 0 then update sessions set status = 'closed' where id = p_session_id; end if;
+  else
+    if v_new_total >= v_session.capacity_max then update sessions set status = 'closed' where id = p_session_id; end if;
+  end if;
+
+  if v_app.status = 'waiting' then
+    if v_session.session_type = '소개팅' then
+      select count(*) + 1 into v_waiting_number from application_attendees aa join applications ap on ap.id = aa.application_id
+      where ap.session_id = p_session_id and ap.status = 'waiting' and aa.gender = v_gender and ap.id <> v_app.id;
+    else
+      select count(*) + 1 into v_waiting_number from applications ap where ap.session_id = p_session_id and ap.status = 'waiting' and ap.id <> v_app.id;
+    end if;
+  else
+    v_waiting_number := null;
+  end if;
+
+  return (v_app.id, v_app.session_id, p_depositor_name, true, v_app.confirmation_code, v_app.status, v_app.payment_status, v_waiting_number, v_app.created_at)::public.application_result;
+exception
+  when unique_violation then raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end;
+$function$;
+
+revoke all on function public.submit_application(uuid, text, boolean, boolean, jsonb, text, boolean, boolean) from public;
+grant execute on function public.submit_application(uuid, text, boolean, boolean, jsonb, text, boolean, boolean) to anon, authenticated;
+
+-- admin_application_view v22 — consent_photo/consent_marketing(사진·영상 촬영 동의 /
+-- 마케팅 수신 동의 분리 표시용), payment_confirmed_sms_sent_at(어드민 상세 모달의
+-- "입금확인일시" 표시용) 노출 추가. CREATE OR REPLACE VIEW는 기존 컬럼 순서를
+-- 바꾸거나 중간에 끼워넣을 수 없어(42P16) 새 컬럼은 끝에 추가.
+create or replace view public.admin_application_view as
+select
+  ap.id,
+  ap.session_id,
+  decrypt_pii(ap.depositor_name_enc) as depositor_name,
+  ap.consent_required,
+  ap.consent_optional,
+  ap.confirmation_code,
+  ap.status,
+  ap.payment_status,
+  ap.notes,
+  ap.created_at,
+  ap.refund_bank_name,
+  decrypt_pii(ap.refund_account_number_enc) as refund_account_number,
+  decrypt_pii(ap.refund_account_holder_enc) as refund_account_holder,
+  ap.consent_photo,
+  ap.consent_marketing,
+  ap.payment_confirmed_sms_sent_at
+from applications ap;
+
+grant select on admin_application_view to service_role;

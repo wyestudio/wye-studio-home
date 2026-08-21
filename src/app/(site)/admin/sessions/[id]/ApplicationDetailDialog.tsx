@@ -2,14 +2,23 @@
 
 import { useState } from "react";
 import { InfoRow } from "@/components/lookup/InfoRow";
-import { formatSessionDateTime } from "@/lib/format";
+import { formatSessionDateTime, formatDateTimeDotted } from "@/lib/format";
 import { EXPERIENCE_RANGE_LABELS, type ExperienceRange } from "@/lib/validation";
+
+// consent_photo/consent_marketing 컬럼은 not null default false라 값만으로는
+// "실제로 미동의"와 "이 컬럼을 채우기 전(과거 접수 건)"을 구분할 수 없다 — 배포
+// 시각을 기준으로 신청일시가 이전인 건은 항상 fallback(구간 합산값)으로 보여준다.
+// TODO(배포 시): 실제 프로덕션 배포 완료 시각으로 갱신할 것.
+const CONSENT_SPLIT_DEPLOYED_AT = "2026-08-21T03:10:00Z";
 
 type AdminApplication = {
   id: string;
   depositor_name: string;
   consent_required: boolean;
   consent_optional: boolean;
+  consent_photo: boolean;
+  consent_marketing: boolean;
+  payment_confirmed_sms_sent_at?: string | null;
   confirmation_code: string;
   status: string;
   payment_status: string;
@@ -46,9 +55,9 @@ export function ApplicationDetailDialog({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1 text-xs bg-surface border border-glass-border text-foreground rounded hover:bg-white/5 transition-opacity"
+        className="font-mono text-sm text-glow hover:underline"
       >
-        상세보기
+        {application.confirmation_code}
       </button>
 
       {open && (
@@ -78,6 +87,20 @@ export function ApplicationDetailDialog({
                 <InfoRow label="입금자명" value={application.depositor_name} />
                 <InfoRow label="신청일시" value={formatSessionDateTime(application.created_at)} />
                 <InfoRow
+                  label="입금기한"
+                  value={formatDateTimeDotted(
+                    new Date(new Date(application.created_at).getTime() + 30 * 60 * 1000).toISOString()
+                  )}
+                />
+                <InfoRow
+                  label="입금확인일시"
+                  value={
+                    application.payment_confirmed_sms_sent_at
+                      ? formatDateTimeDotted(application.payment_confirmed_sms_sent_at)
+                      : "-"
+                  }
+                />
+                <InfoRow
                   label="신청 상태"
                   value={application.status === "confirmed" ? "확정" : application.status === "cancelled" ? "취소" : "대기"}
                 />
@@ -92,7 +115,14 @@ export function ApplicationDetailDialog({
                   }
                 />
                 <InfoRow label="필수 약관 동의" value={application.consent_required ? "동의" : "미동의"} />
-                <InfoRow label="선택 약관 동의" value={application.consent_optional ? "동의" : "미동의"} />
+                {new Date(application.created_at) >= new Date(CONSENT_SPLIT_DEPLOYED_AT) ? (
+                  <>
+                    <InfoRow label="사진·영상 촬영 동의" value={application.consent_photo ? "동의" : "미동의"} />
+                    <InfoRow label="마케팅 수신 동의" value={application.consent_marketing ? "동의" : "미동의"} />
+                  </>
+                ) : (
+                  <InfoRow label="선택 약관 동의 (구간, 합산값)" value={application.consent_optional ? "동의" : "미동의"} />
+                )}
                 <InfoRow label="비고" value={application.notes || "-"} />
               </div>
             </section>
