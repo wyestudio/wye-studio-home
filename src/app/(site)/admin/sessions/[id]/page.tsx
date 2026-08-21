@@ -6,7 +6,7 @@ import { SendReminderButton } from "./SendReminderButton";
 import { ApplicationDetailDialog } from "./ApplicationDetailDialog";
 import { ApplicationActionMenu } from "./ApplicationActionMenu";
 import { getSessionStats } from "@/lib/sessions";
-import { formatCapacityLine, formatHeadcountLine } from "@/lib/sessionStatsFormat";
+import { formatCapacityLine, formatHeadcountLine, countUnpaidConfirmed } from "@/lib/sessionStatsFormat";
 
 export const dynamic = "force-dynamic";
 
@@ -57,12 +57,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
     return null;
   });
 
-  const unpaidConfirmedCount = (applications ?? [])
-    .filter((app: any) => app.status === "confirmed" && app.payment_status !== "confirmed")
-    .reduce(
-      (sum: number, app: any) => sum + (attendees ?? []).filter((a: any) => a.application_id === app.id).length,
-      0
-    );
+  const unpaidConfirmedCount = countUnpaidConfirmed(applications ?? [], attendees ?? []).get(session.id) ?? 0;
 
   return (
     <div className="min-h-screen bg-background p-6">
