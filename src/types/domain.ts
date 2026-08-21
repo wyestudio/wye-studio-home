@@ -33,6 +33,7 @@ export type Session = {
   capacity_max_female: number | null;
   male_closed: boolean;
   female_closed: boolean;
+  difficulty: number;
   status: SessionStatus;
   description: string | null;
   created_at: string;

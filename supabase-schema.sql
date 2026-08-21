@@ -4002,3 +4002,11 @@ where key = 'event_reminder_dating';
 
 update sms_templates set placeholders = array['event_date','name','theme_name','product_label','start_time','duration','refund_amount']
 where key = 'minimum_not_met_cancellation';
+
+-- =========================================================
+-- v34. sessions.difficulty 신설 — 상세 페이지 난이도 별점 표시 (2026-08-21)
+-- 1~5 정수, 기본값 3(기존 하드코딩 값과 동일하게 마이그레이션). 상세 페이지
+-- 제목 아래 별점(★★★☆☆)으로 노출. test(ksjyfcafhlmqirfeksrp)에 먼저
+-- 적용 후 검증, 운영(jilghhbbtjyybzbgwdhq)에도 동일 적용 완료.
+-- =========================================================
+alter table sessions add column difficulty smallint not null default 3 check (difficulty between 1 and 5);
