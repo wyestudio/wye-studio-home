@@ -35,7 +35,7 @@ const emptyAttendee: AttendeeState = {
   phone3: "",
   birthYear: "",
   nickname: "",
-  gender: "F",
+  gender: "",
   experienceRange: "",
 };
 
