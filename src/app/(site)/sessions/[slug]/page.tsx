@@ -86,8 +86,8 @@ function SessionMetaList({
 function EligibilityCard({ isDatingSession }: { isDatingSession: boolean }) {
   const accentColor = isDatingSession ? "#ff5ec4" : "#3dffb0";
   const eligibilityText = isDatingSession
-    ? `${eligibleBirthYearRangeLabel(true)}만 신청 가능`
-    : "20·30대 남녀만 신청 가능";
+    ? `${eligibleBirthYearRangeLabel(true)} 신청 가능`
+    : "20·30대 남녀 신청 가능";
   return (
     <div
       className="rounded-xl p-6 text-sm sm:text-base border"
