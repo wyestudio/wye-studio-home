@@ -32,6 +32,18 @@ export function SessionCard({
   const sizeCompact = compact || dense;
   const sm = (cls: string) => (mobileLayout ? "" : cls);
 
+  const closedLabel = isDatingTheme(session.session_type)
+    ? session.male_closed && session.female_closed
+      ? "마감"
+      : session.male_closed
+        ? "남자 마감"
+        : session.female_closed
+          ? "여자 마감"
+          : null
+    : session.status !== "open"
+      ? "마감"
+      : null;
+
   return (
     <Link
       href={`/sessions/${session.slug}`}
@@ -39,6 +51,15 @@ export function SessionCard({
         sizeCompact ? `gap-3 p-4 ${sm("sm:gap-7 sm:p-7")}` : `gap-6 p-6 ${sm("sm:gap-7 sm:p-7")}`
       }`}
     >
+      {/* 마감 리본 배너 */}
+      {closedLabel && (
+        <div
+          className="absolute right-[-3rem] top-[0.9rem] z-10 w-44 rotate-45 bg-danger py-1.5 text-center text-xs font-extrabold tracking-wide text-white shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
+        >
+          {closedLabel}
+        </div>
+      )}
+
       {/* 태그 */}
       <ThemeTag
         sessionType={session.session_type}

@@ -518,9 +518,11 @@ export function ApplyForm({
   if (state.closed) {
     return (
       <div className="flex flex-col items-center gap-4 rounded-xl border border-glass-border bg-surface p-6 text-center">
-        <p className="text-lg font-bold">정원이 다 차서 마감되었습니다.</p>
-        <p className="text-sm text-muted">다음 정식 오픈 때 뵙겠습니다.</p>
+        <p className="text-lg font-bold">
+          현재 {state.closedGenderLabel ? `${state.closedGenderLabel} ` : ""}신청 정원이 마감되었습니다.
+        </p>
         <p className="text-sm text-muted">신청해주셔서 감사합니다.</p>
+        <p className="text-sm text-muted">다음 정식 오픈 때 뵙겠습니다.</p>
       </div>
     );
   }
