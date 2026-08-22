@@ -68,6 +68,21 @@ export function ApplyComplete({
       </div>
 
       <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
+        {/* 대기 상태 안내 */}
+        {application.status === "waiting" ? (
+          <div className="text-center">
+            <p className="text-base font-semibold text-muted">
+              정원이 마감되었습니다.
+            </p>
+            <p className="mt-1 text-2xl font-extrabold">
+              대기번호 {application.waiting_number}번
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              취소 발생 시 신청자 전화번호로 연락드리겠습니다.
+            </p>
+          </div>
+        ) : null}
+
         {/* 접수번호 */}
         <div className="flex items-center justify-center gap-3">
           <p className="text-sm text-muted">접수번호</p>
@@ -80,18 +95,6 @@ export function ApplyComplete({
             {copied ? "복사됨" : "복사"}
           </button>
         </div>
-
-        {/* 대기 상태 안내 */}
-        {application.status === "waiting" ? (
-          <div className="text-center">
-            <p className="text-sm text-muted">
-              대기번호 {application.waiting_number}번
-            </p>
-            <p className="mt-1 text-xs text-muted">
-              정원이 마감되었습니다. 취소 발생 시 신청자 전화번호로 연락드리겠습니다.
-            </p>
-          </div>
-        ) : null}
 
         {/* 2열: 신청 정보 | 신청자 정보 */}
         <div className="grid grid-cols-2 divide-x divide-border">
@@ -127,10 +130,12 @@ export function ApplyComplete({
           </div>
         </div>
 
-        {/* 입금 안내 */}
-        <p className="text-center text-sm text-muted">
-          {smsRecipientLabel} 전화번호({representative ? formatPhoneDigits(representative.phone) : ""})로 입금 안내를 문자로 전송드렸어요.
-        </p>
+        {/* 입금 안내 (대기 상태는 문자를 보내지 않으므로 생략) */}
+        {application.status === "confirmed" ? (
+          <p className="text-center text-sm text-muted">
+            {smsRecipientLabel} 전화번호({representative ? formatPhoneDigits(representative.phone) : ""})로 입금 안내를 문자로 전송드렸어요.
+          </p>
+        ) : null}
 
         {/* 환불 기한 */}
         {(() => {
