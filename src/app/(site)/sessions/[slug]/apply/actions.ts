@@ -67,6 +67,7 @@ export type ApplyState = {
   conflictPhoneDigits?: string[];
   conflictReason?: "group" | "theme";
   closed?: boolean;
+  closedGenderLabel?: string;
 };
 
 const ATTENDEE_FIELD_PATTERN = /^attendees\[(\d+)\]\[(name|phone|birthYear|nickname|gender|experienceRange)\]$/;
@@ -228,6 +229,11 @@ export async function applyAction(
 
   if (error) {
     const isClosed = error.message.startsWith("정원마감:");
+    const closedGenderLabel = error.message.includes("남성")
+      ? "남자"
+      : error.message.includes("여성")
+        ? "여자"
+        : undefined;
     const conflictPhoneDigits = error.details
       ? error.details.split(",").map((s) => s.trim()).filter(Boolean)
       : undefined;
@@ -236,7 +242,7 @@ export async function applyAction(
       : error.message.includes("같은 테마") || error.message.includes("다른 테마")
         ? "theme"
         : undefined;
-    return { error: error.message, attendees: isClosed ? undefined : attendees, notes: isClosed ? undefined : notes, conflictPhoneDigits, conflictReason, closed: isClosed };
+    return { error: error.message, attendees: isClosed ? undefined : attendees, notes: isClosed ? undefined : notes, conflictPhoneDigits, conflictReason, closed: isClosed, closedGenderLabel: isClosed ? closedGenderLabel : undefined };
   }
 
   const application = data as Application;
