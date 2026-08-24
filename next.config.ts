@@ -75,6 +75,20 @@ const nextConfig: NextConfig = {
           "/sessions/0829-meeting?utm_source=youtube&utm_medium=video&utm_campaign=0829_meeting",
         permanent: false,
       },
+      {
+        // 틱톡 프로필용 짧은 링크.
+        source: "/tiktok.go",
+        destination:
+          "/contents?utm_source=tiktok&utm_medium=profile&utm_campaign=content",
+        permanent: false,
+      },
+      {
+        // 틱톡 영상용 짧은 링크.
+        source: "/tiktok-video.go",
+        destination:
+          "/contents?utm_source=tiktok&utm_medium=video&utm_campaign=content",
+        permanent: false,
+      },
     ];
   },
   async headers() {
