@@ -4,7 +4,7 @@ import { getSessionBySlug, getSessionById } from "@/lib/sessions";
 import { ApplyForm } from "@/components/apply/ApplyForm";
 import { formatShortDate } from "@/lib/format";
 
-const SITE_URL = "https://wouldyouescape.com";
+const SITE_URL = "https://www.wouldyouescape.com";
 
 export async function generateMetadata(
   { params }: PageProps<"/sessions/[slug]/apply">
