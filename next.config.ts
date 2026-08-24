@@ -47,6 +47,34 @@ const nextConfig: NextConfig = {
           "/sessions/0829-meeting?utm_source=daangn&utm_medium=post&utm_campaign=0829_meeting",
         permanent: false,
       },
+      {
+        // 유튜브 프로필/채널 기본 링크.
+        source: "/yt.go",
+        destination:
+          "/contents?utm_source=youtube&utm_medium=profile&utm_campaign=channel",
+        permanent: false,
+      },
+      {
+        // 유튜브 쇼츠용 짧은 링크.
+        source: "/yt-shorts.go",
+        destination:
+          "/contents?utm_source=youtube&utm_medium=shorts&utm_campaign=content",
+        permanent: false,
+      },
+      {
+        // 유튜브 영상(소개팅 회차)용 짧은 링크.
+        source: "/yt-dating.go",
+        destination:
+          "/sessions/0829-dating?utm_source=youtube&utm_medium=video&utm_campaign=0829_dating",
+        permanent: false,
+      },
+      {
+        // 유튜브 영상(모임/비소개팅 회차)용 짧은 링크.
+        source: "/yt-meeting.go",
+        destination:
+          "/sessions/0829-meeting?utm_source=youtube&utm_medium=video&utm_campaign=0829_meeting",
+        permanent: false,
+      },
     ];
   },
   async headers() {
