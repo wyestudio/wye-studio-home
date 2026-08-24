@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://wouldyouescape.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
 const SITE_DESCRIPTION =
   "Would You Escape? 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출. 같이 갈 사람이 없어도, 소개팅이 어색해도 — 문만 열고 들어오세요.";
 

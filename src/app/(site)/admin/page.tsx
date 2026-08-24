@@ -96,7 +96,7 @@ export default async function AdminDashboard() {
                           {session.status === "open" ? "모집중" : session.status === "cancelled" ? "비활성화" : "마감"}
                         </span>
                       </div>
-                      <CopyUrlButton url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://wouldyouescape.com"}/sessions/${session.slug}`} />
+                      <CopyUrlButton url={`${process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com"}/sessions/${session.slug}`} />
                     </div>
                   </div>
                 </Link>

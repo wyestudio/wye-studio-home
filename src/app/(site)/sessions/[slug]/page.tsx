@@ -16,7 +16,7 @@ import { isDatingTheme } from "@/lib/theme";
 import { eligibleBirthYearRangeLabel } from "@/lib/eligibility";
 import { FlatFaqAccordion, type FaqItem } from "./FlatFaqAccordion";
 
-const SITE_URL = "https://wouldyouescape.com";
+const SITE_URL = "https://www.wouldyouescape.com";
 
 export async function generateMetadata(
   { params }: PageProps<"/sessions/[slug]">

@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { headers } from "next/headers";
 import { isProductionHost } from "@/lib/hosts";
 
-const BASE_URL = "https://wouldyouescape.com";
+const BASE_URL = "https://www.wouldyouescape.com";
 
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const host = (await headers()).get("host") || "";

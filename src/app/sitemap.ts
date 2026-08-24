@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getUpcomingSessions } from "@/lib/sessions";
 
-const BASE_URL = "https://wouldyouescape.com";
+const BASE_URL = "https://www.wouldyouescape.com";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const sessions = await getUpcomingSessions();
