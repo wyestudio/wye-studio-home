@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import {
   sendPaymentConfirmedSms,
   sendApplicationCancelledSms,
@@ -10,6 +11,11 @@ import {
 } from "@/lib/sms";
 import { requireAdminAuth } from "@/lib/adminAuth";
 import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
+import { isDatingTheme } from "@/lib/theme";
+import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
+import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
+import { isValidKoreanName, isValidNickname, isValidExperienceRange, type ExperienceRange } from "@/lib/validation";
+import type { Application, Gender } from "@/types/domain";
 
 async function getRepresentative(supabase: ReturnType<typeof createAdminClient>, applicationId: string) {
   const { data, error } = await supabase
@@ -145,6 +151,44 @@ export async function cancelApplicationAdmin(applicationId: string, sessionId: s
   await sendApplicationCancelledSms(session, application, representative);
 
   console.log(`[admin] 신청 취소됨(미입금): ${applicationId} (${application.confirmation_code})`);
+
+  return { success: true };
+}
+
+// 어드민이 잘못 입력한 신청(수동 등록 오탈자 등)을 신청자에게 안내 문자
+// 없이 취소 처리하고 싶을 때 사용. cancelApplicationAdmin과 동일하게
+// status/payment_status만 cancelled로 바꾸고, SMS 발송만 생략한다.
+export async function silentCancelApplicationAdmin(applicationId: string, sessionId: string) {
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
+  const supabase = createAdminClient();
+
+  const { data: application, error: appError } = await supabase
+    .from("applications")
+    .select("*")
+    .eq("id", applicationId)
+    .single();
+
+  if (appError || !application) {
+    return { error: "신청 정보를 찾을 수 없습니다." };
+  }
+
+  if (application.status === "cancelled") {
+    return { error: "이미 취소된 신청입니다." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("applications")
+    .update({ status: "cancelled", payment_status: "cancelled" })
+    .eq("id", applicationId);
+
+  if (updateError) {
+    return { error: "업데이트 실패: " + updateError.message };
+  }
+
+  console.log(`[admin] 신청 무통보 취소됨: ${applicationId} (${application.confirmation_code}), 안내 문자 발송 안 함`);
 
   return { success: true };
 }
@@ -354,4 +398,241 @@ export async function sendSessionReminderAdmin(
   console.log(`[admin] 전날안내 문자 수동 발송됨: ${sessionId} (${result.count}/${result.total}건)`);
 
   return { success: true, ...result };
+}
+
+export type ManualAttendeeInput = {
+  name: string;
+  phone: string;
+  birthYear: number;
+  nickname: string | null;
+  gender: Gender | null;
+  experienceRange: ExperienceRange | null;
+};
+
+// 어드민 수동 등록 — 유선/현장 등으로 이미 참여 의사(+입금)를 확인한 사람을
+// 신청확인(문자1)/입금확인(문자6, 대기 전환 시) 문자 없이 등록하고 싶을 때 사용.
+// submit_application()은 anon/authenticated에만 execute 권한이 있어(service_role
+// 없음) 일반 클라이언트로 호출하고, "입금 확인 완료로 등록"을 고르면 그 뒤에
+// service_role로 payment_status만 직접 confirmed로 바꾼다(이 경로엔 SMS 발송 코드가
+// 없으므로 자연히 문자가 나가지 않는다). Slack 신규 신청 알림도 등록자 본인(어드민)이
+// 이미 알고 있는 내용이라 의도적으로 생략한다.
+export async function adminManualApply(
+  sessionId: string,
+  depositorName: string,
+  markPaid: boolean,
+  notes: string | null,
+  attendees: ManualAttendeeInput[]
+): Promise<{ error: string } | { success: true; confirmationCode: string; status: string }> {
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
+  const adminClient = createAdminClient();
+
+  const { data: session, error: sessError } = await adminClient
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+
+  if (sessError || !session) {
+    return { error: "세션 정보를 찾을 수 없습니다." };
+  }
+
+  const isDatingSession = isDatingTheme(session.session_type);
+
+  const trimmedDepositorName = depositorName.trim();
+  if (!trimmedDepositorName || !isValidKoreanName(trimmedDepositorName)) {
+    return { error: "입금자명은 한글 2~10자만 가능합니다." };
+  }
+
+  if (attendees.length === 0) {
+    return { error: "참여 인원을 입력해주세요." };
+  }
+  if (isDatingSession && attendees.length !== 1) {
+    return { error: "소개팅 회차는 1인 신청만 가능합니다." };
+  }
+
+  for (const attendee of attendees) {
+    if (!attendee.name.trim() || !attendee.phone.trim()) {
+      return { error: "참여자 이름과 전화번호를 모두 입력해주세요." };
+    }
+    if (!isValidKoreanName(attendee.name)) {
+      return { error: "참여자 이름은 한글 2~10자만 가능합니다." };
+    }
+    if (!isValidPhoneDigits(phoneDigits(attendee.phone))) {
+      return { error: "올바른 휴대폰 번호 형식이 아니에요." };
+    }
+    if (!isEligibleBirthYear(attendee.birthYear, isDatingSession)) {
+      return { error: `참여자 출생년도는 ${eligibleBirthYearRangeLabel(isDatingSession)}만 가능합니다.` };
+    }
+    if (!attendee.gender) {
+      return { error: "모든 참여자의 성별을 선택해주세요." };
+    }
+    if (!attendee.experienceRange || !isValidExperienceRange(attendee.experienceRange)) {
+      return { error: "모든 참여자의 방탈출 경험 횟수를 선택해주세요." };
+    }
+    if (attendee.nickname && !isValidNickname(attendee.nickname)) {
+      return { error: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다." };
+    }
+  }
+
+  const digitCounts = new Map<string, number>();
+  for (const attendee of attendees) {
+    const digits = phoneDigits(attendee.phone);
+    digitCounts.set(digits, (digitCounts.get(digits) ?? 0) + 1);
+  }
+  if ([...digitCounts.values()].some((count) => count > 1)) {
+    return { error: "그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요." };
+  }
+
+  const publicClient = await createClient();
+  const { data, error } = await publicClient
+    .rpc("submit_application", {
+      p_session_id: sessionId,
+      p_depositor_name: trimmedDepositorName,
+      p_consent_required: true,
+      p_consent_optional: false,
+      p_attendees: attendees.map((a) => ({
+        name: a.name.trim(),
+        phone: a.phone.trim(),
+        birth_year: a.birthYear,
+        nickname: a.nickname,
+        gender: a.gender,
+        experience_range: a.experienceRange,
+      })),
+      p_notes: notes?.trim() || null,
+    })
+    .single();
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  const application = data as Application;
+
+  if (markPaid) {
+    const { error: updateError } = await adminClient
+      .from("applications")
+      .update({
+        payment_status: "confirmed",
+        payment_confirmed_sms_sent_at: new Date().toISOString(),
+      })
+      .eq("id", application.id);
+
+    if (updateError) {
+      return { error: `신청은 등록됐지만 입금 상태 반영에 실패했습니다: ${updateError.message}` };
+    }
+  }
+
+  console.log(`[admin] 수동 등록됨: ${application.id} (${application.confirmation_code}), 안내 문자 발송 안 함`);
+
+  return { success: true, confirmationCode: application.confirmation_code, status: application.status };
+}
+
+export type EditAttendeeInput = {
+  id: string;
+  name: string;
+  phone: string;
+  birthYear: number;
+  nickname: string | null;
+  gender: Gender | null;
+  experienceRange: ExperienceRange | null;
+};
+
+// 어드민이 신청/참여자 정보를 잘못 입력한 경우 안내 문자 없이 고치는 용도.
+// application_attendees는 grant가 전혀 없어 service_role도 REST로 직접
+// update할 수 없어서(applications와 달리 select/update grant가 없음),
+// SECURITY DEFINER 함수 admin_update_application()을 통해서만 수정한다.
+// 출생년도/성별을 바꿔도 확정/대기 판정은 재계산하지 않는다(v12부터의
+// 방침과 동일 — 자동 승격 없음).
+export async function adminUpdateApplication(
+  applicationId: string,
+  sessionId: string,
+  depositorName: string,
+  notes: string | null,
+  attendees: EditAttendeeInput[]
+): Promise<{ error: string } | { success: true }> {
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
+  const adminClient = createAdminClient();
+
+  const { data: session, error: sessError } = await adminClient
+    .from("sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+
+  if (sessError || !session) {
+    return { error: "세션 정보를 찾을 수 없습니다." };
+  }
+
+  const isDatingSession = isDatingTheme(session.session_type);
+
+  const trimmedDepositorName = depositorName.trim();
+  if (!trimmedDepositorName || !isValidKoreanName(trimmedDepositorName)) {
+    return { error: "입금자명은 한글 2~10자만 가능합니다." };
+  }
+
+  if (attendees.length === 0) {
+    return { error: "참여 인원 정보가 없습니다." };
+  }
+
+  for (const attendee of attendees) {
+    if (!attendee.name.trim() || !attendee.phone.trim()) {
+      return { error: "참여자 이름과 전화번호를 모두 입력해주세요." };
+    }
+    if (!isValidKoreanName(attendee.name)) {
+      return { error: "참여자 이름은 한글 2~10자만 가능합니다." };
+    }
+    if (!isValidPhoneDigits(phoneDigits(attendee.phone))) {
+      return { error: "올바른 휴대폰 번호 형식이 아니에요." };
+    }
+    if (!isEligibleBirthYear(attendee.birthYear, isDatingSession)) {
+      return { error: `참여자 출생년도는 ${eligibleBirthYearRangeLabel(isDatingSession)}만 가능합니다.` };
+    }
+    if (!attendee.gender) {
+      return { error: "모든 참여자의 성별을 선택해주세요." };
+    }
+    if (!attendee.experienceRange || !isValidExperienceRange(attendee.experienceRange)) {
+      return { error: "모든 참여자의 방탈출 경험 횟수를 선택해주세요." };
+    }
+    if (attendee.nickname && !isValidNickname(attendee.nickname)) {
+      return { error: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다." };
+    }
+  }
+
+  const digitCounts = new Map<string, number>();
+  for (const attendee of attendees) {
+    const digits = phoneDigits(attendee.phone);
+    digitCounts.set(digits, (digitCounts.get(digits) ?? 0) + 1);
+  }
+  if ([...digitCounts.values()].some((count) => count > 1)) {
+    return { error: "그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요." };
+  }
+
+  const { error } = await adminClient.rpc("admin_update_application", {
+    p_application_id: applicationId,
+    p_depositor_name: trimmedDepositorName,
+    p_notes: attendees.length >= 2 ? notes : null,
+    p_attendees: attendees.map((a) => ({
+      id: a.id,
+      name: a.name.trim(),
+      phone: a.phone.trim(),
+      birth_year: a.birthYear,
+      nickname: a.nickname,
+      gender: a.gender,
+      experience_range: a.experienceRange,
+    })),
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  console.log(`[admin] 신청 정보 수정됨: ${applicationId}, 안내 문자 발송 안 함`);
+
+  return { success: true };
 }

@@ -3,10 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime } from "@/lib/format";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
 import { SendReminderButton } from "./SendReminderButton";
+import { ManualApplyButton } from "./ManualApplyButton";
 import { ApplicationDetailDialog } from "./ApplicationDetailDialog";
 import { ApplicationActionMenu } from "./ApplicationActionMenu";
 import { getSessionStats } from "@/lib/sessions";
 import { formatCapacityLine, formatHeadcountLine, countUnpaidConfirmed } from "@/lib/sessionStatsFormat";
+import { isDatingTheme } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +91,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
           </div>
           {session.status !== "cancelled" && (
             <div className="flex flex-col items-end gap-2">
+              <ManualApplyButton sessionId={session.id} isDatingSession={isDatingTheme(session.session_type)} />
               <SendReminderButton sessionId={session.id} />
               <DeactivateSessionButton sessionId={session.id} />
             </div>
@@ -209,6 +212,19 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                           sessionId={session.id}
                           status={app.status}
                           paymentStatus={app.payment_status}
+                          isDatingSession={isDatingTheme(session.session_type)}
+                          depositorName={app.depositor_name}
+                          notes={app.notes}
+                          attendees={appAttendees.map((a: any) => ({
+                            id: a.id,
+                            is_representative: a.is_representative,
+                            name: a.name,
+                            phone: a.phone,
+                            birth_year: a.birth_year,
+                            nickname: a.nickname,
+                            gender: a.gender,
+                            experience_range: a.experience_range,
+                          }))}
                         />
                       </td>
                     </tr>

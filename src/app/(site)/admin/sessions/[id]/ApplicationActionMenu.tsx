@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { confirmPayment, cancelApplicationAdmin, promoteWaitlistApplicant } from "./actions";
+import { confirmPayment, cancelApplicationAdmin, silentCancelApplicationAdmin, promoteWaitlistApplicant } from "./actions";
+import { EditApplicationDialog, type EditableAttendee } from "./EditApplicationDialog";
 
-type ActionKey = "confirm-payment" | "promote" | "cancel";
+type ActionKey = "confirm-payment" | "promote" | "cancel" | "silent-cancel";
 
 const ACTIONS: Record<
   ActionKey,
@@ -49,6 +50,16 @@ const ACTIONS: Record<
     doneClass: "text-red-500",
     run: cancelApplicationAdmin,
   },
+  "silent-cancel": {
+    label: "무통보 취소",
+    title: "문자 없이 취소할까요?",
+    message: "어드민이 잘못 입력한 신청을 정리할 때 사용하세요. 안내 문자 없이 신청/입금 상태만 취소로 바뀝니다.",
+    confirmLabel: "네, 무통보 취소",
+    danger: true,
+    doneLabel: "✓ 무통보 취소됨",
+    doneClass: "text-red-500",
+    run: silentCancelApplicationAdmin,
+  },
 };
 
 export function ApplicationActionMenu({
@@ -56,30 +67,37 @@ export function ApplicationActionMenu({
   sessionId,
   status,
   paymentStatus,
+  isDatingSession,
+  depositorName,
+  notes,
+  attendees,
 }: {
   applicationId: string;
   sessionId: string;
   status: string;
   paymentStatus: string;
+  isDatingSession: boolean;
+  depositorName: string;
+  notes: string | null;
+  attendees: EditableAttendee[];
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [selected, setSelected] = useState<ActionKey | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<ActionKey | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaved, setEditSaved] = useState(false);
 
   const availableActions: ActionKey[] = [];
   if (paymentStatus !== "confirmed" && status === "confirmed") availableActions.push("confirm-payment");
   if (status === "waiting") availableActions.push("promote");
   if (status !== "cancelled") availableActions.push("cancel");
+  if (status !== "cancelled") availableActions.push("silent-cancel");
 
   if (done) {
     const action = ACTIONS[done];
     return <span className={`text-xs font-semibold ${action.doneClass}`}>{action.doneLabel}</span>;
-  }
-
-  if (availableActions.length === 0) {
-    return null;
   }
 
   async function handleConfirm() {
@@ -114,6 +132,16 @@ export function ApplicationActionMenu({
       {menuOpen && <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />}
       {menuOpen && (
         <div className="absolute right-0 z-50 mt-1 min-w-[140px] rounded-lg border border-glass-border bg-surface shadow-lg">
+          <button
+            onClick={() => {
+              setEditOpen(true);
+              setMenuOpen(false);
+              setEditSaved(false);
+            }}
+            className="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-white/5 transition-colors"
+          >
+            정보 수정
+          </button>
           {availableActions.map((key) => (
             <button
               key={key}
@@ -132,6 +160,8 @@ export function ApplicationActionMenu({
         </div>
       )}
 
+      {editSaved && <p className="mt-1 text-xs font-semibold text-confirm">✓ 저장됨 (새로고침하면 반영돼요)</p>}
+
       {selected && (
         <ConfirmDialog
           open
@@ -148,6 +178,18 @@ export function ApplicationActionMenu({
           error={error}
         />
       )}
+
+      <EditApplicationDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        applicationId={applicationId}
+        sessionId={sessionId}
+        isDatingSession={isDatingSession}
+        depositorName={depositorName}
+        notes={notes}
+        attendees={attendees}
+        onSaved={() => setEditSaved(true)}
+      />
     </div>
   );
 }
