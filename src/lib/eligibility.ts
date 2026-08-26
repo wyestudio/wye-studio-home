@@ -4,7 +4,7 @@
 export const DATING_BIRTH_YEAR_MIN = 1990;
 export const DATING_BIRTH_YEAR_MAX = 2001;
 export const MEETING_BIRTH_YEAR_MIN = 1987;
-export const MEETING_BIRTH_YEAR_MAX = 2006;
+export const MEETING_BIRTH_YEAR_MAX = 2007;
 
 export function getEligibleBirthYearRange(isDatingSession: boolean) {
   return isDatingSession
