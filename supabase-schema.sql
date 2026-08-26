@@ -4654,7 +4654,7 @@ revoke all on function public.admin_update_application(uuid, text, text, jsonb) 
 grant execute on function public.admin_update_application(uuid, text, text, jsonb) to service_role;
 
 -- =========================================================
--- v38. 소개팅 방탈출 협찬은 여성 크리에이터 전용 — 성별 'F' 강제 검증 추가 (2026-08-26)
+-- v39. 소개팅 방탈출 협찬은 여성 크리에이터 전용 — 성별 'F' 강제 검증 추가 (2026-08-26)
 -- 출생연도/성별 필드가 v37에서 추가됐지만 실제 성별 값 자체를 여성으로
 -- 제한하는 검증은 없었음(체크박스 자기신고만 있었음). 서버(RPC)에서
 -- 명시적으로 거부하도록 보강.
