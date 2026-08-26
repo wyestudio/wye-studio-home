@@ -3152,6 +3152,10 @@ create table sms_templates (
   updated_at timestamptz not null default now()
 );
 
+-- v36c(2026-08-26): 이 테이블이 ensure_rls 이벤트 트리거보다 먼저 생성되어
+-- RLS가 걸리지 않은 채로 남아있던 것을 Supabase 진단으로 발견 — 명시적으로 활성화.
+alter table sms_templates enable row level security;
+
 -- applications/session_venues와 같은 이유로 anon/authenticated에는 grant를
 -- 아예 안 준다 — 다만 service_role도 새 테이블 생성 시 자동으로 권한이 붙지
 -- 않는다는 걸 처음엔 놓쳤음(2026-08-17 발견): 관리자 페이지가 service_role로
@@ -4189,3 +4193,533 @@ select
 from applications ap;
 
 grant select on admin_application_view to service_role;
+
+-- =========================================================
+-- v36. 협찬 신청(스폰서십) 저장 — sponsorship-guide / dating-sponsorship-guide
+-- 페이지의 신청 폼을 "복사해서 카카오톡으로 제출" 방식에서 실제 DB 저장 +
+-- 슬랙 알림 방식으로 전환하며 신설. 두 폼의 필드가 서로 달라(동행인 수 vs
+-- 출생연도/성별 조건 등) 테이블을 분리했다. applications/session_venues와
+-- 같은 이유로 anon/authenticated에는 테이블 자체 grant를 주지 않고,
+-- SECURITY DEFINER RPC로만 insert, service_role 전용 view로만 조회한다.
+-- PII(이름/전화번호)는 기존 encrypt_pii()/decrypt_pii()로 암호화한다.
+--
+-- ensure_rls 이벤트 트리거가 신규 테이블에 자동으로 RLS를 걸어줄 것으로
+-- 기대했으나 test 프로젝트에 직접 접속해 확인해보니 실제로는 적용되지
+-- 않는 것을 확인해(sms_templates와 동일 증상 — 이 트리거는 신뢰할 수 없다)
+-- 아래에서 명시적으로 enable row level security를 건다. (2026-08-26)
+-- =========================================================
+
+create table public.sponsorship_group_applications (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name_enc bytea not null,
+  phone_enc bytea not null,
+  handle text not null,
+  platform text not null,
+  profile_url text not null,
+  followers integer not null,
+  reach integer not null,
+  portfolio_url text,
+  companions integer not null default 0,
+  note text,
+  deliverable text not null,
+  agreements jsonb not null
+);
+
+alter table public.sponsorship_group_applications enable row level security;
+
+create table public.sponsorship_dating_applications (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name_enc bytea not null,
+  birth_year integer not null,
+  phone_enc bytea not null,
+  handle text not null,
+  platform text not null,
+  profile_url text not null,
+  followers integer not null,
+  reach integer not null,
+  portfolio_url text,
+  note text,
+  deliverable text not null,
+  agreements jsonb not null
+);
+
+alter table public.sponsorship_dating_applications enable row level security;
+
+create or replace function public.submit_sponsorship_group_application(
+  p_name text,
+  p_phone text,
+  p_handle text,
+  p_platform text,
+  p_profile_url text,
+  p_followers integer,
+  p_reach integer,
+  p_portfolio_url text,
+  p_companions integer,
+  p_note text,
+  p_deliverable text,
+  p_agreements jsonb
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if p_name is null or length(trim(p_name)) = 0 then
+    raise exception '이름을 입력해주세요.';
+  end if;
+  if p_phone is null or length(trim(p_phone)) = 0 then
+    raise exception '휴대폰 번호를 입력해주세요.';
+  end if;
+  if p_handle is null or length(trim(p_handle)) = 0 then
+    raise exception '채널명을 입력해주세요.';
+  end if;
+  if not (
+    coalesce((p_agreements->>'offer')::boolean, false)
+    and coalesce((p_agreements->>'companion')::boolean, false)
+    and coalesce((p_agreements->>'content')::boolean, false)
+    and coalesce((p_agreements->>'refund')::boolean, false)
+    and coalesce((p_agreements->>'privacy')::boolean, false)
+  ) then
+    raise exception '필수 약관에 모두 동의해야 신청할 수 있습니다.';
+  end if;
+
+  insert into public.sponsorship_group_applications (
+    name_enc, phone_enc, handle, platform, profile_url, followers, reach,
+    portfolio_url, companions, note, deliverable, agreements
+  ) values (
+    encrypt_pii(trim(p_name)), encrypt_pii(trim(p_phone)), trim(p_handle), p_platform, p_profile_url,
+    p_followers, p_reach, nullif(trim(coalesce(p_portfolio_url, '')), ''), coalesce(p_companions, 0),
+    nullif(trim(coalesce(p_note, '')), ''), p_deliverable, p_agreements
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+revoke all on function public.submit_sponsorship_group_application(text, text, text, text, text, integer, integer, text, integer, text, text, jsonb) from public;
+grant execute on function public.submit_sponsorship_group_application(text, text, text, text, text, integer, integer, text, integer, text, text, jsonb) to anon, authenticated;
+
+create or replace function public.submit_sponsorship_dating_application(
+  p_name text,
+  p_birth_year integer,
+  p_phone text,
+  p_handle text,
+  p_platform text,
+  p_profile_url text,
+  p_followers integer,
+  p_reach integer,
+  p_portfolio_url text,
+  p_note text,
+  p_deliverable text,
+  p_agreements jsonb
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if p_name is null or length(trim(p_name)) = 0 then
+    raise exception '이름을 입력해주세요.';
+  end if;
+  if p_phone is null or length(trim(p_phone)) = 0 then
+    raise exception '휴대폰 번호를 입력해주세요.';
+  end if;
+  if p_handle is null or length(trim(p_handle)) = 0 then
+    raise exception '채널명을 입력해주세요.';
+  end if;
+  if not (
+    coalesce((p_agreements->>'eligibility')::boolean, false)
+    and coalesce((p_agreements->>'offer')::boolean, false)
+    and coalesce((p_agreements->>'content')::boolean, false)
+    and coalesce((p_agreements->>'privacyGuests')::boolean, false)
+    and coalesce((p_agreements->>'refund')::boolean, false)
+    and coalesce((p_agreements->>'privacy')::boolean, false)
+  ) then
+    raise exception '필수 약관에 모두 동의해야 신청할 수 있습니다.';
+  end if;
+
+  insert into public.sponsorship_dating_applications (
+    name_enc, birth_year, phone_enc, handle, platform, profile_url, followers, reach,
+    portfolio_url, note, deliverable, agreements
+  ) values (
+    encrypt_pii(trim(p_name)), p_birth_year, encrypt_pii(trim(p_phone)), trim(p_handle), p_platform, p_profile_url,
+    p_followers, p_reach, nullif(trim(coalesce(p_portfolio_url, '')), ''),
+    nullif(trim(coalesce(p_note, '')), ''), p_deliverable, p_agreements
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+revoke all on function public.submit_sponsorship_dating_application(text, integer, text, text, text, text, integer, integer, text, text, text, jsonb) from public;
+grant execute on function public.submit_sponsorship_dating_application(text, integer, text, text, text, text, integer, integer, text, text, text, jsonb) to anon, authenticated;
+
+create or replace view public.admin_sponsorship_group_applications_view as
+select
+  id,
+  decrypt_pii(name_enc) as name,
+  decrypt_pii(phone_enc) as phone,
+  handle,
+  platform,
+  profile_url,
+  followers,
+  reach,
+  portfolio_url,
+  companions,
+  note,
+  deliverable,
+  agreements,
+  created_at
+from public.sponsorship_group_applications;
+
+grant select on public.admin_sponsorship_group_applications_view to service_role;
+
+create or replace view public.admin_sponsorship_dating_applications_view as
+select
+  id,
+  decrypt_pii(name_enc) as name,
+  birth_year,
+  decrypt_pii(phone_enc) as phone,
+  handle,
+  platform,
+  profile_url,
+  followers,
+  reach,
+  portfolio_url,
+  note,
+  deliverable,
+  agreements,
+  created_at
+from public.sponsorship_dating_applications;
+
+grant select on public.admin_sponsorship_dating_applications_view to service_role;
+
+-- =========================================================
+-- v37. 협찬 신청 폼에 출생연도/성별 입력란 추가 (2026-08-26)
+-- 그룹 협찬 폼에는 출생연도+성별 모두 신규 추가, 소개팅 협찬 폼(이미 출생연도
+-- 있음)에는 성별만 추가. application_attendees와 동일한 관례로
+-- gender text check (gender in ('M','F')) 사용. admin_sponsorship_*_view는
+-- CREATE OR REPLACE VIEW로 중간에 컬럼을 끼워넣을 수 없어(42P16) DROP 후
+-- 재생성했다.
+-- =========================================================
+
+alter table public.sponsorship_group_applications
+  add column birth_year integer,
+  add column gender text check (gender in ('M', 'F'));
+
+alter table public.sponsorship_dating_applications
+  add column gender text check (gender in ('M', 'F'));
+
+drop function if exists public.submit_sponsorship_group_application(text, text, text, text, text, integer, integer, text, integer, text, text, jsonb);
+
+create or replace function public.submit_sponsorship_group_application(
+  p_name text,
+  p_birth_year integer,
+  p_gender text,
+  p_phone text,
+  p_handle text,
+  p_platform text,
+  p_profile_url text,
+  p_followers integer,
+  p_reach integer,
+  p_portfolio_url text,
+  p_companions integer,
+  p_note text,
+  p_deliverable text,
+  p_agreements jsonb
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if p_name is null or length(trim(p_name)) = 0 then
+    raise exception '이름을 입력해주세요.';
+  end if;
+  if p_birth_year is null or p_birth_year < 1900 or p_birth_year > extract(year from now())::int then
+    raise exception '출생연도를 확인해주세요.';
+  end if;
+  if p_gender is null or p_gender not in ('M', 'F') then
+    raise exception '성별을 선택해주세요.';
+  end if;
+  if p_phone is null or length(trim(p_phone)) = 0 then
+    raise exception '휴대폰 번호를 입력해주세요.';
+  end if;
+  if p_handle is null or length(trim(p_handle)) = 0 then
+    raise exception '채널명을 입력해주세요.';
+  end if;
+  if not (
+    coalesce((p_agreements->>'offer')::boolean, false)
+    and coalesce((p_agreements->>'companion')::boolean, false)
+    and coalesce((p_agreements->>'content')::boolean, false)
+    and coalesce((p_agreements->>'refund')::boolean, false)
+    and coalesce((p_agreements->>'privacy')::boolean, false)
+  ) then
+    raise exception '필수 약관에 모두 동의해야 신청할 수 있습니다.';
+  end if;
+
+  insert into public.sponsorship_group_applications (
+    name_enc, birth_year, gender, phone_enc, handle, platform, profile_url, followers, reach,
+    portfolio_url, companions, note, deliverable, agreements
+  ) values (
+    encrypt_pii(trim(p_name)), p_birth_year, p_gender, encrypt_pii(trim(p_phone)), trim(p_handle), p_platform, p_profile_url,
+    p_followers, p_reach, nullif(trim(coalesce(p_portfolio_url, '')), ''), coalesce(p_companions, 0),
+    nullif(trim(coalesce(p_note, '')), ''), p_deliverable, p_agreements
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+revoke all on function public.submit_sponsorship_group_application(text, integer, text, text, text, text, text, integer, integer, text, integer, text, text, jsonb) from public;
+grant execute on function public.submit_sponsorship_group_application(text, integer, text, text, text, text, text, integer, integer, text, integer, text, text, jsonb) to anon, authenticated;
+
+drop function if exists public.submit_sponsorship_dating_application(text, integer, text, text, text, text, integer, integer, text, text, text, jsonb);
+
+create or replace function public.submit_sponsorship_dating_application(
+  p_name text,
+  p_birth_year integer,
+  p_gender text,
+  p_phone text,
+  p_handle text,
+  p_platform text,
+  p_profile_url text,
+  p_followers integer,
+  p_reach integer,
+  p_portfolio_url text,
+  p_note text,
+  p_deliverable text,
+  p_agreements jsonb
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if p_name is null or length(trim(p_name)) = 0 then
+    raise exception '이름을 입력해주세요.';
+  end if;
+  if p_birth_year is null or p_birth_year < 1900 or p_birth_year > extract(year from now())::int then
+    raise exception '출생연도를 확인해주세요.';
+  end if;
+  if p_gender is null or p_gender not in ('M', 'F') then
+    raise exception '성별을 선택해주세요.';
+  end if;
+  if p_phone is null or length(trim(p_phone)) = 0 then
+    raise exception '휴대폰 번호를 입력해주세요.';
+  end if;
+  if p_handle is null or length(trim(p_handle)) = 0 then
+    raise exception '채널명을 입력해주세요.';
+  end if;
+  if not (
+    coalesce((p_agreements->>'eligibility')::boolean, false)
+    and coalesce((p_agreements->>'offer')::boolean, false)
+    and coalesce((p_agreements->>'content')::boolean, false)
+    and coalesce((p_agreements->>'privacyGuests')::boolean, false)
+    and coalesce((p_agreements->>'refund')::boolean, false)
+    and coalesce((p_agreements->>'privacy')::boolean, false)
+  ) then
+    raise exception '필수 약관에 모두 동의해야 신청할 수 있습니다.';
+  end if;
+
+  insert into public.sponsorship_dating_applications (
+    name_enc, birth_year, gender, phone_enc, handle, platform, profile_url, followers, reach,
+    portfolio_url, note, deliverable, agreements
+  ) values (
+    encrypt_pii(trim(p_name)), p_birth_year, p_gender, encrypt_pii(trim(p_phone)), trim(p_handle), p_platform, p_profile_url,
+    p_followers, p_reach, nullif(trim(coalesce(p_portfolio_url, '')), ''),
+    nullif(trim(coalesce(p_note, '')), ''), p_deliverable, p_agreements
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+revoke all on function public.submit_sponsorship_dating_application(text, integer, text, text, text, text, text, integer, integer, text, text, text, jsonb) from public;
+grant execute on function public.submit_sponsorship_dating_application(text, integer, text, text, text, text, text, integer, integer, text, text, text, jsonb) to anon, authenticated;
+
+alter table public.sponsorship_group_applications alter column birth_year set not null;
+alter table public.sponsorship_group_applications alter column gender set not null;
+alter table public.sponsorship_dating_applications alter column gender set not null;
+
+drop view if exists public.admin_sponsorship_group_applications_view;
+create view public.admin_sponsorship_group_applications_view as
+select
+  id,
+  decrypt_pii(name_enc) as name,
+  birth_year,
+  gender,
+  decrypt_pii(phone_enc) as phone,
+  handle,
+  platform,
+  profile_url,
+  followers,
+  reach,
+  portfolio_url,
+  companions,
+  note,
+  deliverable,
+  agreements,
+  created_at
+from public.sponsorship_group_applications;
+
+grant select on public.admin_sponsorship_group_applications_view to service_role;
+
+drop view if exists public.admin_sponsorship_dating_applications_view;
+create view public.admin_sponsorship_dating_applications_view as
+select
+  id,
+  decrypt_pii(name_enc) as name,
+  birth_year,
+  gender,
+  decrypt_pii(phone_enc) as phone,
+  handle,
+  platform,
+  profile_url,
+  followers,
+  reach,
+  portfolio_url,
+  note,
+  deliverable,
+  agreements,
+  created_at
+from public.sponsorship_dating_applications;
+
+grant select on public.admin_sponsorship_dating_applications_view to service_role;
+
+-- =========================================================
+-- v38. admin_update_application() 신설 — 어드민 참여자 정보 수정 (2026-08-26)
+--
+-- 배경: 어드민 페이지에 신청 취소 버튼(문자4 발송)만 있어서, 어드민이 참여자
+-- 정보를 잘못 입력했거나(수동 등록 오탈자 등) 신청 자체를 고객에게 알리지
+-- 않고 고쳐야 할 때 대응 수단이 없었다. application_attendees는 grant가
+-- 전혀 없어(name_enc/phone_enc 등 PII 컬럼 보호 목적, 이 파일 상단
+-- "중요한 교훈" 참고) service_role조차 REST로 직접 update할 수 없으므로
+-- 수정 전용 SECURITY DEFINER 함수를 신설했다.
+--
+-- 참여자 이름/전화번호/출생년도/성별/경험횟수/닉네임 + 신청 단위
+-- 입금자명/비고를 한 번에 수정한다. 출생년도/성별이 바뀌어도 확정/대기
+-- 판정은 재계산하지 않는다 — v12부터 이 프로젝트의 일관된 방침(자동 승격
+-- 없음, 필요하면 운영자가 admin_attendee_view 보면서 수동 판단)과 동일
+-- 선상. "무통보 취소"(문자 없이 상태만 cancelled로)는 applications
+-- 테이블만 건드리면 되고 이미 service_role에 update 권한이 있어(1949줄)
+-- 새 함수 없이 어드민 서버 액션에서 SMS 호출만 생략하는 방식으로 처리한다.
+--
+-- wouldyouescape_test(ksjyfcafhlmqirfeksrp)에서 신청 생성 → 전체 필드 수정
+-- → 복호화 확인 → 테스트 데이터 삭제까지 검증 완료 후 운영
+-- (jilghhbbtjyybzbgwdhq)에 동일 적용 완료.
+-- =========================================================
+create or replace function public.admin_update_application(
+  p_application_id uuid,
+  p_depositor_name text,
+  p_notes text,
+  p_attendees jsonb -- [{id, name, phone, birth_year, gender, experience_range, nickname}, ...]
+) returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $function$
+begin
+  update applications
+  set depositor_name_enc = encrypt_pii(p_depositor_name),
+      notes = p_notes
+  where id = p_application_id;
+
+  update application_attendees aa
+  set name_enc = encrypt_pii(a->>'name'),
+      phone_enc = encrypt_pii(a->>'phone'),
+      phone_hash = hash_phone(a->>'phone'),
+      birth_year = (a->>'birth_year')::int,
+      gender = nullif(a->>'gender', ''),
+      experience_range = nullif(a->>'experience_range', ''),
+      nickname = nullif(a->>'nickname', '')
+  from jsonb_array_elements(p_attendees) as a
+  where aa.id = (a->>'id')::uuid and aa.application_id = p_application_id;
+exception
+  when unique_violation then raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end;
+$function$;
+
+revoke all on function public.admin_update_application(uuid, text, text, jsonb) from public;
+grant execute on function public.admin_update_application(uuid, text, text, jsonb) to service_role;
+
+-- =========================================================
+-- v38. 소개팅 방탈출 협찬은 여성 크리에이터 전용 — 성별 'F' 강제 검증 추가 (2026-08-26)
+-- 출생연도/성별 필드가 v37에서 추가됐지만 실제 성별 값 자체를 여성으로
+-- 제한하는 검증은 없었음(체크박스 자기신고만 있었음). 서버(RPC)에서
+-- 명시적으로 거부하도록 보강.
+-- =========================================================
+
+create or replace function public.submit_sponsorship_dating_application(
+  p_name text,
+  p_birth_year integer,
+  p_gender text,
+  p_phone text,
+  p_handle text,
+  p_platform text,
+  p_profile_url text,
+  p_followers integer,
+  p_reach integer,
+  p_portfolio_url text,
+  p_note text,
+  p_deliverable text,
+  p_agreements jsonb
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if p_name is null or length(trim(p_name)) = 0 then
+    raise exception '이름을 입력해주세요.';
+  end if;
+  if p_birth_year is null or p_birth_year < 1900 or p_birth_year > extract(year from now())::int then
+    raise exception '출생연도를 확인해주세요.';
+  end if;
+  if p_gender is null or p_gender not in ('M', 'F') then
+    raise exception '성별을 선택해주세요.';
+  end if;
+  if p_gender <> 'F' then
+    raise exception '이번 협찬은 여성 크리에이터만 신청할 수 있어요.';
+  end if;
+  if p_phone is null or length(trim(p_phone)) = 0 then
+    raise exception '휴대폰 번호를 입력해주세요.';
+  end if;
+  if p_handle is null or length(trim(p_handle)) = 0 then
+    raise exception '채널명을 입력해주세요.';
+  end if;
+  if not (
+    coalesce((p_agreements->>'eligibility')::boolean, false)
+    and coalesce((p_agreements->>'offer')::boolean, false)
+    and coalesce((p_agreements->>'content')::boolean, false)
+    and coalesce((p_agreements->>'privacyGuests')::boolean, false)
+    and coalesce((p_agreements->>'refund')::boolean, false)
+    and coalesce((p_agreements->>'privacy')::boolean, false)
+  ) then
+    raise exception '필수 약관에 모두 동의해야 신청할 수 있습니다.';
+  end if;
+
+  insert into public.sponsorship_dating_applications (
+    name_enc, birth_year, gender, phone_enc, handle, platform, profile_url, followers, reach,
+    portfolio_url, note, deliverable, agreements
+  ) values (
+    encrypt_pii(trim(p_name)), p_birth_year, p_gender, encrypt_pii(trim(p_phone)), trim(p_handle), p_platform, p_profile_url,
+    p_followers, p_reach, nullif(trim(coalesce(p_portfolio_url, '')), ''),
+    nullif(trim(coalesce(p_note, '')), ''), p_deliverable, p_agreements
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;

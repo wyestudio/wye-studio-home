@@ -52,6 +52,12 @@ export default async function AdminDashboard() {
           </div>
           <div className="flex gap-2">
             <Link
+              href="/sponsorships"
+              className="px-3 py-2 text-sm bg-glow text-glow-foreground rounded hover:opacity-90 transition-opacity"
+            >
+              협찬 신청
+            </Link>
+            <Link
               href="/sms-templates"
               className="px-3 py-2 text-sm bg-glow text-glow-foreground rounded hover:opacity-90 transition-opacity"
             >

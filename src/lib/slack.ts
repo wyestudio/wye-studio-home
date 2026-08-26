@@ -99,6 +99,42 @@ async function buildCurrentHeadcountLines(session: Session): Promise<string[]> {
   });
 }
 
+const SPONSORSHIP_TAG: Record<"group" | "dating", string> = {
+  group: "[그룹]",
+  dating: "[소개팅-여성]",
+};
+
+export async function sendSponsorshipApplicationSlackAlert({
+  type,
+  name,
+  handle,
+}: {
+  type: "group" | "dating";
+  name: string;
+  handle: string;
+}): Promise<void> {
+  const webhookUrl = process.env.SLACK_SPONSORSHIP_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn("[slack] SLACK_SPONSORSHIP_WEBHOOK_URL이 설정되지 않아 협찬 신청 알림을 건너뜁니다.");
+    return;
+  }
+
+  const text = [`${SPONSORSHIP_TAG[type]} 새 협찬 신청`, `이름: ${name}`, `채널명: ${handle}`].join("\n");
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      console.error(`[slack] 협찬 신청 알림 전송 실패: ${res.status} ${await res.text()}`);
+    }
+  } catch (err) {
+    console.error("[slack] 협찬 신청 알림 전송 중 에러", err);
+  }
+}
+
 export async function sendCancellationSlackAlert({
   sessionTitle,
   confirmationCode,
