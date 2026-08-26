@@ -36,9 +36,9 @@ export function SessionCard({
     ? session.male_closed && session.female_closed
       ? "마감"
       : session.male_closed
-        ? "남자 마감"
+        ? "남성 마감"
         : session.female_closed
-          ? "여자 마감"
+          ? "여성 마감"
           : null
     : session.status !== "open"
       ? "마감"
