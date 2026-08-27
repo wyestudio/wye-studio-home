@@ -58,6 +58,12 @@ export default async function AdminDashboard() {
               협찬 신청
             </Link>
             <Link
+              href="/review-paybacks"
+              className="px-3 py-2 text-sm bg-glow text-glow-foreground rounded hover:opacity-90 transition-opacity"
+            >
+              후기 페이백
+            </Link>
+            <Link
               href="/sms-templates"
               className="px-3 py-2 text-sm bg-glow text-glow-foreground rounded hover:opacity-90 transition-opacity"
             >

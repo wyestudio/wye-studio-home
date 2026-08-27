@@ -165,6 +165,8 @@ const PAGE_STYLES = String.raw`
     padding:15px;border-radius:14px;font-family:inherit;
   }
   .m-submit:disabled{background:#c9c2e8;cursor:not-allowed}
+  .m-submit-error{display:none;margin-top:10px;color:#e11d48;font-size:12.5px;text-align:center}
+  .m-submit-error.show{display:block}
   .m-done{display:none;text-align:center;padding:36px 10px}
   .m-done .big{font-size:44px}
   .m-done h4{font-size:18px;font-weight:800;margin-top:10px}
@@ -404,6 +406,7 @@ const PAGE_BODY_HTML = String.raw`
       </div>
 
       <button class="m-submit" type="submit">신청 완료하기</button>
+      <p class="m-submit-error" id="payback-submit-error" role="alert"></p>
     </form>
 
     <div class="m-done" id="payback-done">
@@ -445,6 +448,8 @@ const PAGE_SCRIPT = String.raw`
     var done = document.getElementById('payback-done');
     var bankSelect = form.querySelector('select[name=bank]');
     var bankEtcField = document.getElementById('bank-etc-field');
+    var submitButton = form.querySelector('.m-submit');
+    var submitError = document.getElementById('payback-submit-error');
 
     document.querySelectorAll('[data-open-modal]').forEach(function(btn){
       btn.addEventListener('click', function(){
@@ -483,8 +488,12 @@ const PAGE_SCRIPT = String.raw`
       if(f) f.classList.toggle('error', !!on);
     }
 
+    function hideSubmitError(){ submitError.textContent = ''; submitError.classList.remove('show'); }
+    function showSubmitError(msg){ submitError.textContent = msg; submitError.classList.add('show'); }
+
     form.addEventListener('submit', function(e){
       e.preventDefault();
+      hideSubmitError();
       var v = function(n){ var el = form.querySelector('[name='+n+']'); return el ? el.value.trim() : ''; };
       var ok = true;
 
@@ -508,25 +517,36 @@ const PAGE_SCRIPT = String.raw`
         return;
       }
 
-      var data = {
+      var payload = {
         name: v('name'), phone: v('phone'), session: v('session'),
         channel: v('channel'), url: v('url'), holder: v('holder'),
         bank: v('bank') === 'etc' ? v('bankEtc') : v('bank'),
-        account: v('account'), submittedAt: new Date().toISOString()
+        account: v('account'),
+        agreements: {
+          terms: form.querySelector('[name=agreeTerms]').checked,
+          privacy: form.querySelector('[name=agreePrivacy]').checked
+        }
       };
 
-      /* =====================================================
-         TODO(TING): 실제 제출 처리로 교체
-         예) fetch('/api/payback-requests', {
-               method:'POST',
-               headers:{'Content-Type':'application/json'},
-               body: JSON.stringify(data)
-             }).then(...)
-         성공 시 아래 두 줄 실행 (form 숨기고 완료 화면 표시)
-         ===================================================== */
-      console.log('payback-request', data);
-      form.style.display = 'none';
-      done.style.display = 'block';
+      submitButton.disabled = true;
+      submitButton.textContent = '신청 처리 중...';
+
+      fetch('/api/review-payback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(function(res){ return res.json().then(function(data){ return { ok: res.ok, data: data }; }); })
+        .then(function(r){
+          if(!r.ok){ throw new Error((r.data && r.data.error) || '신청 처리 중 오류가 발생했어요.'); }
+          form.style.display = 'none';
+          done.style.display = 'block';
+        })
+        .catch(function(err){
+          showSubmitError(err.message || '신청 처리 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+          submitButton.disabled = false;
+          submitButton.textContent = '신청 완료하기';
+        });
     });
   })();
 `;

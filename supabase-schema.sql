@@ -4924,3 +4924,108 @@ select
 from applications ap;
 
 grant select on admin_application_view to service_role;
+
+-- =========================================================
+-- v41. 후기 페이백 신청(review-guide) 저장 — 콘솔 로그만 남기던 임시
+-- 제출 로직을 실제 DB 저장 + 어드민 조회로 전환. 계좌번호/예금주명은
+-- 이름/전화번호와 동일하게 encrypt_pii()로 암호화한다(기존 applications
+-- 테이블의 refund_account_number_enc/refund_account_holder_enc와 동일 관례).
+-- 은행명은 PII가 아니므로 평문 저장. (2026-08-27)
+-- =========================================================
+
+create table public.review_payback_applications (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name_enc bytea not null,
+  phone_enc bytea not null,
+  session_slug text not null,
+  channel text not null,
+  post_url text not null,
+  bank_name text not null,
+  account_number_enc bytea not null,
+  account_holder_enc bytea not null,
+  agreements jsonb not null
+);
+
+alter table public.review_payback_applications enable row level security;
+
+create or replace function public.submit_review_payback_application(
+  p_name text,
+  p_phone text,
+  p_session_slug text,
+  p_channel text,
+  p_post_url text,
+  p_bank_name text,
+  p_account_number text,
+  p_account_holder text,
+  p_agreements jsonb
+) returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if p_name is null or length(trim(p_name)) = 0 then
+    raise exception '이름을 입력해주세요.';
+  end if;
+  if p_phone is null or length(trim(p_phone)) = 0 then
+    raise exception '전화번호를 입력해주세요.';
+  end if;
+  if p_session_slug is null or length(trim(p_session_slug)) = 0 then
+    raise exception '참가 회차를 선택해주세요.';
+  end if;
+  if p_channel is null or length(trim(p_channel)) = 0 then
+    raise exception '후기 채널을 선택해주세요.';
+  end if;
+  if p_post_url is null or length(trim(p_post_url)) = 0 then
+    raise exception '후기 게시물 링크를 입력해주세요.';
+  end if;
+  if p_bank_name is null or length(trim(p_bank_name)) = 0 then
+    raise exception '은행을 선택해주세요.';
+  end if;
+  if p_account_number is null or length(trim(p_account_number)) = 0 then
+    raise exception '계좌번호를 입력해주세요.';
+  end if;
+  if p_account_holder is null or length(trim(p_account_holder)) = 0 then
+    raise exception '예금주명을 입력해주세요.';
+  end if;
+  if not (
+    coalesce((p_agreements->>'terms')::boolean, false)
+    and coalesce((p_agreements->>'privacy')::boolean, false)
+  ) then
+    raise exception '필수 약관에 모두 동의해야 신청할 수 있습니다.';
+  end if;
+
+  insert into public.review_payback_applications (
+    name_enc, phone_enc, session_slug, channel, post_url, bank_name,
+    account_number_enc, account_holder_enc, agreements
+  ) values (
+    encrypt_pii(trim(p_name)), encrypt_pii(trim(p_phone)), p_session_slug, p_channel, trim(p_post_url), p_bank_name,
+    encrypt_pii(trim(p_account_number)), encrypt_pii(trim(p_account_holder)), p_agreements
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+revoke all on function public.submit_review_payback_application(text, text, text, text, text, text, text, text, jsonb) from public;
+grant execute on function public.submit_review_payback_application(text, text, text, text, text, text, text, text, jsonb) to anon, authenticated;
+
+create view public.admin_review_payback_applications_view as
+select
+  id,
+  decrypt_pii(name_enc) as name,
+  decrypt_pii(phone_enc) as phone,
+  session_slug,
+  channel,
+  post_url,
+  bank_name,
+  decrypt_pii(account_number_enc) as account_number,
+  decrypt_pii(account_holder_enc) as account_holder,
+  agreements,
+  created_at
+from public.review_payback_applications;
+
+grant select on public.admin_review_payback_applications_view to service_role;
