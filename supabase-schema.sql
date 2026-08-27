@@ -4856,3 +4856,71 @@ exception
   when unique_violation then raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
 end;
 $function$;
+
+-- =========================================================
+-- v41. applications.refund_completed_at 신설 — 어드민 세션 상세 페이지에서
+-- 확정/대기/취소 목록을 분리하고, 취소 목록에 환불 완료 여부를 추적하기
+-- 위함 (2026-08-27). test에서 먼저 반영 후 운영에도 동일 적용, 컬럼
+-- 순서 유지를 위해 admin_application_view 끝에 추가.
+-- =========================================================
+
+alter table applications
+  add column if not exists refund_completed_at timestamptz;
+
+create or replace view public.admin_application_view as
+select
+  ap.id,
+  ap.session_id,
+  decrypt_pii(ap.depositor_name_enc) as depositor_name,
+  ap.consent_required,
+  ap.consent_optional,
+  ap.confirmation_code,
+  ap.status,
+  ap.payment_status,
+  ap.notes,
+  ap.created_at,
+  ap.refund_bank_name,
+  decrypt_pii(ap.refund_account_number_enc) as refund_account_number,
+  decrypt_pii(ap.refund_account_holder_enc) as refund_account_holder,
+  ap.consent_photo,
+  ap.consent_marketing,
+  ap.payment_confirmed_sms_sent_at,
+  ap.refund_completed_at
+from applications ap;
+
+grant select on admin_application_view to service_role;
+
+-- =========================================================
+-- v42. applications.promoted_from_waiting_at 신설 — 어드민 확정 목록에서
+-- 처음부터 확정된 신청과 대기→확정 전환 버튼으로 승격된 신청을 구분해
+-- 보여주기 위함 (2026-08-27). promoteWaitlistApplicant()가 status를
+-- confirmed로 바꿀 때 이 타임스탬프를 함께 기록한다. 기존에 이미 승격된
+-- 건은 소급 기록이 안 돼 있어 이 컬럼 도입 이전 건은 구분 불가.
+-- =========================================================
+
+alter table applications
+  add column if not exists promoted_from_waiting_at timestamptz;
+
+create or replace view public.admin_application_view as
+select
+  ap.id,
+  ap.session_id,
+  decrypt_pii(ap.depositor_name_enc) as depositor_name,
+  ap.consent_required,
+  ap.consent_optional,
+  ap.confirmation_code,
+  ap.status,
+  ap.payment_status,
+  ap.notes,
+  ap.created_at,
+  ap.refund_bank_name,
+  decrypt_pii(ap.refund_account_number_enc) as refund_account_number,
+  decrypt_pii(ap.refund_account_holder_enc) as refund_account_holder,
+  ap.consent_photo,
+  ap.consent_marketing,
+  ap.payment_confirmed_sms_sent_at,
+  ap.refund_completed_at,
+  ap.promoted_from_waiting_at
+from applications ap;
+
+grant select on admin_application_view to service_role;

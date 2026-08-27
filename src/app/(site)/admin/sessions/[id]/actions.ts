@@ -235,7 +235,7 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
 
   const { error: updateError } = await supabase
     .from("applications")
-    .update({ status: "confirmed" })
+    .update({ status: "confirmed", promoted_from_waiting_at: new Date().toISOString() })
     .eq("id", applicationId);
 
   if (updateError) {
@@ -245,6 +245,43 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
   await sendWaitlistPromotedSms(session, application, representative, attendeeCount, depositorName);
 
   console.log(`[admin] 대기자 확정 전환됨: ${applicationId} (${application.confirmation_code})`);
+
+  return { success: true };
+}
+
+// 취소된 신청의 환불이 실제로 처리된 뒤 어드민이 "환불 완료" 버튼으로
+// 기록만 남기는 용도. 별도 SMS는 없음(환불 안내는 취소 시점 문자4/7에 이미 포함됨).
+export async function markRefundCompleted(applicationId: string, sessionId: string) {
+  const cookieStore = await cookies();
+  const adminCookie = cookieStore.get("admin_auth")?.value;
+  await requireAdminAuth(adminCookie);
+
+  const supabase = createAdminClient();
+
+  const { data: application, error: appError } = await supabase
+    .from("applications")
+    .select("*")
+    .eq("id", applicationId)
+    .single();
+
+  if (appError || !application) {
+    return { error: "신청 정보를 찾을 수 없습니다." };
+  }
+
+  if (application.status !== "cancelled") {
+    return { error: "취소된 신청만 환불 완료 처리할 수 있습니다." };
+  }
+
+  const { error: updateError } = await supabase
+    .from("applications")
+    .update({ refund_completed_at: new Date().toISOString() })
+    .eq("id", applicationId);
+
+  if (updateError) {
+    return { error: "업데이트 실패: " + updateError.message };
+  }
+
+  console.log(`[admin] 환불 완료 처리됨: ${applicationId} (${application.confirmation_code})`);
 
   return { success: true };
 }

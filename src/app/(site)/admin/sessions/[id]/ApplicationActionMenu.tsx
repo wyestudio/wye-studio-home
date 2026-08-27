@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { confirmPayment, cancelApplicationAdmin, silentCancelApplicationAdmin, promoteWaitlistApplicant } from "./actions";
+import {
+  confirmPayment,
+  cancelApplicationAdmin,
+  silentCancelApplicationAdmin,
+  promoteWaitlistApplicant,
+} from "./actions";
 import { EditApplicationDialog, type EditableAttendee } from "./EditApplicationDialog";
 
 type ActionKey = "confirm-payment" | "promote" | "cancel" | "silent-cancel";
@@ -81,7 +87,9 @@ export function ApplicationActionMenu({
   notes: string | null;
   attendees: EditableAttendee[];
 }) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
   const [selected, setSelected] = useState<ActionKey | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -119,46 +127,65 @@ export function ApplicationActionMenu({
     }
   }
 
+  function openMenu() {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) {
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    }
+    setMenuOpen(true);
+  }
+
   return (
     <div className="relative inline-block">
       <button
-        onClick={() => setMenuOpen((v) => !v)}
+        ref={buttonRef}
+        onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
         disabled={isLoading}
         className="px-3 py-1 text-xs bg-surface border border-glass-border text-foreground rounded hover:bg-white/5 disabled:opacity-50 transition-opacity"
       >
         {isLoading ? "처리중..." : "액션 ▾"}
       </button>
 
-      {menuOpen && <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />}
-      {menuOpen && (
-        <div className="absolute right-0 z-50 mt-1 min-w-[140px] rounded-lg border border-glass-border bg-surface shadow-lg">
-          <button
-            onClick={() => {
-              setEditOpen(true);
-              setMenuOpen(false);
-              setEditSaved(false);
-            }}
-            className="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-white/5 transition-colors"
-          >
-            정보 수정
-          </button>
-          {availableActions.map((key) => (
-            <button
-              key={key}
-              onClick={() => {
-                setSelected(key);
-                setMenuOpen(false);
-                setError(null);
-              }}
-              className={`block w-full px-3 py-2 text-left text-xs hover:bg-white/5 transition-colors ${
-                ACTIONS[key].danger ? "text-danger" : "text-foreground"
-              }`}
+      {/* fixed + portal로 렌더링 — 테이블을 감싼 overflow-x-auto 컨테이너가 absolute
+          드롭다운을 잘라버리는 문제를 피하기 위함(스크롤 안에 메뉴가 갇히는 버그). */}
+      {menuOpen &&
+        menuPos &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+            <div
+              className="fixed z-50 min-w-[140px] rounded-lg border border-glass-border bg-surface shadow-lg"
+              style={{ top: menuPos.top, right: menuPos.right }}
             >
-              {ACTIONS[key].label}
-            </button>
-          ))}
-        </div>
-      )}
+              <button
+                onClick={() => {
+                  setEditOpen(true);
+                  setMenuOpen(false);
+                  setEditSaved(false);
+                }}
+                className="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-white/5 transition-colors"
+              >
+                정보 수정
+              </button>
+              {availableActions.map((key) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setSelected(key);
+                    setMenuOpen(false);
+                    setError(null);
+                  }}
+                  className={`block w-full px-3 py-2 text-left text-xs hover:bg-white/5 transition-colors ${
+                    ACTIONS[key].danger ? "text-danger" : "text-foreground"
+                  }`}
+                >
+                  {ACTIONS[key].label}
+                </button>
+              ))}
+            </div>
+          </>,
+          document.body
+        )}
 
       {editSaved && <p className="mt-1 text-xs font-semibold text-confirm">✓ 저장됨 (새로고침하면 반영돼요)</p>}
 

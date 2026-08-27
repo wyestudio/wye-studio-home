@@ -72,6 +72,8 @@ export type Application = {
   refund_bank_name?: string | null;
   refund_account_number?: string | null;
   refund_account_holder?: string | null;
+  refund_completed_at?: string | null;
+  promoted_from_waiting_at?: string | null;
 };
 
 // 그룹 신청의 참여자 한 명(대표 신청자 포함). DB의 application_attendees와 대응.
