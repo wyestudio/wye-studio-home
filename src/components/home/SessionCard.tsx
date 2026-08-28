@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { formatKrw, formatSessionDateTime, formatDuration } from "@/lib/format";
 import { isDatingTheme } from "@/lib/theme";
+import { getClosingSoonLabel, getGenderSeatBadges, isForceClosedForDisplay, isGenderConfirmClosed } from "@/lib/capacityBadge";
 import { ThemeTag } from "@/components/ui/ThemeTag";
-import type { Session } from "@/types/domain";
+import { Badge } from "@/components/ui/Badge";
+import type { Session, SessionStats } from "@/types/domain";
 
 function SessionCardField({ label, value }: { label: string; value: string }) {
   return (
@@ -19,7 +21,7 @@ export function SessionCard({
   dense = false,
   mobileLayout = false,
 }: {
-  session: Session;
+  session: Session & { stats?: SessionStats | null };
   compact?: boolean;
   // compact와 별개로 "패딩/폰트만 축소"하고 싶을 때(가격 문구는 compact 쪽 그대로 유지) 쓰는 스위치.
   // 홈 스크롤스테이지처럼 뷰포트 높이가 고정된 곳에서 카드 자체 크기를 줄여야 할 때 사용.
@@ -32,17 +34,24 @@ export function SessionCard({
   const sizeCompact = compact || dense;
   const sm = (cls: string) => (mobileLayout ? "" : cls);
 
+  const maleConfirmClosed = isDatingTheme(session.session_type) && isGenderConfirmClosed(session, session.stats, "male");
+  const femaleConfirmClosed =
+    isDatingTheme(session.session_type) && isGenderConfirmClosed(session, session.stats, "female");
+
   const closedLabel = isDatingTheme(session.session_type)
-    ? session.male_closed && session.female_closed
+    ? maleConfirmClosed && femaleConfirmClosed
       ? "마감"
-      : session.male_closed
+      : maleConfirmClosed
         ? "남성 마감"
-        : session.female_closed
+        : femaleConfirmClosed
           ? "여성 마감"
           : null
-    : session.status !== "open"
+    : session.status !== "open" || isForceClosedForDisplay(session)
       ? "마감"
       : null;
+
+  const closingSoonLabel = closedLabel ? null : getClosingSoonLabel(session, session.stats);
+  const genderSeatBadges = getGenderSeatBadges(session, session.stats);
 
   return (
     <Link
@@ -51,21 +60,30 @@ export function SessionCard({
         sizeCompact ? `gap-3 p-4 ${sm("sm:gap-7 sm:p-7")}` : `gap-6 p-6 ${sm("sm:gap-7 sm:p-7")}`
       }`}
     >
-      {/* 마감 리본 배너 */}
-      {closedLabel && (
+      {/* 마감/마감임박 리본 배너 */}
+      {(closedLabel || closingSoonLabel) && (
         <div
-          className="absolute right-[-3rem] top-[0.9rem] z-10 w-44 rotate-45 bg-danger py-1.5 text-center text-xs font-extrabold tracking-wide text-white shadow-[0_2px_10px_rgba(0,0,0,0.4)]"
+          className={`absolute right-[-3rem] top-[0.9rem] z-10 w-44 rotate-45 py-1.5 text-center text-xs font-extrabold tracking-wide text-white shadow-[0_2px_10px_rgba(0,0,0,0.4)] ${
+            closedLabel ? "bg-danger" : "bg-[#f59e0b]"
+          }`}
         >
-          {closedLabel}
+          {closedLabel ?? closingSoonLabel}
         </div>
       )}
 
-      {/* 태그 */}
-      <ThemeTag
-        sessionType={session.session_type}
-        label={`${session.session_type} 파티형 방탈출`}
-        className={`font-extrabold leading-tight ${sizeCompact ? `text-xl ${sm("sm:text-3xl")}` : `text-2xl ${sm("sm:text-3xl")}`}`}
-      />
+      {/* 태그 + 성별 잔여석 뱃지 */}
+      <div className="flex flex-wrap items-center gap-2">
+        <ThemeTag
+          sessionType={session.session_type}
+          label={`${session.session_type} 파티형 방탈출`}
+          className={`font-extrabold leading-tight ${sizeCompact ? `text-xl ${sm("sm:text-3xl")}` : `text-2xl ${sm("sm:text-3xl")}`}`}
+        />
+        {genderSeatBadges.map((label) => (
+          <Badge key={label} tone="danger-outline">
+            {label}
+          </Badge>
+        ))}
+      </div>
 
       {/* 모바일: 라벨 없이 정보만 나열 (mobileLayout이면 뷰포트와 무관하게 항상) */}
       <div className={mobileLayout ? "" : "sm:hidden"}>

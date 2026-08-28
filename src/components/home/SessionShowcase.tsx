@@ -1,13 +1,13 @@
 import Image from "next/image";
 import { SessionCard } from "@/components/home/SessionCard";
-import type { Session } from "@/types/domain";
+import type { Session, SessionStats } from "@/types/domain";
 
 export function SessionShowcase({
   sessions,
   compact = false,
   dense = false,
 }: {
-  sessions: Session[];
+  sessions: (Session & { stats?: SessionStats | null })[];
   compact?: boolean;
   // 홈 스크롤스테이지처럼 뷰포트 높이가 고정된 곳에서 모바일 폭 총 높이를 줄여야 할 때 사용.
   dense?: boolean;

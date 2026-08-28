@@ -3,7 +3,7 @@
 import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
 import { SessionShowcase } from "@/components/home/SessionShowcase";
-import type { Session } from "@/types/domain";
+import type { Session, SessionStats } from "@/types/domain";
 
 export function SessionScene({
   index = 0,
@@ -16,7 +16,7 @@ export function SessionScene({
   // ScrollStage가 weight prop을 보고 계산해서 넘겨주는 실제 스크롤 구간(이 컴포넌트는 weight를 직접 쓰진 않음).
   weight?: number;
   range?: { start: number; end: number; unitSpan?: number };
-  sessions: Session[];
+  sessions: (Session & { stats?: SessionStats | null })[];
 }) {
   const { local, reduceMotion, isFirst, isLast } = useScene(index, total, range);
 

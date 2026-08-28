@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ContentsSessionShowcase } from "@/components/contents/ContentsSessionShowcase";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
-import { getUpcomingSessions } from "@/lib/sessions";
+import { getUpcomingSessions, attachSessionStats } from "@/lib/sessions";
 
 export const metadata: Metadata = {
   title: "지금 열린 회차",
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContentsPage() {
-  const sessions = await getUpcomingSessions();
+  const sessions = await attachSessionStats(await getUpcomingSessions());
 
   return (
     <>
