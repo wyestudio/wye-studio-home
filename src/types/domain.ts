@@ -46,6 +46,12 @@ export type SessionStats = {
   male_waiting_count: number;
   female_confirmed_count: number;
   female_waiting_count: number;
+  // 신청 확정(status='confirmed')이면서 입금까지 확인된(payment_status='confirmed') 인원.
+  // 마감/마감임박/잔여석 뱃지는 이 값을 기준으로 판정한다 — 확정만 되고 아직 입금 전인
+  // 신청까지 자리를 차지한 것으로 세면 실제로는 비어있는 자리를 마감으로 표시하게 된다.
+  paid_confirmed_count: number;
+  male_paid_confirmed_count: number;
+  female_paid_confirmed_count: number;
 };
 
 // 로그인 시스템(휴면 처리됨)이 쓰던 타입 — 더 이상 신청 플로우에서 쓰이지 않지만

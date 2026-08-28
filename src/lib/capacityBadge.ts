@@ -7,12 +7,22 @@ import { isDatingTheme } from "@/lib/theme";
 const CLOSING_SOON_RATIO = 0.25;
 
 // 실제 정원/상태와 무관하게 "마감" 리본을 강제로 띄우고 싶은 회차의 slug.
-// 2026-08-28: 그룹(0829-meeting) 회차는 20/24명으로 아직 자리가 있지만(신청은 계속 받음),
-// 행사 하루 전 마감 임박감을 강조하려는 마케팅 판단으로 "마감" 표시만 강제함.
-const FORCE_CLOSED_DISPLAY_SLUGS = ["0829-meeting"];
+const FORCE_CLOSED_DISPLAY_SLUGS: string[] = [];
 
 export function isForceClosedForDisplay(session: Session): boolean {
   return FORCE_CLOSED_DISPLAY_SLUGS.includes(session.slug);
+}
+
+// 실제 잔여석과 무관하게 "마감임박" 리본 + 잔여석 뱃지에 표시할 숫자를 강제 지정하고 싶은
+// 그룹 회차의 slug→잔여석. 2026-08-28: 그룹(0829-meeting) 회차는 confirmed_count 20/24로
+// 즉시확정 라인까지 아직 4자리 남았지만(신청은 계속 받음), 행사 하루 전 마감 임박감을
+// 강조하려는 마케팅 판단으로 "1석 남음" 표시만 강제함.
+const FORCE_CLOSING_SOON_SLUGS: Record<string, number> = {
+  "0829-meeting": 1,
+};
+
+function getForcedClosingSoonSeats(session: Session): number | null {
+  return session.slug in FORCE_CLOSING_SOON_SLUGS ? FORCE_CLOSING_SOON_SLUGS[session.slug] : null;
 }
 
 function isNearConfirmLine(confirmedCount: number, confirmLine: number): boolean {
@@ -23,6 +33,8 @@ function isNearConfirmLine(confirmedCount: number, confirmLine: number): boolean
 // 소개팅 성별별 "마감" 판정 — 실제 정원(male_closed/female_closed, capacity_max 도달)뿐
 // 아니라 즉시확정 라인(capacity_confirm_line_male/female) 도달도 화면상으로는 같은
 // "마감" 리본으로 취급한다(대기는 capacity_max까지 계속 받음, 즉시확정만 종료).
+// 판정 기준은 입금 확인까지 완료된 인원(paid_confirmed_count) — 신청만 확정되고
+// 아직 입금 전인 자리까지 채워진 것으로 세면 실제로는 비어있는 자리를 마감으로 표시하게 된다.
 export function isGenderConfirmClosed(
   session: Session,
   stats: SessionStats | null | undefined,
@@ -32,16 +44,30 @@ export function isGenderConfirmClosed(
   if (hardClosed || !stats) return hardClosed;
 
   const line = (gender === "male" ? session.capacity_confirm_line_male : session.capacity_confirm_line_female) ?? 0;
-  const confirmedCount = gender === "male" ? stats.male_confirmed_count : stats.female_confirmed_count;
-  return line - confirmedCount <= 0;
+  const paidConfirmedCount = gender === "male" ? stats.male_paid_confirmed_count : stats.female_paid_confirmed_count;
+  return line - paidConfirmedCount <= 0;
 }
 
 // 회차 카드에 표시할 "마감임박" 리본 라벨(그룹 전용). 소개팅은 성별별로 갈리므로
 // 리본 대신 closedLabel(성별 마감)과 getGenderSeatBadges(잔여석 뱃지)로 표시한다.
 export function getClosingSoonLabel(session: Session, stats: SessionStats | null | undefined): string | null {
-  if (!stats || session.status !== "open" || isDatingTheme(session.session_type)) return null;
+  if (session.status !== "open" || isDatingTheme(session.session_type)) return null;
+  if (getForcedClosingSoonSeats(session) !== null) return "마감임박";
 
-  return isNearConfirmLine(stats.confirmed_count, session.capacity_confirm_line) ? "마감임박" : null;
+  if (!stats) return null;
+  return isNearConfirmLine(stats.paid_confirmed_count, session.capacity_confirm_line) ? "마감임박" : null;
+}
+
+// 그룹 회차 카드에 표시할 잔여석 뱃지(예: "1석 남음"). 소개팅의 getGenderSeatBadges와 대응.
+export function getGroupSeatBadge(session: Session, stats: SessionStats | null | undefined): string | null {
+  if (session.status !== "open" || isDatingTheme(session.session_type)) return null;
+
+  const forcedSeats = getForcedClosingSoonSeats(session);
+  if (forcedSeats !== null) return `${forcedSeats}석 남음`;
+
+  if (!stats) return null;
+  const remaining = session.capacity_confirm_line - stats.paid_confirmed_count;
+  return isNearConfirmLine(stats.paid_confirmed_count, session.capacity_confirm_line) ? `${remaining}석 남음` : null;
 }
 
 // 소개팅 카드에 별도 뱃지로 표시할 성별별 잔여석 문구(예: "여성 1석 남음").
@@ -54,14 +80,14 @@ export function getGenderSeatBadges(session: Session, stats: SessionStats | null
 
   if (!isGenderConfirmClosed(session, stats, "male")) {
     const maleLine = session.capacity_confirm_line_male ?? 0;
-    const maleRemaining = maleLine - stats.male_confirmed_count;
-    if (isNearConfirmLine(stats.male_confirmed_count, maleLine)) badges.push(`남성 ${maleRemaining}석 남음`);
+    const maleRemaining = maleLine - stats.male_paid_confirmed_count;
+    if (isNearConfirmLine(stats.male_paid_confirmed_count, maleLine)) badges.push(`남성 ${maleRemaining}석 남음`);
   }
 
   if (!isGenderConfirmClosed(session, stats, "female")) {
     const femaleLine = session.capacity_confirm_line_female ?? 0;
-    const femaleRemaining = femaleLine - stats.female_confirmed_count;
-    if (isNearConfirmLine(stats.female_confirmed_count, femaleLine)) badges.push(`여성 ${femaleRemaining}석 남음`);
+    const femaleRemaining = femaleLine - stats.female_paid_confirmed_count;
+    if (isNearConfirmLine(stats.female_paid_confirmed_count, femaleLine)) badges.push(`여성 ${femaleRemaining}석 남음`);
   }
 
   return badges;

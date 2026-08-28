@@ -5028,4 +5028,53 @@ select
   created_at
 from public.review_payback_applications;
 
+-- =========================================================
+-- v43. get_session_stats() — 입금 확인 완료(payment_status='confirmed')
+-- 기준 카운트 추가 (2026-08-28)
+--
+-- 배경: 회차 카드의 마감/마감임박/잔여석 뱃지가 지금까지
+-- confirmed_count(신청 status='confirmed')만 보고 있었는데, 이건
+-- "즉시확정 처리됨"일 뿐 실제 입금까지 끝났다는 뜻은 아니다.
+-- 예: 소개팅 여성 정원 10명 중 confirmed 10명이지만 그중 1명은
+-- 아직 입금 전 — 이 경우 실제로는 자리가 1개 비어있는데도 화면은
+-- "여성 마감"으로 잘못 표시하고 있었다. paid_confirmed_count(및
+-- 성별 분리 버전)를 추가해 마감 판정의 기준을 payment_status까지
+-- 확인된 인원으로 바꾼다(src/lib/capacityBadge.ts). 기존
+-- confirmed_count류 필드는 어드민/Slack 집계(src/lib/slack.ts,
+-- src/lib/sessionStatsFormat.ts)가 여전히 참조하므로 그대로 둠.
+-- =========================================================
+drop function if exists get_session_stats(uuid);
+
+create or replace function get_session_stats(p_session_id uuid)
+returns table (
+  confirmed_count int, waiting_count int,
+  male_confirmed_count int, male_waiting_count int,
+  female_confirmed_count int, female_waiting_count int,
+  paid_confirmed_count int,
+  male_paid_confirmed_count int,
+  female_paid_confirmed_count int
+)
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select
+    coalesce(sum(case when ap.status = 'confirmed' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and aa.gender = 'M' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' and aa.gender = 'M' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and aa.gender = 'F' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'waiting' and aa.gender = 'F' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and ap.payment_status = 'confirmed' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and ap.payment_status = 'confirmed' and aa.gender = 'M' then 1 else 0 end), 0)::int,
+    coalesce(sum(case when ap.status = 'confirmed' and ap.payment_status = 'confirmed' and aa.gender = 'F' then 1 else 0 end), 0)::int
+  from application_attendees aa
+  join applications ap on ap.id = aa.application_id
+  where ap.session_id = p_session_id;
+$$;
+
+revoke all on function get_session_stats(uuid) from public;
+grant execute on function get_session_stats(uuid) to anon, authenticated;
+
 grant select on public.admin_review_payback_applications_view to service_role;

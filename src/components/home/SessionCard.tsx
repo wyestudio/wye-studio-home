@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { formatKrw, formatSessionDateTime, formatDuration } from "@/lib/format";
 import { isDatingTheme } from "@/lib/theme";
-import { getClosingSoonLabel, getGenderSeatBadges, isForceClosedForDisplay, isGenderConfirmClosed } from "@/lib/capacityBadge";
+import {
+  getClosingSoonLabel,
+  getGenderSeatBadges,
+  getGroupSeatBadge,
+  isForceClosedForDisplay,
+  isGenderConfirmClosed,
+} from "@/lib/capacityBadge";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { Badge } from "@/components/ui/Badge";
 import type { Session, SessionStats } from "@/types/domain";
@@ -52,6 +58,7 @@ export function SessionCard({
 
   const closingSoonLabel = closedLabel ? null : getClosingSoonLabel(session, session.stats);
   const genderSeatBadges = getGenderSeatBadges(session, session.stats);
+  const groupSeatBadge = getGroupSeatBadge(session, session.stats);
 
   return (
     <Link
@@ -83,6 +90,7 @@ export function SessionCard({
             {label}
           </Badge>
         ))}
+        {groupSeatBadge && <Badge tone="danger-outline">{groupSeatBadge}</Badge>}
       </div>
 
       {/* 모바일: 라벨 없이 정보만 나열 (mobileLayout이면 뷰포트와 무관하게 항상) */}
