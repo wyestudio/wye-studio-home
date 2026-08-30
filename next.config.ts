@@ -4,6 +4,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // 후기 페이백 안내 페이지용 짧은 링크.
+        source: "/review.go",
+        destination: "/review-guide",
+        permanent: false,
+      },
+      {
         // 인스타그램 프로필에는 UTM 파라미터가 붙은 URL을 그대로 노출하지 않기 위해
         // 짧은 링크(/ig.go)를 걸어두고 실제 목적지로 리다이렉트한다.
         source: "/ig.go",
