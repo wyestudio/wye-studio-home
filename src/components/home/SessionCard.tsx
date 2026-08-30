@@ -44,17 +44,18 @@ export function SessionCard({
   const femaleConfirmClosed =
     isDatingTheme(session.session_type) && isGenderConfirmClosed(session, session.stats, "female");
 
-  const closedLabel = isDatingTheme(session.session_type)
-    ? maleConfirmClosed && femaleConfirmClosed
+  const closedLabel =
+    session.status !== "open" || isForceClosedForDisplay(session)
       ? "마감"
-      : maleConfirmClosed
-        ? "남성 마감"
-        : femaleConfirmClosed
-          ? "여성 마감"
-          : null
-    : session.status !== "open" || isForceClosedForDisplay(session)
-      ? "마감"
-      : null;
+      : isDatingTheme(session.session_type)
+        ? maleConfirmClosed && femaleConfirmClosed
+          ? "마감"
+          : maleConfirmClosed
+            ? "남성 마감"
+            : femaleConfirmClosed
+              ? "여성 마감"
+              : null
+        : null;
 
   const closingSoonLabel = closedLabel ? null : getClosingSoonLabel(session, session.stats);
   const genderSeatBadges = getGenderSeatBadges(session, session.stats);

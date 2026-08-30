@@ -14,12 +14,8 @@ export function isForceClosedForDisplay(session: Session): boolean {
 }
 
 // 실제 잔여석과 무관하게 "마감임박" 리본 + 잔여석 뱃지에 표시할 숫자를 강제 지정하고 싶은
-// 그룹 회차의 slug→잔여석. 2026-08-28: 그룹(0829-meeting) 회차는 confirmed_count 20/24로
-// 즉시확정 라인까지 아직 4자리 남았지만(신청은 계속 받음), 행사 하루 전 마감 임박감을
-// 강조하려는 마케팅 판단으로 "1석 남음" 표시만 강제함.
-const FORCE_CLOSING_SOON_SLUGS: Record<string, number> = {
-  "0829-meeting": 1,
-};
+// 그룹 회차의 slug→잔여석.
+const FORCE_CLOSING_SOON_SLUGS: Record<string, number> = {};
 
 function getForcedClosingSoonSeats(session: Session): number | null {
   return session.slug in FORCE_CLOSING_SOON_SLUGS ? FORCE_CLOSING_SOON_SLUGS[session.slug] : null;
