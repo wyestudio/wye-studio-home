@@ -1,0 +1,120 @@
+name: DB Backup
+
+# 운영 Supabase(Free 플랜)는 자동 백업을 제공하지 않는다.
+# ("Free Plan does not include project backups" — 대시보드 원문)
+# 실고객 데이터가 매주 쌓이는 구조이고, 2026-08-14 에 프로덕션 오삭제로
+# 서비스가 마비된 전력이 있어 자체 백업을 둔다. 배경은 docs/06-decisions.md D-08.
+
+on:
+  schedule:
+    # 매일 18:30 UTC = 03:30 KST (keepalive 03:00 UTC 와 시간대를 겹치지 않게 둠)
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Install postgresql-client 17
+        # 운영 Postgres 가 17.x 이므로 pg_dump 도 17 이상이어야 한다.
+        # Ubuntu 러너 기본 클라이언트는 버전이 낮아 PGDG 저장소를 추가한다.
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: Dump database
+        env:
+          # ⚠️ 반드시 Session Pooler 연결 문자열이어야 한다.
+          #    aws-<region>.pooler.supabase.com:5432
+          #    Direct connection(db.<ref>.supabase.co:5432)은 Free 플랜에서 IPv6 전용이고
+          #    GitHub Actions 러너는 IPv4 전용이라 접속 자체가 실패한다.
+          #    (Supabase 공식 문서가 GitHub Actions 를 IPv6 미지원 플랫폼으로 명시)
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::SUPABASE_DB_URL 시크릿이 설정되지 않았습니다."
+            exit 1
+          fi
+          STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+          # public: 애플리케이션 스키마 전체(테이블·데이터·함수·뷰·트리거·타입)
+          # auth  : 계정 데이터(현재 0건이나 로그인 부활 후 필수)
+          pg_dump \
+            --dbname="$SUPABASE_DB_URL" \
+            --schema=public \
+            --schema=auth \
+            --no-owner \
+            --no-privileges \
+            --format=custom \
+            --compress=9 \
+            --file="dump-${STAMP}.pgcustom"
+
+          ls -lh "dump-${STAMP}.pgcustom"
+
+      - name: Encrypt dump
+        # 이 저장소는 public 이다. public 저장소의 Actions artifact 는
+        # "read access to the repository" 만 있으면 내려받을 수 있으므로
+        # 사실상 누구나 접근 가능하다. 따라서 암호화는 선택이 아니라 필수다.
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            echo "::error::BACKUP_ENCRYPTION_PASSPHRASE 시크릿이 설정되지 않았습니다."
+            exit 1
+          fi
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes \
+            --symmetric \
+            --cipher-algo AES256 \
+            --s2k-mode 3 \
+            --s2k-digest-algo SHA512 \
+            --s2k-count 65011712 \
+            --passphrase-fd 0 \
+            --output "wye-db-${STAMP}.pgcustom.gpg" \
+            "dump-${STAMP}.pgcustom"
+
+          # 평문 덤프는 즉시 폐기 — artifact 에 절대 올라가면 안 된다.
+          shred -u "dump-${STAMP}.pgcustom" 2>/dev/null || rm -f "dump-${STAMP}.pgcustom"
+
+          sha256sum "wye-db-${STAMP}.pgcustom.gpg" > "wye-db-${STAMP}.sha256"
+          ls -lh "wye-db-${STAMP}.pgcustom.gpg"
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: wye-db-backup-${{ env.STAMP }}
+          path: |
+            wye-db-${{ env.STAMP }}.pgcustom.gpg
+            wye-db-${{ env.STAMP }}.sha256
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK_WEBHOOK_URL 미설정 — 알림 생략"
+            exit 0
+          fi
+          curl -sS -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{\"text\":\":rotating_light: DB 백업 실패 — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|실행 로그 보기>\"}"
