@@ -30,3 +30,13 @@
 | [03-current-state-application.md](./03-current-state-application.md) | 라우팅·화면·서버액션·관리자 기능 인벤토리 |
 | [04-drift-and-risks.md](./04-drift-and-risks.md) | 문서-코드-DB 불일치 + 보안·운영 리스크 (증거 포함) |
 | [05-redesign-gap-analysis.md](./05-redesign-gap-analysis.md) | 요구 변경사항 6건별 갭 분석 + 재설계 전 결정해야 할 항목 |
+
+### 결정 · 설계 (현 상태 분석을 바탕으로 작성)
+
+| 문서 | 내용 |
+|---|---|
+| [06-decisions.md](./06-decisions.md) | **결정 기록** — D-01~D-10, 사용자 질의응답으로 확정 |
+| [07-architecture-domain-and-data.md](./07-architecture-domain-and-data.md) | 설계(1) 도메인 · 데이터 모델 · RPC · 권한 · 마이그레이션 |
+| [08-architecture-screens-and-admin.md](./08-architecture-screens-and-admin.md) | 설계(2) 공개 화면 · 라우팅 · 신청 폼 · 어드민 IA |
+| [09-implementation-roadmap.md](./09-implementation-roadmap.md) | **구현 로드맵 · 배포 전략** — Phase 0~8, 롤백 계획 |
+| [RUNBOOK-db-backup-restore.md](./RUNBOOK-db-backup-restore.md) | 운영 런북 — DB 백업 설정 · 복구 절차 |
