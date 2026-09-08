@@ -250,9 +250,10 @@ create table applications (
                      check (payment_status in ('pending','confirmed','cancelled')),
 
   -- 금액 (신청 시점 스냅샷 — 나중에 테마 가격이 바뀌어도 과거 신청은 불변)
-  headcount          int  not null check (headcount >= 1),
-  unit_price_krw     int  not null,
-  amount_due_krw     int  not null,   -- ⭐ 실제 입금 요청액 (끝자리 유니크, 4-6 참고)
+  headcount           int  not null check (headcount >= 1),
+  unit_price_krw      int  not null,
+  amount_krw          int  not null,   -- headcount * unit_price_krw
+  depositor_name_hash text not null,   -- ⭐ 입금자명 정규화 후 HMAC (매칭 키, 4-6 참고)
 
   -- 동의
   consent_required   boolean not null default false,
@@ -279,7 +280,8 @@ create table applications (
 | | 변경 |
 |---|---|
 | ➕ `user_id` | **계정 연결(nullable).** 비회원 신청은 `null`. [D-06](./06-decisions.md#d-06-로그인-부활--실익-4가지-모두-채택-) |
-| ➕ `headcount` / `unit_price_krw` / `amount_due_krw` | 금액을 신청 시점에 확정 저장. 오픈뱅킹 매칭의 근거 |
+| ➕ `headcount` / `unit_price_krw` / `amount_krw` | 금액을 신청 시점에 확정 저장. 오픈뱅킹 매칭의 근거 |
+| ➕ `depositor_name_hash` | 입금자명을 **복호화 없이** 매칭하기 위한 HMAC. `phone_hash`와 같은 기법 |
 | ➖ `agreed_terms`, `consent_no_rebooking`, `consent_phone_collection`, `consent_proxy_for_group` | **잔존 컬럼 정리.** 현재 3세대 동의 컬럼이 공존 중 |
 | 유지 | `confirmation_sms_sent_at` 등 SMS 중복발송 방지 마커 3종 |
 
@@ -326,7 +328,8 @@ create table bank_transactions (
   external_id            text unique not null,   -- 은행/오픈뱅킹 거래 고유번호 (중복 수집 방지)
   transacted_at          timestamptz not null,
   amount_krw             int not null,
-  depositor_name_enc     bytea,                  -- 입금자명도 PII → 암호화
+  depositor_name_enc     bytea,                  -- 입금자명도 PII → 암호화 보관
+  depositor_name_hash    text,                   -- ⭐ 정규화 후 HMAC (매칭 키)
   raw                    jsonb not null,         -- 원본 응답 보존 (분쟁·디버깅용)
 
   matched_application_id uuid references applications(id),
@@ -337,35 +340,88 @@ create table bank_transactions (
 
   created_at             timestamptz not null default now()
 );
+
+create index on bank_transactions (amount_krw, depositor_name_hash)
+  where matched_application_id is null and ignored_at is null;
 ```
 
-#### ⭐ 금액 끝자리 유니크화 — 이 설계의 핵심
+#### ⭐ 매칭 키 — 입금액 + 입금자명
 
-오픈뱅킹은 **입금자명·금액·시각**만 준다. 입금자명은 신뢰할 수 없다(동명이인, 오타, 회사명·가족 명의 입금). 그래서 **금액을 신청 건마다 고유하게** 만들어 금액만으로 정확히 매칭한다.
+오픈뱅킹은 **입금자명·금액·시각**만 준다. **금액과 입금자명이 둘 다 일치할 때만** 자동 확정한다.
 
-```
-참가비 55,000원 · 2명 = 110,000원
+> **설계 변경 이력 (2026-09-08)**: 초안에서는 *금액 끝자리 유니크화*(110,001 / 110,002 …)를 제안했으나 **사용자가 기각**했다 — 고객 입장에서 낯선 금액은 의심을 부르고, 반올림해 입금하면 오히려 실패한다. **입금자명을 정확히 입력하도록 UI로 안내**하는 방식으로 확정. [D-07a](./06-decisions.md#d-07a-입금-확인-자동화--오픈뱅킹-api-방식-) 참고.
 
-신청 A → amount_due_krw = 110,000
-신청 B → amount_due_krw = 110,001
-신청 C → amount_due_krw = 110,002
-```
-
-미결제 상태에서 금액이 겹치지 않도록 **부분 유니크 인덱스**로 DB가 보장한다.
+**복호화 없이 매칭하기 위해 해시를 쓴다.** `depositor_name_enc`는 암호화돼 있어 그대로는 비교할 수 없다. 이미 전화번호에 쓰고 있는 `phone_hash`와 **같은 기법**을 입금자명에 적용한다.
 
 ```sql
-create unique index applications_amount_due_open_uniq
-  on applications (amount_due_krw)
-  where payment_status = 'pending' and status <> 'cancelled';
+-- 입금자명 정규화 (Postgres 17.6 에서 아래 표의 결과로 실측 검증됨)
+create function normalize_depositor_name(p_name text) returns text
+language sql immutable as $$
+  select lower(
+    regexp_replace(
+      regexp_replace(normalize(coalesce(p_name, ''), NFC),
+                     '[\(（].*?[\)）]', '', 'g'),   -- ① 괄호와 그 "안의 내용"까지 제거
+      '[[:space:][:punct:]]', '', 'g'              -- ② 남은 공백·기호 제거
+    )
+  );
+$$;
+
+-- 신청 저장 시 / 거래내역 수집 시 동일하게 계산
+depositor_name_hash := hash_phone(normalize_depositor_name(입금자명));
 ```
 
-**할당 로직**: `base = headcount * unit_price_krw` 에서 시작해 `base + 0, base + 1, …` 중 비어 있는 첫 값을 잡는다. 신청 트랜잭션 안에서 처리하므로 동시 신청에도 안전하다(유니크 인덱스가 최종 방어선).
+> `hash_phone()`은 이름이 전화번호 전용처럼 보이지만 실체는 **범용 HMAC 함수**다. 재사용하거나, 의미를 명확히 하려면 `hash_text()`로 이름만 바꿔 함께 쓴다.
 
-| 항목 | 판단 |
+#### 정규화 실측 결과 (2026-09-08, Postgres 17.6)
+
+| 입력 | 정규화 결과 | `김민수`와 매칭 |
+|---|---|---|
+| `김민수` | `김민수` | ✅ |
+| `김 민 수` | `김민수` | ✅ |
+| `김민수 ` / ` 김민수` | `김민수` | ✅ |
+| `김민수(카카오)` | `김민수` | ✅ |
+| `김민수（주）` (전각 괄호) | `김민수` | ✅ |
+| `김민수*` | `김민수` | ✅ |
+| `KIM MINSU` / `kim minsu` | `kimminsu` | ✅ 서로 일치 |
+| `(주)우주이스케이프` | `우주이스케이프` | — (다른 이름) |
+| `김민수-1` | `김민수1` | ❌ **매칭 실패** |
+
+> ⚠️ **①번 단계(괄호 안 내용 제거)가 없으면 `김민수(카카오)` → `김민수카카오`가 되어 매칭에 실패한다.** 초안에는 이 단계가 빠져 있었고, 위 표는 실제 DB에서 돌려 확인한 결과다.
+>
+> `김민수-1`처럼 **숫자 접미가 붙는 경우는 여전히 실패**한다. 은행별로 어떤 부가문자가 붙는지는 실운영 데이터를 봐야 알 수 있으므로, **초기 몇 주간 미매칭 사례를 수집해 정규화 규칙을 보강**한다. 규칙을 처음부터 과하게 공격적으로 만들면 **서로 다른 사람을 같은 사람으로 오인**할 수 있으니, 느슨하게 시작해 데이터를 보고 좁힌다.
+
+#### 매칭 판정
+
+```
+거래 1건에 대해:
+  amount_krw 일치  AND  depositor_name_hash 일치
+  AND payment_status = 'pending'  AND status <> 'cancelled'
+
+  ├─ 정확히 1건   → 자동 확정 (matched_by='auto') + 문자2 발송
+  ├─ 0건          → 미매칭 큐 → 어드민 수동 처리
+  └─ 2건 이상     → 모호 → 미매칭 큐 → 어드민 수동 처리
+```
+
+#### 이 방식이 성립하기 위한 전제 (필수)
+
+**입금자명이 정확히 일치해야만 자동 확인된다는 것을 고객이 알아야 한다.** UI 3곳에 강조 문구를 넣는다.
+
+| 위치 | 문구 성격 |
 |---|---|
-| 한계 | 같은 인원수 조합의 **동시 미입금 건이 100건을 넘으면** 여유 금액이 고갈된다. 주 1회 운영에 신청 60건 규모라면 여유가 크다. 초과 시 오프셋 범위를 넓히면 된다 |
-| 필수 조건 | **안내 문자·완료 화면에 "정확히 110,002원"을 강조**해야 한다. 고객이 반올림해 110,000원을 보내면 매칭이 실패한다 |
-| 그래도 남는 것 | 금액 불일치·중복 입금·타인 입금은 여전히 발생한다 → **어드민 "미매칭 입금" 화면이 필수**다([D-07a](./06-decisions.md#d-07a-입금-확인-자동화--오픈뱅킹-api-방식-)) |
+| **신청 폼** 입금자명 입력란 | "실제로 **입금하실 분의 성함**과 정확히 일치해야 자동 확인됩니다" — 입력란 바로 아래 경고 스타일 |
+| **신청 완료 화면** | 입금액·입금자명을 나란히 크게 재확인 노출 |
+| **문자1(신청확인)** | 동일 문구 포함 (`sms_templates`에서 편집 가능) |
+
+#### 그래도 남는 실패 케이스 → 어드민 "미매칭 입금" 화면이 필수
+
+| 케이스 | 자동 매칭 결과 |
+|---|---|
+| 동명이인이 같은 인원수로 신청 | 2건 이상 매칭 → 모호 |
+| 가족·지인·회사명으로 입금 | 0건 |
+| 금액 오입력, 중복 입금, 분할 입금 | 0건 |
+| 은행이 이름에 부가정보를 덧붙임 | 정규화가 못 흡수하면 0건 |
+
+> **완전 자동화는 불가능하다.** 자동 매칭은 대부분을 걷어내는 장치이고, 나머지를 사람이 빠르게 처리할 화면이 반드시 함께 있어야 한다. 08 문서의 어드민 설계에 이 화면을 1순위로 넣는다.
 
 ### 4-7. 나이 규칙 — 연도를 상수로 박지 않는다
 
@@ -433,7 +489,7 @@ birth_year int not null check (birth_year between 1900 and 2100)
  5. 그룹 내부 전화번호 중복 금지
  6. ⭐ 재참여 배타: theme_id 기준           ← content_group 문자열 → 외래키
  7. 정원 판정: 인원 합계 vs capacity_max    ← 성별 분기 제거
- 8. 접수번호 생성 + amount_due_krw 할당      ← 신규 (금액 끝자리 유니크화)
+ 8. 접수번호 생성 + amount_krw / depositor_name_hash 확정   ← 신규 (입금 매칭용)
  9. applications + application_attendees 삽입
 10. 정원 도달 시 status='closed'
 ```
@@ -467,8 +523,8 @@ exists (
   ├─ 1. 오픈뱅킹 거래내역 조회 (마지막 수집 시점 이후)
   ├─ 2. bank_transactions 에 upsert  (external_id 유니크 → 중복 수집 방지)
   ├─ 3. 미매칭 거래 각각에 대해:
-  │        amount_krw 와 정확히 일치하는
-  │        payment_status='pending' AND status<>'cancelled' 신청 1건 탐색
+  │        amount_krw 와 depositor_name_hash 가 모두 일치하고
+  │        payment_status='pending' AND status<>'cancelled' 인 신청 탐색
   │        ├─ 정확히 1건  → 자동 확정 (matched_by='auto')
   │        │                 payment_status='confirmed'
   │        │                 문자2(입금확인) 발송
@@ -488,7 +544,7 @@ exists (
 payment_status='pending' AND created_at < now() - interval '30 minutes'
   → status='cancelled', payment_status='cancelled'
   → 문자4(미입금취소) 발송
-  → amount_due_krw 가 해제되어 다음 신청이 재사용 가능
+  → 해당 회차 정원이 즉시 회수되어 대기자에게 자리가 돌아감
 ```
 
 30분이라는 값은 `site_settings`에 두어 운영 중 조정 가능하게 한다.
@@ -569,7 +625,8 @@ applications  ← 58건 그대로
                 user_id           = null (전부 비회원)
                 headcount         = 참여자 수 (application_attendees 카운트)
                 unit_price_krw    = 해당 회차 가격
-                amount_due_krw    = headcount * unit_price  (과거 건이므로 유니크화 불필요)
+                amount_krw          = headcount * unit_price
+                depositor_name_hash = 기존 depositor_name_enc 복호화 후 재계산
                 동의 컬럼 3세대 → consent_required / consent_optional 로 정리
 
 application_attendees ← 67건 그대로 (컬럼 변경 없음)
@@ -624,7 +681,7 @@ where ap.status <> 'cancelled';
 | # | 항목 | 필요 시점 |
 |---|---|---|
 | 1 | 오픈뱅킹 vs 은행 기업 OpenAPI 중 어느 쪽으로 갈지 | 입금 매칭 구현 착수 전 |
-| 2 | 금액 끝자리 유니크화를 실제로 적용할지 (미적용 시 수동 매칭 비중이 커짐) | 동일 |
+| 2 | 입금자명 정규화 규칙의 세부 (은행별 부가정보 패턴 수집 후 확정) | 입금 매칭 구현 중 |
 | 3 | FAQ 서식 표현 방식 (마크다운 / 제한적 HTML / 블록) | 콘텐츠 관리 구현 전 |
 | 4 | 운영자 인증을 Supabase Auth 역할 기반으로 갈지, 별도 인증 유지할지 | 어드민 재설계 착수 전 |
 | 5 | 테마 이미지 저장소 (Supabase Storage 도입 여부) | 테마 CRUD 구현 전 |
