@@ -1,7 +1,6 @@
 --
 --
 
-\restrict g2TasA2cDVlQospkaPnfZ5UDWJYTqCoec502VvOg4JGTj29ZMoTEzTPHV1KmtLS
 
 --
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
@@ -1457,5 +1456,4 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 --
 --
 
-\unrestrict g2TasA2cDVlQospkaPnfZ5UDWJYTqCoec502VvOg4JGTj29ZMoTEzTPHV1KmtLS
 

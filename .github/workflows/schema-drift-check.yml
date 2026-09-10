@@ -72,10 +72,14 @@ jobs:
             --no-owner \
             --file=schema.raw.sql
 
-          # 헤더의 버전·설정 주석은 환경에 따라 흔들려 의미 없는 diff 를 만든다.
-          # 실제 스키마 내용만 남긴다.
+          # 매 실행마다 달라지는 요소를 제거해야 의미 있는 diff 만 남는다.
+          #  - 헤더의 버전·설정 주석
+          #  - \restrict / \unrestrict : 최신 pg_dump 가 덤프를 감싸는 psql 보호
+          #    구문인데 토큰이 매 실행 랜덤 생성된다. 안 걸러내면 스키마가
+          #    동일해도 매일 거짓 드리프트 경보가 울린다 (2026-09-10 실제 발생).
           grep -vE '^-- (Dumped|PostgreSQL database dump)' schema.raw.sql \
             | grep -vE '^SET |^SELECT pg_catalog\.set_config' \
+            | grep -vE '^\\(un)?restrict ' \
             | cat -s > supabase/schema.generated.sql
 
           wc -l supabase/schema.generated.sql
