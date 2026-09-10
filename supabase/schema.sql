@@ -125,6 +125,20 @@ CREATE FUNCTION public.decrypt_pii(p_ciphertext bytea) RETURNS text
 select pgp_sym_decrypt(p_ciphertext, encode(get_pii_key(), 'escape'))::text; $$;
 
 --
+-- Name: default_min_age(timestamp with time zone, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.default_min_age(p_starts_at timestamp with time zone, p_theme_floor integer DEFAULT NULL::integer) RETURNS integer
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'public'
+    AS $$
+  select greatest(
+    case when extract(hour from (p_starts_at at time zone 'Asia/Seoul')) < 18 then 16 else 19 end,
+    coalesce(p_theme_floor, 0)
+  );
+$$;
+
+--
 -- Name: encrypt_pii(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -185,6 +199,17 @@ CREATE FUNCTION public.hash_phone(p_phone text) RETURNS text
 $$;
 
 --
+-- Name: is_eligible_birth_year(integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_eligible_birth_year(p_year integer, p_min_age integer) RETURNS boolean
+    LANGUAGE sql STABLE
+    SET search_path TO 'public'
+    AS $$
+  select p_year <= extract(year from (now() at time zone 'Asia/Seoul'))::int - (p_min_age + 1);
+$$;
+
+--
 -- Name: lookup_application(text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -220,6 +245,22 @@ begin
   from applications ap join sessions s on s.id = ap.session_id join application_attendees aa on aa.application_id = ap.id
   where ap.confirmation_code = p_confirmation_code and aa.phone_hash = v_phone_hash limit 1;
 end;
+$$;
+
+--
+-- Name: normalize_depositor_name(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.normalize_depositor_name(p_name text) RETURNS text
+    LANGUAGE sql IMMUTABLE
+    SET search_path TO 'public'
+    AS $$
+  select lower(
+    regexp_replace(
+      regexp_replace(normalize(coalesce(p_name, ''), NFC), '[\(（].*?[\)）]', '', 'g'),
+      '[[:space:][:punct:]]', '', 'g'
+    )
+  );
 $$;
 
 --
@@ -589,10 +630,34 @@ CREATE TABLE public.applications (
     consent_optional boolean DEFAULT false NOT NULL,
     refund_completed_at timestamp with time zone,
     promoted_from_waiting_at timestamp with time zone,
+    user_id uuid,
+    headcount integer,
+    unit_price_krw integer,
+    amount_krw integer,
+    depositor_name_hash text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT applications_notes_check CHECK (((notes IS NULL) OR (char_length(notes) <= 200))),
     CONSTRAINT applications_payment_status_check CHECK ((payment_status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'cancelled'::text]))),
     CONSTRAINT applications_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'confirmed'::text, 'cancelled'::text])))
 );
+
+--
+-- Name: COLUMN applications.user_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.user_id IS 'nullable = 비회원 신청. 로그인 부활 후에도 비회원 플로우 유지.';
+
+--
+-- Name: COLUMN applications.amount_krw; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.amount_krw IS 'headcount * unit_price_krw. 입금 매칭의 기준 금액.';
+
+--
+-- Name: COLUMN applications.depositor_name_hash; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.depositor_name_hash IS '입금자명 정규화 후 HMAC. 복호화 없이 입금 매칭하기 위함.';
 
 --
 -- Name: admin_application_view; Type: VIEW; Schema: public; Owner: -
@@ -788,6 +853,106 @@ CREATE VIEW public.admin_sponsorship_group_applications_view AS
    FROM public.sponsorship_group_applications;
 
 --
+-- Name: admin_users; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.admin_users (
+    user_id uuid NOT NULL,
+    name text NOT NULL,
+    role text NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT admin_users_role_check CHECK ((role = ANY (ARRAY['owner'::text, 'staff'::text])))
+);
+
+--
+-- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.audit_logs (
+    id bigint NOT NULL,
+    actor_id uuid,
+    actor_name text NOT NULL,
+    action text NOT NULL,
+    target_type text NOT NULL,
+    target_id text NOT NULL,
+    summary text,
+    detail jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: TABLE audit_logs; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.audit_logs IS '되돌리기 어려운 액션 기록. 취소·환불·수동등록·회차비활성화·입금확인 등.';
+
+--
+-- Name: audit_logs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.audit_logs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+--
+-- Name: audit_logs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.audit_logs_id_seq OWNED BY public.audit_logs.id;
+
+--
+-- Name: bank_transactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.bank_transactions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    external_id text NOT NULL,
+    transacted_at timestamp with time zone NOT NULL,
+    amount_krw integer NOT NULL,
+    depositor_name_enc bytea,
+    depositor_name_hash text,
+    raw jsonb DEFAULT '{}'::jsonb NOT NULL,
+    matched_application_id uuid,
+    matched_at timestamp with time zone,
+    matched_by text,
+    ignored_at timestamp with time zone,
+    ignored_reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT bank_transactions_matched_by_check CHECK (((matched_by IS NULL) OR (matched_by = ANY (ARRAY['auto'::text, 'manual'::text]))))
+);
+
+--
+-- Name: TABLE bank_transactions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.bank_transactions IS '오픈뱅킹에서 수집한 입금 거래. 금액+입금자명 해시로 신청과 매칭한다.';
+
+--
+-- Name: faqs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.faqs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    question text NOT NULL,
+    answer text NOT NULL,
+    category text,
+    is_visible boolean DEFAULT true NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: TABLE faqs; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.faqs IS 'FaqSection.tsx 하드코딩 대체. 기존 답변에 JSX 가 섞여 있어 서식 표현 방식 확정 후 이관할 것.';
+
+--
 -- Name: kakao_links; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -804,6 +969,35 @@ CREATE TABLE public.kakao_links (
 CREATE TABLE public.naver_links (
     naver_id text NOT NULL,
     user_id uuid NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: notices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.notices (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    is_pinned boolean DEFAULT false NOT NULL,
+    published_at timestamp with time zone,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: point_ledger; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.point_ledger (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    delta integer NOT NULL,
+    reason text NOT NULL,
+    application_id uuid,
+    expires_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -865,11 +1059,162 @@ CREATE TABLE public.sessions (
     theme_name text NOT NULL,
     session_type text NOT NULL,
     difficulty smallint DEFAULT 3 NOT NULL,
+    theme_id uuid,
+    min_age integer,
+    price_krw_override integer,
+    capacity_confirm_line_override integer,
+    capacity_max_override integer,
+    venue_id_override uuid,
+    legacy_format text,
+    legacy_slug text,
+    admin_note text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT sessions_difficulty_check CHECK (((difficulty >= 1) AND (difficulty <= 5))),
     CONSTRAINT sessions_session_type_check CHECK ((session_type = ANY (ARRAY['그룹'::text, '소개팅'::text]))),
     CONSTRAINT sessions_slot_check CHECK ((slot = ANY (ARRAY['afternoon'::text, 'evening'::text]))),
     CONSTRAINT sessions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'cancelled'::text])))
 );
+
+--
+-- Name: COLUMN sessions.theme_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sessions.theme_id IS 'Phase 2 에서 채운 뒤 not null 로 조인다.';
+
+--
+-- Name: COLUMN sessions.min_age; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sessions.min_age IS '이 회차에 실제 적용된 최소 연령. 시각에서 유도만 하지 않고 저장한다(규칙 변경이 과거를 소급하지 않도록).';
+
+--
+-- Name: COLUMN sessions.legacy_format; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sessions.legacy_format IS '과거 회차의 진행 형식(그룹/소개팅). 신규 회차는 null.';
+
+--
+-- Name: COLUMN sessions.legacy_slug; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sessions.legacy_slug IS '과거 고객 URL(0829-meeting 등). 리다이렉트용.';
+
+--
+-- Name: themes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.themes (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    tagline text,
+    description text,
+    difficulty smallint DEFAULT 3 NOT NULL,
+    duration_minutes integer NOT NULL,
+    min_age_floor integer,
+    price_krw integer NOT NULL,
+    original_price_krw integer,
+    capacity_confirm_line integer NOT NULL,
+    capacity_max integer NOT NULL,
+    capacity_min integer,
+    venue_id uuid NOT NULL,
+    accent_color text,
+    hero_image_path text,
+    content jsonb DEFAULT '{}'::jsonb NOT NULL,
+    is_active boolean DEFAULT true NOT NULL,
+    is_listed boolean DEFAULT true NOT NULL,
+    sort_order integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT themes_capacity_confirm_line_check CHECK ((capacity_confirm_line > 0)),
+    CONSTRAINT themes_capacity_max_check CHECK ((capacity_max > 0)),
+    CONSTRAINT themes_capacity_min_check CHECK (((capacity_min IS NULL) OR (capacity_min > 0))),
+    CONSTRAINT themes_capacity_order CHECK ((capacity_confirm_line <= capacity_max)),
+    CONSTRAINT themes_check CHECK (((original_price_krw IS NULL) OR (original_price_krw >= price_krw))),
+    CONSTRAINT themes_difficulty_check CHECK (((difficulty >= 1) AND (difficulty <= 5))),
+    CONSTRAINT themes_duration_minutes_check CHECK ((duration_minutes > 0)),
+    CONSTRAINT themes_min_age_floor_check CHECK (((min_age_floor IS NULL) OR ((min_age_floor >= 0) AND (min_age_floor <= 100)))),
+    CONSTRAINT themes_price_krw_check CHECK ((price_krw >= 0))
+);
+
+--
+-- Name: TABLE themes; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.themes IS '테마(상품). 회차가 가격·정원·소요시간·장소를 여기서 물려받는다.';
+
+--
+-- Name: COLUMN themes.min_age_floor; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.themes.min_age_floor IS '테마 자체의 최소 연령 하한. 시각 규칙(18시)보다 우선해 하한으로 작용한다.';
+
+--
+-- Name: COLUMN themes.content; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.themes.content IS 'for_you / steps / timetable / precautions 4개 블록. timetable 은 절대시각이 아니라 offset_min.';
+
+--
+-- Name: COLUMN themes.is_active; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.themes.is_active IS 'false 면 신규 신청 불가 (과거 이력 조회는 계속 가능)';
+
+--
+-- Name: COLUMN themes.is_listed; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.themes.is_listed IS 'false 면 목록·sitemap 미노출';
+
+--
+-- Name: session_view; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.session_view AS
+ SELECT s.id,
+    s.theme_id,
+    s.start_at,
+    s.end_at,
+    s.status,
+    s.min_age,
+    s.legacy_format,
+    s.legacy_slug,
+    t.slug AS theme_slug,
+    t.name AS theme_name,
+    t.difficulty,
+    t.duration_minutes,
+    t.accent_color,
+    COALESCE(s.price_krw_override, t.price_krw) AS price_krw,
+    t.original_price_krw,
+    COALESCE(s.capacity_confirm_line_override, t.capacity_confirm_line) AS capacity_confirm_line,
+    COALESCE(s.capacity_max_override, t.capacity_max) AS capacity_max,
+    COALESCE(s.venue_id_override, t.venue_id) AS venue_id
+   FROM (public.sessions s
+     JOIN public.themes t ON ((t.id = s.theme_id)));
+
+--
+-- Name: VIEW session_view; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON VIEW public.session_view IS '회차 실효값. price/capacity/venue 는 회차 override 가 있으면 그것을, 없으면 테마 값을 쓴다.';
+
+--
+-- Name: site_settings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.site_settings (
+    key text NOT NULL,
+    value jsonb NOT NULL,
+    description text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: TABLE site_settings; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.site_settings IS '입금 계좌·미입금 취소 시간 등 운영자가 바꾸는 값. 현재 코드 하드코딩(bankAccount.ts)을 대체.';
 
 --
 -- Name: sms_templates; Type: TABLE; Schema: public; Owner: -
@@ -882,6 +1227,57 @@ CREATE TABLE public.sms_templates (
     placeholders text[] DEFAULT '{}'::text[] NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+--
+-- Name: venues; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.venues (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    address text NOT NULL,
+    area_label text NOT NULL,
+    parking_note text,
+    map_url text,
+    is_active boolean DEFAULT true NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: TABLE venues; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.venues IS '대관 장소. 정확 주소는 비공개, area_label 만 공개된다.';
+
+--
+-- Name: COLUMN venues.area_label; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.venues.area_label IS '공개용 대략 위치. venue_public 뷰를 통해서만 노출된다.';
+
+--
+-- Name: venue_public; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.venue_public AS
+ SELECT id,
+    area_label
+   FROM public.venues
+  WHERE is_active;
+
+--
+-- Name: audit_logs id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_logs ALTER COLUMN id SET DEFAULT nextval('public.audit_logs_id_seq'::regclass);
+
+--
+-- Name: admin_users admin_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_users
+    ADD CONSTRAINT admin_users_pkey PRIMARY KEY (user_id);
 
 --
 -- Name: application_attendees application_attendees_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -912,6 +1308,34 @@ ALTER TABLE ONLY public.applications
     ADD CONSTRAINT applications_pkey PRIMARY KEY (id);
 
 --
+-- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_logs
+    ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (id);
+
+--
+-- Name: bank_transactions bank_transactions_external_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bank_transactions
+    ADD CONSTRAINT bank_transactions_external_id_key UNIQUE (external_id);
+
+--
+-- Name: bank_transactions bank_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bank_transactions
+    ADD CONSTRAINT bank_transactions_pkey PRIMARY KEY (id);
+
+--
+-- Name: faqs faqs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.faqs
+    ADD CONSTRAINT faqs_pkey PRIMARY KEY (id);
+
+--
 -- Name: kakao_links kakao_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -924,6 +1348,20 @@ ALTER TABLE ONLY public.kakao_links
 
 ALTER TABLE ONLY public.naver_links
     ADD CONSTRAINT naver_links_pkey PRIMARY KEY (naver_id);
+
+--
+-- Name: notices notices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.notices
+    ADD CONSTRAINT notices_pkey PRIMARY KEY (id);
+
+--
+-- Name: point_ledger point_ledger_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_ledger
+    ADD CONSTRAINT point_ledger_pkey PRIMARY KEY (id);
 
 --
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -961,6 +1399,13 @@ ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_slug_key UNIQUE (slug);
 
 --
+-- Name: site_settings site_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.site_settings
+    ADD CONSTRAINT site_settings_pkey PRIMARY KEY (key);
+
+--
 -- Name: sms_templates sms_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -982,10 +1427,67 @@ ALTER TABLE ONLY public.sponsorship_group_applications
     ADD CONSTRAINT sponsorship_group_applications_pkey PRIMARY KEY (id);
 
 --
+-- Name: themes themes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.themes
+    ADD CONSTRAINT themes_pkey PRIMARY KEY (id);
+
+--
+-- Name: themes themes_slug_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.themes
+    ADD CONSTRAINT themes_slug_key UNIQUE (slug);
+
+--
+-- Name: venues venues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.venues
+    ADD CONSTRAINT venues_pkey PRIMARY KEY (id);
+
+--
 -- Name: application_attendees_phone_hash_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX application_attendees_phone_hash_idx ON public.application_attendees USING btree (phone_hash);
+
+--
+-- Name: applications_matching_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX applications_matching_idx ON public.applications USING btree (amount_krw, depositor_name_hash) WHERE ((payment_status = 'pending'::text) AND (status <> 'cancelled'::text));
+
+--
+-- Name: applications_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX applications_user_idx ON public.applications USING btree (user_id) WHERE (user_id IS NOT NULL);
+
+--
+-- Name: audit_logs_recent_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX audit_logs_recent_idx ON public.audit_logs USING btree (created_at DESC);
+
+--
+-- Name: audit_logs_target_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX audit_logs_target_idx ON public.audit_logs USING btree (target_type, target_id);
+
+--
+-- Name: bank_tx_unmatched_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX bank_tx_unmatched_idx ON public.bank_transactions USING btree (amount_krw, depositor_name_hash) WHERE ((matched_application_id IS NULL) AND (ignored_at IS NULL));
+
+--
+-- Name: point_ledger_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX point_ledger_user_idx ON public.point_ledger USING btree (user_id, created_at DESC);
 
 --
 -- Name: profiles_phone_digits_key; Type: INDEX; Schema: public; Owner: -
@@ -994,10 +1496,29 @@ CREATE INDEX application_attendees_phone_hash_idx ON public.application_attendee
 CREATE UNIQUE INDEX profiles_phone_digits_key ON public.profiles USING btree (phone_digits);
 
 --
+-- Name: sessions_theme_starts_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sessions_theme_starts_idx ON public.sessions USING btree (theme_id, start_at);
+
+--
+-- Name: themes_listed_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX themes_listed_idx ON public.themes USING btree (is_listed, sort_order) WHERE is_active;
+
+--
 -- Name: sessions trg_sessions_generate_labels; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER trg_sessions_generate_labels BEFORE INSERT ON public.sessions FOR EACH ROW EXECUTE FUNCTION public.sessions_generate_labels();
+
+--
+-- Name: admin_users admin_users_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.admin_users
+    ADD CONSTRAINT admin_users_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
 
 --
 -- Name: application_attendees application_attendees_application_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -1021,6 +1542,27 @@ ALTER TABLE ONLY public.applications
     ADD CONSTRAINT applications_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE CASCADE;
 
 --
+-- Name: applications applications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.applications
+    ADD CONSTRAINT applications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
+
+--
+-- Name: audit_logs audit_logs_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.audit_logs
+    ADD CONSTRAINT audit_logs_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES auth.users(id);
+
+--
+-- Name: bank_transactions bank_transactions_matched_application_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.bank_transactions
+    ADD CONSTRAINT bank_transactions_matched_application_id_fkey FOREIGN KEY (matched_application_id) REFERENCES public.applications(id);
+
+--
 -- Name: kakao_links kakao_links_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1033,6 +1575,20 @@ ALTER TABLE ONLY public.kakao_links
 
 ALTER TABLE ONLY public.naver_links
     ADD CONSTRAINT naver_links_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+--
+-- Name: point_ledger point_ledger_application_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_ledger
+    ADD CONSTRAINT point_ledger_application_id_fkey FOREIGN KEY (application_id) REFERENCES public.applications(id);
+
+--
+-- Name: point_ledger point_ledger_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.point_ledger
+    ADD CONSTRAINT point_ledger_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id);
 
 --
 -- Name: profiles profiles_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -1049,10 +1605,37 @@ ALTER TABLE ONLY public.session_venues
     ADD CONSTRAINT session_venues_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE CASCADE;
 
 --
+-- Name: sessions sessions_theme_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_theme_id_fkey FOREIGN KEY (theme_id) REFERENCES public.themes(id);
+
+--
+-- Name: sessions sessions_venue_id_override_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sessions
+    ADD CONSTRAINT sessions_venue_id_override_fkey FOREIGN KEY (venue_id_override) REFERENCES public.venues(id);
+
+--
+-- Name: themes themes_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.themes
+    ADD CONSTRAINT themes_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id);
+
+--
 -- Name: _backup_applications_20260815; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public._backup_applications_20260815 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: admin_users; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: application_attendees; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1065,6 +1648,30 @@ ALTER TABLE public.application_attendees ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: audit_logs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: bank_transactions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.bank_transactions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: faqs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: faqs faqs_select_visible; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY faqs_select_visible ON public.faqs FOR SELECT USING (is_visible);
 
 --
 -- Name: kakao_links; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1089,6 +1696,30 @@ ALTER TABLE public.naver_links ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY naver_links_select_own ON public.naver_links FOR SELECT TO authenticated USING ((auth.uid() = user_id));
+
+--
+-- Name: notices; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.notices ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: notices notices_select_published; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY notices_select_published ON public.notices FOR SELECT USING (((published_at IS NOT NULL) AND (published_at <= now())));
+
+--
+-- Name: point_ledger; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.point_ledger ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: point_ledger point_ledger_select_own; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY point_ledger_select_own ON public.point_ledger FOR SELECT TO authenticated USING ((auth.uid() = user_id));
 
 --
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1139,6 +1770,12 @@ ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY sessions_select_public ON public.sessions FOR SELECT USING (true);
 
 --
+-- Name: site_settings; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: sms_templates; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -1155,6 +1792,24 @@ ALTER TABLE public.sponsorship_dating_applications ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.sponsorship_group_applications ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: themes; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.themes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: themes themes_select_public; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY themes_select_public ON public.themes FOR SELECT USING (is_active);
+
+--
+-- Name: venues; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: SCHEMA public; Type: ACL; Schema: -; Owner: -
@@ -1204,6 +1859,13 @@ REVOKE ALL ON FUNCTION public.decrypt_pii(p_ciphertext bytea) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.decrypt_pii(p_ciphertext bytea) TO service_role;
 
 --
+-- Name: FUNCTION default_min_age(p_starts_at timestamp with time zone, p_theme_floor integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.default_min_age(p_starts_at timestamp with time zone, p_theme_floor integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.default_min_age(p_starts_at timestamp with time zone, p_theme_floor integer) TO service_role;
+
+--
 -- Name: FUNCTION encrypt_pii(p_plaintext text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -1230,11 +1892,25 @@ GRANT ALL ON FUNCTION public.get_session_stats(p_session_id uuid) TO authenticat
 REVOKE ALL ON FUNCTION public.hash_phone(p_phone text) FROM PUBLIC;
 
 --
+-- Name: FUNCTION is_eligible_birth_year(p_year integer, p_min_age integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.is_eligible_birth_year(p_year integer, p_min_age integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.is_eligible_birth_year(p_year integer, p_min_age integer) TO service_role;
+
+--
 -- Name: FUNCTION lookup_application(p_phone_digits text, p_confirmation_code text); Type: ACL; Schema: public; Owner: -
 --
 
 GRANT ALL ON FUNCTION public.lookup_application(p_phone_digits text, p_confirmation_code text) TO anon;
 GRANT ALL ON FUNCTION public.lookup_application(p_phone_digits text, p_confirmation_code text) TO authenticated;
+
+--
+-- Name: FUNCTION normalize_depositor_name(p_name text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.normalize_depositor_name(p_name text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.normalize_depositor_name(p_name text) TO service_role;
 
 --
 -- Name: FUNCTION submit_application(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean); Type: ACL; Schema: public; Owner: -
@@ -1357,6 +2033,38 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_sponsorship_gro
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_sponsorship_group_applications_view TO service_role;
 
 --
+-- Name: TABLE admin_users; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_users TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_users TO authenticated;
+GRANT ALL ON TABLE public.admin_users TO service_role;
+
+--
+-- Name: TABLE audit_logs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.audit_logs TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.audit_logs TO authenticated;
+GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.audit_logs TO service_role;
+
+--
+-- Name: TABLE bank_transactions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.bank_transactions TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.bank_transactions TO authenticated;
+GRANT ALL ON TABLE public.bank_transactions TO service_role;
+
+--
+-- Name: TABLE faqs; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.faqs TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.faqs TO authenticated;
+GRANT ALL ON TABLE public.faqs TO service_role;
+
+--
 -- Name: TABLE kakao_links; Type: ACL; Schema: public; Owner: -
 --
 
@@ -1371,6 +2079,22 @@ GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE public.
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.naver_links TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.naver_links TO authenticated;
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE public.naver_links TO service_role;
+
+--
+-- Name: TABLE notices; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.notices TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.notices TO authenticated;
+GRANT ALL ON TABLE public.notices TO service_role;
+
+--
+-- Name: TABLE point_ledger; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.point_ledger TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.point_ledger TO authenticated;
+GRANT ALL ON TABLE public.point_ledger TO service_role;
 
 --
 -- Name: TABLE profiles; Type: ACL; Schema: public; Owner: -
@@ -1397,12 +2121,52 @@ GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.sessions TO au
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.sessions TO service_role;
 
 --
+-- Name: TABLE themes; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.themes TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.themes TO authenticated;
+GRANT ALL ON TABLE public.themes TO service_role;
+
+--
+-- Name: TABLE session_view; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_view TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_view TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_view TO service_role;
+
+--
+-- Name: TABLE site_settings; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.site_settings TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.site_settings TO authenticated;
+GRANT ALL ON TABLE public.site_settings TO service_role;
+
+--
 -- Name: TABLE sms_templates; Type: ACL; Schema: public; Owner: -
 --
 
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.sms_templates TO anon;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.sms_templates TO authenticated;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE public.sms_templates TO service_role;
+
+--
+-- Name: TABLE venues; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.venues TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.venues TO authenticated;
+GRANT ALL ON TABLE public.venues TO service_role;
+
+--
+-- Name: TABLE venue_public; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.venue_public TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.venue_public TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.venue_public TO service_role;
 
 --
 -- Name: DEFAULT PRIVILEGES FOR SEQUENCES; Type: DEFAULT ACL; Schema: public; Owner: -
