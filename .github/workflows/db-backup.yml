@@ -34,7 +34,21 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
+          # ⚠️ Ubuntu 의 /usr/bin/pg_dump 는 실제 바이너리가 아니라 버전을 고르는
+          #    래퍼(pg_wrapper)다. 러너에 미리 설치된 16 을 선택해버려
+          #    "server version mismatch" 로 실패한 이력이 있다(2026-09-10).
+          #    17 의 실제 바이너리 경로를 PATH 최상단에 명시적으로 올린다.
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Verify pg_dump version
+        run: |
+          set -euo pipefail
+          which pg_dump
           pg_dump --version
+          pg_dump --version | grep -qE ' 17\.' || {
+            echo "::error::pg_dump 가 17 버전이 아닙니다. 서버(17.x)와 불일치하면 덤프가 실패합니다."
+            exit 1
+          }
 
       - name: Dump database
         env:
