@@ -141,11 +141,20 @@ GitHub → **Actions → DB Backup** → 복구하려는 날짜의 실행 → �
 
 ### 3-2. 무결성 확인 후 복호화
 
-> ⚠️ **사전 준비: 이 Mac에는 `gpg`가 설치돼 있지 않다** (2026-09-10 확인). 복구 상황에서 당황하지 않도록 **미리 설치해둘 것.**
+> ⚠️ **사전 준비 (2026-09-10 확인: 이 Mac 에는 둘 다 없었다).** 복구는 급한 상황에서 하게 되므로 **미리 설치해둘 것.**
+>
 > ```bash
+> # 1) 백업 파일 복호화용
 > brew install gnupg
+>
+> # 2) 덤프 확인·복구용 (pg_restore)
+> brew install libpq
+> export PATH="$(brew --prefix libpq)/bin:$PATH"
+> pg_restore --version
 > ```
-> `pg_restore`도 필요하다 — 없으면 `brew install libpq` 후 PATH 추가.
+>
+> `libpq` 는 Homebrew 가 PATH 에 자동 등록하지 않는 keg-only 패키지다. **`export PATH` 를 빠뜨리면 `zsh: command not found: pg_restore` 가 난다.**
+> 영구 적용: `echo 'export PATH="$(brew --prefix libpq)/bin:$PATH"' >> ~/.zshrc`
 
 ```bash
 # 무결성 확인 (macOS 는 sha256sum 대신 shasum -a 256)
@@ -158,6 +167,9 @@ gpg --output restored.pgcustom --decrypt wye-db-<STAMP>.pgcustom.gpg
 ### 3-3. 내용 확인 (복구 전에 반드시)
 
 ```bash
+# 가장 빠른 사전 확인 — 정상적인 커스텀 덤프면 'PGDMP' 로 시작한다
+head -c 5 restored.pgcustom
+
 # 어떤 객체가 들어있는지 목록만 먼저 본다
 pg_restore --list restored.pgcustom | head -50
 
