@@ -125,6 +125,8 @@ create table themes (
   -- 스펙
   difficulty            smallint not null default 3 check (difficulty between 1 and 5),
   duration_minutes      int not null,               -- 210 (3시간 30분)
+  min_age_floor         int,                        -- 테마 자체의 최소 연령 하한(선택).
+                                                    -- 시각과 무관하게 성인 전용인 테마용
 
   -- 가격 · 정원 (회차가 물려받음)
   price_krw             int not null,
@@ -196,6 +198,10 @@ create table sessions (
   ends_at     timestamptz not null,   -- 미입력 시 starts_at + theme.duration_minutes 자동
   status      text not null default 'open'
               check (status in ('open','closed','cancelled')),
+  min_age     int not null,          -- ⭐ 이 회차에 실제 적용된 최소 연령 (D-03)
+                                     --   생성 시 자동 계산: starts_at(KST) < 18:00 ? 16 : 19
+                                     --   themes.min_age_floor 가 있으면 그보다 낮출 수 없다
+                                     --   어드민에서 조정 가능
 
   -- 회차별 예외 (null = 테마 값 사용)
   price_krw_override             int,
@@ -428,12 +434,28 @@ depositor_name_hash := hash_phone(normalize_depositor_name(입금자명));
 현행 `check (birth_year between 1987 and 2007)`은 **해가 바뀌면 사람이 고쳐야 하는 폭탄**이다.
 
 ```sql
--- 만 14세가 확실한 사람만 (보수적 판정)
-create function is_eligible_birth_year(p_year int) returns boolean
+-- 회차의 min_age 를 만족하는 것이 "확실한" 출생연도만 통과 (보수적 판정)
+create function is_eligible_birth_year(p_year int, p_min_age int) returns boolean
 language sql stable as $$          -- ⚠️ immutable 아님 (아래 설명)
-  select p_year <= extract(year from (now() at time zone 'Asia/Seoul'))::int - 15;
+  select p_year <= extract(year from (now() at time zone 'Asia/Seoul'))::int - (p_min_age + 1);
+$$;
+
+-- 회차 생성 시 min_age 자동 계산 (D-03: 18시 기준 분기)
+create function default_min_age(p_starts_at timestamptz, p_theme_floor int default null)
+returns int language sql immutable as $$
+  select greatest(
+    case when extract(hour from (p_starts_at at time zone 'Asia/Seoul')) < 18 then 16 else 19 end,
+    coalesce(p_theme_floor, 0)
+  );
 $$;
 ```
+
+| 회차 시작 (KST) | `min_age` | 2026년 기준 허용 출생연도 |
+|---|---|---|
+| 18:00 이전 | 16 | **2009년생 이하** |
+| 18:00 이후 | 19 | **2006년생 이하** |
+
+> `min_age` 를 **회차에 저장**하는 이유: 시각에서 매번 유도하면, 나중에 18시 기준이 바뀔 때 **과거 회차의 적용 기준까지 소급해 바뀐다.** 저장해두면 "그 회차에 실제로 적용된 규칙"이 영구히 남는다.
 
 > ⚠️ **`immutable`로 선언하면 안 된다.** `now()`를 쓰는 함수를 `immutable`로 표시하면 플래너가 결과를 상수로 접어버려, **해가 바뀌어도 옛 기준이 그대로 남는** 사고가 난다. 반드시 `stable`이다.
 >
@@ -485,7 +507,7 @@ birth_year int not null check (birth_year between 1900 and 2100)
  1. 필수 약관 동의
  2. 회차 존재 + status = 'open'  (session_view 로 실효값 조회, FOR UPDATE 로 잠금)
  3. 참여 인원 >= 1
- 4. 출생년도: 만 14세 단일 규칙            ← 테마별 분기 제거
+ 4. 출생년도: 회차의 min_age 기준 판정      ← 테마별 분기 제거, 시각별 차등(D-03)
  5. 그룹 내부 전화번호 중복 금지
  6. ⭐ 재참여 배타: theme_id 기준           ← content_group 문자열 → 외래키
  7. 정원 판정: 인원 합계 vs capacity_max    ← 성별 분기 제거
