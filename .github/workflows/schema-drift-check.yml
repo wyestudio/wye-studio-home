@@ -1,0 +1,122 @@
+name: Schema Drift Check
+
+# 운영 DB 의 실제 스키마와 리포지토리의 supabase/schema.sql 을 대조한다.
+#
+# 왜 필요한가
+#   2026-08-14 에 프로덕션 함수를 잘못 삭제해 서비스가 마비된 장애가 있었다.
+#   직접 원인은 "SQL Editor 에서 직접 만든 ad-hoc 함수라 원본이 어디에도
+#   기록돼 있지 않았던 것" 이다.
+#   또한 supabase-schema.sql 은 5,080줄짜리 append-only 변경 로그이고
+#   supabase-schema-clean.sql 은 v13 무렵에서 멈춰 있어, "지금 스키마가
+#   무엇인가"를 파일로 답할 수 없는 상태였다.
+#
+#   이 잡은 매일 운영 DB 스키마를 떠서 커밋된 파일과 비교하고, 다르면
+#   Slack 으로 알린다. 즉 마이그레이션을 거치지 않은 변경을 탐지한다.
+#   배경: docs/09-implementation-roadmap.md Phase 0-5
+#
+# 자동 커밋을 하지 않는 이유
+#   main 에 자동 커밋하면 Vercel 이 매번 운영 재배포를 하게 된다.
+#   드리프트는 "조용히 덮어쓸 것"이 아니라 "사람이 알아채야 할 신호"다.
+#   따라서 알리기만 하고, 반영은 사람이 마이그레이션으로 한다.
+
+on:
+  schedule:
+    # 매일 UTC 19:40 = KST 04:40 (백업 03:30 이후, 정각 회피)
+    - cron: "40 19 * * *"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "supabase/schema.sql"
+      - "supabase/migrations/**"
+
+concurrency:
+  group: schema-drift-check
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install postgresql-client 17
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+            https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          # /usr/bin/pg_dump 은 버전을 고르는 래퍼라 러너의 구버전을 집을 수 있다.
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+
+      - name: Dump current schema
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          mkdir -p supabase
+
+          # --schema-only  : 데이터 없음 → 개인정보가 포함되지 않는다 (public 저장소 안전)
+          # privileges 포함: GRANT/REVOKE 는 이 프로젝트 보안 설계의 핵심이라
+          #                  (테이블 GRANT 를 안 주는 것이 1차 방어선) 반드시 남긴다
+          pg_dump \
+            --dbname="$SUPABASE_DB_URL" \
+            --schema=public \
+            --schema-only \
+            --no-owner \
+            --file=schema.raw.sql
+
+          # 헤더의 버전·설정 주석은 환경에 따라 흔들려 의미 없는 diff 를 만든다.
+          # 실제 스키마 내용만 남긴다.
+          grep -vE '^-- (Dumped|PostgreSQL database dump)' schema.raw.sql \
+            | grep -vE '^SET |^SELECT pg_catalog\.set_config' \
+            | cat -s > supabase/schema.generated.sql
+
+          wc -l supabase/schema.generated.sql
+
+      - name: Compare with committed schema
+        id: diff
+        run: |
+          set -euo pipefail
+          if [ ! -f supabase/schema.sql ]; then
+            echo "::warning::supabase/schema.sql 이 아직 없습니다. 생성된 스냅샷을 artifact 로 올립니다."
+            echo "status=bootstrap" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if diff -q supabase/schema.sql supabase/schema.generated.sql > /dev/null; then
+            echo "✅ 드리프트 없음 — 운영 DB 와 supabase/schema.sql 이 일치합니다."
+            echo "status=clean" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::운영 DB 스키마가 supabase/schema.sql 과 다릅니다 (드리프트 감지)"
+            echo "status=drift" >> "$GITHUB_OUTPUT"
+            echo "--- 차이 (앞 200줄) ---"
+            diff -u supabase/schema.sql supabase/schema.generated.sql | head -200 || true
+            exit 1
+          fi
+
+      - name: Upload generated schema
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-snapshot
+          path: supabase/schema.generated.sql
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Notify Slack on drift
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then exit 0; fi
+          curl -sS -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{\"text\":\":warning: DB 스키마 드리프트 감지 — 마이그레이션을 거치지 않은 변경일 수 있습니다. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|확인하기>\"}"
