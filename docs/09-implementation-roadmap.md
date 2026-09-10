@@ -110,11 +110,43 @@ DB 변경을 세 단계로 쪼개, **각 단계가 단독으로 안전**하게 �
 
 | # | 작업 | 상태 |
 |---|---|---|
-| 0-1 | **백업 시크릿 3개 등록 + 첫 백업 검증** | ⏳ 담당자 조치 대기 ([런북 §1](./RUNBOOK-db-backup-restore.md)) |
-| 0-2 | **Vault PII 키 별도 보관** | ⏳ 담당자 조치 대기 |
-| 0-3 | `v45` 위생 마이그레이션 (`applications`의 `authenticated` SELECT 회수, `sessions_generate_labels` search_path) | ⏳ 권한 승인 대기 |
-| 0-4 | **크론 실행 기반 구축** | 미착수 |
-| 0-5 | **스키마 관리 전환** — `supabase/migrations/` + 선언형 `supabase/schema.sql` | 미착수 |
+| 0-1 | **백업 시크릿 등록 + 첫 백업 검증** | ✅ **완료 (2026-09-10)** — 복호화·내용 검증까지 ([런북](./RUNBOOK-db-backup-restore.md)) |
+| 0-2 | **Vault PII 키 별도 보관** | ✅ 담당자 완료 |
+| 0-3 | `v45` 위생 마이그레이션 | ✅ **완료** — `applications`의 `authenticated` SELECT 회수, `search_path` 고정 |
+| 0-4 | **크론 실행 기반 구축** | ✅ **완료** — 전날안내 크론 자동화 (입금 매칭용은 Phase 5) |
+| 0-5 | **스키마 관리 전환** | ✅ **완료** — `supabase/schema.sql` + 드리프트 탐지 |
+
+### Phase 0 결과 요약 (2026-09-10)
+
+**신규 워크플로 3종**
+
+| 워크플로 | 주기 | 역할 |
+|---|---|---|
+| `db-backup.yml` | 매일 KST 03:30 | DB 백업 (AES256 암호화, 90일 보관) |
+| `cron-reminder.yml` | KST 10:17~20:17, 2시간 간격 6회 | 전날안내 문자 자동 발송 |
+| `schema-drift-check.yml` | 매일 KST 04:40 | 마이그레이션을 거치지 않은 스키마 변경 탐지 |
+
+**운영 DB 마이그레이션 2건**
+
+- `v44` — PII 함수 3종(`encrypt_pii`/`decrypt_pii`/`get_pii_key`)의 PUBLIC 실행권한 회수
+- `v45` — `applications`의 불필요한 `authenticated` SELECT 회수 + `sessions_generate_labels` search_path 고정
+
+**스키마 관리 전환**
+
+- `supabase/schema.sql` (1,457줄) — 현재 스키마 단일 기준
+- `supabase/migrations/` — 앞으로의 변경이 쌓일 자리
+- 옛 파일 2종(`supabase-schema.sql`, `supabase-schema-clean.sql`)에 폐기 경고 헤더 삽입
+
+#### 구현 중 발견해 해결한 함정 4가지
+
+| # | 함정 | 해결 |
+|---|---|---|
+| 1 | `postgresql-client-17` 을 설치해도 `/usr/bin/pg_dump` 래퍼가 러너의 16 을 선택 → `server version mismatch` | `/usr/lib/postgresql/17/bin` 을 `GITHUB_PATH` 에 추가 + 버전 검증 단계 |
+| 2 | **Vercel Hobby 크론은 하루 1회 제한**(±59분 오차). 라우트 조건이 `now~now+24h` 라 타이밍이 어긋남 | GitHub Actions 로 2시간 간격 실행 |
+| 3 | 크론을 24시간 균등 실행하면 **새벽에 고객 문자 발송** | 실행 시각을 KST 10:17~20:17 로 제한 |
+| 4 | 최신 `pg_dump` 의 `\restrict` 토큰이 **매 실행 랜덤** → 스키마가 같아도 매일 거짓 드리프트 경보 | 정규화 단계에서 해당 줄 제외 |
+
+> ⚠️ **Phase 5(입금 매칭)는 GitHub Actions 로 하면 안 된다.** GitHub 공식 문서가 *"schedule 은 부하가 높으면 지연되거나 큐에서 버려질 수 있다"* 고 명시한다. 전날안내는 하루 6번 시도 + 중복방지 마커가 있어 유실을 견디지만, 입금 매칭은 유실 시 **고객 입금이 확인되지 않는다.** 외부 전용 크론 서비스(cron-job.org 등)를 쓸 것.
 
 > **0-1은 다음 단계의 하드 전제다.** 스키마를 크게 바꾸기 전에 되돌아갈 지점이 반드시 있어야 한다.
 >
