@@ -58,6 +58,34 @@ openssl rand -base64 48
 
 Actions 탭 → **DB Backup** → **Run workflow** 로 수동 실행해 성공하는지 확인한다.
 
+#### ✅ 최초 실행 기록 (2026-09-10)
+
+| 항목 | 결과 |
+|---|---|
+| 워크플로 실행 | 성공 (44초) |
+| artifact | `wye-db-backup-20260910T013953Z` · **68KB** · 90일 보관 |
+| SHA-256 무결성 | ✅ OK |
+| 파일 형식 | ✅ `PGP symmetric key encrypted data - AES with 256-bit key salted & iterated - SHA512` |
+| 평문 유출 검사 | ✅ 암호문에서 `PGDMP`·테이블명 등 평문 흔적 없음 |
+| Slack 실패 알림 | ✅ 동작 확인 (첫 시도 실패 시 실제로 발송됨) |
+
+**첫 시도는 실패했고 원인은 `pg_dump` 버전이었다.** Ubuntu 의 `/usr/bin/pg_dump` 는 실제 바이너리가 아니라 버전을 고르는 래퍼라, `postgresql-client-17` 을 설치해도 러너에 미리 깔린 16 을 선택해 `server version mismatch` 로 실패했다. `/usr/lib/postgresql/17/bin` 을 `GITHUB_PATH` 에 올려 해결했고, 같은 문제가 조용히 재발하지 않도록 **버전 검증 단계**를 추가했다.
+
+#### ⏳ 아직 검증되지 않은 것 — 담당자가 직접 해야 함
+
+**실제 복호화 테스트.** 암호가 있어야 하므로 담당자만 할 수 있다. 이걸 안 해보면 "열리지 않는 백업"을 쌓고 있을 위험이 남는다.
+
+```bash
+brew install gnupg                                  # 최초 1회
+gh run download <RUN_ID> --dir ~/backup-test        # 또는 Actions 화면에서 다운로드
+cd ~/backup-test/wye-db-backup-*
+shasum -a 256 -c *.sha256
+gpg --output restored.pgcustom --decrypt *.pgcustom.gpg
+pg_restore --list restored.pgcustom | grep -E "applications|sessions" | head
+```
+
+마지막 명령에 테이블 목록이 나오면 **복구 가능한 백업임이 증명된 것**이다.
+
 ---
 
 ## 2. 평소 동작
@@ -92,11 +120,17 @@ GitHub → **Actions → DB Backup** → 복구하려는 날짜의 실행 → �
 
 ### 3-2. 무결성 확인 후 복호화
 
-```bash
-# 무결성 확인
-sha256sum -c wye-db-<STAMP>.sha256
+> ⚠️ **사전 준비: 이 Mac에는 `gpg`가 설치돼 있지 않다** (2026-09-10 확인). 복구 상황에서 당황하지 않도록 **미리 설치해둘 것.**
+> ```bash
+> brew install gnupg
+> ```
+> `pg_restore`도 필요하다 — 없으면 `brew install libpq` 후 PATH 추가.
 
-# 복호화 (BACKUP_ENCRYPTION_PASSPHRASE 입력)
+```bash
+# 무결성 확인 (macOS 는 sha256sum 대신 shasum -a 256)
+shasum -a 256 -c wye-db-<STAMP>.sha256
+
+# 복호화 (BACKUP_ENCRYPTION_PASSPHRASE 입력 프롬프트가 뜬다)
 gpg --output restored.pgcustom --decrypt wye-db-<STAMP>.pgcustom.gpg
 ```
 
