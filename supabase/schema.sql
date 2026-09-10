@@ -1,7 +1,6 @@
 --
 --
 
-
 --
 -- Name: public; Type: SCHEMA; Schema: -; Owner: -
 --
@@ -1455,5 +1454,4 @@ ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT ALL ON T
 
 --
 --
-
 
