@@ -71,20 +71,44 @@ Actions 탭 → **DB Backup** → **Run workflow** 로 수동 실행해 성공�
 
 **첫 시도는 실패했고 원인은 `pg_dump` 버전이었다.** Ubuntu 의 `/usr/bin/pg_dump` 는 실제 바이너리가 아니라 버전을 고르는 래퍼라, `postgresql-client-17` 을 설치해도 러너에 미리 깔린 16 을 선택해 `server version mismatch` 로 실패했다. `/usr/lib/postgresql/17/bin` 을 `GITHUB_PATH` 에 올려 해결했고, 같은 문제가 조용히 재발하지 않도록 **버전 검증 단계**를 추가했다.
 
-#### ⏳ 아직 검증되지 않은 것 — 담당자가 직접 해야 함
+#### ✅ 복호화 · 내용 검증까지 완료 (2026-09-10)
 
-**실제 복호화 테스트.** 암호가 있어야 하므로 담당자만 할 수 있다. 이걸 안 해보면 "열리지 않는 백업"을 쌓고 있을 위험이 남는다.
+담당자가 실제 암호로 복호화에 성공했고, 덤프 내용까지 확인했다.
+
+| 항목 | 결과 |
+|---|---|
+| GPG 복호화 | ✅ 성공 |
+| 덤프 헤더 | ✅ `PGDMP` (정상 커스텀 포맷) |
+| public 테이블 12개 | ✅ **전부 스키마 + 데이터 포함** |
+| 함수 / 뷰 / 트리거 / 타입 | ✅ 16 / 5 / 1 / 1 — 운영 DB 실측치와 일치 |
+| 핵심 함수 | ✅ `submit_application` · `lookup_application` · `cancel_application` · `get_session_stats` |
+| `auth.users` | ✅ 스키마 + 데이터 (로그인 부활 대비) |
+
+**→ 백업 생성 → 암호화 → 복호화 → 복구 가능성까지 전 구간이 증명되었다.**
+
+> **`pg_restore` 버전이 백업보다 높아도 된다.** 이번 검증은 백업(`pg_dump` 17) 을 `pg_restore` 18.6 으로 읽었고 문제없었다.
+> 반대 방향(낮은 도구로 높은 백업 읽기)만 실패한다 — 첫 백업이 `pg_dump` 16 으로 서버 17 을 덤프하려다 실패한 것이 그 경우다.
+
+#### 🧹 검증 후 정리 (중요)
+
+복호화한 `restored.pgcustom` 은 **암호가 풀린 고객 데이터**다. 검증이 끝나면 반드시 지운다.
 
 ```bash
-brew install gnupg                                  # 최초 1회
-gh run download <RUN_ID> --dir ~/backup-test        # 또는 Actions 화면에서 다운로드
+rm -rf ~/backup-test
+```
+
+#### 재검증 절차 (분기 1회)
+
+```bash
+brew install gnupg libpq                              # 최초 1회
+export PATH="$(brew --prefix libpq)/bin:$PATH"        # libpq 는 keg-only
+gh run download <RUN_ID> --dir ~/backup-test
 cd ~/backup-test/wye-db-backup-*
 shasum -a 256 -c *.sha256
 gpg --output restored.pgcustom --decrypt *.pgcustom.gpg
 pg_restore --list restored.pgcustom | grep -E "applications|sessions" | head
+rm -rf ~/backup-test                                  # 끝나면 반드시 삭제
 ```
-
-마지막 명령에 테이블 목록이 나오면 **복구 가능한 백업임이 증명된 것**이다.
 
 ---
 
