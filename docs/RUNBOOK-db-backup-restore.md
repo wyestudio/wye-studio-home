@@ -112,6 +112,27 @@ pg_restore --list restored.pgcustom | grep -E "applications|sessions" | head
 
 ---
 
+## ⚠️ 헷갈리기 쉬운 두 개의 비밀값 — 반드시 구분할 것
+
+실제로 혼동이 발생한 적이 있다(2026-09-10). 복구는 스트레스 상황에서 하게 되므로 여기서 못 박아둔다.
+
+| | 무엇을 여는가 | 출처 | 언제 쓰나 |
+|---|---|---|---|
+| **`BACKUP_ENCRYPTION_PASSPHRASE`** | **백업 파일(.gpg) 자체** | `openssl rand -base64 48` 로 생성 → GitHub Secret 등록 | 복구 **1단계** (파일 열기) |
+| **Vault `app_pii_key`** | 복구된 **DB 안의** 암호화 컬럼 (고객 이름·전화번호) | `select decrypted_secret from vault.decrypted_secrets where name='app_pii_key'` | 복구 **마지막** (데이터 읽기) |
+
+> **백업 파일 = 금고**, `BACKUP_ENCRYPTION_PASSPHRASE` = **금고 열쇠**.
+> Vault 키는 금고를 연 뒤 **안에 든 서류를 읽는 암호**다. 순서가 다르고 값도 완전히 다르다.
+
+**증상별 판별**:
+
+| 증상 | 원인 | 조치 |
+|---|---|---|
+| `gpg: decryption failed: Bad session key` | `BACKUP_ENCRYPTION_PASSPHRASE` 가 틀림 (Vault 키를 넣었을 가능성 높음) | 올바른 백업 암호로 재시도 |
+| 복구는 됐는데 이름·전화번호가 깨져 보임 | Vault 키가 없거나 다름 | 새 프로젝트 Vault 에 `app_pii_key` 를 동일 값으로 등록 |
+
+---
+
 ## 3. 복구 절차
 
 ### 3-1. 백업 내려받기
