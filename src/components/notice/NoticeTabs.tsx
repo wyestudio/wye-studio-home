@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { NoticeSection } from "@/components/notice/NoticeSection";
 import { FaqSection } from "@/components/notice/FaqSection";
+import type { Notice, Faq } from "@/lib/content";
 
 type TabKey = "notice" | "faq";
 
@@ -13,7 +14,8 @@ const TABS = [
   { key: "faq" as const, label: "자주 묻는 질문" },
 ];
 
-export function NoticeTabs() {
+// 탭 전환만 클라이언트에서 한다. 데이터는 서버 페이지가 조회해 내려준다.
+export function NoticeTabs({ notices, faqs }: { notices: Notice[]; faqs: Faq[] }) {
   const [selected, setSelected] = useState<TabKey>("notice");
   const reduceMotion = useReducedMotion();
 
@@ -52,8 +54,8 @@ export function NoticeTabs() {
 
       {/* Content Area */}
       <div role="tabpanel">
-        {selected === "notice" && <NoticeSection />}
-        {selected === "faq" && <FaqSection />}
+        {selected === "notice" && <NoticeSection notices={notices} />}
+        {selected === "faq" && <FaqSection faqs={faqs} />}
       </div>
     </div>
   );
