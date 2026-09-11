@@ -24,6 +24,12 @@ export const PLACEHOLDER_INFO: Record<string, { label: string; example: string }
   venue_address_text: { label: "장소 주소 (괄호 포함, 없으면 빈 값)", example: " (서울 관악구 ...)" },
   reapply_url: { label: "재신청 링크", example: "www.wouldyouescape.com/sessions/0829-meeting" },
   refund_amount: { label: "환불 금액", example: "138,000원" },
+  refund_notice: { label: "환불 안내 문장 (입금 여부에 따라 자동)", example: "입금하신 금액 124,000원은 …" },
+  // 쿠폰 발송용
+  code: { label: "쿠폰번호 (하이픈 표기)", example: "M0EH-EVG1" },
+  discount: { label: "할인 금액/비율", example: "5,000원" },
+  expires_at: { label: "쿠폰 사용기한", example: "2027년 9월 12일" },
+  link: { label: "쿠폰이 자동으로 담기는 링크", example: "www.wouldyouescape.com/c/M0EHEVG1" },
 };
 
 export function PlaceholderHints({ placeholders }: { placeholders: string[] }) {
