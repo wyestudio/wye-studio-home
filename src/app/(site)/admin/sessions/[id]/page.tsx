@@ -8,7 +8,12 @@ import { ApplicationDetailDialog } from "./ApplicationDetailDialog";
 import { ApplicationActionMenu } from "./ApplicationActionMenu";
 import { RefundCompleteButton } from "./RefundCompleteButton";
 import { getSessionStats } from "@/lib/sessions";
-import { formatCapacityLine, formatHeadcountLine, countUnpaidConfirmed } from "@/lib/sessionStatsFormat";
+import {
+  formatCapacityLine,
+  formatHeadcountLine,
+  countUnpaidConfirmed,
+  type SessionDisplayRow,
+} from "@/lib/sessionStatsFormat";
 import { isDatingTheme } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
@@ -149,10 +154,26 @@ function ActionCell({
   );
 }
 
+/**
+ * 이 취소 건에 돌려줄 돈이 있는가.
+ *
+ * 취소되면 payment_status 가 'cancelled' 로 덮여 입금 여부를 잃는다.
+ * 대신 입금확인 문자 발송 시각(payment_confirmed_sms_sent_at)이 남아 있어
+ * "입금까지 갔던 건" 인지 판별할 수 있다.
+ *
+ * 이걸 구분하지 않으면 입금 전 단순 취소까지 전부 "환불 미완료" 로 보여
+ * 처리할 게 없는데도 처리 대기처럼 쌓인다.
+ */
+function needsRefund(app: any): boolean {
+  return Boolean(app.payment_confirmed_sms_sent_at) || Boolean(app.refund_bank_name);
+}
+
 function RefundActionCell({ app, sessionId }: { app: any; sessionId: string }) {
   return (
     <td className="py-3 px-4 text-sm">
-      {!app.refund_completed_at && <RefundCompleteButton applicationId={app.id} sessionId={sessionId} />}
+      {needsRefund(app) && !app.refund_completed_at && (
+        <RefundCompleteButton applicationId={app.id} sessionId={sessionId} />
+      )}
     </td>
   );
 }
@@ -163,6 +184,14 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
   const { data: session } = await supabase
     .from("sessions")
+    .select("*")
+    .eq("id", params.id)
+    .single();
+
+  // 표시값(테마명·정원·장소·연령)은 session_display 가 통일해준다.
+  // sessions 를 직접 읽으면 신규 회차에서 옛 컬럼이 나온다.
+  const { data: display } = await supabase
+    .from("session_display")
     .select("*")
     .eq("id", params.id)
     .single();
@@ -216,7 +245,12 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
   // 환불 미완료 건이 위로 오도록 정렬.
   const cancelledApps = allApplications
     .filter((a: any) => a.status === "cancelled")
-    .sort((a: any, b: any) => (a.refund_completed_at ? 1 : 0) - (b.refund_completed_at ? 1 : 0));
+    // 실제로 처리할 게 있는 건(입금했는데 환불 미완료)이 맨 위로 온다.
+    .sort((a: any, b: any) => {
+      const rank = (x: any) =>
+        needsRefund(x) && !x.refund_completed_at ? 0 : x.refund_completed_at ? 1 : 2;
+      return rank(a) - rank(b);
+    });
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -257,8 +291,12 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         {stats && (
           <div className="mb-8 rounded-lg border border-border p-4 space-y-1.5">
-            <p className="text-xl font-semibold text-foreground">{formatCapacityLine(session)}</p>
-            <p className="text-xl font-semibold text-foreground">{formatHeadcountLine(stats)}</p>
+            <p className="text-xl font-semibold text-foreground">
+              {display ? formatCapacityLine(display as SessionDisplayRow) : "정원: -"}
+            </p>
+            <p className="text-xl font-semibold text-foreground">
+              {display ? formatHeadcountLine(display as SessionDisplayRow, stats) : ""}
+            </p>
             <p className="text-xl font-semibold text-foreground">입금 확인 전 인원: {unpaidConfirmedCount}명</p>
           </div>
         )}
@@ -386,8 +424,12 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                             <span className="text-green-500 font-semibold">
                               완료 <span className="text-xs text-muted">({formatDateTimeDotted(app.refund_completed_at)})</span>
                             </span>
-                          ) : (
+                          ) : needsRefund(app) ? (
                             <span className="text-yellow-500 font-semibold">미완료</span>
+                          ) : (
+                            <span className="text-muted" title="입금 전 취소라 돌려줄 금액이 없습니다">
+                              환불 없음
+                            </span>
                           )}
                         </td>
                         <RefundActionCell app={app} sessionId={session.id} />

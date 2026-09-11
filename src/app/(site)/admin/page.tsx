@@ -4,7 +4,12 @@ import { formatSessionDateTime } from "@/lib/format";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
 import { getSessionStats } from "@/lib/sessions";
-import { formatCapacityLine, formatHeadcountLine, countUnpaidConfirmed } from "@/lib/sessionStatsFormat";
+import {
+  formatCapacityLine,
+  formatHeadcountLine,
+  countUnpaidConfirmed,
+  type SessionDisplayRow,
+} from "@/lib/sessionStatsFormat";
 import type { Session, SessionStats } from "@/types/domain";
 
 export const dynamic = "force-dynamic";
@@ -27,10 +32,14 @@ export default async function AdminDashboard() {
   const supabase = createAdminClient();
 
   const [sessionsRes, appsRes, attendeesRes, unmatchedRes] = await Promise.all([
-    supabase.from("sessions").select("*").order("start_at", { ascending: false }),
+    // 표시값(테마명·정원·장소·링크)은 session_display 가 통일해준다.
+    // sessions 를 직접 읽으면 신규 회차에서 옛 컬럼(정원 50명, 성별 정원)이 나온다.
+    supabase.from("session_display").select("*").order("start_at", { ascending: false }),
     supabase
       .from("admin_application_view")
-      .select("id, session_id, status, payment_status, created_at, refund_bank_name, refund_completed_at"),
+      .select(
+        "id, session_id, status, payment_status, created_at, refund_bank_name, refund_completed_at, payment_confirmed_sms_sent_at"
+      ),
     supabase.from("admin_attendee_view").select("application_id"),
     supabase
       .from("bank_transactions")
@@ -50,7 +59,10 @@ export default async function AdminDashboard() {
     );
   }
 
-  const sessions = (sessionsRes.data ?? []) as Session[];
+  const sessions = (sessionsRes.data ?? []) as (SessionDisplayRow & {
+    start_at: string;
+    status: string;
+  })[];
   const apps = (appsRes.data ?? []) as {
     id: string;
     session_id: string;
@@ -59,6 +71,7 @@ export default async function AdminDashboard() {
     created_at: string;
     refund_bank_name: string | null;
     refund_completed_at: string | null;
+    payment_confirmed_sms_sent_at: string | null;
   }[];
   const attendees = (attendeesRes.data ?? []) as { application_id: string }[];
 
@@ -67,10 +80,15 @@ export default async function AdminDashboard() {
   // ── 처리 대기 ─────────────────────────────────────────────
   const unpaidConfirmed = apps.filter((a) => a.status === "confirmed" && a.payment_status === "pending");
   const waiting = apps.filter((a) => a.status === "waiting");
-  // ⚠️ 환불 대기는 "환불 계좌를 준 취소 건"만 센다.
+  // ⚠️ 환불 대기는 "돌려줄 돈이 실제로 있는 취소 건"만 센다.
   //    refund_completed_at is null 만으로 세면 입금 전 단순 취소까지 잡힌다(2026-09-10 확인).
+  //    취소되면 payment_status 가 'cancelled' 로 덮이므로 입금 여부는
+  //    입금확인 문자 발송 시각으로 판별한다. 환불 계좌를 준 건도 당연히 포함.
   const refundPending = apps.filter(
-    (a) => a.status === "cancelled" && a.refund_bank_name && !a.refund_completed_at
+    (a) =>
+      a.status === "cancelled" &&
+      !a.refund_completed_at &&
+      (a.payment_confirmed_sms_sent_at || a.refund_bank_name)
   );
   const unmatchedDeposits = unmatchedRes.count ?? 0;
 
@@ -190,16 +208,16 @@ export default async function AdminDashboard() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 flex-1">
                         <h3 className="truncate font-semibold">
-                          {session.theme_name ?? session.theme_label}
-                          {session.session_type && (
+                          {session.theme_name ?? "(테마 미지정)"}
+                          {session.format_label && (
                             <span className="ml-2 rounded bg-muted/20 px-1.5 py-0.5 text-[11px] font-normal text-muted">
-                              {session.session_type}
+                              {session.format_label}
                             </span>
                           )}
                         </h3>
                         <p className="mt-1 text-sm text-muted">{formatSessionDateTime(session.start_at)}</p>
                         <p className="mt-1 text-xs text-muted">{formatCapacityLine(session)}</p>
-                        {stats && <p className="mt-1 text-xs text-muted">{formatHeadcountLine(stats)}</p>}
+                        {stats && <p className="mt-1 text-xs text-muted">{formatHeadcountLine(session, stats)}</p>}
                         <p className="mt-1 text-xs text-muted">
                           입금 확인 전 인원: {unpaidBySession.get(session.id) ?? 0}명
                         </p>
@@ -210,7 +228,9 @@ export default async function AdminDashboard() {
                             {session.status === "open" ? "모집중" : session.status === "cancelled" ? "비활성화" : "마감"}
                           </span>
                         </span>
-                        <CopyUrlButton url={`${SITE_URL}/sessions/${session.slug}`} />
+                        {session.public_path && (
+                          <CopyUrlButton url={`${SITE_URL}${session.public_path}`} />
+                        )}
                       </div>
                     </div>
                   </Link>
