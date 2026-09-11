@@ -103,7 +103,8 @@ export type ApplicationAttendee = {
   experience_range: ExperienceRange | null;
 };
 
-export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200+";
+// "200+" 는 8/29 신청에 남아 있는 옛 값. 새로 고를 수는 없지만 읽을 수는 있어야 한다.
+export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200-500" | "500+" | "200+";
 
 /**
  * 참여내역 조회(lookup_application_v2 RPC) 결과.

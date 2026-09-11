@@ -534,7 +534,7 @@ export function ApplyForm({
       <h1 className="mb-6 text-2xl font-extrabold">참여 신청</h1>
 
       {/* Sticky 진행 표시줄 */}
-      <ApplyStepper currentStep={currentStep} onStepChange={handleStepChange} />
+      <ApplyStepper currentStep={currentStep} onStepChange={handleStepChange} accentColor="#3dffb0" />
 
       {/* 단계별 콘텐츠 */}
       <div className="mx-auto max-w-xl px-0 py-10">

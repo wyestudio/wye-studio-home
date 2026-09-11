@@ -14,15 +14,20 @@ export function isValidNickname(nickname: string): boolean {
 }
 
 // 방탈출 경험 횟수 범위
-export const EXPERIENCE_RANGES = ["0", "1-50", "50-100", "100-200", "200+"] as const;
+// ⚠️ application_attendees.experience_range CHECK 제약과 값이 맞아야 한다.
+//    옛 값 '200+' 는 8/29 신청에 남아 있어 제약에서만 계속 허용한다(새로 고르진 않는다).
+export const EXPERIENCE_RANGES = ["0", "1-50", "50-100", "100-200", "200-500", "500+"] as const;
 export type ExperienceRange = (typeof EXPERIENCE_RANGES)[number];
 
-export const EXPERIENCE_RANGE_LABELS: Record<ExperienceRange, string> = {
+/** 저장된 값을 화면에 쓸 때 쓴다. 옛 값('200+')도 들어올 수 있어 Record<string> 이다. */
+export const EXPERIENCE_RANGE_LABELS: Record<string, string> = {
   "0": "0회 (경험 없음)",
   "1-50": "1~50회",
   "50-100": "50~100회",
   "100-200": "100~200회",
-  "200+": "200회 이상",
+  "200-500": "200~500회",
+  "500+": "500회 이상",
+  "200+": "200회 이상", // 8/29 신청에 남아 있는 옛 값
 };
 
 export function isValidExperienceRange(v: string): v is ExperienceRange {

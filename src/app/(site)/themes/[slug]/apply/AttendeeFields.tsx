@@ -20,7 +20,15 @@ export type AttendeeErrors = {
   phone?: string;
   birthYear?: string;
   nickname?: string;
+  experienceRange?: string;
 };
+
+/** 010-1234-5678 세 칸으로 나눠 보여주기 위한 자리. 저장은 숫자만 이어붙인 한 줄이다. */
+const PHONE_SEGMENTS = [
+  { key: "p1", start: 0, end: 3, max: 3, placeholder: "010" },
+  { key: "p2", start: 3, end: 7, max: 4, placeholder: "0000" },
+  { key: "p3", start: 7, end: 11, max: 4, placeholder: "0000" },
+] as const;
 
 /**
  * 참여자 한 명의 입력칸.
@@ -117,14 +125,49 @@ export function AttendeeFields({
         {/* ── 휴대폰 / 출생연도 ── */}
         <div>
           <label className={label} htmlFor={`attendee-${index}-phone`}>휴대폰 번호 *</label>
-          <input
-            id={`attendee-${index}-phone`}
-            className={phoneInvalid ? fieldInvalid : field}
-            inputMode="numeric"
-            placeholder="01012345678"
-            value={attendee.phone}
-            onChange={(e) => onChange({ phone: e.target.value.replace(/[^0-9]/g, "") })}
-          />
+          <div className="flex items-center gap-2">
+            {PHONE_SEGMENTS.map((seg, si) => (
+              <div key={seg.key} className="contents">
+                {si > 0 && <span className="text-muted">-</span>}
+                <input
+                  id={si === 0 ? `attendee-${index}-phone` : `attendee-${index}-${seg.key}`}
+                  className={`${phoneInvalid ? fieldInvalid : field} text-center`}
+                  inputMode="numeric"
+                  maxLength={seg.max}
+                  placeholder={seg.placeholder}
+                  value={attendee.phone.slice(seg.start, seg.end)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, seg.max);
+                    const next =
+                      attendee.phone.slice(0, seg.start) + digits + attendee.phone.slice(seg.end);
+                    onChange({ phone: next.slice(0, 11) });
+                    // 한 칸을 다 채우면 다음 칸으로 넘어간다
+                    if (digits.length === seg.max && si < PHONE_SEGMENTS.length - 1) {
+                      document.getElementById(`attendee-${index}-${PHONE_SEGMENTS[si + 1].key}`)?.focus();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    // 빈 칸에서 지우면 앞 칸으로 돌아간다
+                    if (e.key === "Backspace" && e.currentTarget.value === "" && si > 0) {
+                      const prev = si - 1;
+                      document
+                        .getElementById(
+                          prev === 0 ? `attendee-${index}-phone` : `attendee-${index}-${PHONE_SEGMENTS[prev].key}`
+                        )
+                        ?.focus();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    // 어느 칸에 붙여넣든 앞에서부터 다시 나눠 담는다
+                    const pasted = e.clipboardData.getData("text").replace(/[^0-9]/g, "");
+                    if (!pasted) return;
+                    e.preventDefault();
+                    onChange({ phone: pasted.slice(0, 11) });
+                  }}
+                />
+              </div>
+            ))}
+          </div>
           {errors.phone ? (
             <p className={errorText}>{errors.phone}</p>
           ) : isConflict ? (
@@ -156,19 +199,21 @@ export function AttendeeFields({
 
         {/* ── 방탈출 경험 / 성별 ── */}
         <div>
-          <label className={label} htmlFor={`attendee-${index}-experience`}>방탈출 경험</label>
+          <label className={label} htmlFor={`attendee-${index}-experienceRange`}>방탈출 경험 *</label>
           <Select
-            id={`attendee-${index}-experience`}
+            id={`attendee-${index}-experienceRange`}
             variant="glass"
             value={attendee.experience_range}
             onChange={(v) => onChange({ experience_range: v })}
-            options={[
-              { value: "", label: "선택 안 함" },
-              ...EXPERIENCE_RANGES.map((r) => ({ value: r, label: EXPERIENCE_RANGE_LABELS[r] })),
-            ]}
-            placeholder="선택 안 함"
+            options={EXPERIENCE_RANGES.map((r) => ({ value: r, label: EXPERIENCE_RANGE_LABELS[r] }))}
+            placeholder="선택"
+            invalid={!!errors.experienceRange}
           />
-          <p className={hint}>팀 배정에 참고합니다.</p>
+          {errors.experienceRange ? (
+            <p className={errorText}>{errors.experienceRange}</p>
+          ) : (
+            <p className={hint}>팀 배정에 참고됩니다.</p>
+          )}
         </div>
 
         <div>

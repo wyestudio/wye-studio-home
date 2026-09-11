@@ -12,10 +12,8 @@ import {
   getValidationErrorMessage,
   isValidKoreanName,
   isValidNickname,
-  isValidRequestNote,
-  REQUEST_NOTE_MAX_LENGTH,
 } from "@/lib/validation";
-import { formatCouponCode, normalizeCouponCode } from "@/lib/coupon";
+import { normalizeCouponCode } from "@/lib/coupon";
 import {
   applyToSession,
   checkCoupon,
@@ -37,6 +35,8 @@ import { ApplyComplete } from "./ApplyComplete";
 
 const field =
   "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50";
+const fieldInvalid =
+  "w-full rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger outline-none";
 const label = "block text-xs font-medium text-muted mb-1.5";
 
 /** 인원 선택 상한. 테마에 max_group_size 가 있으면 그쪽이 우선이다. */
@@ -66,10 +66,16 @@ export function ApplyForm({
   bankInfo,
   themeId,
   initialCouponCode,
+  categoryName,
+  backHref,
 }: {
   sessionId: string;
   themeId: string;
   initialCouponCode: string;
+  /** 테마명 옆 알약 배지. 없으면 배지를 안 그린다. */
+  categoryName: string | null;
+  /** 날짜 다시 선택 링크. 제출이 끝나면 감춘다. */
+  backHref: string;
   themeName: string;
   sessionLabel: string;
   minAge: number;
@@ -83,7 +89,6 @@ export function ApplyForm({
   const [activeIndex, setActiveIndex] = useState(0);
   const [consents, setConsents] = useState<ConsentState>({ ...EMPTY_CONSENTS });
   const [depositorName, setDepositorName] = useState("");
-  const [notes, setNotes] = useState("");
   const [couponCode, setCouponCode] = useState(initialCouponCode);
   const [coupon, setCoupon] = useState<CouponPreview | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
@@ -140,6 +145,13 @@ export function ApplyForm({
         });
       }
 
+      if (!a.experience_range) {
+        errors.push({
+          field: `attendee-${i}-experienceRange`,
+          message: getValidationErrorMessage("experienceRange", "required"),
+        });
+      }
+
       if (a.nickname.trim() && !isValidNickname(a.nickname)) {
         errors.push({ field: `attendee-${i}-nickname`, message: getValidationErrorMessage("nickname", "invalid") });
       }
@@ -187,11 +199,8 @@ export function ApplyForm({
     } else if (!isValidKoreanName(depositorName)) {
       errors.push({ field: "depositorName", message: getValidationErrorMessage("depositorName", "invalid") });
     }
-    if (!isValidRequestNote(notes)) {
-      errors.push({ field: "notes", message: getValidationErrorMessage("notes", "invalid") });
-    }
     return errors;
-  }, [depositorName, notes]);
+  }, [depositorName]);
 
   const step1Errors = useMemo(
     () => (submitAttempted && step === 0 ? validateStep1() : []),
@@ -281,7 +290,7 @@ export function ApplyForm({
   }
 
   function focusFirstStep1Error(errors: FieldError[]) {
-    const order = ["name", "phone", "birthYear", "nickname"];
+    const order = ["name", "phone", "birthYear", "experienceRange", "nickname"];
     let best: { index: number; priority: number } | null = null;
     for (const e of errors) {
       const m = /^attendee-(\d+)-(.+)$/.exec(e.field);
@@ -374,7 +383,7 @@ export function ApplyForm({
         couponCode: coupon?.ok ? coupon.code : "",
         depositorName,
         attendees: attendees.map((a) => ({ ...a, phone: phoneDigits(a.phone) })),
-        notes,
+        notes: "",
         consentRequired: allRequiredChecked(consents, headcount),
         // 기존 폼과 같은 기준 — 선택 항목을 '전부' 동의했을 때만 참이다.
         consentOptional: consents.photo && consents.marketing,
@@ -391,6 +400,7 @@ export function ApplyForm({
   }
 
   if (done) {
+    // 제출이 끝나면 '날짜 다시 선택' 을 감춘다. 이미 접수된 뒤라 돌아갈 곳이 아니다.
     return (
       <ApplyComplete
         result={done}
@@ -410,7 +420,15 @@ export function ApplyForm({
     <>
       <ValidationToast message={toast} onClose={() => setToast(null)} />
 
+      <div className="mb-4">
+        <a href={backHref} className="text-sm text-muted underline">
+          ← 날짜 다시 선택
+        </a>
+      </div>
+      <h1 className="mb-4 text-2xl font-extrabold">참여 신청</h1>
+
       <ApplyStepper
+        accentColor={accentColor}
         currentStep={step}
         onStepChange={(s) => {
           if (s < step) {
@@ -429,11 +447,22 @@ export function ApplyForm({
 
         {/* ── 회차 요약 ── */}
         <div className="rounded-lg border border-white/15 bg-white/5 p-4">
-          <p className="font-semibold">{themeName}</p>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+            <p className="font-semibold">{themeName}</p>
+            {categoryName && (
+              <span
+                className="rounded-full border px-2 py-0.5 text-[11px] font-bold"
+                style={{
+                  color: accentColor,
+                  borderColor: `${accentColor}59`,
+                  backgroundColor: `${accentColor}1f`,
+                }}
+              >
+                {categoryName}
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-sm text-muted">{sessionLabel}</p>
-          <p className="mt-1 text-xs" style={{ color: accentColor }}>
-            만 {minAge}세 이상 참여 가능
-          </p>
         </div>
 
         {/* ══ 1. 정보입력 ══ */}
@@ -479,6 +508,7 @@ export function ApplyForm({
                   name: errOf(step1Errors, `attendee-${activeIndex}-name`),
                   phone: errOf(step1Errors, `attendee-${activeIndex}-phone`),
                   birthYear: errOf(step1Errors, `attendee-${activeIndex}-birthYear`),
+                  experienceRange: errOf(step1Errors, `attendee-${activeIndex}-experienceRange`),
                   nickname: errOf(step1Errors, `attendee-${activeIndex}-nickname`),
                 }}
                 onChange={(patch) => patchAttendee(activeIndex, patch)}
@@ -530,8 +560,6 @@ export function ApplyForm({
                       </div>
                     </>
                   )}
-
-                  <p className="mt-2 text-xs text-muted">인원이 늘면 1인당 참가비가 자동으로 낮아집니다.</p>
                 </>
               ) : (
                 <p className="text-sm text-muted">요금 정보를 불러올 수 없습니다.</p>
@@ -542,19 +570,44 @@ export function ApplyForm({
             <div className="space-y-4 rounded-lg border border-white/15 p-4">
               <div>
                 <label className={label} htmlFor="couponCode">쿠폰 코드</label>
-                <div className="flex gap-2">
-                  <input
-                    id="couponCode"
-                    className={`${field} font-mono uppercase tracking-wider`}
-                    value={formatCouponCode(couponCode)}
-                    onChange={(e) => {
-                      setCouponCode(normalizeCouponCode(e.target.value));
-                      setCoupon(null); // 코드를 고치면 이전 적용은 무효다
-                    }}
-                    placeholder="M0EH-EVG1"
-                    maxLength={9}
-                    disabled={coupon?.ok}
-                  />
+                <div className="flex items-center gap-2">
+                  {[0, 1].map((half) => (
+                    <div key={half} className="contents">
+                      {half === 1 && <span className="text-muted">-</span>}
+                      <input
+                        id={half === 0 ? "couponCode" : "couponCode2"}
+                        className={`${field} text-center font-mono uppercase tracking-widest`}
+                        value={couponCode.slice(half * 4, half * 4 + 4)}
+                        maxLength={4}
+                        placeholder={half === 0 ? "XXXX" : "XXXX"}
+                        disabled={coupon?.ok}
+                        onChange={(e) => {
+                          const part = normalizeCouponCode(e.target.value).slice(0, 4);
+                          const next =
+                            half === 0 ? part + couponCode.slice(4) : couponCode.slice(0, 4) + part;
+                          setCouponCode(next.slice(0, 8));
+                          setCoupon(null); // 코드를 고치면 이전 적용은 무효다
+                          if (part.length === 4 && half === 0) {
+                            document.getElementById("couponCode2")?.focus();
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Backspace" && e.currentTarget.value === "" && half === 1) {
+                            document.getElementById("couponCode")?.focus();
+                          }
+                        }}
+                        onPaste={(e) => {
+                          // 어느 칸에 붙여넣든 앞에서부터 4자씩 나눠 담는다.
+                          // 문자로 받은 코드는 M0EH-EVG1 처럼 하이픈이 섞여 있다.
+                          const pasted = normalizeCouponCode(e.clipboardData.getData("text"));
+                          if (!pasted) return;
+                          e.preventDefault();
+                          setCouponCode(pasted.slice(0, 8));
+                          setCoupon(null);
+                        }}
+                      />
+                    </div>
+                  ))}
                   {coupon?.ok ? (
                     <button
                       type="button"
@@ -592,7 +645,7 @@ export function ApplyForm({
                 <label className={label} htmlFor="depositorName">입금자명 *</label>
                 <input
                   id="depositorName"
-                  className={field}
+                  className={errOf(step3Errors, "depositorName") ? fieldInvalid : field}
                   value={depositorName}
                   onChange={(e) => setDepositorName(e.target.value)}
                   placeholder="실제로 입금하실 분의 성함"
@@ -602,10 +655,7 @@ export function ApplyForm({
                 )}
                 <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200">
                   <p className="font-semibold">⚠️ 실제로 입금하실 분의 성함과 정확히 일치해야 합니다.</p>
-                  <p className="mt-1 opacity-90">
-                    이름이 다르면 자동 확인이 되지 않아 처리가 늦어질 수 있어요. 가족·지인 명의로
-                    입금하시는 경우 <strong>그분의 성함</strong>을 적어주세요.
-                  </p>
+                  <p className="mt-1 opacity-90">이름이 다르면 처리가 늦어질 수 있어요.</p>
                 </div>
                 {depositorName.trim() &&
                   attendees[0]?.name.trim() &&
@@ -614,20 +664,6 @@ export function ApplyForm({
                       신청자({attendees[0].name})와 입금자명({depositorName})이 다릅니다. 맞나요?
                     </p>
                   )}
-              </div>
-
-              <div>
-                <label className={label} htmlFor="notes">요청사항 (선택)</label>
-                <textarea
-                  id="notes"
-                  className={`${field} min-h-20`}
-                  value={notes}
-                  maxLength={REQUEST_NOTE_MAX_LENGTH}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-                {errOf(step3Errors, "notes") && (
-                  <p className="mt-1 text-[11px] text-danger">{errOf(step3Errors, "notes")}</p>
-                )}
               </div>
             </div>
           </div>
@@ -649,9 +685,7 @@ export function ApplyForm({
               : checkingConflicts
                 ? "확인 중…"
                 : step === 2
-                  ? payable !== null
-                    ? `${formatKrw(payable)} 신청하기`
-                    : "신청하기"
+                  ? "제출하기"
                   : "다음"}
           </button>
         </div>

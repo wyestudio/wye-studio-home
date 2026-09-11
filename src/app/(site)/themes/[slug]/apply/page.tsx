@@ -67,16 +67,13 @@ export default async function ApplyPage({
 
   return (
     <main className="mx-auto max-w-2xl px-5 pb-12 pt-8">
-      <div className="mb-4">
-        <Link href={`/themes/${slug}`} className="text-sm text-muted underline">
-          ← 날짜 다시 선택
-        </Link>
-      </div>
-      <h1 className="mb-4 text-2xl font-extrabold">참여 신청</h1>
-
       <ApplyForm
         themeId={theme.id}
         initialCouponCode={couponCode}
+        categoryName={
+          (theme as { theme_categories?: { name: string } | null }).theme_categories?.name ?? null
+        }
+        backHref={`/themes/${slug}`}
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={sessionLabel(target.start_at)}

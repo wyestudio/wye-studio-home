@@ -11,12 +11,25 @@ const STEPS = ["정보입력", "약관동의", "제출"];
  *   · 지나온 단계는 ✓ 가 찍힌 채워진 원, 커서가 손가락, 밑줄이 예약돼 있고
  *   · 마우스를 올리면 ✓ 가 ← 로 바뀌고 살짝 떠오른다.
  */
+/**
+ * 단계가 진행될수록 강조색이 짙어지도록 각 칸의 진하기를 다르게 준다.
+ * 세 칸을 붙여 놓으면 왼쪽에서 오른쪽으로 한 줄 그라데이션처럼 읽힌다.
+ */
+const DEPTH = [0.45, 0.72, 1];
+
+function hexWithAlpha(hex: string, alpha: number): string {
+  const a = Math.round(alpha * 255).toString(16).padStart(2, "0");
+  return /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}${a}` : hex;
+}
+
 export function ApplyStepper({
   currentStep,
   onStepChange,
+  accentColor,
 }: {
   currentStep: number;
   onStepChange: (step: number) => void;
+  accentColor: string;
 }) {
   return (
     <div className="sticky top-[var(--header-height,0px)] z-20 -mx-5 border-b border-border bg-background px-5 py-4">
@@ -24,6 +37,9 @@ export function ApplyStepper({
         {STEPS.map((label, index) => {
           const done = index < currentStep;
           const current = index === currentStep;
+          const reached = done || current;
+          const from = hexWithAlpha(accentColor, DEPTH[Math.max(0, index - 1)]);
+          const to = hexWithAlpha(accentColor, DEPTH[index]);
 
           return (
             <li key={label} className="flex-1">
@@ -38,19 +54,17 @@ export function ApplyStepper({
                 }`}
               >
                 <span
-                  className={`h-1 rounded-full transition-colors ${
-                    done || current ? "bg-glow" : "bg-border"
-                  } ${done ? "group-hover:bg-foreground" : ""}`}
+                  className={`h-1 rounded-full transition-opacity ${reached ? "" : "bg-border"} ${
+                    done ? "group-hover:opacity-80" : ""
+                  }`}
+                  style={reached ? { background: `linear-gradient(90deg, ${from}, ${to})` } : undefined}
                 />
                 <span className="flex items-center gap-1.5">
                   <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none transition-colors ${
-                      done
-                        ? "bg-glow text-glow-foreground"
-                        : current
-                          ? "bg-glow text-glow-foreground"
-                          : "border border-border text-muted"
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none ${
+                      reached ? "text-[#0a0a12]" : "border border-border text-muted"
                     }`}
+                    style={reached ? { backgroundColor: to } : undefined}
                   >
                     {/* 마우스를 올리면 '돌아갈 수 있다' 는 뜻으로 화살표가 된다 */}
                     {done ? (
@@ -65,11 +79,12 @@ export function ApplyStepper({
                   <span
                     className={`text-xs font-semibold transition-colors ${
                       done
-                        ? "text-glow underline decoration-dotted underline-offset-4 group-hover:decoration-solid group-hover:text-foreground"
+                        ? "underline decoration-dotted underline-offset-4 group-hover:decoration-solid group-hover:text-foreground"
                         : current
-                          ? "text-glow"
+                          ? ""
                           : "text-muted"
                     }`}
+                    style={reached ? { color: to } : undefined}
                   >
                     {label}
                   </span>
