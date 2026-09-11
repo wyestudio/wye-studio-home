@@ -9,12 +9,13 @@ import {
   isBookable,
 } from "@/lib/themes";
 import { formatKrw } from "@/lib/format";
+import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { HudCard } from "@/components/ui/HudCard";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
-import { EMPTY_THEME_CONTENT, type ThemeContent } from "@/types/catalog";
+import { normalizeThemeContent, type ThemeContent } from "@/types/catalog";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 
 export const dynamic = "force-dynamic";
@@ -71,7 +72,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   }));
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
-  const content: ThemeContent = { ...EMPTY_THEME_CONTENT, ...(theme.content ?? {}) };
+  // 옛 4칸 구조(for_you/steps/timetable/precautions)로 저장된 테마도 읽어준다.
+  // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
+  const content: ThemeContent = normalizeThemeContent(theme.content);
 
   // 타임테이블은 "첫 신청 가능 회차"를 기준으로 보여준다.
   // 시각이 달라도 offset_min 으로 저장돼 있어 자동으로 다시 계산된다.
@@ -125,100 +128,14 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         </div>
       </section>
 
-      {/* ── 이런 분께 추천 ── */}
-      {content.for_you.length > 0 && (
-        <section className="mb-14">
-          <SectionHeading eyebrow="FOR YOU" title="이런 분께 추천해요" align="left" eyebrowColor={accent} />
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {content.for_you.map((c, i) => (
-              <HudCard key={i} className="p-4">
-                <p className="text-lg">{c.emoji}</p>
-                <p className="mt-1 font-semibold">{c.title}</p>
-                <p className="mt-1 text-sm text-muted">{c.desc}</p>
-              </HudCard>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* ── 상세 콘텐츠 (어드민에서 쌓은 블록 순서대로) ── */}
+      <ThemeBlocks
+        blocks={content.blocks}
+        accent={accent}
+        sampleStartAt={sampleSession?.start_at ?? null}
+      />
 
-      {/* ── 진행 방식 ── */}
-      {content.steps.length > 0 && (
-        <section className="mb-14">
-          <SectionHeading eyebrow="HOW IT WORKS" title="이렇게 진행돼요" align="left" eyebrowColor={accent} />
-          <ol className="mt-5 space-y-3">
-            {content.steps.map((s, i) => (
-              <li key={i} className="flex gap-4 rounded-lg border border-white/12 bg-white/[0.03] p-4">
-                <span className="text-2xl leading-none">{s.emoji}</span>
-                <div>
-                  <p className="font-semibold">{s.title}</p>
-                  <p className="mt-1 text-sm text-muted">{s.desc}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
 
-      {/* ── 타임테이블 ── */}
-      {content.timetable.length > 0 && (
-        <section className="mb-14">
-          <SectionHeading eyebrow="TIMETABLE" title="진행 순서" align="left" eyebrowColor={accent} />
-          {sampleSession && (
-            <p className="mt-2 text-xs text-muted">
-              아래 시각은 선택하신 회차 시작 시간에 맞춰 자동으로 조정됩니다.
-              (예시: {new Intl.DateTimeFormat("ko-KR", {
-                timeZone: "Asia/Seoul",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }).format(new Date(sampleSession.start_at))} 시작 기준)
-            </p>
-          )}
-          <ol className="mt-5 space-y-2">
-            {content.timetable.map((t, i) => (
-              <li key={i} className="flex gap-4 border-l-2 pl-4" style={{ borderColor: accent }}>
-                <span className="w-14 shrink-0 font-mono text-sm font-bold" style={{ color: accent }}>
-                  {sampleSession ? offsetToTime(sampleSession.start_at, t.offset_min) : `+${t.offset_min}분`}
-                </span>
-                <div className="pb-3">
-                  <p className="font-semibold">{t.title}</p>
-                  {t.desc && <p className="mt-0.5 text-sm text-muted">{t.desc}</p>}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-      )}
-
-      {/* ── 주의사항 ── */}
-      {content.precautions.length > 0 && (
-        <section className="mb-14">
-          <SectionHeading eyebrow="NOTICE" title="꼭 확인해주세요" align="left" eyebrowColor={accent} />
-          <ul className="mt-5 space-y-3">
-            {content.precautions.map((p, i) => (
-              <li key={i} className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
-                <p className="font-semibold">{p.title}</p>
-                <p className="mt-1 text-sm text-muted">{p.desc}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {/* ── 하단 안내 ── */}
-      <section className="rounded-xl border border-white/15 bg-white/5 p-6 text-center">
-        <p className="font-semibold">궁금한 점이 있으신가요?</p>
-        <p className="mt-1 text-sm text-muted">
-          오른쪽 아래 카카오톡 버튼으로 편하게 문의해주세요.
-        </p>
-        <a
-          href="#booking"
-          className="mt-4 inline-block rounded-lg px-5 py-3 text-sm font-bold"
-          style={{ backgroundColor: accent, color: "#0a0a12" }}
-        >
-          날짜 선택하러 가기
-        </a>
-      </section>
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}
       <KakaoChannelButton />

@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import type { Venue, ThemeWithTiers, ThemeContent } from "@/types/catalog";
-import { EMPTY_THEME_CONTENT, resolveUnitPrice } from "@/types/catalog";
+import { EMPTY_THEME_CONTENT, normalizeThemeContent, resolveUnitPrice } from "@/types/catalog";
 import { saveTheme, deleteTheme, type ThemeInput, type PriceTierInput } from "./actions";
+import { ContentBlocksEditor } from "./ContentBlocksEditor";
 
 const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
 const label = "block text-xs font-medium text-muted mb-1";
@@ -72,7 +73,8 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     venue_id: t.venue_id,
     accent_color: t.accent_color ?? "",
     hero_image_path: t.hero_image_path ?? "",
-    content: { ...EMPTY_THEME_CONTENT, ...(t.content ?? {}) },
+    // 옛 4칸 구조로 저장된 테마도 블록으로 읽어준다. 저장하면 새 구조로 덮인다.
+    content: normalizeThemeContent(t.content),
     is_active: t.is_active,
     is_listed: t.is_listed,
     sort_order: t.sort_order,
@@ -399,49 +401,12 @@ export function ThemeEditor({
           {/* ── 상세 콘텐츠 ── */}
           <div className={section}>
             <h3 className="text-sm font-semibold">상세 페이지 콘텐츠</h3>
-
-            <BlockEditor
-              title="이런 분께 추천"
-              rows={editing.content.for_you}
-              cols={["emoji", "title", "desc"]}
-              colLabels={["이모지", "제목", "설명"]}
-              onChange={(for_you) => patchContent({ for_you })}
-              blank={{ emoji: "", title: "", desc: "" }}
-            />
-
-            <BlockEditor
-              title="진행 방식"
-              rows={editing.content.steps}
-              cols={["emoji", "title", "desc"]}
-              colLabels={["이모지", "제목", "설명"]}
-              onChange={(steps) => patchContent({ steps })}
-              blank={{ emoji: "", title: "", desc: "" }}
-            />
-
-            <div>
-              <p className="mb-1 text-xs font-medium">타임테이블</p>
-              <p className="mb-2 text-[11px] text-muted">
-                ⭐ 시각이 아니라 <strong>시작 후 경과 분</strong>을 적습니다. 그래야 11:30 회차든 19:30 회차든
-                같은 내용으로 자동 계산됩니다.
-              </p>
-              <BlockEditor
-                title=""
-                rows={editing.content.timetable}
-                cols={["offset_min", "title", "desc"]}
-                colLabels={["경과(분)", "제목", "설명"]}
-                onChange={(timetable) => patchContent({ timetable })}
-                blank={{ offset_min: 0, title: "", desc: "" }}
-                numericCols={["offset_min"]}
-              />
-            </div>
-
-            <BlockEditor
-              title="주의사항"
-              rows={editing.content.precautions}
-              cols={["title", "desc"]}
-              colLabels={["제목", "설명"]}
-              onChange={(precautions) => patchContent({ precautions })}
-              blank={{ title: "", desc: "" }}
+            <p className="text-xs text-muted">
+              필요한 블록만 골라 쌓으세요. 순서는 ↑↓ 로 바꿉니다.
+            </p>
+            <ContentBlocksEditor
+              blocks={editing.content.blocks}
+              onChange={(blocks) => patchContent({ blocks })}
             />
           </div>
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
-import type { ThemeContent } from "@/types/catalog";
+import { normalizeThemeContent, type ThemeBlock, type ThemeContent } from "@/types/catalog";
 
 export type PriceTierInput = {
   min_headcount: number;
@@ -37,31 +37,62 @@ export type ThemeInput = {
  * content(jsonb)는 DB 가 구조를 검증해주지 않으므로 저장 전에 앱에서 검증한다.
  * 설계 근거: docs/07-architecture-domain-and-data.md §4-2
  */
+/**
+ * 저장 전 콘텐츠 정리.
+ *
+ * 어드민이 보내는 JSON 을 그대로 믿지 않는다. 알려진 블록 종류만 남기고
+ * 각 필드를 문자열/숫자로 강제한다 — 화면이 기대하지 않는 모양이 들어오면
+ * 상세 페이지가 통째로 깨진다.
+ */
 function sanitizeContent(raw: unknown): ThemeContent {
-  const c = (raw ?? {}) as Partial<ThemeContent>;
-  const block = <T extends Record<string, unknown>>(arr: unknown, keys: (keyof T)[]): T[] =>
-    Array.isArray(arr)
-      ? arr
-          .filter((x) => x && typeof x === "object")
-          .map((x) => {
-            const out = {} as Record<string, unknown>;
-            for (const k of keys) out[k as string] = (x as Record<string, unknown>)[k as string] ?? "";
-            return out as T;
-          })
-      : [];
+  const parsed = normalizeThemeContent(raw);
+  const str = (v: unknown) => String(v ?? "");
 
-  return {
-    for_you: block(c.for_you, ["emoji", "title", "desc"]),
-    steps: block(c.steps, ["emoji", "title", "desc"]),
-    timetable: (Array.isArray(c.timetable) ? c.timetable : [])
-      .filter((x) => x && typeof x === "object")
-      .map((x) => ({
-        offset_min: Number((x as { offset_min?: unknown }).offset_min) || 0,
-        title: String((x as { title?: unknown }).title ?? ""),
-        desc: String((x as { desc?: unknown }).desc ?? ""),
-      })),
-    precautions: block(c.precautions, ["title", "desc"]),
-  };
+  const blocks = parsed.blocks
+    .filter((b) => b && typeof b === "object" && "type" in b)
+    .map((b): ThemeBlock | null => {
+      const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+      switch (b.type) {
+        case "text":
+          return { type: "text", title: str(b.title), body: str(b.body) };
+        case "list":
+          return {
+            type: "list",
+            title: str(b.title),
+            items: arr(b.items).map((x) => ({
+              emoji: str((x as Record<string, unknown>)?.emoji),
+              title: str((x as Record<string, unknown>)?.title),
+              desc: str((x as Record<string, unknown>)?.desc),
+            })),
+          };
+        case "timetable":
+          return {
+            type: "timetable",
+            title: str(b.title),
+            items: arr(b.items).map((x) => ({
+              offset_min: Number((x as Record<string, unknown>)?.offset_min) || 0,
+              title: str((x as Record<string, unknown>)?.title),
+              desc: str((x as Record<string, unknown>)?.desc),
+            })),
+          };
+        case "callout":
+          return {
+            type: "callout",
+            title: str(b.title),
+            items: arr(b.items).map((x) => ({
+              title: str((x as Record<string, unknown>)?.title),
+              desc: str((x as Record<string, unknown>)?.desc),
+            })),
+          };
+        case "image":
+          return { type: "image", title: str(b.title), src: str(b.src), alt: str(b.alt) };
+        default:
+          return null;
+      }
+    })
+    .filter((b): b is ThemeBlock => b !== null);
+
+  return { blocks };
 }
 
 function validate(input: ThemeInput): string | null {

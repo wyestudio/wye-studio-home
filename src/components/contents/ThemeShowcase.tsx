@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { HudCard } from "@/components/ui/HudCard";
+import Image from "next/image";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { formatKrw } from "@/lib/format";
 import type { ThemeWithTiers } from "@/types/catalog";
 
 const DEFAULT_ACCENT = "#3dffb0";
+/** 대표 이미지가 없을 때 쓰는 기본 아트웍. */
+const FALLBACK_POSTER = "/bar-o-title.png";
 
 export type ThemeCardData = ThemeWithTiers & {
   /** 앞으로 남은 회차 수 */
@@ -21,16 +22,15 @@ function durationLabel(minutes: number): string {
 }
 
 /**
- * 테마 목록.
+ * 테마 목록 — 포스터 중심.
  *
- * 기존에는 회차 카드가 매주 쌓여 "이 회차랑 저 회차랑 뭐가 다른데?" 가 됐다.
- * 테마 단위로 묶으면 회차가 늘어도 목록은 그대로다.
- * 설계 근거: docs/08-architecture-screens-and-admin.md §1-1
+ * 카드에 정보를 늘어놓으면 포스터가 묻힌다. 포스터만 보여주고 정보는
+ * 마우스를 올렸을 때(터치 기기는 항상) 위에 겹쳐 띄운다.
  */
 export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
   return (
     <section className="mx-auto max-w-5xl px-5 py-14">
-      <SectionHeading eyebrow="CONTENTS" title="우주이스케이프의 컨텐츠" />
+      <SectionHeading eyebrow="CONTENTS" />
 
       {themes.length === 0 ? (
         <div className="mt-10 rounded-xl border border-white/15 bg-white/5 p-10 text-center">
@@ -41,57 +41,43 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
         <div className="mt-10 grid gap-5 sm:grid-cols-2">
           {themes.map((theme) => {
             const accent = theme.accent_color || DEFAULT_ACCENT;
-            const prices = theme.tiers.map((t) => t.unit_price_krw);
-            const minPrice = prices.length ? Math.min(...prices) : null;
-            const maxPrice = prices.length ? Math.max(...prices) : null;
 
             return (
-              <Link key={theme.id} href={`/themes/${theme.slug}`} className="group block">
-                <HudCard className="flex h-full flex-col p-6 transition-transform group-hover:-translate-y-0.5">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-extrabold" style={{ color: accent }}>
+              <Link
+                key={theme.id}
+                href={`/themes/${theme.slug}`}
+                className="group relative block overflow-hidden rounded-xl border border-white/15"
+              >
+                <div className="relative aspect-[4/5] bg-surface">
+                  <Image
+                    src={theme.hero_image_path || FALLBACK_POSTER}
+                    alt={`${theme.name} 포스터`}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                    sizes="(min-width: 640px) 50vw, 100vw"
+                  />
+
+                  {/*
+                    정보 오버레이.
+                    마우스가 없는 기기(터치)에서는 hover 가 일어나지 않으므로
+                    항상 보이게 한다 — 안 그러면 모바일에서 정보가 영영 안 보인다.
+                  */}
+                  <div
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 px-5 text-center opacity-100 transition-opacity duration-300
+                               [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+                  >
+                    <h3 className="text-2xl font-extrabold" style={{ color: accent }}>
                       {theme.name}
                     </h3>
-                    {theme.tagline && (
-                      <p className="mt-1.5 text-sm text-muted">{theme.tagline}</p>
-                    )}
-
-                    <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
-                      <DifficultyLocks rating={theme.difficulty} />
-                      <span>⏱ {durationLabel(theme.duration_minutes)}</span>
-                    </div>
-
-                    {minPrice !== null && maxPrice !== null && (
-                      <p className="mt-3 text-sm">
-                        <span className="text-muted">1인 </span>
-                        <strong className="text-base">
-                          {minPrice === maxPrice
-                            ? formatKrw(minPrice)
-                            : `${formatKrw(minPrice)}~${formatKrw(maxPrice)}`}
-                        </strong>
-                        {minPrice !== maxPrice && (
-                          <span className="ml-1 text-xs text-muted">(인원수에 따라 다름)</span>
-                        )}
-                      </p>
+                    <DifficultyLocks rating={theme.difficulty} />
+                    <span className="text-sm text-white/80">
+                      ⏱ {durationLabel(theme.duration_minutes)}
+                    </span>
+                    {!theme.is_active && (
+                      <span className="text-xs text-white/60">현재 신청을 받지 않습니다</span>
                     )}
                   </div>
-
-                  <div className="mt-5 border-t border-white/12 pt-4">
-                    {!theme.is_active ? (
-                      <p className="text-sm text-muted">현재 신청을 받지 않습니다</p>
-                    ) : theme.upcomingCount > 0 ? (
-                      <p className="text-sm">
-                        <span style={{ color: accent }}>●</span> 신청 가능한 회차{" "}
-                        <strong>{theme.upcomingCount}개</strong>
-                      </p>
-                    ) : (
-                      <p className="text-sm text-muted">예정된 회차 준비 중</p>
-                    )}
-                    <p className="mt-2 text-sm font-semibold" style={{ color: accent }}>
-                      {theme.is_active ? "자세히 보고 날짜 선택하기 →" : "자세히 보기 →"}
-                    </p>
-                  </div>
-                </HudCard>
+                </div>
               </Link>
             );
           })}

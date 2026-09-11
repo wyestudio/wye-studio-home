@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { ThemeShowcase, type ThemeCardData } from "@/components/contents/ThemeShowcase";
-import { ProcessSteps } from "@/components/contents/ProcessSteps";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { getListedThemes, getUpcomingSessionsForTheme } from "@/lib/themes";
 
@@ -31,7 +30,6 @@ export default async function ContentsPage() {
   return (
     <>
       <ThemeShowcase themes={cards} />
-      <ProcessSteps />
       <KakaoChannelButton />
     </>
   );

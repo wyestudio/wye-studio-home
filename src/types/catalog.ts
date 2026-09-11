@@ -21,21 +21,70 @@ export type ThemePriceTier = {
   original_unit_price_krw: number | null;
 };
 
-/** 테마 상세 콘텐츠 4블록. DB 에는 themes.content(jsonb) 한 칸에 들어간다. */
-export type ThemeContent = {
-  for_you: { emoji: string; title: string; desc: string }[];
-  steps: { emoji: string; title: string; desc: string }[];
+/**
+ * 테마 상세 콘텐츠 — 자유 블록.
+ *
+ * 예전에는 for_you / steps / timetable / precautions 4칸이 고정이었다.
+ * 그 구성이 안 맞는 테마(웹 방탈출 등)는 빈 칸을 남기거나 억지로 끼워야 했다.
+ * 필요한 블록만 골라 쌓고 순서를 바꿀 수 있게 한다.
+ *
+ * DB 에는 themes.content(jsonb) 한 칸에 { blocks: [...] } 로 들어간다.
+ */
+export type ThemeBlock =
+  /** 제목 + 문단. 대부분의 설명은 이걸로 해결된다. */
+  | { type: "text"; title: string; body: string }
+  /** 목록. 이모지는 선택. */
+  | { type: "list"; title: string; items: { emoji: string; title: string; desc: string }[] }
   /** ⭐ 절대시각이 아니라 시작 시각으로부터의 경과 분. 회차 시각이 달라도 재입력 불필요. */
-  timetable: { offset_min: number; title: string; desc: string }[];
-  precautions: { title: string; desc: string }[];
+  | { type: "timetable"; title: string; items: { offset_min: number; title: string; desc: string }[] }
+  /** 눈에 띄어야 하는 안내(주의사항 등). */
+  | { type: "callout"; title: string; items: { title: string; desc: string }[] }
+  /** 상세 컷. public/ 경로 또는 외부 URL. */
+  | { type: "image"; title: string; src: string; alt: string };
+
+export type ThemeBlockType = ThemeBlock["type"];
+
+export type ThemeContent = {
+  blocks: ThemeBlock[];
 };
 
-export const EMPTY_THEME_CONTENT: ThemeContent = {
-  for_you: [],
-  steps: [],
-  timetable: [],
-  precautions: [],
+export const EMPTY_THEME_CONTENT: ThemeContent = { blocks: [] };
+
+/** 블록 종류별 표시 이름. 어드민 '블록 추가' 메뉴에 쓴다. */
+export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
+  text: "제목 + 문단",
+  list: "목록",
+  timetable: "타임테이블",
+  callout: "강조 박스",
+  image: "이미지",
 };
+
+/**
+ * 옛 4칸 구조를 블록 배열로 읽어준다.
+ *
+ * 이미 저장된 테마가 있어 한 번에 갈아엎을 수 없다. 읽을 때 변환하고,
+ * 어드민에서 저장하는 순간 새 구조로 덮인다.
+ */
+export function normalizeThemeContent(raw: unknown): ThemeContent {
+  if (!raw || typeof raw !== "object") return EMPTY_THEME_CONTENT;
+  const o = raw as Record<string, unknown>;
+
+  if (Array.isArray(o.blocks)) return { blocks: o.blocks as ThemeBlock[] };
+
+  const blocks: ThemeBlock[] = [];
+  const list = (v: unknown) => (Array.isArray(v) ? v : []);
+
+  if (list(o.for_you).length)
+    blocks.push({ type: "list", title: "이런 분께 추천", items: list(o.for_you) as never });
+  if (list(o.steps).length)
+    blocks.push({ type: "list", title: "진행 방식", items: list(o.steps) as never });
+  if (list(o.timetable).length)
+    blocks.push({ type: "timetable", title: "타임테이블", items: list(o.timetable) as never });
+  if (list(o.precautions).length)
+    blocks.push({ type: "callout", title: "주의사항", items: list(o.precautions) as never });
+
+  return { blocks };
+}
 
 export type Theme = {
   id: string;
