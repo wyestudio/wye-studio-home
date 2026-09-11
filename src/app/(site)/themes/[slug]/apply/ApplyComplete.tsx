@@ -79,6 +79,15 @@ export function ApplyComplete({
                 </p>
                 <p className="mt-1 text-[11px] text-muted">
                   {result.headcount}명 × {formatKrw(result.unitPriceKrw)}
+                  {result.discountKrw > 0 && (
+                    // 인원별 단가에 쿠폰 할인이 겹치면 금액이 직관적이지 않다.
+                    // 계산 내역을 보여주지 않으면 "왜 이 금액이지?" 문의가 온다.
+                    <>
+                      {" "}= {formatKrw(result.baseAmountKrw)}
+                      <br />
+                      <span className="text-glow">쿠폰 할인 − {formatKrw(result.discountKrw)}</span>
+                    </>
+                  )}
                 </p>
               </div>
               <div className="rounded-lg bg-white/5 p-4 text-center">

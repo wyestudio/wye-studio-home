@@ -15,6 +15,7 @@ export type AttendeeInput = {
 
 export type ApplyInput = {
   sessionId: string;
+  couponCode: string;
   depositorName: string;
   attendees: AttendeeInput[];
   notes: string;
@@ -31,10 +32,67 @@ export type ApplyResult =
       status: "confirmed" | "waiting";
       headcount: number;
       unitPriceKrw: number;
+      baseAmountKrw: number;
+      discountKrw: number;
       amountKrw: number;
       waitingNumber: number | null;
     }
   | { error: string; capacityFull?: true };
+
+export type CouponPreview =
+  | {
+      ok: true;
+      code: string;
+      campaignName: string;
+      description: string | null;
+      discountKrw: number;
+      finalAmountKrw: number;
+      validUntil: string | null;
+    }
+  | { ok: false; reason: string };
+
+/**
+ * 쿠폰 확인. 신청 전에 화면에서 할인액을 보여주기 위한 것이다.
+ *
+ * 판정 규칙은 DB 의 preview_coupon() 한 곳에만 있다. 화면과 실제 신청이
+ * 다른 규칙을 쓰면 "화면에는 할인이 떴는데 신청하니 안 먹는" 일이 생긴다.
+ */
+export async function checkCoupon(input: {
+  code: string;
+  themeId: string;
+  headcount: number;
+  baseAmountKrw: number;
+  phone: string;
+}): Promise<CouponPreview> {
+  if (!input.code.trim()) return { ok: false, reason: "쿠폰 코드를 입력해주세요." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("preview_coupon", {
+    p_code: input.code,
+    p_theme_id: input.themeId,
+    p_headcount: input.headcount,
+    p_base_amount: input.baseAmountKrw,
+    p_phone: input.phone.replace(/\D/g, "") || null,
+  });
+
+  if (error) {
+    console.error("[apply] preview_coupon 실패", error);
+    return { ok: false, reason: "쿠폰을 확인하지 못했어요. 잠시 후 다시 시도해주세요." };
+  }
+
+  const r = data as Record<string, unknown>;
+  if (!r?.ok) return { ok: false, reason: String(r?.reason ?? "사용할 수 없는 쿠폰이에요.") };
+
+  return {
+    ok: true,
+    code: String(r.code),
+    campaignName: String(r.campaign_name),
+    description: (r.description as string) ?? null,
+    discountKrw: Number(r.discount_krw),
+    finalAmountKrw: Number(r.final_amount_krw),
+    validUntil: (r.valid_until as string) ?? null,
+  };
+}
 
 /**
  * 신청 제출.
@@ -75,6 +133,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     p_notes: input.notes.trim() || null,
     p_consent_photo: input.consentPhoto,
     p_consent_marketing: input.consentMarketing,
+    p_coupon_code: input.couponCode.trim() || null,
   });
 
   if (error) {
@@ -93,6 +152,8 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     status: "confirmed" | "waiting";
     headcount: number;
     unit_price_krw: number;
+    base_amount_krw: number;
+    discount_krw: number;
     amount_krw: number;
     waiting_number: number | null;
   };
@@ -142,6 +203,8 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     status: r.status,
     headcount: r.headcount,
     unitPriceKrw: r.unit_price_krw,
+    baseAmountKrw: r.base_amount_krw ?? r.amount_krw,
+    discountKrw: r.discount_krw ?? 0,
     amountKrw: r.amount_krw,
     waitingNumber: r.waiting_number ?? null,
   };

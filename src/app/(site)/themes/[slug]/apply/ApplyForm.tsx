@@ -3,7 +3,14 @@
 import { useState, useTransition } from "react";
 import { formatKrw } from "@/lib/format";
 import { resolveUnitPrice, type ThemePriceTier } from "@/types/catalog";
-import { applyToSession, type AttendeeInput, type ApplyResult } from "./actions";
+import {
+  applyToSession,
+  checkCoupon,
+  type AttendeeInput,
+  type ApplyResult,
+  type CouponPreview,
+} from "./actions";
+import { formatCouponCode, normalizeCouponCode } from "@/lib/coupon";
 import { ApplyComplete } from "./ApplyComplete";
 
 const field =
@@ -31,8 +38,13 @@ export function ApplyForm({
   tiers,
   accentColor,
   bankInfo,
+  themeId,
+  initialCouponCode,
 }: {
   sessionId: string;
+  themeId: string;
+  /** 쿠폰 링크(/c/{코드})로 들어온 경우 미리 채워진다. 손으로 칠 일이 없다. */
+  initialCouponCode: string;
   themeName: string;
   sessionLabel: string;
   minAge: number;
@@ -48,6 +60,9 @@ export function ApplyForm({
   const [consentOptional, setConsentOptional] = useState(false);
   const [consentPhoto, setConsentPhoto] = useState(false);
   const [consentMarketing, setConsentMarketing] = useState(false);
+  const [couponCode, setCouponCode] = useState(initialCouponCode);
+  const [coupon, setCoupon] = useState<CouponPreview | null>(null);
+  const [couponChecking, setCouponChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Extract<ApplyResult, { success: true }> | null>(null);
   const [pending, startTransition] = useTransition();
@@ -62,6 +77,29 @@ export function ApplyForm({
   const unitPrice = resolveUnitPrice(tiers, headcount);
   const total = unitPrice !== null ? unitPrice * headcount : null;
 
+  // 적용된 쿠폰이 있으면 할인 후 금액이 실제 입금액이다.
+  const appliedDiscount = coupon?.ok ? coupon.discountKrw : 0;
+  const payable = total !== null ? Math.max(0, total - appliedDiscount) : null;
+
+  /**
+   * 쿠폰 확인.
+   * ⚠️ 인원이 바뀌면 정가가 바뀌므로 할인액도 다시 계산해야 한다(정률 쿠폰).
+   *    그래서 인원 변경 시 적용을 풀고 다시 누르게 한다.
+   */
+  async function verifyCoupon() {
+    if (total === null) return;
+    setCouponChecking(true);
+    const result = await checkCoupon({
+      code: couponCode,
+      themeId,
+      headcount,
+      baseAmountKrw: total,
+      phone: attendees[0]?.phone ?? "",
+    });
+    setCouponChecking(false);
+    setCoupon(result);
+  }
+
   const canAdd = maxGroupSize === null || headcount < maxGroupSize;
 
   function patchAttendee(i: number, p: Partial<AttendeeInput>) {
@@ -73,6 +111,9 @@ export function ApplyForm({
     startTransition(async () => {
       const res = await applyToSession({
         sessionId,
+        // 적용 확인을 통과한 쿠폰만 보낸다. 입력만 해두고 확인을 안 눌렀다면
+        // 할인 없이 신청되는 게 맞다(화면에 안 보이던 할인이 붙으면 더 혼란스럽다).
+        couponCode: coupon?.ok ? coupon.code : "",
         depositorName,
         attendees,
         notes,
@@ -126,7 +167,10 @@ export function ApplyForm({
           <h2 className="font-bold">참여자 정보 ({headcount}명)</h2>
           {canAdd && (
             <button
-              onClick={() => setAttendees([...attendees, emptyAttendee()])}
+              onClick={() => {
+                setAttendees([...attendees, emptyAttendee()]);
+                setCoupon(null); // 인원이 바뀌면 할인액이 달라진다. 다시 확인시킨다.
+              }}
               className="rounded-lg border border-white/25 px-3 py-1.5 text-xs"
             >
               + 동행자 추가
@@ -143,7 +187,10 @@ export function ApplyForm({
                 </p>
                 {i > 0 && (
                   <button
-                    onClick={() => setAttendees(attendees.filter((_, x) => x !== i))}
+                    onClick={() => {
+                      setAttendees(attendees.filter((_, x) => x !== i));
+                      setCoupon(null);
+                    }}
                     className="text-xs text-red-400"
                   >
                     삭제
@@ -231,22 +278,98 @@ export function ApplyForm({
       <section>
         <h2 className="mb-3 font-bold">참가비</h2>
         <div className="rounded-lg border border-white/15 bg-white/5 p-4">
-          {unitPrice !== null && total !== null ? (
+          {unitPrice !== null && total !== null && payable !== null ? (
             <>
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-muted">
                   {headcount}명 × {formatKrw(unitPrice)}
                 </span>
-                <span className="text-2xl font-extrabold" style={{ color: accentColor }}>
+                <span
+                  className={
+                    appliedDiscount > 0
+                      ? "text-sm text-muted line-through"
+                      : "text-2xl font-extrabold"
+                  }
+                  style={appliedDiscount > 0 ? undefined : { color: accentColor }}
+                >
                   {formatKrw(total)}
                 </span>
               </div>
+
+              {appliedDiscount > 0 && (
+                <>
+                  <div className="mt-1.5 flex items-baseline justify-between text-sm">
+                    <span className="text-muted">쿠폰 할인</span>
+                    <span className="text-glow">− {formatKrw(appliedDiscount)}</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2">
+                    <span className="text-sm font-semibold">입금하실 금액</span>
+                    <span className="text-2xl font-extrabold" style={{ color: accentColor }}>
+                      {formatKrw(payable)}
+                    </span>
+                  </div>
+                </>
+              )}
+
               <p className="mt-2 text-xs text-muted">
                 인원이 늘면 1인당 참가비가 자동으로 낮아집니다.
               </p>
             </>
           ) : (
             <p className="text-sm text-muted">요금 정보를 불러올 수 없습니다.</p>
+          )}
+        </div>
+
+        {/* ── 쿠폰 ── */}
+        <div className="mt-4">
+          <label className={label}>쿠폰 코드</label>
+          <div className="flex gap-2">
+            <input
+              className={`${field} font-mono uppercase tracking-wider`}
+              value={formatCouponCode(couponCode)}
+              onChange={(e) => {
+                setCouponCode(normalizeCouponCode(e.target.value));
+                setCoupon(null); // 코드를 고치면 이전 적용은 무효다
+              }}
+              placeholder="M0EH-EVG1"
+              maxLength={9}
+              disabled={coupon?.ok}
+            />
+            {coupon?.ok ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setCoupon(null);
+                  setCouponCode("");
+                }}
+                className="shrink-0 rounded-lg border border-white/20 px-4 text-sm text-muted"
+              >
+                해제
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={verifyCoupon}
+                disabled={couponChecking || !couponCode || total === null}
+                className="shrink-0 rounded-lg border border-white/30 px-4 text-sm font-semibold disabled:opacity-40"
+              >
+                {couponChecking ? "확인 중…" : "적용"}
+              </button>
+            )}
+          </div>
+
+          {coupon?.ok && (
+            <p className="mt-1.5 text-xs text-glow">
+              ✓ {coupon.campaignName} 적용됨 — {formatKrw(coupon.discountKrw)} 할인
+            </p>
+          )}
+          {coupon && !coupon.ok && (
+            <p className="mt-1.5 text-xs text-amber-400">{coupon.reason}</p>
+          )}
+          {!coupon && (
+            <p className="mt-1.5 text-xs text-muted">
+              쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요. 신청 1건에 1장 사용할 수 있어요.
+            </p>
           )}
         </div>
 

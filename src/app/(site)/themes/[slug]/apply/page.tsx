@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -34,6 +35,9 @@ export default async function ApplyPage({
   const { session: sessionId } = await searchParams;
 
   const theme = await getThemeBySlug(slug);
+
+  // 쿠폰 링크(/c/{코드})로 들어왔으면 쿠키에 코드가 담겨 있다. 손으로 칠 일이 없다.
+  const couponCode = (await cookies()).get("wye_coupon")?.value ?? "";
   if (!theme) notFound();
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
@@ -70,6 +74,8 @@ export default async function ApplyPage({
       <h1 className="mb-6 text-2xl font-extrabold">참가 신청</h1>
 
       <ApplyForm
+        themeId={theme.id}
+        initialCouponCode={couponCode}
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={sessionLabel(target.start_at)}
