@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { getMyProfile } from "@/lib/profile";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -38,6 +39,10 @@ export default async function ApplyPage({
 
   // 쿠폰 링크(/c/{코드})로 들어왔으면 쿠키에 코드가 담겨 있다. 손으로 칠 일이 없다.
   const couponCode = (await cookies()).get("wye_coupon")?.value ?? "";
+
+  // 로그인 상태면 신청자 정보를 미리 채운다. 로그인의 가장 큰 실익이다(D-06).
+  // 실패해도 신청은 되어야 하므로 조회 실패는 삼킨다.
+  const profile = await getMyProfile().catch(() => null);
   if (!theme) notFound();
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
@@ -76,6 +81,11 @@ export default async function ApplyPage({
       <ApplyForm
         themeId={theme.id}
         initialCouponCode={couponCode}
+        prefill={
+          profile
+            ? { name: profile.name, phone: profile.phone, birthYear: profile.birth_year, gender: profile.gender }
+            : null
+        }
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={sessionLabel(target.start_at)}

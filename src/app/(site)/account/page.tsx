@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { getCurrentUser, getMyProfile } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 import { LinkedAccounts } from "@/components/account/LinkedAccounts";
+import { MyApplications } from "@/components/account/MyApplications";
+
+// 참여 이력은 로그인한 사람마다 다르므로 매번 새로 읽는다.
+export const dynamic = "force-dynamic";
 
 export default async function AccountPage({ searchParams }: PageProps<"/account">) {
   const user = await getCurrentUser();
@@ -12,9 +16,12 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
   const linkSuccess = params.linked === "naver" || params.linked === "kakao";
 
   const [profile, supabase] = await Promise.all([getMyProfile(), createClient()]);
-  const [{ data: naverLink }, { data: kakaoLink }] = await Promise.all([
+  const [{ data: naverLink }, { data: kakaoLink }, { data: myApps }] = await Promise.all([
     supabase.from("naver_links").select("naver_id").eq("user_id", user.id).maybeSingle(),
     supabase.from("kakao_links").select("kakao_id").eq("user_id", user.id).maybeSingle(),
+    // 본인 것만 돌려주는 RPC. user_id 를 파라미터로 받지 않는 이유는,
+    // 받는 순간 남의 id 를 넣어 남의 이력을 볼 수 있기 때문이다.
+    supabase.rpc("my_applications"),
   ]);
 
   const hasEmail = (user.identities ?? []).some((i) => i.provider === "email");
@@ -25,7 +32,7 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
     <div className="mx-auto max-w-md px-5 py-12">
       <h1 className="mb-1 text-2xl font-extrabold">계정 설정</h1>
       <p className="mb-8 text-sm text-muted">
-        로그인 수단을 관리하고 프로필 정보를 확인하세요.
+        참여 이력을 확인하고 로그인 수단을 관리하세요.
       </p>
 
       {linkSuccess ? (
@@ -51,9 +58,19 @@ export default async function AccountPage({ searchParams }: PageProps<"/account"
               <dt className="text-muted">전화번호</dt>
               <dd>{profile.phone}</dd>
             </div>
+            {profile.birth_year ? (
+              <div className="flex justify-between">
+                <dt className="text-muted">출생연도</dt>
+                <dd>{profile.birth_year}년</dd>
+              </div>
+            ) : null}
           </dl>
         </div>
       ) : null}
+
+      <div className="mb-6">
+        <MyApplications applications={(myApps ?? []) as never[]} />
+      </div>
 
       <div className="rounded-xl border border-border bg-surface p-5">
         <h2 className="mb-3 text-sm font-semibold text-muted">연결된 로그인 수단</h2>

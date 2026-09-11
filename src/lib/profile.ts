@@ -26,11 +26,9 @@ export async function getMyProfile(): Promise<Profile | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
+  // 전화번호가 암호화 저장이라 복호화가 필요하다. 본인 것만 돌려주는 RPC 를 쓴다.
+  const { data: rows } = await supabase.rpc("my_profile");
+  const data = (rows as Profile[] | null)?.[0] ?? null;
 
   return data;
 }

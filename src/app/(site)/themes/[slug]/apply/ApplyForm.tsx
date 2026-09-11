@@ -29,6 +29,21 @@ function emptyAttendee(): AttendeeInput {
   return { name: "", phone: "", birth_year: 0, nickname: "", gender: "", experience_range: "" };
 }
 
+/** 로그인한 사람의 정보로 첫 참여자를 채운다. 값은 그대로 고칠 수 있다. */
+function firstAttendee(
+  prefill: { name: string; phone: string; birthYear: number | null; gender: string | null } | null
+): AttendeeInput {
+  if (!prefill) return emptyAttendee();
+  return {
+    name: prefill.name,
+    phone: prefill.phone,
+    birth_year: prefill.birthYear ?? 0,
+    nickname: "",
+    gender: prefill.gender ?? "",
+    experience_range: "",
+  };
+}
+
 export function ApplyForm({
   sessionId,
   themeName,
@@ -40,11 +55,14 @@ export function ApplyForm({
   bankInfo,
   themeId,
   initialCouponCode,
+  prefill,
 }: {
   sessionId: string;
   themeId: string;
   /** 쿠폰 링크(/c/{코드})로 들어온 경우 미리 채워진다. 손으로 칠 일이 없다. */
   initialCouponCode: string;
+  /** 로그인 상태면 신청자 정보가 미리 채워진다 (D-06 실익 1). */
+  prefill: { name: string; phone: string; birthYear: number | null; gender: string | null } | null;
   themeName: string;
   sessionLabel: string;
   minAge: number;
@@ -53,8 +71,8 @@ export function ApplyForm({
   accentColor: string;
   bankInfo: { bankName: string; accountNumber: string; accountHolder: string };
 }) {
-  const [attendees, setAttendees] = useState<AttendeeInput[]>([emptyAttendee()]);
-  const [depositorName, setDepositorName] = useState("");
+  const [attendees, setAttendees] = useState<AttendeeInput[]>([firstAttendee(prefill)]);
+  const [depositorName, setDepositorName] = useState(prefill?.name ?? "");
   const [notes, setNotes] = useState("");
   const [consentRequired, setConsentRequired] = useState(false);
   const [consentOptional, setConsentOptional] = useState(false);
@@ -273,6 +291,12 @@ export function ApplyForm({
           ))}
         </div>
       </section>
+
+      {prefill && (
+        <p className="rounded-lg border border-glow/30 bg-glow/5 px-4 py-2.5 text-xs text-glow">
+          ✓ 로그인 정보로 신청자 칸을 채웠어요. 다르면 그대로 고치셔도 됩니다.
+        </p>
+      )}
 
       {/* ── 결제 ── */}
       <section>

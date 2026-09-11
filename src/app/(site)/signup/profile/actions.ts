@@ -17,15 +17,16 @@ export async function completeProfileAction(
 ): Promise<ProfileState> {
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
-  const birthDate = String(formData.get("birthDate") ?? "");
+  const birthYear = Number(formData.get("birthYear") ?? 0);
   const gender = String(formData.get("gender") ?? "");
   const redirectTo = String(formData.get("redirectTo") ?? "/");
 
-  if (!name || !phone || !birthDate || !gender) {
-    return { error: "모든 항목을 입력해주세요." };
+  // 성별은 선택 입력이다 (D-04). 생년월일 대신 출생연도만 받는다 (D-03).
+  if (!name || !phone || !birthYear) {
+    return { error: "이름·휴대폰 번호·출생연도를 입력해주세요." };
   }
-  if (gender !== "M" && gender !== "F") {
-    return { error: "성별을 선택해주세요." };
+  if (!/^01[016789]\d{7,8}$/.test(phone.replace(/\D/g, ""))) {
+    return { error: "휴대폰 번호를 정확히 입력해주세요." };
   }
 
   const supabase = await createClient();
@@ -37,12 +38,14 @@ export async function completeProfileAction(
     redirect("/login");
   }
 
-  const { error } = await supabase.from("profiles").insert({
-    id: user.id,
-    name,
-    phone,
-    birth_date: birthDate,
-    gender,
+  // 프로필 저장 + 과거 비회원 신청 자동 연결을 한 트랜잭션에서 한다.
+  // 번호가 같은 과거 신청(본인이 대표로 낸 것만)이 계정에 붙는다.
+  const { error } = await supabase.rpc("upsert_profile_and_link", {
+    p_user_id: user.id,
+    p_name: name,
+    p_phone: phone,
+    p_birth_year: birthYear,
+    p_gender: gender || null,
   });
 
   if (error) {

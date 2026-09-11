@@ -58,13 +58,20 @@ export type SessionStats = {
 
 // 로그인 시스템(휴면 처리됨)이 쓰던 타입 — 더 이상 신청 플로우에서 쓰이지 않지만
 // src/lib/profile.ts 등 휴면 코드가 계속 참조하므로 남겨둠.
+/**
+ * 회원 프로필.
+ *
+ * my_profile() RPC 가 돌려주는 모양이다. 전화번호는 암호화 저장이라
+ * 복호화된 값이 phone 으로 온다.
+ * birth_date·gender 는 회원제 시절 필수였으나 지금은 출생연도만 받고
+ * 성별은 선택이다 (D-03·D-04).
+ */
 export type Profile = {
   id: string;
   name: string;
   phone: string;
-  birth_date: string;
-  gender: Gender;
-  created_at: string;
+  birth_year: number | null;
+  gender: Gender | null;
 };
 
 export type Application = {

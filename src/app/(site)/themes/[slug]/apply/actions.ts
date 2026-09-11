@@ -117,6 +117,11 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
 
   const supabase = await createClient();
 
+  // 로그인 상태면 신청을 계정에 붙인다. 비회원 신청도 그대로 받는다(D-06).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data, error } = await supabase.rpc("submit_application_v2", {
     p_session_id: input.sessionId,
     p_depositor_name: input.depositorName.trim(),
@@ -134,6 +139,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     p_consent_photo: input.consentPhoto,
     p_consent_marketing: input.consentMarketing,
     p_coupon_code: input.couponCode.trim() || null,
+    p_user_id: user?.id ?? null,
   });
 
   if (error) {
