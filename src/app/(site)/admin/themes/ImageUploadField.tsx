@@ -28,12 +28,23 @@ export function ImageUploadField({
   async function pick(file: File) {
     setBusy(true);
     setError(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    const result = await uploadThemeImage(fd);
-    setBusy(false);
-    if (!result.ok) return setError(result.error);
-    onChange(result.url);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const result = await uploadThemeImage(fd);
+      if (!result.ok) return setError(result.error);
+      onChange(result.url);
+    } catch (err) {
+      // 서버 액션 자체가 터지면(본문 크기 초과 등) 위의 에러 반환까지 못 온다.
+      // 잡아주지 않으면 화면에 아무 일도 안 일어난 것처럼 보인다.
+      setError(
+        err instanceof Error && /body|size|413/i.test(err.message)
+          ? "파일이 너무 큽니다. 5MB 이하로 줄여주세요."
+          : "업로드에 실패했어요. 잠시 후 다시 시도해주세요."
+      );
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (

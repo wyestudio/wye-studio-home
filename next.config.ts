@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      // 포스터 업로드가 서버 액션으로 간다. 기본 1MB 라 2~3MB 짜리 포스터가
+      // "Body exceeded 1 MB limit" 로 막혔다(500). 버킷 제한(5MB)에 맞춘다.
+      // 여유를 조금 둬야 multipart 부가 데이터까지 들어간다.
+      bodySizeLimit: "6mb",
+    },
+  },
+
   images: {
     remotePatterns: [
       {
