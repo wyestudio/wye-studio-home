@@ -1,0 +1,108 @@
+import "server-only";
+import { createClient } from "@/lib/supabase/server";
+import type {
+  Theme,
+  ThemePriceTier,
+  ThemeWithTiers,
+  SessionView,
+} from "@/types/catalog";
+import type { SessionStats } from "@/types/domain";
+
+/** 목록에 노출할 테마들 (신청 가능 + 목록 노출). */
+export async function getListedThemes(): Promise<ThemeWithTiers[]> {
+  const supabase = await createClient();
+
+  const [themesRes, tiersRes] = await Promise.all([
+    supabase
+      .from("themes")
+      .select("*")
+      .eq("is_active", true)
+      .eq("is_listed", true)
+      .order("sort_order")
+      .order("created_at"),
+    supabase.from("theme_price_tiers").select("*").order("min_headcount"),
+  ]);
+
+  if (themesRes.error) throw themesRes.error;
+
+  const tiers = (tiersRes.data ?? []) as ThemePriceTier[];
+  return (themesRes.data ?? []).map((t) => ({
+    ...(t as Theme),
+    tiers: tiers.filter((x) => x.theme_id === (t as Theme).id),
+  }));
+}
+
+/** slug 로 테마 1건. 비활성 테마는 RLS 정책상 anon 에게 보이지 않는다. */
+export async function getThemeBySlug(slug: string): Promise<ThemeWithTiers | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.from("themes").select("*").eq("slug", slug).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const { data: tiers } = await supabase
+    .from("theme_price_tiers")
+    .select("*")
+    .eq("theme_id", (data as Theme).id)
+    .order("min_headcount");
+
+  return { ...(data as Theme), tiers: (tiers ?? []) as ThemePriceTier[] };
+}
+
+/**
+ * 해당 테마의 "앞으로 진행될" 회차들. 지난 회차와 비활성화된 회차는 뺀다.
+ * session_view 를 쓰는 이유는 가격·정원·장소의 override 규칙이 그 안에만
+ * 존재하기 때문이다 (sessions 테이블을 직접 읽지 않는다).
+ */
+export async function getUpcomingSessionsForTheme(themeId: string): Promise<SessionView[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("session_view")
+    .select("*")
+    .eq("theme_id", themeId)
+    .neq("status", "cancelled")
+    .gte("start_at", new Date().toISOString())
+    .order("start_at", { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as SessionView[];
+}
+
+/** 회차별 공개 집계를 한 번에 붙인다. 개별 실패는 카드 표시를 막지 않는다. */
+export async function attachStats(
+  sessions: SessionView[]
+): Promise<(SessionView & { stats: SessionStats | null })[]> {
+  const supabase = await createClient();
+  return Promise.all(
+    sessions.map(async (s) => {
+      const { data, error } = await supabase
+        .rpc("get_session_stats", { p_session_id: s.id })
+        .single();
+      return { ...s, stats: error ? null : (data as SessionStats) };
+    })
+  );
+}
+
+/**
+ * 잔여석. 기준은 **입금 확인까지 끝난 인원**이다.
+ * 확정만 되고 미입금인 자리를 마감으로 세면 실제로는 빈자리를 막게 된다 —
+ * 프리오픈 운영에서 나온 개선이라 그대로 계승한다.
+ */
+export function remainingSeats(
+  session: Pick<SessionView, "capacity_max">,
+  stats: SessionStats | null
+): number | null {
+  if (!stats) return null;
+  return Math.max(0, session.capacity_max - stats.paid_confirmed_count);
+}
+
+/** 회차가 신청을 받을 수 있는 상태인가. */
+export function isBookable(
+  session: Pick<SessionView, "status" | "capacity_max">,
+  stats: SessionStats | null
+): boolean {
+  if (session.status !== "open") return false;
+  const left = remainingSeats(session, stats);
+  return left === null || left > 0;
+}
