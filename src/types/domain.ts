@@ -7,6 +7,8 @@ export type SessionType = "그룹" | "소개팅";
 
 export type Session = {
   id: string;
+  /** Phase 1 에서 신설. 신규(테마 기반) 회차만 값이 있고 과거 회차는 null */
+  theme_id?: string | null;
   slug: string;
   event_date: string;
   slot: SessionSlot;

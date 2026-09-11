@@ -4,11 +4,12 @@ import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
-  sendPaymentConfirmedSms,
-  sendApplicationCancelledSms,
-  sendWaitlistPromotedSms,
-  sendMinimumNotMetCancellationSms,
-} from "@/lib/sms";
+  getSessionDisplay,
+  sendPaymentConfirmedSmsV2,
+  sendApplicationCancelledSmsV2,
+  sendWaitlistPromotedSmsV2,
+  sendSessionCancelledSmsV2,
+} from "@/lib/smsV2";
 import { requireAdminAuth } from "@/lib/adminAuth";
 import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
 import { isDatingTheme } from "@/lib/theme";
@@ -94,7 +95,16 @@ export async function confirmPayment(applicationId: string, sessionId: string) {
     return { error: "업데이트 실패: " + updateError.message };
   }
 
-  await sendPaymentConfirmedSms(session, application, representative, attendeeCount);
+  const sd = await getSessionDisplay(session.id);
+  if (sd) {
+    await sendPaymentConfirmedSmsV2({
+      session: sd,
+      to: representative.phone,
+      name: representative.name,
+      confirmationCode: application.confirmation_code,
+      headcount: attendeeCount,
+    });
+  }
 
   console.log(`[admin] 입금 확인됨: ${applicationId} (${application.confirmation_code})`);
 
@@ -148,7 +158,15 @@ export async function cancelApplicationAdmin(applicationId: string, sessionId: s
     return { error: "업데이트 실패: " + updateError.message };
   }
 
-  await sendApplicationCancelledSms(session, application, representative);
+  const sdCancel = await getSessionDisplay(session.id);
+  if (sdCancel) {
+    await sendApplicationCancelledSmsV2({
+      session: sdCancel,
+      to: representative.phone,
+      name: representative.name,
+      confirmationCode: application.confirmation_code,
+    });
+  }
 
   console.log(`[admin] 신청 취소됨(미입금): ${applicationId} (${application.confirmation_code})`);
 
@@ -242,7 +260,22 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
     return { error: "업데이트 실패: " + updateError.message };
   }
 
-  await sendWaitlistPromotedSms(session, application, representative, attendeeCount, depositorName);
+  const sdPromote = await getSessionDisplay(session.id);
+  if (sdPromote) {
+    // 금액은 신규 신청이면 저장된 amount_krw, 옛 신청이면 회차 단가 × 인원.
+    const amount =
+      (application as { amount_krw?: number | null }).amount_krw ??
+      (session.price_krw ?? 0) * attendeeCount;
+    await sendWaitlistPromotedSmsV2({
+      session: sdPromote,
+      to: representative.phone,
+      name: representative.name,
+      confirmationCode: application.confirmation_code,
+      headcount: attendeeCount,
+      amountKrw: amount,
+      depositorName,
+    });
+  }
 
   console.log(`[admin] 대기자 확정 전환됨: ${applicationId} (${application.confirmation_code})`);
 
@@ -383,6 +416,10 @@ export async function deactivateSession(sessionId: string) {
   const errors: string[] = [];
   let successCount = 0;
 
+  // 회차 정보는 루프 안에서 매번 조회할 이유가 없다.
+  // 조회에 실패하면 문자만 건너뛴다 — 취소 처리 자체는 계속해야 한다.
+  const sdSession = await getSessionDisplay(session.id);
+
   for (const application of applications ?? []) {
     try {
       const representative = await getRepresentative(supabase, application.id);
@@ -393,9 +430,22 @@ export async function deactivateSession(sessionId: string) {
         .update({ status: "cancelled", payment_status: "cancelled" })
         .eq("id", application.id);
 
-      if (representative) {
-        await sendMinimumNotMetCancellationSms(session, application, representative, attendeeCount);
+      if (representative && sdSession) {
+        const amount =
+          (application as { amount_krw?: number | null }).amount_krw ??
+          (session.price_krw ?? 0) * attendeeCount;
+        await sendSessionCancelledSmsV2({
+          session: sdSession,
+          to: representative.phone,
+          name: representative.name,
+          headcount: attendeeCount,
+          refundAmountKrw: amount,
+          // 대기자는 대개 입금 전이다. 환불 문구를 이걸로 가른다.
+          isPaid: application.payment_status === "confirmed",
+        });
         successCount++;
+      } else if (!sdSession) {
+        errors.push(`신청 ${application.confirmation_code}: 회차 정보 조회 실패로 문자 미발송`);
       } else {
         errors.push(`신청 ${application.confirmation_code}: 대표 신청자 연락처 없음`);
       }

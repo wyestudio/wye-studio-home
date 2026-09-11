@@ -2,6 +2,11 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Session } from "@/types/domain";
 import { sendEventReminderSms, buildEventReminderText } from "@/lib/sms";
+import {
+  getSessionDisplay,
+  buildEventReminderTextV2,
+  sendEventReminderSmsV2,
+} from "@/lib/smsV2";
 
 export type ReminderRecipient = {
   name: string;
@@ -37,7 +42,13 @@ export async function getSessionReminderPreview(
     .single();
 
   const venueName = venue?.venue_name || "미정";
-  const messagePreview = await buildEventReminderText(session, "OOO", venueName, venue?.venue_address ?? null);
+
+  // 신규(테마 기반) 회차는 장소를 venues 에서, 옛 회차는 session_venues 에서 읽는다.
+  // 템플릿도 달라 분기한다 — 옛 템플릿에는 소개팅 분기와 음주 문구가 있다.
+  const sd = session.theme_id ? await getSessionDisplay(session.id) : null;
+  const messagePreview = sd
+    ? await buildEventReminderTextV2(sd, "OOO", sd.venue_address ?? null, sd.venue_parking_note ?? null)
+    : await buildEventReminderText(session, "OOO", venueName, venue?.venue_address ?? null);
 
   if (appsError || !applications || applications.length === 0) {
     return { total: 0, recipients: [], messagePreview };
@@ -95,6 +106,9 @@ export async function sendSessionReminders(
     .single();
 
   const venueName = venue?.venue_name || "미정";
+  // 신규(테마 기반) 회차는 장소를 venues 에서 읽고 템플릿도 다르다.
+  // 루프 안에서 매번 조회할 이유가 없어 한 번만 구한다.
+  const sdSend = session.theme_id ? await getSessionDisplay(session.id) : null;
   const errors: string[] = [];
   let successCount = 0;
 
@@ -112,7 +126,17 @@ export async function sendSessionReminders(
         continue;
       }
 
-      await sendEventReminderSms(session, app, attendee.name, attendee.phone, venueName, venue?.venue_address ?? null);
+      if (sdSend) {
+        await sendEventReminderSmsV2({
+          session: sdSend,
+          to: attendee.phone,
+          name: attendee.name,
+          venueAddress: sdSend.venue_address ?? null,
+          parkingNote: sdSend.venue_parking_note ?? null,
+        });
+      } else {
+        await sendEventReminderSms(session, app, attendee.name, attendee.phone, venueName, venue?.venue_address ?? null);
+      }
 
       await supabase
         .from("applications")
