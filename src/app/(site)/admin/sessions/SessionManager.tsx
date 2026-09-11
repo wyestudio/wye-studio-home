@@ -21,6 +21,7 @@ const WEEKDAYS = [
 export type ThemeSchedule = {
   theme_id: string;
   start_date: string;
+  end_date: string | null;
   weekdays: number[];
   times: string[];
   open_weeks_before: number;
@@ -46,6 +47,7 @@ function blankSchedule(themeId: string): ScheduleInput {
   return {
     theme_id: themeId,
     start_date: todayKst(),
+    end_date: null,
     weekdays: [6, 0],
     times: ["11:30", "15:30", "19:30"],
     open_weeks_before: 3,
@@ -86,6 +88,7 @@ export function SessionManager({
         ? {
             theme_id: t.id,
             start_date: s.start_date,
+            end_date: s.end_date,
             weekdays: s.weekdays,
             times: s.times,
             open_weeks_before: s.open_weeks_before,
@@ -196,6 +199,17 @@ export function SessionManager({
             <p className="mt-1 text-[11px] text-muted">이 날짜부터 반복합니다. 지난 날짜는 만들지 않습니다.</p>
           </div>
           <div>
+            <label className={label}>종료일</label>
+            <input
+              type="date" className={field}
+              value={draft.end_date ?? ""}
+              onChange={(e) => patch({ end_date: e.target.value || null })}
+            />
+            <p className="mt-1 text-[11px] text-muted">
+              이 날짜까지만 만듭니다. <strong>비우면 계속 반복</strong>합니다.
+            </p>
+          </div>
+          <div className="sm:col-span-2">
             <label className={label}>반복 요일 *</label>
             <div className="flex gap-1">
               {WEEKDAYS.map((d) => (

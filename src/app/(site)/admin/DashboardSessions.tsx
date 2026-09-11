@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { BookingCalendar } from "@/components/booking/BookingCalendar";
 import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
+import { SessionStatusToggle } from "@/components/admin/SessionStatusToggle";
 
 const ACCENT = "#3dffb0";
 
@@ -197,12 +198,20 @@ export function DashboardSessions({
                         </div>
                       </div>
 
-                      <Link
-                        href={`/sessions/${s.id}`}
-                        className="mt-3 inline-block rounded border border-border px-3 py-1.5 text-xs hover:border-glow"
-                      >
-                        신청자 보기 →
-                      </Link>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Link
+                          href={`/sessions/${s.id}`}
+                          className="rounded border border-border px-3 py-1.5 text-xs hover:border-glow"
+                        >
+                          신청자 보기 →
+                        </Link>
+                        <SessionStatusToggle
+                          sessionId={s.id}
+                          status={s.status}
+                          label={`${kstDateLabel(date)} ${kstTime(s.start_at)}`}
+                          size="md"
+                        />
+                      </div>
                     </div>
                   );
                 })}

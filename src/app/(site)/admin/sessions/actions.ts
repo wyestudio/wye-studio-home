@@ -15,6 +15,8 @@ export type ScheduleInput = {
   theme_id: string;
   /** 시작일 (KST, YYYY-MM-DD) */
   start_date: string;
+  /** 종료일 (KST, YYYY-MM-DD). 비우면 무기한 반복 */
+  end_date: string | null;
   /** 반복 요일 (0=일 … 6=토) */
   weekdays: number[];
   /** 하루 회차 시각 (KST, HH:MM) */
@@ -34,6 +36,7 @@ const MAX_CREATE = 800;
 function validateSchedule(input: ScheduleInput): string | null {
   if (!input.theme_id) return "테마를 선택해주세요.";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.start_date)) return "시작일을 입력해주세요.";
+  if (input.end_date && input.end_date < input.start_date) return "종료일은 시작일보다 빠를 수 없습니다.";
   if (input.weekdays.length === 0) return "반복 요일을 최소 하나 선택해주세요.";
   if (input.times.filter(Boolean).length === 0) return "회차 시각을 최소 1개 입력해주세요.";
   if (!Number.isInteger(input.open_weeks_before) || input.open_weeks_before < 0 || input.open_weeks_before > 52)
@@ -66,6 +69,7 @@ export async function saveSchedule(input: ScheduleInput): Promise<ActionResult> 
     const times = input.times.filter(Boolean);
     const rule = {
       start_date: input.start_date,
+      end_date: input.end_date,
       weekdays: input.weekdays,
       times,
       open_weeks_before: input.open_weeks_before,
@@ -100,12 +104,13 @@ export async function saveSchedule(input: ScheduleInput): Promise<ActionResult> 
       {
         theme_id: input.theme_id,
         start_date: input.start_date,
+        end_date: input.end_date,
         weekdays: input.weekdays,
         times,
         open_weeks_before: input.open_weeks_before,
         open_weekday: input.open_weekday,
         open_time: input.open_time,
-        generated_until: until,
+        generated_until: input.end_date && input.end_date < until ? input.end_date : until,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "theme_id" }

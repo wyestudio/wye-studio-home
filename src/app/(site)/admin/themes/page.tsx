@@ -19,7 +19,7 @@ export default async function AdminThemesPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-background p-6">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-6xl">
           <AdminNav current="/themes" />
           <div className="text-red-400">테마를 불러올 수 없습니다: {error.message}</div>
         </div>
@@ -35,7 +35,7 @@ export default async function AdminThemesPage() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <AdminNav current="/themes" />
 
         <header className="mb-6">

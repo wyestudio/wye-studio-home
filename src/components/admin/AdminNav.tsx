@@ -48,7 +48,22 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
 
 export function AdminNav({ current }: { current?: string }) {
   return (
-    <nav className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border pb-4">
+    /*
+      스크롤해도 맨 위에 남는다. 어드민은 긴 목록을 훑다가 다른 메뉴로 건너뛰는
+      일이 잦아서, 매번 위로 올라가야 하면 성가시다.
+
+      ⚠️ 사이트 헤더(sticky top-0)가 위에 있으므로 그 높이만큼 내려서 붙인다.
+         헤더가 노출하는 --header-height 를 쓴다 — 숫자를 박으면 헤더가 바뀔 때
+         어긋난다. before 로 위쪽을 배경으로 채워 그 틈으로 본문이 비치지 않게 한다.
+      ⚠️ -mx-6/-mt-6 는 페이지 바깥 컨테이너의 p-6 을 되돌려, 고정된 동안 배경이
+         좌우 여백까지 덮게 하려는 것이다.
+    */
+    <nav
+      className="sticky top-[var(--header-height,0px)] z-30 -mx-6 -mt-6 mb-8 flex flex-wrap items-center
+                 gap-x-6 gap-y-3 border-b border-border bg-background px-6 pb-4 pt-6
+                 before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full
+                 before:h-32 before:bg-background"
+    >
       {GROUPS.map((group) => (
         <div key={group.label} className="flex items-center gap-2">
           <span className="text-[11px] uppercase tracking-wide text-muted">{group.label}</span>

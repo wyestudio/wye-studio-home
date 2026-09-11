@@ -62,6 +62,8 @@ export function computeOpensAt(sessionYmd: string, rule: OpenRule): string {
 
 export type ScheduleRule = OpenRule & {
   start_date: string;
+  /** 마지막 회차 날짜. 비우면 무기한 반복. */
+  end_date?: string | null;
   /** 0=일 … 6=토 */
   weekdays: number[];
   /** 하루 회차 시각 (KST 'HH:MM') */
@@ -71,8 +73,9 @@ export type ScheduleRule = OpenRule & {
 /** 편성에 따라 from~to (KST 날짜, 양끝 포함) 사이에 회차가 열리는 날짜들. */
 export function scheduledDates(rule: ScheduleRule, from: string, to: string): string[] {
   const start = rule.start_date > from ? rule.start_date : from;
+  const last = rule.end_date && rule.end_date < to ? rule.end_date : to;
   const dates: string[] = [];
-  for (let d = start; d <= to; d = addDays(d, 1)) {
+  for (let d = start; d <= last; d = addDays(d, 1)) {
     if (rule.weekdays.includes(weekdayOf(d))) dates.push(d);
   }
   return dates;

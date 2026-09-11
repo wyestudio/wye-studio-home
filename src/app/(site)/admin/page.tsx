@@ -51,7 +51,7 @@ export default async function AdminDashboard() {
   if (sessionsRes.error) {
     return (
       <div className="min-h-screen bg-background p-6">
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
           <AdminNav current="/" />
           <div className="text-red-400">세션 목록을 불러올 수 없습니다: {sessionsRes.error.message}</div>
         </div>
@@ -151,7 +151,7 @@ export default async function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <AdminNav current="/" />
 
         <h1 className="mb-6 text-2xl font-bold">대시보드</h1>

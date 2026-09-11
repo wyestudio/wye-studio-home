@@ -17,7 +17,7 @@ export default async function AdminSessionsPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-background p-6">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-6xl">
           <AdminNav current="/sessions" />
           <div className="text-red-400">편성을 불러올 수 없습니다: {error.message}</div>
         </div>
@@ -27,7 +27,7 @@ export default async function AdminSessionsPage() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <AdminNav current="/sessions" />
 
         <header className="mb-6">

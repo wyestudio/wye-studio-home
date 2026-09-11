@@ -26,7 +26,7 @@ export default async function AdminCouponsPage() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <AdminNav current="/coupons" />
 
         <header className="mb-5">

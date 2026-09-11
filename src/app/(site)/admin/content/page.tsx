@@ -31,7 +31,7 @@ export default async function AdminContentPage() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <AdminNav current="/content" />
 
         <header className="mb-5">

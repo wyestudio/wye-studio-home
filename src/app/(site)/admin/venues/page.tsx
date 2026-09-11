@@ -15,7 +15,7 @@ export default async function AdminVenuesPage() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-4xl">
+      <div className="mx-auto max-w-6xl">
         <AdminNav current="/venues" />
 
         <header className="mb-6">

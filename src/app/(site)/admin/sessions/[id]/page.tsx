@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime, formatDateTimeDotted } from "@/lib/format";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
+import { SessionStatusToggle } from "@/components/admin/SessionStatusToggle";
 import { SendReminderButton } from "./SendReminderButton";
 import { ManualApplyButton } from "./ManualApplyButton";
 import { ApplicationDetailDialog } from "./ApplicationDetailDialog";
@@ -254,7 +255,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <Link href="/" className="text-glow hover:underline mb-4 inline-block">
           ← 돌아가기
         </Link>
@@ -282,6 +283,12 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
           </div>
           {session.status !== "cancelled" && (
             <div className="flex flex-col items-end gap-2">
+              <SessionStatusToggle
+                sessionId={session.id}
+                status={session.status}
+                label={formatSessionDateTime(session.start_at)}
+                size="md"
+              />
               <ManualApplyButton sessionId={session.id} isDatingSession={isDatingTheme(session.session_type)} />
               <SendReminderButton sessionId={session.id} />
               <DeactivateSessionButton sessionId={session.id} />
