@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
-import { EMPTY_THEME_CONTENT, type ThemeContent } from "@/types/catalog";
+import type { ThemeContent } from "@/types/catalog";
 
 export type PriceTierInput = {
   min_headcount: number;
@@ -173,5 +173,3 @@ export async function deleteTheme(id: string): Promise<ActionResult> {
     return toActionError(err, "테마 삭제 실패");
   }
 }
-
-export const EMPTY_CONTENT = EMPTY_THEME_CONTENT;

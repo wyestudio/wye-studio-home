@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:server-exports": "node scripts/check-use-server-exports.mjs",
+    "prebuild": "node scripts/check-use-server-exports.mjs"
   },
   "dependencies": {
     "@google-analytics/data": "^7.0.0",
