@@ -16,6 +16,7 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
     label: "운영",
     items: [
       { href: "/", label: "대시보드" },
+      { href: "/applications", label: "신청" },
       { href: "/sessions", label: "회차" },
     ],
   },

@@ -100,11 +100,17 @@ export default async function AdminDashboard() {
 
   const unpaidBySession = countUnpaidConfirmed(apps, attendees);
 
+  // 카드를 누르면 해당 조건이 걸린 신청 목록으로 바로 간다.
   const todo = [
-    { label: "미매칭 입금", count: unmatchedDeposits, href: "/sessions", tone: "red" as const },
-    { label: "입금 확인 전", count: unpaidConfirmed.length, href: "/sessions", tone: "amber" as const },
-    { label: "환불 대기", count: refundPending.length, href: "/sessions", tone: "amber" as const },
-    { label: "대기자", count: waiting.length, href: "/sessions", tone: "blue" as const },
+    { label: "미매칭 입금", count: unmatchedDeposits, href: "/applications", tone: "red" as const },
+    {
+      label: "입금 확인 전",
+      count: unpaidConfirmed.length,
+      href: "/applications?status=confirmed&payment=pending",
+      tone: "amber" as const,
+    },
+    { label: "환불 대기", count: refundPending.length, href: "/applications?status=cancelled", tone: "amber" as const },
+    { label: "대기자", count: waiting.length, href: "/applications?status=waiting", tone: "blue" as const },
   ];
 
   const toneClass = {
