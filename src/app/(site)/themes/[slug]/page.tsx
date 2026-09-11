@@ -9,7 +9,9 @@ import {
   isBookable,
 } from "@/lib/themes";
 import { formatKrw } from "@/lib/format";
+import Image from "next/image";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
+import { PriceTable } from "@/components/contents/PriceTable";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { HudCard } from "@/components/ui/HudCard";
@@ -21,6 +23,7 @@ import { SessionPicker, type PickerSession } from "./SessionPicker";
 export const dynamic = "force-dynamic";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
+const FALLBACK_POSTER = "/bar-o-title.png";
 const DEFAULT_ACCENT = "#3dffb0";
 
 export async function generateMetadata({
@@ -72,6 +75,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   }));
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
+  // 조인 결과라 타입에 없다. 없으면 카테고리 줄을 통째로 생략한다.
+  const categoryName =
+    (theme as { theme_categories?: { name: string } | null }).theme_categories?.name ?? null;
   // 옛 4칸 구조(for_you/steps/timetable/precautions)로 저장된 테마도 읽어준다.
   // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
   const content: ThemeContent = normalizeThemeContent(theme.content);
@@ -88,27 +94,42 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
 
   return (
     <main className="mx-auto max-w-3xl px-5 py-12">
-      {/* ── 헤더 ── */}
-      <header className="mb-10">
-        <h1 className="text-3xl font-extrabold sm:text-4xl">{theme.name}</h1>
-        {theme.tagline && <p className="mt-2 text-muted">{theme.tagline}</p>}
-
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-          <DifficultyLocks rating={theme.difficulty} />
-          <span>⏱ {durationLabel}</span>
-          {minUnit !== null && maxUnit !== null && (
-            <span>
-              💳 1인 {minUnit === maxUnit ? formatKrw(minUnit) : `${formatKrw(minUnit)}~${formatKrw(maxUnit)}`}
-            </span>
-          )}
+      {/* ── 헤더: 좌 포스터 / 우 정보 ── */}
+      <header className="mb-10 flex flex-col gap-6 sm:flex-row sm:gap-8">
+        <div className="mx-auto w-56 shrink-0 sm:mx-0 sm:w-64">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface">
+            <Image
+              src={theme.hero_image_path || FALLBACK_POSTER}
+              alt={`${theme.name} 포스터`}
+              fill
+              className="object-cover"
+              sizes="(min-width: 640px) 256px, 224px"
+              priority
+            />
+          </div>
         </div>
 
-        {theme.description && (
-          <p className="mt-6 whitespace-pre-line leading-relaxed">{theme.description}</p>
-        )}
+        <div className="flex-1">
+          <h1 className="text-3xl font-extrabold sm:text-4xl">{theme.name}</h1>
+          {categoryName && (
+            <p className="mt-1.5 text-xl font-bold sm:text-2xl" style={{ color: accent }}>
+              {categoryName}
+            </p>
+          )}
+          {theme.tagline && <p className="mt-3 text-muted">{theme.tagline}</p>}
 
-        <div className="mt-6 flex gap-2">
-          <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+            <DifficultyLocks rating={theme.difficulty} />
+            <span>⏱ {durationLabel}</span>
+          </div>
+
+          {theme.description && (
+            <p className="mt-5 whitespace-pre-line leading-relaxed">{theme.description}</p>
+          )}
+
+          <div className="mt-6">
+            <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
+          </div>
         </div>
       </header>
 
@@ -127,6 +148,16 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           </Suspense>
         </div>
       </section>
+
+      {/* ── 참가비 ── */}
+      {theme.tiers.length > 0 && (
+        <section className="mb-14">
+          <SectionHeading eyebrow="PRICE" title="인원별 참가비" align="left" eyebrowColor={accent} />
+          <div className="mt-5">
+            <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
+          </div>
+        </section>
+      )}
 
       {/* ── 상세 콘텐츠 (어드민에서 쌓은 블록 순서대로) ── */}
       <ThemeBlocks

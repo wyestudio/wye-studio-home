@@ -42,7 +42,12 @@ export async function getListedThemes(): Promise<ThemeWithTiers[]> {
 export async function getThemeBySlug(slug: string): Promise<ThemeWithTiers | null> {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.from("themes").select("*").eq("slug", slug).maybeSingle();
+  // 카테고리 이름을 함께 가져온다. 상세 화면에서 테마명 아래에 보인다.
+  const { data, error } = await supabase
+    .from("themes")
+    .select("*, theme_categories(name)")
+    .eq("slug", slug)
+    .maybeSingle();
   if (error) throw error;
   if (!data) return null;
 
