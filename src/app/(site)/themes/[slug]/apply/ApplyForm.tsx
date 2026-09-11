@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
 import { AttendeeTabs } from "@/components/apply/AttendeeTabs";
 import { ValidationToast } from "@/components/apply/ValidationToast";
-import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
+import { isValidPhoneDigits } from "@/lib/phone";
 import {
   getValidationErrorMessage,
   isValidKoreanName,
@@ -62,8 +62,14 @@ const joinPhone = (parts: string[]) => parts.join("").replace(/[^0-9]/g, "");
 
 /** 폼 상태에서 서버로 보낼 모양만 남긴다. */
 function toPayload(a: AttendeeForm): AttendeeInput {
-  const { phoneParts: _parts, ...rest } = a;
-  return { ...rest, phone: joinPhone(a.phoneParts) };
+  return {
+    name: a.name,
+    phone: joinPhone(a.phoneParts),
+    birth_year: a.birth_year,
+    nickname: a.nickname,
+    gender: a.gender,
+    experience_range: a.experience_range,
+  };
 }
 
 type FieldError = { field: string; message: string };
