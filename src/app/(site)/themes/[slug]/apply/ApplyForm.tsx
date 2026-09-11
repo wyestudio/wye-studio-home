@@ -42,8 +42,28 @@ const label = "block text-xs font-medium text-muted mb-1.5";
 /** 인원 선택 상한. 테마에 max_group_size 가 있으면 그쪽이 우선이다. */
 const DEFAULT_MAX_ATTENDEES = 8;
 
-function emptyAttendee(): AttendeeInput {
-  return { name: "", phone: "", birth_year: 0, nickname: "", gender: "", experience_range: "" };
+/**
+ * 폼에서 쓰는 참여자 상태.
+ *
+ * 전화번호는 칸(3-4-4)별로 들고 있다가 보낼 때만 이어붙인다. 이어붙인 한 줄만
+ * 들고 자를 경우, 가운데 칸을 비우면 뒷 칸이 앞으로 당겨진다.
+ */
+export type AttendeeForm = AttendeeInput & { phoneParts: string[] };
+
+function emptyAttendee(): AttendeeForm {
+  return {
+    name: "", phone: "", birth_year: 0, nickname: "", gender: "", experience_range: "",
+    phoneParts: ["", "", ""],
+  };
+}
+
+/** 칸별 값 → 서버로 보낼 한 줄 */
+const joinPhone = (parts: string[]) => parts.join("").replace(/[^0-9]/g, "");
+
+/** 폼 상태에서 서버로 보낼 모양만 남긴다. */
+function toPayload(a: AttendeeForm): AttendeeInput {
+  const { phoneParts: _parts, ...rest } = a;
+  return { ...rest, phone: joinPhone(a.phoneParts) };
 }
 
 type FieldError = { field: string; message: string };
@@ -83,11 +103,16 @@ export function ApplyForm({
   accentColor: string;
 }) {
   const [step, setStep] = useState(0);
-  const [attendees, setAttendees] = useState<AttendeeInput[]>([emptyAttendee()]);
+  const [attendees, setAttendees] = useState<AttendeeForm[]>([emptyAttendee()]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [consents, setConsents] = useState<ConsentState>({ ...EMPTY_CONSENTS });
   const [depositorName, setDepositorName] = useState("");
-  const [couponCode, setCouponCode] = useState(initialCouponCode);
+  // 쿠폰도 같은 이유로 4+4 칸을 따로 들고 있는다.
+  const [couponParts, setCouponParts] = useState<string[]>([
+    initialCouponCode.slice(0, 4),
+    initialCouponCode.slice(4, 8),
+  ]);
+  const couponCode = couponParts.join("");
   const [coupon, setCoupon] = useState<CouponPreview | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
   const [nicknameChecks, setNicknameChecks] = useState<Record<number, NicknameCheckState>>({});
@@ -127,7 +152,7 @@ export function ApplyForm({
         errors.push({ field: `attendee-${i}-name`, message: getValidationErrorMessage("name", "invalid") });
       }
 
-      const digits = phoneDigits(a.phone);
+      const digits = joinPhone(a.phoneParts);
       if (!digits) {
         errors.push({ field: `attendee-${i}-phone`, message: getValidationErrorMessage("phone", "required") });
       } else if (!isValidPhoneDigits(digits)) {
@@ -158,11 +183,11 @@ export function ApplyForm({
     // 그룹 안 전화번호 중복
     const phoneCount = new Map<string, number>();
     for (const a of attendees) {
-      const d = phoneDigits(a.phone);
+      const d = joinPhone(a.phoneParts);
       if (d) phoneCount.set(d, (phoneCount.get(d) ?? 0) + 1);
     }
     attendees.forEach((a, i) => {
-      const d = phoneDigits(a.phone);
+      const d = joinPhone(a.phoneParts);
       if (d && (phoneCount.get(d) ?? 0) > 1) {
         errors.push({
           field: `attendee-${i}-phone`,
@@ -216,7 +241,7 @@ export function ApplyForm({
       if (m) set.add(Number(m[1]));
     }
     attendees.forEach((a, i) => {
-      if (conflictPhones.has(phoneDigits(a.phone))) set.add(i);
+      if (conflictPhones.has(joinPhone(a.phoneParts))) set.add(i);
     });
     return set;
   }, [step1Errors, attendees, conflictPhones]);
@@ -256,10 +281,10 @@ export function ApplyForm({
     });
   }
 
-  function patchAttendee(i: number, patch: Partial<AttendeeInput>) {
+  function patchAttendee(i: number, patch: Partial<AttendeeForm>) {
     setAttendees((cur) => cur.map((a, idx) => (idx === i ? { ...a, ...patch } : a)));
     if ("nickname" in patch) setNicknameChecks((prev) => ({ ...prev, [i]: "idle" }));
-    if ("phone" in patch) setConflictPhones(new Set());
+    if ("phoneParts" in patch) setConflictPhones(new Set());
   }
 
   async function runNicknameCheck(i: number) {
@@ -281,7 +306,7 @@ export function ApplyForm({
       themeId,
       headcount,
       baseAmountKrw: total,
-      phone: phoneDigits(attendees[0]?.phone ?? ""),
+      phone: attendees[0] ? joinPhone(attendees[0].phoneParts) : "",
     });
     setCouponChecking(false);
     setCoupon(result);
@@ -328,14 +353,14 @@ export function ApplyForm({
 
       // 같은 테마 중복 신청은 제출 전에 미리 걸러준다.
       setCheckingConflicts(true);
-      const result = await checkThemeConflicts(attendees.map((a) => a.phone), sessionId);
+      const result = await checkThemeConflicts(attendees.map((a) => joinPhone(a.phoneParts)), sessionId);
       setCheckingConflicts(false);
 
       if (!("error" in result) && result.conflictPhones.length > 0) {
         setConflictPhones(new Set(result.conflictPhones));
         setSubmitAttempted(true);
         setToast("같은 테마에 이미 신청하신 분이 포함되어 있어요.");
-        const idx = attendees.findIndex((a) => result.conflictPhones.includes(phoneDigits(a.phone)));
+        const idx = attendees.findIndex((a) => result.conflictPhones.includes(joinPhone(a.phoneParts)));
         if (idx !== -1) {
           setActiveIndex(idx);
           focusField(`attendee-${idx}-phone`);
@@ -380,7 +405,7 @@ export function ApplyForm({
         // 신청되는 게 맞다 — 화면에 안 보이던 할인이 붙는 게 더 혼란스럽다.
         couponCode: coupon?.ok ? coupon.code : "",
         depositorName,
-        attendees: attendees.map((a) => ({ ...a, phone: phoneDigits(a.phone) })),
+        attendees: attendees.map(toPayload),
         notes: "",
         consentRequired: allRequiredChecked(consents, headcount),
         // 기존 폼과 같은 기준 — 선택 항목을 '전부' 동의했을 때만 참이다.
@@ -405,7 +430,7 @@ export function ApplyForm({
         themeName={themeName}
         sessionLabel={sessionLabel}
         depositorName={depositorName}
-        attendees={attendees.map((a) => ({ ...a, phone: phoneDigits(a.phone) }))}
+        attendees={attendees.map(toPayload)}
         accentColor={accentColor}
       />
     );
@@ -499,7 +524,7 @@ export function ApplyForm({
                 attendeeCount={headcount}
                 birthYears={birthYears}
                 minAge={minAge}
-                isConflict={conflictPhones.has(phoneDigits(attendees[activeIndex].phone))}
+                isConflict={conflictPhones.has(joinPhone(attendees[activeIndex].phoneParts))}
                 conflictReason={conflictPhones.size > 0 ? "theme" : null}
                 nicknameCheckState={nicknameChecks[activeIndex] ?? "idle"}
                 errors={{
@@ -575,15 +600,13 @@ export function ApplyForm({
                       <input
                         id={half === 0 ? "couponCode" : "couponCode2"}
                         className={`${field} text-center font-mono uppercase tracking-widest`}
-                        value={couponCode.slice(half * 4, half * 4 + 4)}
+                        value={couponParts[half]}
                         maxLength={4}
-                        placeholder={half === 0 ? "XXXX" : "XXXX"}
+                        placeholder="XXXX"
                         disabled={coupon?.ok}
                         onChange={(e) => {
                           const part = normalizeCouponCode(e.target.value).slice(0, 4);
-                          const next =
-                            half === 0 ? part + couponCode.slice(4) : couponCode.slice(0, 4) + part;
-                          setCouponCode(next.slice(0, 8));
+                          setCouponParts((prev) => prev.map((p, i) => (i === half ? part : p)));
                           setCoupon(null); // 코드를 고치면 이전 적용은 무효다
                           if (part.length === 4 && half === 0) {
                             document.getElementById("couponCode2")?.focus();
@@ -600,7 +623,7 @@ export function ApplyForm({
                           const pasted = normalizeCouponCode(e.clipboardData.getData("text"));
                           if (!pasted) return;
                           e.preventDefault();
-                          setCouponCode(pasted.slice(0, 8));
+                          setCouponParts([pasted.slice(0, 4), pasted.slice(4, 8)]);
                           setCoupon(null);
                         }}
                       />
@@ -609,7 +632,7 @@ export function ApplyForm({
                   {coupon?.ok ? (
                     <button
                       type="button"
-                      onClick={() => { setCoupon(null); setCouponCode(""); }}
+                      onClick={() => { setCoupon(null); setCouponParts(["", ""]); }}
                       className="shrink-0 self-stretch rounded-lg border border-white/20 px-4 py-2.5 text-sm text-muted"
                     >
                       해제

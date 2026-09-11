@@ -2,7 +2,7 @@
 
 import { Select } from "@/components/ui/Select";
 import { EXPERIENCE_RANGES, EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
-import type { AttendeeInput } from "./actions";
+import type { AttendeeForm } from "./ApplyForm";
 
 /** 반투명 카드 위에 올리는 입력칸. 카드는 비치고 칸만 불투명하다. */
 const field =
@@ -23,12 +23,23 @@ export type AttendeeErrors = {
   experienceRange?: string;
 };
 
-/** 010-1234-5678 세 칸으로 나눠 보여주기 위한 자리. 저장은 숫자만 이어붙인 한 줄이다. */
+/**
+ * 010-1234-5678 세 칸.
+ *
+ * ⚠️ 칸마다 값을 따로 들고 있어야 한다. 이어붙인 한 줄을 잘라 쓰면 가운데 칸을
+ *    비웠을 때 뒷 칸 숫자가 앞으로 당겨진다(실제로 그랬다).
+ */
 const PHONE_SEGMENTS = [
-  { key: "p1", start: 0, end: 3, max: 3, placeholder: "010" },
-  { key: "p2", start: 3, end: 7, max: 4, placeholder: "0000" },
-  { key: "p3", start: 7, end: 11, max: 4, placeholder: "0000" },
+  { key: "p1", max: 3, placeholder: "010" },
+  { key: "p2", max: 4, placeholder: "0000" },
+  { key: "p3", max: 4, placeholder: "0000" },
 ] as const;
+
+/** 붙여넣은 숫자를 앞에서부터 3-4-4 로 나눈다. */
+export function splitPhone(digits: string): string[] {
+  const d = digits.replace(/[^0-9]/g, "").slice(0, 11);
+  return [d.slice(0, 3), d.slice(3, 7), d.slice(7, 11)];
+}
 
 /**
  * 참여자 한 명의 입력칸.
@@ -51,7 +62,7 @@ export function AttendeeFields({
   onNicknameCheck,
 }: {
   index: number;
-  attendee: AttendeeInput;
+  attendee: AttendeeForm;
   attendeeCount: number;
   birthYears: number[];
   minAge: number;
@@ -59,7 +70,7 @@ export function AttendeeFields({
   isConflict: boolean;
   conflictReason: "group" | "theme" | null;
   nicknameCheckState: NicknameCheckState;
-  onChange: (patch: Partial<AttendeeInput>) => void;
+  onChange: (patch: Partial<AttendeeForm>) => void;
   onNicknameCheck: () => void;
 }) {
   const phoneInvalid = !!errors.phone || isConflict;
@@ -135,12 +146,12 @@ export function AttendeeFields({
                   inputMode="numeric"
                   maxLength={seg.max}
                   placeholder={seg.placeholder}
-                  value={attendee.phone.slice(seg.start, seg.end)}
+                  value={attendee.phoneParts[si] ?? ""}
                   onChange={(e) => {
                     const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, seg.max);
-                    const next =
-                      attendee.phone.slice(0, seg.start) + digits + attendee.phone.slice(seg.end);
-                    onChange({ phone: next.slice(0, 11) });
+                    const next = [...attendee.phoneParts];
+                    next[si] = digits;
+                    onChange({ phoneParts: next });
                     // 한 칸을 다 채우면 다음 칸으로 넘어간다
                     if (digits.length === seg.max && si < PHONE_SEGMENTS.length - 1) {
                       document.getElementById(`attendee-${index}-${PHONE_SEGMENTS[si + 1].key}`)?.focus();
@@ -162,7 +173,7 @@ export function AttendeeFields({
                     const pasted = e.clipboardData.getData("text").replace(/[^0-9]/g, "");
                     if (!pasted) return;
                     e.preventDefault();
-                    onChange({ phone: pasted.slice(0, 11) });
+                    onChange({ phoneParts: splitPhone(pasted) });
                   }}
                 />
               </div>
