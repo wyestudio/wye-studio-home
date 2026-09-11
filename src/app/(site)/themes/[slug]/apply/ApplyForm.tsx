@@ -1,49 +1,60 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { formatKrw } from "@/lib/format";
 import { resolveUnitPrice, type ThemePriceTier } from "@/types/catalog";
+import { Select } from "@/components/ui/Select";
+import { ApplyStepper } from "@/components/apply/ApplyStepper";
+import { AttendeeTabs } from "@/components/apply/AttendeeTabs";
+import { ValidationToast } from "@/components/apply/ValidationToast";
+import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
+import {
+  getValidationErrorMessage,
+  isValidKoreanName,
+  isValidNickname,
+  isValidRequestNote,
+  REQUEST_NOTE_MAX_LENGTH,
+} from "@/lib/validation";
+import { formatCouponCode, normalizeCouponCode } from "@/lib/coupon";
 import {
   applyToSession,
   checkCoupon,
+  checkNickname,
+  checkThemeConflicts,
   type AttendeeInput,
   type ApplyResult,
   type CouponPreview,
 } from "./actions";
-import { formatCouponCode, normalizeCouponCode } from "@/lib/coupon";
+import { AttendeeFields, type NicknameCheckState } from "./AttendeeFields";
+import {
+  ConsentStep,
+  EMPTY_CONSENTS,
+  allRequiredChecked,
+  firstMissingConsentId,
+  type ConsentState,
+} from "./ConsentStep";
 import { ApplyComplete } from "./ApplyComplete";
 
 const field =
   "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50";
 const label = "block text-xs font-medium text-muted mb-1.5";
 
-const EXPERIENCE_OPTIONS = [
-  { v: "0", label: "처음이에요" },
-  { v: "1-50", label: "1~50회" },
-  { v: "50-100", label: "50~100회" },
-  { v: "100-200", label: "100~200회" },
-  { v: "200+", label: "200회 이상" },
-];
+/** 인원 선택 상한. 테마에 max_group_size 가 있으면 그쪽이 우선이다. */
+const DEFAULT_MAX_ATTENDEES = 8;
 
 function emptyAttendee(): AttendeeInput {
   return { name: "", phone: "", birth_year: 0, nickname: "", gender: "", experience_range: "" };
 }
 
-/** 로그인한 사람의 정보로 첫 참여자를 채운다. 값은 그대로 고칠 수 있다. */
-function firstAttendee(
-  prefill: { name: string; phone: string; birthYear: number | null; gender: string | null } | null
-): AttendeeInput {
-  if (!prefill) return emptyAttendee();
-  return {
-    name: prefill.name,
-    phone: prefill.phone,
-    birth_year: prefill.birthYear ?? 0,
-    nickname: "",
-    gender: prefill.gender ?? "",
-    experience_range: "",
-  };
-}
+type FieldError = { field: string; message: string };
 
+/**
+ * 참가 신청 — 정보입력 · 약관동의 · 제출 3단계.
+ *
+ * 다음 단계로는 현재 단계를 통과해야만 갈 수 있고, 지나온 단계는 진행 표시줄에서
+ * 눌러 돌아갈 수 있다. 검사 항목은 8/29 회차 폼의 것을 그대로 옮기되 테마 구조에
+ * 맞춰 조정했다 — 출생연도는 고정 연도 범위가 아니라 회차의 최소 연령으로 판정한다.
+ */
 export function ApplyForm({
   sessionId,
   themeName,
@@ -55,14 +66,10 @@ export function ApplyForm({
   bankInfo,
   themeId,
   initialCouponCode,
-  prefill,
 }: {
   sessionId: string;
   themeId: string;
-  /** 쿠폰 링크(/c/{코드})로 들어온 경우 미리 채워진다. 손으로 칠 일이 없다. */
   initialCouponCode: string;
-  /** 로그인 상태면 신청자 정보가 미리 채워진다 (D-06 실익 1). */
-  prefill: { name: string; phone: string; birthYear: number | null; gender: string | null } | null;
   themeName: string;
   sessionLabel: string;
   minAge: number;
@@ -71,39 +78,192 @@ export function ApplyForm({
   accentColor: string;
   bankInfo: { bankName: string; accountNumber: string; accountHolder: string };
 }) {
-  const [attendees, setAttendees] = useState<AttendeeInput[]>([firstAttendee(prefill)]);
-  const [depositorName, setDepositorName] = useState(prefill?.name ?? "");
+  const [step, setStep] = useState(0);
+  const [attendees, setAttendees] = useState<AttendeeInput[]>([emptyAttendee()]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [consents, setConsents] = useState<ConsentState>({ ...EMPTY_CONSENTS });
+  const [depositorName, setDepositorName] = useState("");
   const [notes, setNotes] = useState("");
-  const [consentRequired, setConsentRequired] = useState(false);
-  const [consentOptional, setConsentOptional] = useState(false);
-  const [consentPhoto, setConsentPhoto] = useState(false);
-  const [consentMarketing, setConsentMarketing] = useState(false);
   const [couponCode, setCouponCode] = useState(initialCouponCode);
   const [coupon, setCoupon] = useState<CouponPreview | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
+  const [nicknameChecks, setNicknameChecks] = useState<Record<number, NicknameCheckState>>({});
+  const [conflictPhones, setConflictPhones] = useState<Set<string>>(new Set());
+  const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Extract<ApplyResult, { success: true }> | null>(null);
   const [pending, startTransition] = useTransition();
 
-  // 출생연도 선택지는 회차의 min_age 기준으로 매번 계산한다.
+  const headcount = attendees.length;
+  const maxAttendees = maxGroupSize ?? DEFAULT_MAX_ATTENDEES;
+
+  // 출생연도 선택지는 회차의 min_age 로 매번 계산한다.
   // 연도를 상수로 박으면 해가 바뀔 때 사람이 고쳐야 한다.
   const thisYear = new Date().getFullYear();
   const maxBirthYear = thisYear - (minAge + 1);
-  const birthYears = Array.from({ length: 70 }, (_, i) => maxBirthYear - i);
+  const birthYears = useMemo(
+    () => Array.from({ length: 70 }, (_, i) => maxBirthYear - i),
+    [maxBirthYear]
+  );
 
-  const headcount = attendees.length;
   const unitPrice = resolveUnitPrice(tiers, headcount);
   const total = unitPrice !== null ? unitPrice * headcount : null;
-
-  // 적용된 쿠폰이 있으면 할인 후 금액이 실제 입금액이다.
   const appliedDiscount = coupon?.ok ? coupon.discountKrw : 0;
   const payable = total !== null ? Math.max(0, total - appliedDiscount) : null;
 
+  // ── 검사 ──────────────────────────────────────────────────
+  const validateStep1 = useCallback((): FieldError[] => {
+    const errors: FieldError[] = [];
+
+    attendees.forEach((a, i) => {
+      if (!a.name.trim()) {
+        errors.push({ field: `attendee-${i}-name`, message: getValidationErrorMessage("name", "required") });
+      } else if (!isValidKoreanName(a.name)) {
+        errors.push({ field: `attendee-${i}-name`, message: getValidationErrorMessage("name", "invalid") });
+      }
+
+      const digits = phoneDigits(a.phone);
+      if (!digits) {
+        errors.push({ field: `attendee-${i}-phone`, message: getValidationErrorMessage("phone", "required") });
+      } else if (!isValidPhoneDigits(digits)) {
+        errors.push({ field: `attendee-${i}-phone`, message: getValidationErrorMessage("phone", "invalid") });
+      }
+
+      if (!a.birth_year) {
+        errors.push({ field: `attendee-${i}-birthYear`, message: getValidationErrorMessage("birthYear", "required") });
+      } else if (a.birth_year > maxBirthYear) {
+        errors.push({
+          field: `attendee-${i}-birthYear`,
+          message: `이 회차는 만 ${minAge}세 이상만 신청할 수 있어요.`,
+        });
+      }
+
+      if (a.nickname.trim() && !isValidNickname(a.nickname)) {
+        errors.push({ field: `attendee-${i}-nickname`, message: getValidationErrorMessage("nickname", "invalid") });
+      }
+    });
+
+    // 그룹 안 전화번호 중복
+    const phoneCount = new Map<string, number>();
+    for (const a of attendees) {
+      const d = phoneDigits(a.phone);
+      if (d) phoneCount.set(d, (phoneCount.get(d) ?? 0) + 1);
+    }
+    attendees.forEach((a, i) => {
+      const d = phoneDigits(a.phone);
+      if (d && (phoneCount.get(d) ?? 0) > 1) {
+        errors.push({
+          field: `attendee-${i}-phone`,
+          message: "그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 번호를 입력해주세요.",
+        });
+      }
+    });
+
+    // 그룹 안 닉네임 중복 (빈 값은 여러 명이 비워도 중복이 아니다)
+    const nickCount = new Map<string, number>();
+    for (const a of attendees) {
+      const n = a.nickname.trim();
+      if (n) nickCount.set(n, (nickCount.get(n) ?? 0) + 1);
+    }
+    attendees.forEach((a, i) => {
+      const n = a.nickname.trim();
+      if (n && (nickCount.get(n) ?? 0) > 1) {
+        errors.push({
+          field: `attendee-${i}-nickname`,
+          message: "그룹 안에서 닉네임이 중복돼요. 참여자별로 다른 닉네임을 입력해주세요.",
+        });
+      }
+    });
+
+    return errors;
+  }, [attendees, maxBirthYear, minAge]);
+
+  const validateStep3 = useCallback((): FieldError[] => {
+    const errors: FieldError[] = [];
+    if (!depositorName.trim()) {
+      errors.push({ field: "depositorName", message: getValidationErrorMessage("depositorName", "required") });
+    } else if (!isValidKoreanName(depositorName)) {
+      errors.push({ field: "depositorName", message: getValidationErrorMessage("depositorName", "invalid") });
+    }
+    if (!isValidRequestNote(notes)) {
+      errors.push({ field: "notes", message: getValidationErrorMessage("notes", "invalid") });
+    }
+    return errors;
+  }, [depositorName, notes]);
+
+  const step1Errors = useMemo(
+    () => (submitAttempted && step === 0 ? validateStep1() : []),
+    [submitAttempted, step, validateStep1]
+  );
+  const step3Errors = useMemo(
+    () => (submitAttempted && step === 2 ? validateStep3() : []),
+    [submitAttempted, step, validateStep3]
+  );
+
+  const errorIndexes = useMemo(() => {
+    const set = new Set<number>();
+    for (const e of step1Errors) {
+      const m = /^attendee-(\d+)-/.exec(e.field);
+      if (m) set.add(Number(m[1]));
+    }
+    attendees.forEach((a, i) => {
+      if (conflictPhones.has(phoneDigits(a.phone))) set.add(i);
+    });
+    return set;
+  }, [step1Errors, attendees, conflictPhones]);
+
+  // 단계가 바뀌면 위로.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [step]);
+
   /**
-   * 쿠폰 확인.
-   * ⚠️ 인원이 바뀌면 정가가 바뀌므로 할인액도 다시 계산해야 한다(정률 쿠폰).
-   *    그래서 인원 변경 시 적용을 풀고 다시 누르게 한다.
+   * 오류가 난 칸으로 데려간다.
+   * ⚠️ state + effect 로 하면 "effect 안에서 setState" 가 되어 렌더가 한 번 더 돈다.
+   *    화면이 그려진 뒤에 DOM 을 만지기만 하면 되는 일이라 rAF 두 번이면 충분하다.
    */
+  function focusField(id: string) {
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.focus?.({ preventScroll: true });
+      })
+    );
+  }
+
+  // ── 조작 ──────────────────────────────────────────────────
+  function setCount(count: number) {
+    setActiveIndex((prev) => Math.min(prev, count - 1));
+    setCoupon(null); // 인원이 바뀌면 정가가 바뀐다. 정률 쿠폰은 할인액도 달라진다.
+    setAttendees((prev) => {
+      const next = [...prev];
+      while (next.length < count) next.push(emptyAttendee());
+      next.length = count;
+      return next;
+    });
+  }
+
+  function patchAttendee(i: number, patch: Partial<AttendeeInput>) {
+    setAttendees((cur) => cur.map((a, idx) => (idx === i ? { ...a, ...patch } : a)));
+    if ("nickname" in patch) setNicknameChecks((prev) => ({ ...prev, [i]: "idle" }));
+    if ("phone" in patch) setConflictPhones(new Set());
+  }
+
+  async function runNicknameCheck(i: number) {
+    const nickname = attendees[i].nickname;
+    if (!nickname.trim() || !isValidNickname(nickname)) return;
+    setNicknameChecks((prev) => ({ ...prev, [i]: "checking" }));
+    const res = await checkNickname(sessionId, nickname);
+    setNicknameChecks((prev) => ({
+      ...prev,
+      [i]: "error" in res ? "error" : res.available ? "available" : "taken",
+    }));
+  }
+
   async function verifyCoupon() {
     if (total === null) return;
     setCouponChecking(true);
@@ -112,33 +272,111 @@ export function ApplyForm({
       themeId,
       headcount,
       baseAmountKrw: total,
-      phone: attendees[0]?.phone ?? "",
+      phone: phoneDigits(attendees[0]?.phone ?? ""),
     });
     setCouponChecking(false);
     setCoupon(result);
   }
 
-  const canAdd = maxGroupSize === null || headcount < maxGroupSize;
+  function focusFirstStep1Error(errors: FieldError[]) {
+    const order = ["name", "phone", "birthYear", "nickname"];
+    let best: { index: number; priority: number } | null = null;
+    for (const e of errors) {
+      const m = /^attendee-(\d+)-(.+)$/.exec(e.field);
+      if (!m) continue;
+      const idx = Number(m[1]);
+      const priority = order.indexOf(m[2]);
+      if (priority === -1) continue;
+      if (!best || idx < best.index || (idx === best.index && priority < best.priority)) {
+        best = { index: idx, priority };
+      }
+    }
+    if (!best) return;
+    setActiveIndex(best.index);
+    setToast(best.index > 0 ? "동행자 정보를 확인해주세요." : "신청자 정보를 확인해주세요.");
+    focusField(`attendee-${best.index}-${order[best.priority]}`);
+  }
 
-  function patchAttendee(i: number, p: Partial<AttendeeInput>) {
-    setAttendees((cur) => cur.map((a, idx) => (idx === i ? { ...a, ...p } : a)));
+  async function goNext() {
+    setError(null);
+
+    if (step === 0) {
+      const errors = validateStep1();
+      if (errors.length > 0) {
+        setSubmitAttempted(true);
+        focusFirstStep1Error(errors);
+        return;
+      }
+
+      const takenIndex = attendees.findIndex((_, i) => nicknameChecks[i] === "taken");
+      if (takenIndex !== -1) {
+        setSubmitAttempted(true);
+        setActiveIndex(takenIndex);
+        setToast("이미 사용 중인 닉네임이 있어요. 다른 닉네임으로 바꿔주세요.");
+        focusField(`attendee-${takenIndex}-nickname`);
+        return;
+      }
+
+      // 같은 테마 중복 신청은 제출 전에 미리 걸러준다.
+      setCheckingConflicts(true);
+      const result = await checkThemeConflicts(attendees.map((a) => a.phone), sessionId);
+      setCheckingConflicts(false);
+
+      if (!("error" in result) && result.conflictPhones.length > 0) {
+        setConflictPhones(new Set(result.conflictPhones));
+        setSubmitAttempted(true);
+        setToast("같은 테마에 이미 신청하신 분이 포함되어 있어요.");
+        const idx = attendees.findIndex((a) => result.conflictPhones.includes(phoneDigits(a.phone)));
+        if (idx !== -1) {
+          setActiveIndex(idx);
+          focusField(`attendee-${idx}-phone`);
+        }
+        return;
+      }
+
+      setConflictPhones(new Set());
+      setSubmitAttempted(false);
+      setStep(1);
+      return;
+    }
+
+    if (step === 1) {
+      if (!allRequiredChecked(consents, headcount)) {
+        setSubmitAttempted(true);
+        setToast("약관 동의를 확인해주세요.");
+        const id = firstMissingConsentId(consents, headcount);
+        if (id) focusField(id);
+        return;
+      }
+      setSubmitAttempted(false);
+      setStep(2);
+      return;
+    }
+
+    const errors = validateStep3();
+    if (errors.length > 0) {
+      setSubmitAttempted(true);
+      setToast(errors[0].message);
+      focusField(errors[0].field);
+      return;
+    }
+    submit();
   }
 
   function submit() {
-    setError(null);
     startTransition(async () => {
       const res = await applyToSession({
         sessionId,
-        // 적용 확인을 통과한 쿠폰만 보낸다. 입력만 해두고 확인을 안 눌렀다면
-        // 할인 없이 신청되는 게 맞다(화면에 안 보이던 할인이 붙으면 더 혼란스럽다).
+        // 확인을 통과한 쿠폰만 보낸다. 입력만 해두고 적용을 안 눌렀으면 할인 없이
+        // 신청되는 게 맞다 — 화면에 안 보이던 할인이 붙는 게 더 혼란스럽다.
         couponCode: coupon?.ok ? coupon.code : "",
         depositorName,
-        attendees,
+        attendees: attendees.map((a) => ({ ...a, phone: phoneDigits(a.phone) })),
         notes,
-        consentRequired,
-        consentOptional,
-        consentPhoto,
-        consentMarketing,
+        consentRequired: allRequiredChecked(consents, headcount),
+        consentOptional: consents.photo || consents.marketing,
+        consentPhoto: consents.photo,
+        consentMarketing: consents.marketing,
       });
       if ("error" in res) {
         setError(res.error);
@@ -162,335 +400,259 @@ export function ApplyForm({
     );
   }
 
+  const errOf = (list: FieldError[], f: string) => list.find((e) => e.field === f)?.message;
+  const busy = pending || checkingConflicts;
+
   return (
-    <div className="space-y-8">
-      {error && (
-        <div className="rounded-lg border border-red-500 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {error}
-        </div>
-      )}
+    <>
+      <ValidationToast message={toast} onClose={() => setToast(null)} />
 
-      {/* ── 회차 요약 ── */}
-      <div className="rounded-lg border border-white/15 bg-white/5 p-4">
-        <p className="font-semibold">{themeName}</p>
-        <p className="mt-1 text-sm text-muted">{sessionLabel}</p>
-        <p className="mt-1 text-xs" style={{ color: accentColor }}>
-          만 {minAge}세 이상 참여 가능
-        </p>
-      </div>
+      <ApplyStepper
+        currentStep={step}
+        onStepChange={(s) => {
+          if (s < step) {
+            setStep(s);
+            setSubmitAttempted(false);
+          }
+        }}
+      />
 
-      {/* ── 참여자 ── */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-bold">참여자 정보 ({headcount}명)</h2>
-          {canAdd && (
-            <button
-              onClick={() => {
-                setAttendees([...attendees, emptyAttendee()]);
-                setCoupon(null); // 인원이 바뀌면 할인액이 달라진다. 다시 확인시킨다.
-              }}
-              className="rounded-lg border border-white/25 px-3 py-1.5 text-xs"
-            >
-              + 동행자 추가
-            </button>
-          )}
+      <div className="space-y-6 py-8 pb-28">
+        {error && (
+          <div className="rounded-lg border border-red-500 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
+        {/* ── 회차 요약 ── */}
+        <div className="rounded-lg border border-white/15 bg-white/5 p-4">
+          <p className="font-semibold">{themeName}</p>
+          <p className="mt-1 text-sm text-muted">{sessionLabel}</p>
+          <p className="mt-1 text-xs" style={{ color: accentColor }}>
+            만 {minAge}세 이상 참여 가능
+          </p>
         </div>
 
-        <div className="space-y-4">
-          {attendees.map((a, i) => (
-            <div key={i} className="rounded-lg border border-white/15 p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-semibold">
-                  {i === 0 ? "신청자 (대표)" : `동행자 ${i}`}
-                </p>
-                {i > 0 && (
-                  <button
-                    onClick={() => {
-                      setAttendees(attendees.filter((_, x) => x !== i));
-                      setCoupon(null);
+        {/* ══ 1. 정보입력 ══ */}
+        {step === 0 && (
+          <div className="space-y-4">
+            <div className="flex gap-2 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm font-bold text-danger">
+              <span className="shrink-0" aria-hidden>⚠️</span>
+              <span>참여 시 신분증 검사가 진행됩니다. 정확한 정보를 입력해주세요.</span>
+            </div>
+
+            <div>
+              <label className={label} htmlFor="attendeeCount">인원</label>
+              <Select
+                id="attendeeCount"
+                variant="glass"
+                value={String(headcount)}
+                onChange={(v) => setCount(Number(v))}
+                options={Array.from({ length: maxAttendees }, (_, i) => i + 1).map((n) => ({
+                  value: String(n),
+                  label: `${n}명`,
+                }))}
+              />
+            </div>
+
+            <AttendeeTabs
+              count={headcount}
+              activeIndex={activeIndex}
+              errorIndexes={errorIndexes}
+              onSelect={setActiveIndex}
+            />
+
+            {attendees[activeIndex] && (
+              <AttendeeFields
+                index={activeIndex}
+                attendee={attendees[activeIndex]}
+                attendeeCount={headcount}
+                birthYears={birthYears}
+                minAge={minAge}
+                isConflict={conflictPhones.has(phoneDigits(attendees[activeIndex].phone))}
+                conflictReason={conflictPhones.size > 0 ? "theme" : null}
+                nicknameCheckState={nicknameChecks[activeIndex] ?? "idle"}
+                errors={{
+                  name: errOf(step1Errors, `attendee-${activeIndex}-name`),
+                  phone: errOf(step1Errors, `attendee-${activeIndex}-phone`),
+                  birthYear: errOf(step1Errors, `attendee-${activeIndex}-birthYear`),
+                  nickname: errOf(step1Errors, `attendee-${activeIndex}-nickname`),
+                }}
+                onChange={(patch) => patchAttendee(activeIndex, patch)}
+                onNicknameCheck={() => runNicknameCheck(activeIndex)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ══ 2. 약관동의 ══ */}
+        {step === 1 && (
+          <ConsentStep
+            attendeeCount={headcount}
+            consents={consents}
+            onChange={setConsents}
+            showError={submitAttempted}
+          />
+        )}
+
+        {/* ══ 3. 제출 ══ */}
+        {step === 2 && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-white/15 bg-white/5 p-4">
+              {unitPrice !== null && total !== null && payable !== null ? (
+                <>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm text-muted">
+                      {headcount}명 × {formatKrw(unitPrice)}
+                    </span>
+                    <span
+                      className={appliedDiscount > 0 ? "text-sm text-muted line-through" : "text-2xl font-extrabold"}
+                      style={appliedDiscount > 0 ? undefined : { color: accentColor }}
+                    >
+                      {formatKrw(total)}
+                    </span>
+                  </div>
+
+                  {appliedDiscount > 0 && (
+                    <>
+                      <div className="mt-1.5 flex items-baseline justify-between text-sm">
+                        <span className="text-muted">쿠폰 할인</span>
+                        <span className="text-glow">− {formatKrw(appliedDiscount)}</span>
+                      </div>
+                      <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2">
+                        <span className="text-sm font-semibold">입금하실 금액</span>
+                        <span className="text-2xl font-extrabold" style={{ color: accentColor }}>
+                          {formatKrw(payable)}
+                        </span>
+                      </div>
+                    </>
+                  )}
+
+                  <p className="mt-2 text-xs text-muted">인원이 늘면 1인당 참가비가 자동으로 낮아집니다.</p>
+                </>
+              ) : (
+                <p className="text-sm text-muted">요금 정보를 불러올 수 없습니다.</p>
+              )}
+            </div>
+
+            {/* 입력란은 하나의 카드로 묶는다 */}
+            <div className="space-y-4 rounded-lg border border-white/15 p-4">
+              <div>
+                <label className={label} htmlFor="couponCode">쿠폰 코드</label>
+                <div className="flex gap-2">
+                  <input
+                    id="couponCode"
+                    className={`${field} font-mono uppercase tracking-wider`}
+                    value={formatCouponCode(couponCode)}
+                    onChange={(e) => {
+                      setCouponCode(normalizeCouponCode(e.target.value));
+                      setCoupon(null); // 코드를 고치면 이전 적용은 무효다
                     }}
-                    className="text-xs text-red-400"
-                  >
-                    삭제
-                  </button>
+                    placeholder="M0EH-EVG1"
+                    maxLength={9}
+                    disabled={coupon?.ok}
+                  />
+                  {coupon?.ok ? (
+                    <button
+                      type="button"
+                      onClick={() => { setCoupon(null); setCouponCode(""); }}
+                      className="shrink-0 rounded-lg border border-white/20 px-4 text-sm text-muted"
+                    >
+                      해제
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={verifyCoupon}
+                      disabled={couponChecking || !couponCode || total === null}
+                      className="shrink-0 rounded-lg border border-white/30 px-4 text-sm font-semibold disabled:opacity-40"
+                    >
+                      {couponChecking ? "확인 중…" : "적용"}
+                    </button>
+                  )}
+                </div>
+                {coupon?.ok ? (
+                  <p className="mt-1.5 text-xs text-glow">
+                    ✓ {coupon.campaignName} 적용됨 — {formatKrw(coupon.discountKrw)} 할인
+                  </p>
+                ) : coupon ? (
+                  <p className="mt-1.5 text-xs text-amber-400">{coupon.reason}</p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-muted">
+                    쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요. 신청 1건에 1장 사용할 수 있어요.
+                  </p>
                 )}
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className={label}>이름 *</label>
-                  <input
-                    className={field}
-                    value={a.name}
-                    onChange={(e) => patchAttendee(i, { name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className={label}>휴대폰 번호 *</label>
-                  <input
-                    className={field}
-                    inputMode="numeric"
-                    placeholder="01012345678"
-                    value={a.phone}
-                    onChange={(e) => patchAttendee(i, { phone: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className={label}>출생연도 *</label>
-                  <select
-                    className={field}
-                    value={a.birth_year || ""}
-                    onChange={(e) => patchAttendee(i, { birth_year: Number(e.target.value) })}
-                  >
-                    <option value="">선택</option>
-                    {birthYears.map((y) => (
-                      <option key={y} value={y}>{y}년생</option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-[11px] text-muted">
-                    이 회차는 만 {minAge}세 이상만 참여할 수 있어요.
+              {/* ⭐ 입금자명 — 입금 자동 확인의 성패가 여기 달려 있다 */}
+              <div>
+                <label className={label} htmlFor="depositorName">입금자명 *</label>
+                <input
+                  id="depositorName"
+                  className={field}
+                  value={depositorName}
+                  onChange={(e) => setDepositorName(e.target.value)}
+                  placeholder="실제로 입금하실 분의 성함"
+                />
+                {errOf(step3Errors, "depositorName") && (
+                  <p className="mt-1 text-[11px] text-danger">{errOf(step3Errors, "depositorName")}</p>
+                )}
+                <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200">
+                  <p className="font-semibold">⚠️ 실제로 입금하실 분의 성함과 정확히 일치해야 합니다.</p>
+                  <p className="mt-1 opacity-90">
+                    이름이 다르면 자동 확인이 되지 않아 처리가 늦어질 수 있어요. 가족·지인 명의로
+                    입금하시는 경우 <strong>그분의 성함</strong>을 적어주세요.
                   </p>
                 </div>
-                <div>
-                  <label className={label}>방탈출 경험</label>
-                  <select
-                    className={field}
-                    value={a.experience_range}
-                    onChange={(e) => patchAttendee(i, { experience_range: e.target.value })}
-                  >
-                    <option value="">선택 안 함</option>
-                    {EXPERIENCE_OPTIONS.map((o) => (
-                      <option key={o.v} value={o.v}>{o.label}</option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-[11px] text-muted">팀 배정에 참고합니다.</p>
-                </div>
-                <div>
-                  <label className={label}>닉네임 (선택)</label>
-                  <input
-                    className={field}
-                    value={a.nickname}
-                    onChange={(e) => patchAttendee(i, { nickname: e.target.value })}
-                    placeholder="현장에서 부를 이름"
-                  />
-                </div>
-                <div>
-                  <label className={label}>성별 (선택)</label>
-                  <select
-                    className={field}
-                    value={a.gender}
-                    onChange={(e) => patchAttendee(i, { gender: e.target.value })}
-                  >
-                    <option value="">선택 안 함</option>
-                    <option value="M">남성</option>
-                    <option value="F">여성</option>
-                  </select>
-                </div>
+                {depositorName.trim() &&
+                  attendees[0]?.name.trim() &&
+                  depositorName.trim() !== attendees[0].name.trim() && (
+                    <p className="mt-2 text-xs text-amber-300">
+                      신청자({attendees[0].name})와 입금자명({depositorName})이 다릅니다. 맞나요?
+                    </p>
+                  )}
+              </div>
+
+              <div>
+                <label className={label} htmlFor="notes">요청사항 (선택)</label>
+                <textarea
+                  id="notes"
+                  className={`${field} min-h-20`}
+                  value={notes}
+                  maxLength={REQUEST_NOTE_MAX_LENGTH}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+                {errOf(step3Errors, "notes") && (
+                  <p className="mt-1 text-[11px] text-danger">{errOf(step3Errors, "notes")}</p>
+                )}
               </div>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {prefill && (
-        <p className="rounded-lg border border-glow/30 bg-glow/5 px-4 py-2.5 text-xs text-glow">
-          ✓ 로그인 정보로 신청자 칸을 채웠어요. 다르면 그대로 고치셔도 됩니다.
-        </p>
-      )}
-
-      {/* ── 결제 ── */}
-      <section>
-        <h2 className="mb-3 font-bold">참가비</h2>
-        <div className="rounded-lg border border-white/15 bg-white/5 p-4">
-          {unitPrice !== null && total !== null && payable !== null ? (
-            <>
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-muted">
-                  {headcount}명 × {formatKrw(unitPrice)}
-                </span>
-                <span
-                  className={
-                    appliedDiscount > 0
-                      ? "text-sm text-muted line-through"
-                      : "text-2xl font-extrabold"
-                  }
-                  style={appliedDiscount > 0 ? undefined : { color: accentColor }}
-                >
-                  {formatKrw(total)}
-                </span>
-              </div>
-
-              {appliedDiscount > 0 && (
-                <>
-                  <div className="mt-1.5 flex items-baseline justify-between text-sm">
-                    <span className="text-muted">쿠폰 할인</span>
-                    <span className="text-glow">− {formatKrw(appliedDiscount)}</span>
-                  </div>
-                  <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2">
-                    <span className="text-sm font-semibold">입금하실 금액</span>
-                    <span className="text-2xl font-extrabold" style={{ color: accentColor }}>
-                      {formatKrw(payable)}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              <p className="mt-2 text-xs text-muted">
-                인원이 늘면 1인당 참가비가 자동으로 낮아집니다.
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-muted">요금 정보를 불러올 수 없습니다.</p>
-          )}
-        </div>
-
-        {/* ── 쿠폰 ── */}
-        <div className="mt-4">
-          <label className={label}>쿠폰 코드</label>
-          <div className="flex gap-2">
-            <input
-              className={`${field} font-mono uppercase tracking-wider`}
-              value={formatCouponCode(couponCode)}
-              onChange={(e) => {
-                setCouponCode(normalizeCouponCode(e.target.value));
-                setCoupon(null); // 코드를 고치면 이전 적용은 무효다
-              }}
-              placeholder="M0EH-EVG1"
-              maxLength={9}
-              disabled={coupon?.ok}
-            />
-            {coupon?.ok ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCoupon(null);
-                  setCouponCode("");
-                }}
-                className="shrink-0 rounded-lg border border-white/20 px-4 text-sm text-muted"
-              >
-                해제
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={verifyCoupon}
-                disabled={couponChecking || !couponCode || total === null}
-                className="shrink-0 rounded-lg border border-white/30 px-4 text-sm font-semibold disabled:opacity-40"
-              >
-                {couponChecking ? "확인 중…" : "적용"}
-              </button>
-            )}
           </div>
+        )}
+      </div>
 
-          {coupon?.ok && (
-            <p className="mt-1.5 text-xs text-glow">
-              ✓ {coupon.campaignName} 적용됨 — {formatKrw(coupon.discountKrw)} 할인
-            </p>
-          )}
-          {coupon && !coupon.ok && (
-            <p className="mt-1.5 text-xs text-amber-400">{coupon.reason}</p>
-          )}
-          {!coupon && (
-            <p className="mt-1.5 text-xs text-muted">
-              쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요. 신청 1건에 1장 사용할 수 있어요.
-            </p>
-          )}
+      {/* 고정 하단 버튼 */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/95 p-4 backdrop-blur">
+        <div className="mx-auto max-w-2xl px-1">
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={busy}
+            className="w-full rounded-lg px-6 py-4 text-base font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ backgroundColor: accentColor, color: "#0a0a12" }}
+          >
+            {pending
+              ? "신청 중…"
+              : checkingConflicts
+                ? "확인 중…"
+                : step === 2
+                  ? payable !== null
+                    ? `${formatKrw(payable)} 신청하기`
+                    : "신청하기"
+                  : "다음"}
+          </button>
         </div>
-
-        {/* ⭐ 입금자명 — 입금 자동 확인의 성패가 여기 달려 있다 */}
-        <div className="mt-4">
-          <label className={label}>입금자명 *</label>
-          <input
-            className={field}
-            value={depositorName}
-            onChange={(e) => setDepositorName(e.target.value)}
-            placeholder="실제로 입금하실 분의 성함"
-          />
-          <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200">
-            <p className="font-semibold">⚠️ 실제로 입금하실 분의 성함과 정확히 일치해야 합니다.</p>
-            <p className="mt-1 opacity-90">
-              이름이 다르면 자동 확인이 되지 않아 처리가 늦어질 수 있어요. 가족·지인 명의로
-              입금하시는 경우 <strong>그분의 성함</strong>을 적어주세요.
-            </p>
-          </div>
-          {depositorName.trim() &&
-            attendees[0]?.name.trim() &&
-            depositorName.trim() !== attendees[0].name.trim() && (
-              <p className="mt-2 text-xs text-amber-300">
-                신청자({attendees[0].name})와 입금자명({depositorName})이 다릅니다. 맞나요?
-              </p>
-            )}
-        </div>
-
-        <div className="mt-4">
-          <label className={label}>요청사항 (선택)</label>
-          <textarea
-            className={`${field} min-h-20`}
-            value={notes}
-            maxLength={200}
-            onChange={(e) => setNotes(e.target.value)}
-          />
-        </div>
-      </section>
-
-      {/* ── 동의 ── */}
-      <section>
-        <h2 className="mb-3 font-bold">약관 동의</h2>
-        <div className="space-y-2.5 rounded-lg border border-white/15 p-4 text-sm">
-          <label className="flex items-start gap-2.5">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={consentRequired}
-              onChange={(e) => setConsentRequired(e.target.checked)}
-            />
-            <span>
-              <strong>[필수]</strong> 이용약관 · 개인정보 수집 및 이용 · 환불규정에 동의합니다.
-              <span className="mt-0.5 block text-xs text-muted">
-                <a href="/terms" target="_blank" className="underline">이용약관</a>
-                {" · "}
-                <a href="/privacy" target="_blank" className="underline">개인정보처리방침</a>
-              </span>
-            </span>
-          </label>
-          <label className="flex items-start gap-2.5">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={consentOptional}
-              onChange={(e) => setConsentOptional(e.target.checked)}
-            />
-            <span>[선택] 동행자 정보 제공에 대해 본인이 대리 동의합니다.</span>
-          </label>
-          <label className="flex items-start gap-2.5">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={consentPhoto}
-              onChange={(e) => setConsentPhoto(e.target.checked)}
-            />
-            <span>[선택] 현장 사진·영상 촬영 및 홍보 활용에 동의합니다.</span>
-          </label>
-          <label className="flex items-start gap-2.5">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={consentMarketing}
-              onChange={(e) => setConsentMarketing(e.target.checked)}
-            />
-            <span>[선택] 새 회차·이벤트 안내 수신에 동의합니다.</span>
-          </label>
-        </div>
-      </section>
-
-      <button
-        onClick={submit}
-        disabled={pending || !consentRequired}
-        className="w-full rounded-lg px-6 py-4 text-base font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-        style={{ backgroundColor: accentColor, color: "#0a0a12" }}
-      >
-        {pending ? "신청 중…" : total !== null ? `${formatKrw(total)} 신청하기` : "신청하기"}
-      </button>
-    </div>
+      </div>
+    </>
   );
 }

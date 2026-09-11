@@ -9,6 +9,7 @@ export function Select({
   options,
   placeholder,
   invalid,
+  variant = "surface",
 }: {
   id?: string;
   value: string;
@@ -16,6 +17,8 @@ export function Select({
   options: { value: string; label: string }[];
   placeholder?: string;
   invalid?: boolean;
+  /** glass = 반투명 카드 위에 올리는 신청 폼용. surface = 기존 화면용. */
+  variant?: "surface" | "glass";
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -67,12 +70,16 @@ export function Select({
             handleArrowKey("up");
           }
         }}
-        className={`w-full rounded-lg border bg-surface px-4 py-2.5 text-sm text-foreground outline-none transition-shadow flex items-center justify-between ${
+        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-sm text-foreground outline-none transition-shadow ${
+          variant === "glass" ? "bg-white/5" : "bg-surface px-4"
+        } ${
           invalid
             ? "border-danger bg-danger-soft text-danger"
             : isOpen
               ? "border-brand focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
-              : "border-border focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
+              : variant === "glass"
+                ? "border-white/20 focus:border-white/50"
+                : "border-border focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
         }`}
       >
         <span className={selectedLabel === placeholder ? "text-muted" : ""}>
@@ -82,7 +89,8 @@ export function Select({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 rounded-lg border border-border bg-surface shadow-lg z-10 overflow-hidden max-h-[220px] overflow-y-auto">
+        /* 5개까지 보이고 나머지는 스크롤. 출생연도처럼 항목이 70개인 칸이 있다. */
+        <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-[13.75rem] overflow-y-auto rounded-lg border border-border bg-surface shadow-lg">
           {options.map((option) => (
             <button
               key={option.value}
@@ -91,7 +99,7 @@ export function Select({
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+              className={`block w-full px-4 py-2.5 text-left text-sm transition-colors ${
                 value === option.value
                   ? "bg-brand text-brand-foreground font-medium"
                   : "text-foreground hover:bg-brand-soft"

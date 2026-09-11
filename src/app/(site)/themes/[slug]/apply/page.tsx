@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-import { getMyProfile } from "@/lib/profile";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -40,9 +39,6 @@ export default async function ApplyPage({
   // 쿠폰 링크(/c/{코드})로 들어왔으면 쿠키에 코드가 담겨 있다. 손으로 칠 일이 없다.
   const couponCode = (await cookies()).get("wye_coupon")?.value ?? "";
 
-  // 로그인 상태면 신청자 정보를 미리 채운다. 로그인의 가장 큰 실익이다(D-06).
-  // 실패해도 신청은 되어야 하므로 조회 실패는 삼킨다.
-  const profile = await getMyProfile().catch(() => null);
   if (!theme) notFound();
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
@@ -70,22 +66,17 @@ export default async function ApplyPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-12">
-      <div className="mb-6">
+    <main className="mx-auto max-w-2xl px-5 pb-12 pt-8">
+      <div className="mb-4">
         <Link href={`/themes/${slug}`} className="text-sm text-muted underline">
           ← 날짜 다시 선택
         </Link>
       </div>
-      <h1 className="mb-6 text-2xl font-extrabold">참가 신청</h1>
+      <h1 className="mb-4 text-2xl font-extrabold">참여 신청</h1>
 
       <ApplyForm
         themeId={theme.id}
         initialCouponCode={couponCode}
-        prefill={
-          profile
-            ? { name: profile.name, phone: profile.phone, birthYear: profile.birth_year, gender: profile.gender }
-            : null
-        }
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={sessionLabel(target.start_at)}

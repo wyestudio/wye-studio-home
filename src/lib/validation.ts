@@ -37,6 +37,14 @@ export function isValidNotes(notes: string): boolean {
   return NOTES_PATTERN.test(notes);
 }
 
+// 제출 단계의 '요청사항' — 비고(50자)보다 길게 받되 허용 문자는 같다.
+export const REQUEST_NOTE_MAX_LENGTH = 200;
+export const REQUEST_NOTE_PATTERN = /^[가-힣a-zA-Z0-9\s.,!?~()·:;\-]{0,200}$/;
+export function isValidRequestNote(notes: string): boolean {
+  if (!notes || notes.trim() === "") return true; // 선택 필드
+  return REQUEST_NOTE_PATTERN.test(notes);
+}
+
 // 유효성 검사 오류 메시지 생성 헬퍼
 export function getValidationErrorMessage(field: string, reason: string): string {
   const messages: Record<string, Record<string, string>> = {
@@ -64,7 +72,7 @@ export function getValidationErrorMessage(field: string, reason: string): string
       invalid: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다.",
     },
     notes: {
-      invalid: "비고는 50자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.",
+      invalid: "요청사항은 200자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.",
     },
     depositorName: {
       required: "입금자명을 입력해주세요.",

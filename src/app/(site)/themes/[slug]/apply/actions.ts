@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendApplicationConfirmationSmsV2 } from "@/lib/smsV2";
+import { isValidNickname } from "@/lib/validation";
+import { phoneDigits } from "@/lib/phone";
 
 export type AttendeeInput = {
   name: string;
@@ -12,6 +14,48 @@ export type AttendeeInput = {
   gender: string;
   experience_range: string;
 };
+
+/**
+ * 닉네임 중복 확인. 같은 회차 안에서만 유일하면 된다
+ * (application_attendees 의 unique(session_id, nickname) 과 같은 기준).
+ */
+export async function checkNickname(
+  sessionId: string,
+  nickname: string
+): Promise<{ available: boolean } | { error: string }> {
+  if (!nickname.trim() || !isValidNickname(nickname)) {
+    return { error: "닉네임 형식을 먼저 확인해주세요." };
+  }
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("check_nickname_available", {
+    p_session_id: sessionId,
+    p_nickname: nickname.trim(),
+  });
+  if (error) return { error: "확인 중 오류가 발생했어요. 잠시 후 다시 시도해주세요." };
+  return { available: data as boolean };
+}
+
+/**
+ * 같은 테마에 이미 신청한 번호가 있는지 미리 확인한다.
+ *
+ * ⚠️ 화면에서 일찍 알려주려는 것일 뿐이다. 최종 판정은 submit_application_v2()
+ *    안에서 행을 잠그고 한다 — 동시 요청은 여기서 막을 수 없다.
+ */
+export async function checkThemeConflicts(
+  phones: string[],
+  sessionId: string
+): Promise<{ conflictPhones: string[] } | { error: string }> {
+  const digits = phones.map((p) => phoneDigits(p)).filter(Boolean);
+  if (digits.length === 0) return { conflictPhones: [] };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("check_active_applications_v2", {
+    p_phones: digits,
+    p_session_id: sessionId,
+  });
+  if (error) return { error: "확인 중 오류가 발생했어요." };
+  return { conflictPhones: (data as string[]) ?? [] };
+}
 
 export type ApplyInput = {
   sessionId: string;
