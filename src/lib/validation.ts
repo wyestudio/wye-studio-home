@@ -21,13 +21,14 @@ export type ExperienceRange = (typeof EXPERIENCE_RANGES)[number];
 
 /** 저장된 값을 화면에 쓸 때 쓴다. 옛 값('200+')도 들어올 수 있어 Record<string> 이다. */
 export const EXPERIENCE_RANGE_LABELS: Record<string, string> = {
-  "0": "0회 (경험 없음)",
-  "1-50": "1~50회",
-  "50-100": "50~100회",
-  "100-200": "100~200회",
-  "200-500": "200~500회",
-  "500+": "500회 이상",
-  "200+": "200회 이상", // 8/29 신청에 남아 있는 옛 값
+  // 방탈출에서는 "몇 방 했다" 로 센다.
+  "0": "0방 (경험 없음)",
+  "1-50": "1~50방",
+  "50-100": "50~100방",
+  "100-200": "100~200방",
+  "200-500": "200~500방",
+  "500+": "500방 이상",
+  "200+": "200방 이상", // 8/29 신청에 남아 있는 옛 값
 };
 
 export function isValidExperienceRange(v: string): v is ExperienceRange {
@@ -70,8 +71,8 @@ export function getValidationErrorMessage(field: string, reason: string): string
       invalid: "남성 또는 여성을 선택해주세요.",
     },
     experienceRange: {
-      required: "방탈출 경험 횟수를 선택해주세요.",
-      invalid: "유효한 경험 횟수를 선택해주세요.",
+      required: "방탈출 경험을 선택해주세요.",
+      invalid: "유효한 경험 구간을 선택해주세요.",
     },
     nickname: {
       invalid: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다.",

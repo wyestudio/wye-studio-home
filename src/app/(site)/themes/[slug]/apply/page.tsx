@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getThemeBySlug, getUpcomingSessionsForTheme, attachStats, isBookable } from "@/lib/themes";
-import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { ApplyForm } from "./ApplyForm";
 
 export const dynamic = "force-dynamic";
@@ -81,7 +80,6 @@ export default async function ApplyPage({
         maxGroupSize={theme.max_group_size}
         tiers={theme.tiers}
         accentColor={accent}
-        bankInfo={BANK_ACCOUNT}
       />
     </main>
   );

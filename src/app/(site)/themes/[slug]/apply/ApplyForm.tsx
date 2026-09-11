@@ -63,7 +63,6 @@ export function ApplyForm({
   maxGroupSize,
   tiers,
   accentColor,
-  bankInfo,
   themeId,
   initialCouponCode,
   categoryName,
@@ -82,7 +81,6 @@ export function ApplyForm({
   maxGroupSize: number | null;
   tiers: ThemePriceTier[];
   accentColor: string;
-  bankInfo: { bankName: string; accountNumber: string; accountHolder: string };
 }) {
   const [step, setStep] = useState(0);
   const [attendees, setAttendees] = useState<AttendeeInput[]>([emptyAttendee()]);
@@ -407,7 +405,7 @@ export function ApplyForm({
         themeName={themeName}
         sessionLabel={sessionLabel}
         depositorName={depositorName}
-        bankInfo={bankInfo}
+        attendees={attendees.map((a) => ({ ...a, phone: phoneDigits(a.phone) }))}
         accentColor={accentColor}
       />
     );
@@ -612,7 +610,7 @@ export function ApplyForm({
                     <button
                       type="button"
                       onClick={() => { setCoupon(null); setCouponCode(""); }}
-                      className="shrink-0 rounded-lg border border-white/20 px-4 text-sm text-muted"
+                      className="shrink-0 self-stretch rounded-lg border border-white/20 px-4 py-2.5 text-sm text-muted"
                     >
                       해제
                     </button>
@@ -621,7 +619,7 @@ export function ApplyForm({
                       type="button"
                       onClick={verifyCoupon}
                       disabled={couponChecking || !couponCode || total === null}
-                      className="shrink-0 rounded-lg border border-white/30 px-4 text-sm font-semibold disabled:opacity-40"
+                      className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-40"
                     >
                       {couponChecking ? "확인 중…" : "적용"}
                     </button>
