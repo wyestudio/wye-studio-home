@@ -57,12 +57,14 @@ export function AdminNav({ current }: { current?: string }) {
          어긋난다. before 로 위쪽을 배경으로 채워 그 틈으로 본문이 비치지 않게 한다.
       ⚠️ -mx-6/-mt-6 는 페이지 바깥 컨테이너의 p-6 을 되돌려, 고정된 동안 배경이
          좌우 여백까지 덮게 하려는 것이다.
+      ⚠️ before 는 어긋난 몇 px 만 메운다. 크게 잡으면 스크롤 전에도 위쪽 사이트
+         헤더를 덮어버린다(실제로 그랬다).
     */
     <nav
       className="sticky top-[var(--header-height,0px)] z-30 -mx-6 -mt-6 mb-8 flex flex-wrap items-center
                  gap-x-6 gap-y-3 border-b border-border bg-background px-6 pb-4 pt-6
                  before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full
-                 before:h-32 before:bg-background"
+                 before:h-2 before:bg-background"
     >
       {GROUPS.map((group) => (
         <div key={group.label} className="flex items-center gap-2">
