@@ -221,18 +221,20 @@ export function ApplyForm({
 
   /**
    * 오류가 난 칸으로 데려간다.
+   *
    * ⚠️ state + effect 로 하면 "effect 안에서 setState" 가 되어 렌더가 한 번 더 돈다.
-   *    화면이 그려진 뒤에 DOM 을 만지기만 하면 되는 일이라 rAF 두 번이면 충분하다.
+   *    화면이 그려진 뒤 DOM 을 만지기만 하면 되는 일이라 다음 틱이면 충분하다.
+   * ⚠️ requestAnimationFrame 을 쓰면 안 된다 — 탭이 뒤에 있을 때는 콜백이 아예
+   *    돌지 않아 포커스가 조용히 사라진다(실제로 그랬다). setTimeout 은 돈다.
+   *    참여자 탭을 바꾸는 경우 대상 칸이 아직 안 그려져 있어 한 틱을 기다려야 한다.
    */
   function focusField(id: string) {
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-        el.focus?.({ preventScroll: true });
-      })
-    );
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.focus?.({ preventScroll: true });
+    }, 0);
   }
 
   // ── 조작 ──────────────────────────────────────────────────
