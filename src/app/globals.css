@@ -392,3 +392,10 @@ html.custom-cursor-active label {
     animation: none;
   }
 }
+
+/* 어드민에서는 사이트 헤더가 투명하면 안 된다. admin 호스트는 대시보드 주소가
+   '/' 라 Header 가 홈으로 판단해 bg-transparent 로 렌더되는데, 그러면 고정된
+   어드민 메뉴 위쪽 띠로 본문 글자가 그대로 비쳐 보인다. */
+body:has(.admin-shell) header > div {
+  background-color: var(--background);
+}
