@@ -31,9 +31,9 @@ function durationLabel(minutes: number): string {
  *    모서리도 rounded-full(9999px) 이 아니라 50%→4% 로 준다 — px 로 주면 값이
  *    너무 커서 애니메이션 내내 둥글다가 끝에서만 각이 진다.
  *
- * ⚠️ 격자 자리는 정사각(행성 크기)으로 잡고, 펼쳐진 카드는 그 위로 떠서
- *    아래로 자란다. 자리를 카드 크기로 잡으면 행성 아래 여백이 너무 커져
- *    이름이 멀어지고, 자리를 hover 때 늘리면 격자 전체가 출렁인다.
+ * ⚠️ 격자 자리는 행성 크기로만 잡고, 펼쳐진 카드(가로 100% · 세로 4:5)는 그
+ *    위로 떠서 아래로 자란다. 자리를 카드 크기로 잡으면 행성 아래 여백이 너무
+ *    커져 이름이 멀어지고, 자리를 hover 때 늘리면 격자 전체가 출렁인다.
  *
  * 터치 기기에는 hover 가 없으므로 행성과 이름만 남는다.
  */
@@ -57,14 +57,16 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
 
             return (
               <Link key={theme.id} href={`/themes/${theme.slug}`} className="group block">
-                <div className="relative aspect-square">
+                {/* 자리는 행성 크기(가로의 70%)로만 잡는다. 펼친 카드는 그 위로 뜬다. */}
+                <div className="relative aspect-[10/7]">
                   <div
-                    className="absolute left-1/2 top-0 h-full w-full -translate-x-1/2
+                    className="absolute left-1/2 top-0 h-full w-[70%] -translate-x-1/2
                                overflow-hidden rounded-[50%] border border-transparent
-                               transition-[height,border-radius,border-color,box-shadow]
+                               transition-[width,height,border-radius,border-color,box-shadow]
                                duration-500 ease-out
                                [@media(hover:hover)]:group-hover:z-10
-                               [@media(hover:hover)]:group-hover:h-[125%]
+                               [@media(hover:hover)]:group-hover:h-[179%]
+                               [@media(hover:hover)]:group-hover:w-full
                                [@media(hover:hover)]:group-hover:rounded-[4%]
                                [@media(hover:hover)]:group-hover:border-white/15
                                [@media(hover:hover)]:group-hover:shadow-2xl

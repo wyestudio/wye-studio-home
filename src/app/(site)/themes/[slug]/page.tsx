@@ -88,43 +88,59 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         예약을 아래 별도 섹션으로 내리면 첫 화면에서 "언제 갈 수 있는지"가
         안 보인다. 포스터 옆 빈 공간이 그 자리다.
       */}
-      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[22.5rem_minmax(0,1fr)]">
-        <div className="mx-auto w-44 shrink-0 sm:w-52 md:mx-0 md:w-full">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface">
+      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[19rem_minmax(0,1fr)]">
+        {/*
+          넓은 화면에서는 포스터를 오른쪽 칸 높이에 맞춰 늘린다. 그래야
+          포스터 아래끝 = 달력 아래끝 = 신청 버튼 아래끝이 한 선에 놓인다.
+          칸 너비(19rem)를 4:5 에 가깝게 잡아 잘려나가는 부분은 거의 없다.
+        */}
+        <div className="mx-auto w-44 shrink-0 sm:w-52 md:mx-0 md:w-full lg:h-full">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface lg:aspect-auto lg:h-full">
             <Image
               src={theme.hero_image_path || FALLBACK_POSTER}
               alt={`${theme.name} 포스터`}
               fill
               className="object-cover"
-              sizes="(min-width: 1024px) 360px, (min-width: 768px) 288px, 208px"
+              sizes="(min-width: 1024px) 304px, (min-width: 768px) 288px, 208px"
               priority
             />
           </div>
         </div>
 
         <div className="flex min-w-0 flex-col">
-          <div className="text-center md:text-left">
-            <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
-            {categoryName && (
-              <p className="mt-1 text-lg font-bold sm:text-xl" style={{ color: accent }}>
-                {categoryName}
-              </p>
-            )}
-
+          <div>
             {/*
-              공유 버튼을 이 줄에 같이 둔다. 따로 한 줄을 차지하면 오른쪽 칸이
-              그만큼 길어져 신청 버튼이 포스터 아래 끝선에서 더 멀어진다.
+              제목 줄: 테마명 + 카테고리 배지 / 오른쪽 끝에 공유.
+              카테고리를 아래 줄에 크게 두면 부제처럼 읽혀서 분류라는 게 안 보인다.
             */}
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted md:justify-start">
+            <div className="flex items-start gap-3">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+                <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
+                {categoryName && (
+                  <span
+                    className="rounded-full border px-2.5 py-1 text-xs font-bold"
+                    style={{
+                      color: accent,
+                      borderColor: `${accent}59`,
+                      backgroundColor: `${accent}1f`,
+                    }}
+                  >
+                    {categoryName}
+                  </span>
+                )}
+              </div>
+              <div className="shrink-0">
+                <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
+              </div>
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
               <DifficultyLocks rating={theme.difficulty} />
               <span>⏱ {durationLabel}</span>
-              <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
             </div>
 
             {theme.description && (
-              <p className="mt-4 whitespace-pre-line text-left leading-relaxed">
-                {theme.description}
-              </p>
+              <p className="mt-4 whitespace-pre-line leading-relaxed">{theme.description}</p>
             )}
           </div>
 

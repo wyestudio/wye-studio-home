@@ -117,74 +117,65 @@ export function SessionPicker({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex flex-col gap-5 lg:flex-row lg:gap-5">
-        <div className="lg:w-[17.5rem] lg:shrink-0">
-          <p className="mb-2 text-xs font-bold text-muted">날짜 선택</p>
-          <BookingCalendar
-            dateStatus={dateStatus}
-            selected={selectedDate}
-            accentColor={accentColor}
-            onSelect={selectDate}
-          />
-        </div>
-
-        <div ref={timeRef} className="min-w-0 flex-1 scroll-mt-28">
-          <p className="mb-2 text-xs font-bold text-muted">
-            시간 선택
-            {selectedDate && (
-              <span className="ml-1.5 font-medium text-white/70">
-                {kstDayLabel(`${selectedDate}T00:00:00+09:00`)}
-              </span>
-            )}
-          </p>
-
-          {daySessions.length === 0 ? (
-            <p className="rounded-lg border border-white/15 bg-white/5 p-4 text-sm text-muted">
-              이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
-              {daySessions.map((s) => {
-                const isActive = s.id === selectedId;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedId(s.id)}
-                    disabled={!s.bookable}
-                    className={`rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 lg:flex lg:items-center lg:gap-3 ${
-                      isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
-                    }`}
-                    style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
-                  >
-                    <p className="text-base font-bold lg:w-16">{kstTime(s.start_at)}</p>
-                    <p className={`mt-0.5 text-xs lg:mt-0 lg:flex-1 ${isActive ? "opacity-80" : "text-muted"}`}>
-                      만 {s.min_age}세 이상
-                    </p>
-                    <p className={`mt-1 text-xs lg:mt-0 ${isActive ? "opacity-80" : "text-muted"}`}>
-                      {!s.bookable
-                        ? "마감"
-                        : s.remaining === null
-                          ? ""
-                          : s.remaining <= 5
-                            ? `잔여 ${s.remaining}석`
-                            : "예약 가능"}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch">
+      <div className="lg:w-[17.5rem] lg:shrink-0">
+        <p className="mb-2 text-xs font-bold text-muted">날짜 선택</p>
+        <BookingCalendar
+          dateStatus={dateStatus}
+          selected={selectedDate}
+          accentColor={accentColor}
+          onSelect={selectDate}
+        />
       </div>
 
-      <div className="mt-auto pt-5">
-        <BookingCta
-          accepting={accepting}
-          href={selected ? `/themes/${themeSlug}/apply?session=${selected.id}` : null}
-          label={ctaLabel}
-          accentColor={accentColor}
-        />
+      {/* 시간 칸은 달력과 같은 높이로 늘어난다. 신청 버튼을 mt-auto 로 밀면
+          버튼 아래끝이 달력 아래끝(=포스터 아래끝)과 같은 선에 놓인다. */}
+      <div ref={timeRef} className="flex min-w-0 flex-1 scroll-mt-28 flex-col">
+        <p className="mb-2 text-xs font-bold text-muted">
+          시간 선택
+          {selectedDate && (
+            <span className="ml-1.5 font-medium text-white/70">
+              {kstDayLabel(`${selectedDate}T00:00:00+09:00`)}
+            </span>
+          )}
+        </p>
+
+        {daySessions.length === 0 ? (
+          <p className="rounded-lg border border-white/15 bg-white/5 p-4 text-sm text-muted">
+            이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
+          </p>
+        ) : (
+          /* 시각만 크게. 고를 수 없는 회차에만 '마감' 을 덧붙인다 —
+             모두 예약 가능한 날에 '예약 가능' 이 반복되면 읽을 게 없다. */
+          <div className="grid grid-cols-2 gap-2">
+            {daySessions.map((s) => {
+              const isActive = s.id === selectedId;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setSelectedId(s.id)}
+                  disabled={!s.bookable}
+                  className={`rounded-lg border py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                    isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
+                  }`}
+                  style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
+                >
+                  <p className="text-base font-bold">{kstTime(s.start_at)}</p>
+                  {!s.bookable && <p className="mt-0.5 text-xs text-muted">마감</p>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="mt-auto pt-5">
+          <BookingCta
+            accepting={accepting}
+            href={selected ? `/themes/${themeSlug}/apply?session=${selected.id}` : null}
+            label={ctaLabel}
+            accentColor={accentColor}
+          />
+        </div>
       </div>
     </div>
   );

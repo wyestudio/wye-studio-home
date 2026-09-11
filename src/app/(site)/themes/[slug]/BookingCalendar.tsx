@@ -158,17 +158,6 @@ export function BookingCalendar({
           );
         })}
       </div>
-
-      <p className="mt-3 flex items-center justify-center gap-4 text-[11px] text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="h-1 w-1 rounded-full" style={{ backgroundColor: accentColor }} />
-          신청 가능
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-1 w-1 rounded-full" style={{ backgroundColor: accentColor, opacity: 0.3 }} />
-          마감
-        </span>
-      </p>
     </div>
   );
 }
