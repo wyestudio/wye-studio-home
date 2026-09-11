@@ -374,7 +374,8 @@ export function ApplyForm({
         attendees: attendees.map((a) => ({ ...a, phone: phoneDigits(a.phone) })),
         notes,
         consentRequired: allRequiredChecked(consents, headcount),
-        consentOptional: consents.photo || consents.marketing,
+        // 기존 폼과 같은 기준 — 선택 항목을 '전부' 동의했을 때만 참이다.
+        consentOptional: consents.photo && consents.marketing,
         consentPhoto: consents.photo,
         consentMarketing: consents.marketing,
       });
