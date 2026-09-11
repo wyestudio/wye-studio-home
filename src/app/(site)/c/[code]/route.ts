@@ -22,7 +22,7 @@ import { normalizeCouponCode } from "@/lib/coupon";
 export const COUPON_COOKIE = "wye_coupon";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code } = await params;
@@ -43,9 +43,9 @@ export async function GET(
     // 조회에 실패해도 링크는 살아야 한다. 목록 페이지로 떨어진다.
   }
 
-  const response = NextResponse.redirect(
-    new URL(destination, process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.wouldyouescape.com")
-  );
+  // ⚠️ 리다이렉트 기준은 반드시 요청 URL 이다. 환경변수를 base 로 쓰면
+  //    테스트에서 누른 링크가 운영 사이트로 넘어간다(실제로 그랬다).
+  const response = NextResponse.redirect(new URL(destination, request.url));
 
   if (normalized) {
     response.cookies.set(COUPON_COOKIE, normalized, {
