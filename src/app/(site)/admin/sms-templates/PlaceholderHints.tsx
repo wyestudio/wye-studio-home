@@ -18,6 +18,8 @@ export const PLACEHOLDER_INFO: Record<string, { label: string; example: string }
   account_number: { label: "입금 계좌번호", example: "3333-05-2843942" },
   account_holder: { label: "예금주", example: "김시온" },
   depositor_name: { label: "신청 시 입력한 입금자명", example: "홍길동" },
+  min_age: { label: "최소 연령", example: "19" },
+  parking_note: { label: "주차 안내", example: "인근 유료주차장 이용" },
   venue_name: { label: "장소명", example: "뮤트스페이스 신림점" },
   venue_address_text: { label: "장소 주소 (괄호 포함, 없으면 빈 값)", example: " (서울 관악구 ...)" },
   reapply_url: { label: "재신청 링크", example: "www.wouldyouescape.com/sessions/0829-meeting" },

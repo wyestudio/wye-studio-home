@@ -1,6 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendApplicationConfirmationSmsV2 } from "@/lib/smsV2";
 
 export type AttendeeInput = {
   name: string;
@@ -86,6 +88,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
   }
 
   const r = data as {
+    id: string;
     confirmation_code: string;
     status: "confirmed" | "waiting";
     headcount: number;
@@ -93,6 +96,45 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     amount_krw: number;
     waiting_number: number | null;
   };
+
+  // ── 알림 ──────────────────────────────────────────────────────
+  // ⚠️ 여기서 실패해도 신청은 이미 성공했다. 절대 사용자에게 에러를 돌려주지
+  //    않는다. 로그만 남기고 넘어간다.
+  //
+  // 문자5(대기접수완료)는 발송하지 않기로 확정돼 있어(D-06 시대 결정)
+  // 확정 건에만 문자1 을 보낸다. 대기자는 화면 안내로 충분하다.
+  try {
+    const isTest = process.env.NEXT_PUBLIC_IS_TEST_ENV === "true";
+    if (!isTest && r.status === "confirmed") {
+      const admin = createAdminClient();
+      const { data: sv } = await admin
+        .from("session_view")
+        .select("theme_name, start_at, end_at, min_age")
+        .eq("id", input.sessionId)
+        .single();
+
+      if (sv) {
+        await sendApplicationConfirmationSmsV2({
+          session: {
+            themeName: sv.theme_name as string,
+            startAt: sv.start_at as string,
+            endAt: (sv.end_at as string) ?? null,
+            minAge: sv.min_age as number,
+          },
+          to: input.attendees[0].phone,
+          recipientName: input.attendees[0].name.trim(),
+          confirmationCode: r.confirmation_code,
+          headcount: r.headcount,
+          amountKrw: r.amount_krw,
+          depositorName: input.depositorName.trim(),
+        });
+      }
+    } else if (isTest) {
+      console.log(`[apply] 테스트 환경이라 문자 발송을 건너뜁니다: ${r.confirmation_code}`);
+    }
+  } catch (err) {
+    console.error("[apply] 신청 후 알림 처리 실패 (신청 자체는 성공)", err);
+  }
 
   return {
     success: true,
