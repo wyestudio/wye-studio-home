@@ -18,6 +18,17 @@ const suit = localFont({
   display: "swap",
 });
 
+// 갈무리11(SIL OFL) — https://github.com/quiple/galmuri
+// 테마별로 골라 쓰는 8비트 도트 글꼴이라 기본 폰트가 아니다. preload 를 끄고
+// 실제로 쓰는 화면에서만 받아오게 한다.
+const galmuri = localFont({
+  src: "./fonts/Galmuri11-Bold.woff2",
+  variable: "--font-galmuri-src",
+  display: "swap",
+  weight: "400 700",
+  preload: false,
+});
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -83,7 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${suit.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${suit.variable} ${geistMono.variable} ${galmuri.variable} h-full antialiased`}
     >
       {GTM_ID ? (
         <Script id="gtm-base" strategy="afterInteractive">

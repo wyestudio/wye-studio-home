@@ -23,6 +23,8 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
       return { type, title: "타임테이블", items: [{ offset_min: 0, title: "", desc: "" }] };
     case "callout":
       return { type, title: "", items: [{ title: "", desc: "" }] };
+    case "faq":
+      return { type, title: "자주 묻는 질문", eyebrow: "FAQ", items: [{ q: "", a: "" }] };
     case "image":
       return { type, title: "", src: "", alt: "" };
   }
@@ -113,12 +115,36 @@ export function ContentBlocksEditor({
 
               {open && (
                 <div className="space-y-2 border-t border-border bg-white/[0.02] p-3">
-                  <input
-                    className={field}
-                    value={b.title}
-                    onChange={(e) => patch(i, { title: e.target.value })}
-                    placeholder="블록 제목 (비우면 제목 없이 나갑니다)"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      className={`${field} w-32 shrink-0`}
+                      value={b.eyebrow ?? ""}
+                      onChange={(e) => patch(i, { eyebrow: e.target.value })}
+                      placeholder="라벨 (FOR YOU)"
+                    />
+                    <input
+                      className={field}
+                      value={b.title}
+                      onChange={(e) => patch(i, { title: e.target.value })}
+                      placeholder="블록 제목 (비우면 제목 없이 나갑니다)"
+                    />
+                  </div>
+
+                  {b.type === "list" && (
+                    <label className="flex items-center gap-2 text-xs text-muted">
+                      모양
+                      <select
+                        className={`${field} w-44`}
+                        value={b.variant ?? "card"}
+                        onChange={(e) =>
+                          patch(i, { variant: e.target.value as "card" | "step" } as Partial<ThemeBlock>)
+                        }
+                      >
+                        <option value="card">카드 (이모지 + 설명)</option>
+                        <option value="step">STEP 1·2·3</option>
+                      </select>
+                    </label>
+                  )}
 
                   {b.type === "text" && (
                     <textarea
@@ -140,7 +166,10 @@ export function ContentBlocksEditor({
                     </div>
                   )}
 
-                  {(b.type === "list" || b.type === "timetable" || b.type === "callout") && (
+                  {(b.type === "list" ||
+                    b.type === "timetable" ||
+                    b.type === "callout" ||
+                    b.type === "faq") && (
                     <RowsEditor block={b} onChange={(items) => patch(i, { items } as Partial<ThemeBlock>)} />
                   )}
                 </div>
@@ -217,7 +246,12 @@ function RowsEditor({
   const items = block.items as Record<string, unknown>[];
 
   const cols: { key: string; label: string; numeric?: boolean; width?: string }[] =
-    block.type === "timetable"
+    block.type === "faq"
+      ? [
+          { key: "q", label: "질문" },
+          { key: "a", label: "답변" },
+        ]
+      : block.type === "timetable"
       ? [
           { key: "offset_min", label: "경과(분)", numeric: true, width: "w-24" },
           { key: "title", label: "제목" },

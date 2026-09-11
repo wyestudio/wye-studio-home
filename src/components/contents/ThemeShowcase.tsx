@@ -2,10 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import type { ThemeWithTiers } from "@/types/catalog";
-
-/** 대표 이미지가 없을 때 쓰는 기본 아트웍. */
-const FALLBACK_POSTER = "/bar-o-title.png";
+import { PosterImage, FALLBACK_LOGO } from "@/components/contents/PosterImage";
+import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
 export type ThemeCardData = ThemeWithTiers & {
   /** 앞으로 남은 회차 수 */
@@ -50,10 +48,8 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
           {themes.map((theme) => {
-            const poster = theme.hero_image_path || FALLBACK_POSTER;
-            // 행성 로고가 없으면 포스터로 때운다. 포스터는 꽉 채워야 원이 되고,
-            // 로고는 배경이 비어 있는 그림이라 잘리지 않게 담아야 한다.
-            const logo = theme.logo_image_path;
+            // 로고를 안 올린 테마는 우리 로고가 행성 자리에 뜬다.
+            const logo = theme.logo_image_path || FALLBACK_LOGO;
 
             return (
               <Link key={theme.id} href={`/themes/${theme.slug}`} className="group block">
@@ -73,30 +69,35 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                                [@media(hover:hover)]:group-hover:shadow-black/60"
                   >
                     <Image
-                      src={logo || poster}
+                      src={logo}
                       alt={`${theme.name} 로고`}
                       fill
-                      className={`transition-opacity duration-300
-                                  ${logo ? "object-contain" : "object-cover"}
-                                  [@media(hover:hover)]:group-hover:opacity-0`}
+                      className="object-contain transition-opacity duration-300
+                                 [@media(hover:hover)]:group-hover:opacity-0"
                       sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
                     />
 
                     {/* 펼쳐졌을 때만 보이는 포스터 + 정보. 터치 기기에서는 영영 안 보인다. */}
                     <div className="hidden [@media(hover:hover)]:block">
-                      <Image
-                        src={poster}
-                        alt={`${theme.name} 포스터`}
-                        fill
-                        className="object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                        sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
-                      />
+                      <div className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <PosterImage
+                          src={theme.hero_image_path}
+                          alt={`${theme.name} 포스터`}
+                          sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+                        />
+                      </div>
+                      {/*
+                        ⚠️ 펼쳐지는 도중에는 감춘다(group-hover:delay-500 = 변형 시간).
+                           중간에 나오면 좁은 폭에서 2줄이었다가 다 펼쳐지면 1줄로
+                           접히는 게 눈에 띄게 거슬린다. 접힐 때는 지연 없이 사라진다.
+                      */}
                       <div
                         className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent
-                                   p-3 pt-8 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                                   p-3 pt-8 opacity-0 transition-opacity duration-200
+                                   group-hover:opacity-100 group-hover:delay-500"
                       >
                         <p className="truncate text-base font-bold text-white">{theme.name}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-white/70">
+                        <div className="mt-1 flex flex-nowrap items-center gap-x-3 whitespace-nowrap text-sm text-white/70">
                           <DifficultyLocks rating={theme.difficulty} />
                           <span>⏱ {durationLabel(theme.duration_minutes)}</span>
                         </div>
@@ -105,10 +106,13 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                   </div>
                 </div>
 
-                {/* 평소 이름. 펼쳐지면 카드 안 정보로 대체된다. */}
+                {/*
+                  평소 이름. 펼쳐지면 카드 안 정보로 대체된다.
+                  글꼴은 테마마다 다르다 — 카드 안 이름은 기본 폰트 그대로 둔다.
+                */}
                 <p
-                  className="mt-2 text-center text-base font-bold text-white transition-opacity duration-300
-                             [@media(hover:hover)]:group-hover:opacity-0"
+                  className={`mt-2 text-center text-base font-bold text-white transition-opacity duration-300
+                             [@media(hover:hover)]:group-hover:opacity-0 ${themeTitleFontClass(theme.title_font)}`}
                 >
                   {theme.name}
                 </p>

@@ -3,7 +3,13 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import type { Venue, ThemeWithTiers, ThemeContent, ThemeCategory } from "@/types/catalog";
-import { EMPTY_THEME_CONTENT, normalizeThemeContent, resolveUnitPrice } from "@/types/catalog";
+import {
+  EMPTY_THEME_CONTENT,
+  normalizeThemeContent,
+  resolveUnitPrice,
+  THEME_TITLE_FONTS,
+  themeTitleFontClass,
+} from "@/types/catalog";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { saveTheme, deleteTheme, type ThemeInput, type PriceTierInput } from "./actions";
 import { ContentBlocksEditor } from "./ContentBlocksEditor";
@@ -15,8 +21,8 @@ const section = "rounded-lg border border-border p-4 space-y-4";
 
 /** 강조색을 안 정한 테마가 쓰는 기본값. 고객 화면의 DEFAULT_ACCENT 와 같아야 한다. */
 const DEFAULT_ACCENT = "#3dffb0";
-/** 포스터를 안 올린 테마가 쓰는 기본 아트웍. 고객 화면과 같은 파일. */
-const FALLBACK_POSTER = "/bar-o-title.png";
+/** 행성 로고를 안 올린 테마가 쓰는 기본 그림. 고객 화면과 같은 규칙. */
+const FALLBACK_LOGO = "/logo-white.png";
 
 /** 확정된 기본 요금표. 새 테마를 만들 때 출발점으로 깔아준다. */
 const DEFAULT_TIERS: PriceTierInput[] = [
@@ -57,6 +63,8 @@ function emptyTheme(venueId: string): ThemeInput {
     accent_color: "",
     hero_image_path: "",
     logo_image_path: "",
+    title_font: "",
+    opening_date: null,
     category_id: null,
     content: structuredClone(EMPTY_THEME_CONTENT),
     is_active: true,
@@ -85,6 +93,8 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     accent_color: t.accent_color ?? "",
     hero_image_path: t.hero_image_path ?? "",
     logo_image_path: t.logo_image_path ?? "",
+    title_font: t.title_font ?? "",
+    opening_date: t.opening_date ?? null,
     category_id: t.category_id ?? null,
     // 옛 4칸 구조로 저장된 테마도 블록으로 읽어준다. 저장하면 새 구조로 덮인다.
     content: normalizeThemeContent(t.content),
@@ -215,6 +225,25 @@ export function ThemeEditor({
                   onChange={(logo_image_path) => patch({ logo_image_path })}
                   hint="컨텐츠 목록에서 행성으로 떠 있는 그림입니다. 배경이 비어 있는 PNG 를 권합니다."
                 />
+
+                <div>
+                  <label className={label}>테마명 글꼴</label>
+                  <select
+                    className={field}
+                    value={editing.title_font}
+                    onChange={(e) => patch({ title_font: e.target.value })}
+                  >
+                    {Object.entries(THEME_TITLE_FONTS).map(([key, f]) => (
+                      <option key={key} value={key}>{f.label}</option>
+                    ))}
+                  </select>
+                  <p className={`mt-2 text-center text-base font-bold ${themeTitleFontClass(editing.title_font)}`}>
+                    {editing.name || "테마명"}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted">
+                    컨텐츠 목록에서 <strong>행성 아래 이름</strong>에만 적용됩니다.
+                  </p>
+                </div>
               </div>
 
               <div className="flex-1 space-y-4">
@@ -331,6 +360,19 @@ export function ThemeEditor({
               </div>
               <p className="mt-1 text-[11px] text-muted">
                 카테고리·선택한 날짜·신청 버튼 등 상세 페이지 곳곳에 쓰입니다.
+              </p>
+            </div>
+
+            <div>
+              <label className={label}>정식 오픈일</label>
+              <input
+                type="date"
+                className={`${field} w-48`}
+                value={editing.opening_date ?? ""}
+                onChange={(e) => patch({ opening_date: e.target.value || null })}
+              />
+              <p className="mt-1 text-[11px] text-muted">
+                예약 달력에서 이 날짜 아래에 <strong>오픈</strong>이라고 표시됩니다. 비우면 표시하지 않습니다.
               </p>
             </div>
           </div>
@@ -557,8 +599,7 @@ export function ThemeEditor({
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {themes.map((t) => {
                 const prices = t.tiers.map((x) => x.unit_price_krw);
-                // 고객 화면과 같은 대체 규칙 — 로고가 없으면 포스터, 포스터도 없으면 기본 아트웍.
-                const logo = t.logo_image_path;
+                const logo = t.logo_image_path || FALLBACK_LOGO;
                 return (
                   <button
                     key={t.id}
@@ -567,10 +608,10 @@ export function ThemeEditor({
                   >
                     <div className="relative aspect-square bg-background">
                       <Image
-                        src={logo || t.hero_image_path || FALLBACK_POSTER}
+                        src={logo}
                         alt={t.name}
                         fill
-                        className={logo ? "object-contain p-3" : "object-cover"}
+                        className="object-contain p-3"
                         sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
                       />
 

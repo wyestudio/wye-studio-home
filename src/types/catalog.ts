@@ -30,17 +30,29 @@ export type ThemePriceTier = {
  *
  * DB 에는 themes.content(jsonb) 한 칸에 { blocks: [...] } 로 들어간다.
  */
+/** 제목 위에 작게 깔리는 영문 라벨(FOR YOU, SCHEDULE …). 비우면 안 나온다. */
+type BlockCommon = { title: string; eyebrow?: string };
+
 export type ThemeBlock =
   /** 제목 + 문단. 대부분의 설명은 이걸로 해결된다. */
-  | { type: "text"; title: string; body: string }
-  /** 목록. 이모지는 선택. */
-  | { type: "list"; title: string; items: { emoji: string; title: string; desc: string }[] }
+  | ({ type: "text"; body: string } & BlockCommon)
+  /**
+   * 목록. 이모지는 선택.
+   * variant "card" = 이모지 + 제목 + 설명 카드 / "step" = STEP 1·2·3 배지가 붙은 카드.
+   */
+  | ({
+      type: "list";
+      variant?: "card" | "step";
+      items: { emoji: string; title: string; desc: string }[];
+    } & BlockCommon)
   /** ⭐ 절대시각이 아니라 시작 시각으로부터의 경과 분. 회차 시각이 달라도 재입력 불필요. */
-  | { type: "timetable"; title: string; items: { offset_min: number; title: string; desc: string }[] }
-  /** 눈에 띄어야 하는 안내(주의사항 등). */
-  | { type: "callout"; title: string; items: { title: string; desc: string }[] }
+  | ({ type: "timetable"; items: { offset_min: number; title: string; desc: string }[] } & BlockCommon)
+  /** 눈에 띄어야 하는 안내(주의사항 등). 번호가 붙는다. */
+  | ({ type: "callout"; items: { title: string; desc: string }[] } & BlockCommon)
+  /** 자주 묻는 질문. 눌러서 펼치는 아코디언으로 나간다. */
+  | ({ type: "faq"; items: { q: string; a: string }[] } & BlockCommon)
   /** 상세 컷. public/ 경로 또는 외부 URL. */
-  | { type: "image"; title: string; src: string; alt: string };
+  | ({ type: "image"; src: string; alt: string } & BlockCommon);
 
 export type ThemeBlockType = ThemeBlock["type"];
 
@@ -56,6 +68,7 @@ export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
   list: "목록",
   timetable: "타임테이블",
   callout: "강조 박스",
+  faq: "자주 묻는 질문",
   image: "이미지",
 };
 
@@ -110,6 +123,10 @@ export type Theme = {
   hero_image_path: string | null;
   /** 행성 로고. 목록에서 원형으로 노출. 비우면 포스터로 대체한다. */
   logo_image_path: string | null;
+  /** 컨텐츠 목록의 테마명에 쓸 글꼴 키. THEME_TITLE_FONTS 참고. */
+  title_font: string | null;
+  /** 달력에 '오픈' 으로 표시할 날짜 (YYYY-MM-DD). 없으면 표시 안 함. */
+  opening_date: string | null;
   category_id: string | null;
   content: ThemeContent;
   is_active: boolean;
@@ -163,4 +180,20 @@ export function resolveUnitPrice(tiers: ThemePriceTier[], headcount: number): nu
     .filter((t) => t.min_headcount <= headcount)
     .sort((a, b) => b.min_headcount - a.min_headcount)[0];
   return matched ? matched.unit_price_krw : null;
+}
+
+/**
+ * 컨텐츠 목록에서 테마명에 쓸 수 있는 글꼴.
+ *
+ * 테마마다 분위기가 다르다(바-ㅇ탈출은 8비트 도트 게임 컨셉). 기본 폰트를
+ * 바꾸는 게 아니라 **목록의 테마명 한 줄에만** 적용한다 — 펼친 카드 안의
+ * 이름까지 바뀌면 정보가 읽기 어려워진다.
+ */
+export const THEME_TITLE_FONTS: Record<string, { label: string; className: string }> = {
+  "": { label: "기본", className: "" },
+  galmuri11: { label: "갈무리11 (8비트 도트)", className: "font-galmuri" },
+};
+
+export function themeTitleFontClass(key: string | null | undefined): string {
+  return THEME_TITLE_FONTS[key ?? ""]?.className ?? "";
 }

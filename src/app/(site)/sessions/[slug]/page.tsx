@@ -14,7 +14,7 @@ import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { isDatingTheme } from "@/lib/theme";
 import { eligibleBirthYearRangeLabel } from "@/lib/eligibility";
-import { FlatFaqAccordion, type FaqItem } from "./FlatFaqAccordion";
+import { FlatFaqAccordion, type FaqItem } from "@/components/ui/FlatFaqAccordion";
 
 const SITE_URL = "https://www.wouldyouescape.com";
 

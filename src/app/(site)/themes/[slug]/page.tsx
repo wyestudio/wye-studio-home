@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import Image from "next/image";
 import {
   getThemeBySlug,
   getUpcomingSessionsForTheme,
@@ -10,6 +9,7 @@ import {
   isBookable,
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
+import { PosterImage } from "@/components/contents/PosterImage";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
@@ -22,7 +22,6 @@ import { DetailTabs } from "./DetailTabs";
 export const dynamic = "force-dynamic";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
-const FALLBACK_POSTER = "/bar-o-title.png";
 const DEFAULT_ACCENT = "#3dffb0";
 
 export async function generateMetadata({
@@ -96,11 +95,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         */}
         <div className="mx-auto w-44 shrink-0 sm:w-52 md:mx-0 md:w-full lg:h-full">
           <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface lg:aspect-auto lg:h-full">
-            <Image
-              src={theme.hero_image_path || FALLBACK_POSTER}
+            <PosterImage
+              src={theme.hero_image_path}
               alt={`${theme.name} 포스터`}
-              fill
-              className="object-cover"
               sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 208px"
               priority
             />
@@ -151,6 +148,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
                 sessions={sessions}
                 accentColor={accent}
                 accepting={acceptingApplications}
+                openingDate={theme.opening_date}
               />
             </Suspense>
           </section>

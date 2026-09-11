@@ -46,10 +46,13 @@ export function SessionPicker({
   sessions,
   accentColor,
   accepting,
+  openingDate,
 }: {
   themeSlug: string;
   sessions: PickerSession[];
   accentColor: string;
+  /** 달력에 '오픈' 으로 표시할 날짜. */
+  openingDate: string | null;
   /** 테마가 '신청 받기' 상태인가. false 면 회차가 있어도 신청할 수 없다. */
   accepting: boolean;
 }) {
@@ -124,6 +127,7 @@ export function SessionPicker({
           dateStatus={dateStatus}
           selected={selectedDate}
           accentColor={accentColor}
+          openingDate={openingDate}
           onSelect={selectDate}
         />
       </div>

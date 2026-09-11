@@ -54,11 +54,14 @@ export function BookingCalendar({
   selected,
   onSelect,
   accentColor,
+  openingDate,
 }: {
   dateStatus: Map<string, { hasOpen: boolean }>;
   selected: string;
   onSelect: (ymd: string) => void;
   accentColor: string;
+  /** 이 날짜 아래에 '오픈' 이라고 적는다(정식 오픈 안내). 없으면 표시 안 함. */
+  openingDate: string | null;
 }) {
   const today = kstYmd(new Date());
 
@@ -124,6 +127,8 @@ export function BookingCalendar({
           const day = Number(ymd.slice(8));
           const isSelected = ymd === selected;
           const isToday = ymd === today;
+          // 칸이 작아서 둘 다 붙일 자리는 없다. 오픈일이 더 알릴 값어치가 있다.
+          const note = ymd === openingDate ? "오픈" : isToday ? "오늘" : null;
 
           // 회차가 없는 날은 누를 수 없다. 있는데 전부 마감이면 눌러서 확인은 된다.
           const disabled = !status;
@@ -134,18 +139,27 @@ export function BookingCalendar({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(ymd)}
-              aria-label={`${Number(m)}월 ${day}일`}
+              aria-label={`${Number(m)}월 ${day}일${note ? ` ${note}` : ""}`}
               aria-pressed={isSelected}
-              className={`relative aspect-square rounded-lg text-sm transition-colors
+              className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-sm transition-colors
                 ${disabled ? "text-white/20" : "hover:bg-white/10"}
                 ${isSelected ? "font-bold" : ""}
                 ${isToday && !isSelected ? "ring-1 ring-white/25" : ""}`}
               style={isSelected ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
             >
-              {day}
+              <span className={note ? "leading-none" : ""}>{day}</span>
 
-              {/* 회차가 있는 날 표시. 전부 마감이면 흐리게. */}
-              {status && !isSelected && (
+              {note && (
+                <span
+                  className="mt-0.5 text-[9px] leading-none"
+                  style={isSelected ? undefined : { color: accentColor }}
+                >
+                  {note}
+                </span>
+              )}
+
+              {/* 회차가 있는 날 표시. 전부 마감이면 흐리게. 글씨가 있으면 생략. */}
+              {status && !isSelected && !note && (
                 <span
                   className="absolute bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
                   style={{

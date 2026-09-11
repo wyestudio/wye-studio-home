@@ -75,6 +75,8 @@ html {
   --color-mascot-kape: var(--mascot-kape);
   --font-sans: var(--font-suit);
   --font-mono: var(--font-geist-mono);
+  /* 테마별 선택 글꼴. 기본 폰트가 아니라 font-galmuri 를 붙인 곳에서만 쓰인다. */
+  --font-galmuri: var(--font-galmuri-src), monospace;
 }
 
 body {

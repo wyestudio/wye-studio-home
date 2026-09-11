@@ -27,6 +27,8 @@ export type ThemeInput = {
   accent_color: string;
   hero_image_path: string;
   logo_image_path: string;
+  title_font: string;
+  opening_date: string | null;
   category_id: string | null;
   content: ThemeContent;
   is_active: boolean;
@@ -54,13 +56,16 @@ function sanitizeContent(raw: unknown): ThemeContent {
     .filter((b) => b && typeof b === "object" && "type" in b)
     .map((b): ThemeBlock | null => {
       const arr = (v: unknown) => (Array.isArray(v) ? v : []);
+      // 모든 블록이 공통으로 갖는 머리말. 비어 있으면 아예 넣지 않는다.
+      const common = { title: str(b.title), ...(str(b.eyebrow) ? { eyebrow: str(b.eyebrow) } : {}) };
       switch (b.type) {
         case "text":
-          return { type: "text", title: str(b.title), body: str(b.body) };
+          return { ...common, type: "text", body: str(b.body) };
         case "list":
           return {
+            ...common,
             type: "list",
-            title: str(b.title),
+            variant: b.variant === "step" ? "step" : "card",
             items: arr(b.items).map((x) => ({
               emoji: str((x as Record<string, unknown>)?.emoji),
               title: str((x as Record<string, unknown>)?.title),
@@ -69,8 +74,8 @@ function sanitizeContent(raw: unknown): ThemeContent {
           };
         case "timetable":
           return {
+            ...common,
             type: "timetable",
-            title: str(b.title),
             items: arr(b.items).map((x) => ({
               offset_min: Number((x as Record<string, unknown>)?.offset_min) || 0,
               title: str((x as Record<string, unknown>)?.title),
@@ -79,15 +84,24 @@ function sanitizeContent(raw: unknown): ThemeContent {
           };
         case "callout":
           return {
+            ...common,
             type: "callout",
-            title: str(b.title),
             items: arr(b.items).map((x) => ({
               title: str((x as Record<string, unknown>)?.title),
               desc: str((x as Record<string, unknown>)?.desc),
             })),
           };
+        case "faq":
+          return {
+            ...common,
+            type: "faq",
+            items: arr(b.items).map((x) => ({
+              q: str((x as Record<string, unknown>)?.q),
+              a: str((x as Record<string, unknown>)?.a),
+            })),
+          };
         case "image":
-          return { type: "image", title: str(b.title), src: str(b.src), alt: str(b.alt) };
+          return { ...common, type: "image", src: str(b.src), alt: str(b.alt) };
         default:
           return null;
       }
@@ -144,6 +158,8 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       accent_color: input.accent_color.trim() || null,
       hero_image_path: input.hero_image_path.trim() || null,
       logo_image_path: input.logo_image_path.trim() || null,
+      title_font: input.title_font.trim() || null,
+      opening_date: input.opening_date || null,
       category_id: input.category_id || null,
       content: sanitizeContent(input.content),
       is_active: input.is_active,
