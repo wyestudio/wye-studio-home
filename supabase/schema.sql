@@ -264,6 +264,22 @@ CREATE FUNCTION public.normalize_depositor_name(p_name text) RETURNS text
 $$;
 
 --
+-- Name: resolve_unit_price(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.resolve_unit_price(p_theme_id uuid, p_headcount integer) RETURNS integer
+    LANGUAGE sql STABLE
+    SET search_path TO 'public'
+    AS $$
+  select unit_price_krw
+  from theme_price_tiers
+  where theme_id = p_theme_id
+    and min_headcount <= p_headcount
+  order by min_headcount desc
+  limit 1;
+$$;
+
+--
 -- Name: rls_auto_enable(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -284,12 +300,17 @@ declare
   v_weekday text;
   v_slot_label text;
 begin
+  -- 신규(테마 기반) 회차는 theme_name/session_type 을 쓰지 않는다.
+  if new.theme_name is null then
+    return new;
+  end if;
+
   if new.theme_label is null then
     new.theme_label := new.theme_name || '(ver.' ||
       (case when new.session_type = '소개팅' then '소개팅' else '모임' end) || ')';
   end if;
 
-  if new.title is null then
+  if new.title is null and new.event_date is not null then
     v_weekday := (array['일','월','화','수','목','금','토'])[extract(dow from new.event_date)::int + 1];
     v_slot_label := case new.slot when 'afternoon' then '오후' when 'evening' then '저녁' else new.slot end;
     new.title := to_char(new.event_date, 'MM/DD') || '(' || v_weekday || ') ' || v_slot_label || ' · ' || new.theme_label;
@@ -1033,16 +1054,16 @@ CREATE TABLE public.session_venues (
 
 CREATE TABLE public.sessions (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    slug text NOT NULL,
-    event_date date NOT NULL,
-    slot text NOT NULL,
-    title text NOT NULL,
-    theme_label text NOT NULL,
+    slug text,
+    event_date date,
+    slot text,
+    title text,
+    theme_label text,
     start_at timestamp with time zone NOT NULL,
     end_at timestamp with time zone,
-    venue_area text NOT NULL,
-    price_krw integer NOT NULL,
-    original_price_krw integer NOT NULL,
+    venue_area text,
+    price_krw integer,
+    original_price_krw integer,
     capacity_min integer DEFAULT 16 NOT NULL,
     capacity_confirm_line integer DEFAULT 24 NOT NULL,
     capacity_max integer DEFAULT 50 NOT NULL,
@@ -1055,9 +1076,9 @@ CREATE TABLE public.sessions (
     status text DEFAULT 'open'::text NOT NULL,
     description text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    content_group text NOT NULL,
-    theme_name text NOT NULL,
-    session_type text NOT NULL,
+    content_group text,
+    theme_name text,
+    session_type text,
     difficulty smallint DEFAULT 3 NOT NULL,
     theme_id uuid,
     min_age integer,
@@ -1100,6 +1121,26 @@ COMMENT ON COLUMN public.sessions.legacy_format IS '과거 회차의 진행 형�
 COMMENT ON COLUMN public.sessions.legacy_slug IS '과거 고객 URL(0829-meeting 등). 리다이렉트용.';
 
 --
+-- Name: theme_price_tiers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.theme_price_tiers (
+    theme_id uuid NOT NULL,
+    min_headcount integer NOT NULL,
+    unit_price_krw integer NOT NULL,
+    original_unit_price_krw integer,
+    CONSTRAINT theme_price_tiers_check CHECK (((original_unit_price_krw IS NULL) OR (original_unit_price_krw >= unit_price_krw))),
+    CONSTRAINT theme_price_tiers_min_headcount_check CHECK ((min_headcount >= 1)),
+    CONSTRAINT theme_price_tiers_unit_price_krw_check CHECK ((unit_price_krw >= 0))
+);
+
+--
+-- Name: TABLE theme_price_tiers; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.theme_price_tiers IS '인원수 구간별 인당 가격. min_headcount 이상일 때 적용되며, 조건을 만족하는 구간 중 가장 큰 것을 쓴다. 예) 1→68000,2→62000,3→56000,4→50000 이면 5인은 4인 구간(50000)이 적용된다.';
+
+--
 -- Name: themes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1112,8 +1153,6 @@ CREATE TABLE public.themes (
     difficulty smallint DEFAULT 3 NOT NULL,
     duration_minutes integer NOT NULL,
     min_age_floor integer,
-    price_krw integer NOT NULL,
-    original_price_krw integer,
     capacity_confirm_line integer NOT NULL,
     capacity_max integer NOT NULL,
     capacity_min integer,
@@ -1126,15 +1165,15 @@ CREATE TABLE public.themes (
     sort_order integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    max_group_size integer,
     CONSTRAINT themes_capacity_confirm_line_check CHECK ((capacity_confirm_line > 0)),
     CONSTRAINT themes_capacity_max_check CHECK ((capacity_max > 0)),
     CONSTRAINT themes_capacity_min_check CHECK (((capacity_min IS NULL) OR (capacity_min > 0))),
     CONSTRAINT themes_capacity_order CHECK ((capacity_confirm_line <= capacity_max)),
-    CONSTRAINT themes_check CHECK (((original_price_krw IS NULL) OR (original_price_krw >= price_krw))),
     CONSTRAINT themes_difficulty_check CHECK (((difficulty >= 1) AND (difficulty <= 5))),
     CONSTRAINT themes_duration_minutes_check CHECK ((duration_minutes > 0)),
-    CONSTRAINT themes_min_age_floor_check CHECK (((min_age_floor IS NULL) OR ((min_age_floor >= 0) AND (min_age_floor <= 100)))),
-    CONSTRAINT themes_price_krw_check CHECK ((price_krw >= 0))
+    CONSTRAINT themes_max_group_size_check CHECK (((max_group_size IS NULL) OR (max_group_size >= 1))),
+    CONSTRAINT themes_min_age_floor_check CHECK (((min_age_floor IS NULL) OR ((min_age_floor >= 0) AND (min_age_floor <= 100))))
 );
 
 --
@@ -1168,6 +1207,12 @@ COMMENT ON COLUMN public.themes.is_active IS 'false 면 신규 신청 불가 (�
 COMMENT ON COLUMN public.themes.is_listed IS 'false 면 목록·sitemap 미노출';
 
 --
+-- Name: COLUMN themes.max_group_size; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.themes.max_group_size IS '한 건에 신청 가능한 최대 인원. null 이면 무제한(정원 범위 내).';
+
+--
 -- Name: session_view; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -1185,8 +1230,14 @@ CREATE VIEW public.session_view AS
     t.difficulty,
     t.duration_minutes,
     t.accent_color,
-    COALESCE(s.price_krw_override, t.price_krw) AS price_krw,
-    t.original_price_krw,
+    t.max_group_size,
+    s.price_krw_override,
+    ( SELECT min(p.unit_price_krw) AS min
+           FROM public.theme_price_tiers p
+          WHERE (p.theme_id = t.id)) AS min_unit_price_krw,
+    ( SELECT max(p.unit_price_krw) AS max
+           FROM public.theme_price_tiers p
+          WHERE (p.theme_id = t.id)) AS max_unit_price_krw,
     COALESCE(s.capacity_confirm_line_override, t.capacity_confirm_line) AS capacity_confirm_line,
     COALESCE(s.capacity_max_override, t.capacity_max) AS capacity_max,
     COALESCE(s.venue_id_override, t.venue_id) AS venue_id
@@ -1197,7 +1248,7 @@ CREATE VIEW public.session_view AS
 -- Name: VIEW session_view; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.session_view IS '회차 실효값. price/capacity/venue 는 회차 override 가 있으면 그것을, 없으면 테마 값을 쓴다.';
+COMMENT ON VIEW public.session_view IS '회차 실효값. 가격은 구간 요금(theme_price_tiers)이 기준이며 price_krw_override 가 있으면 인원수 무관 단일가로 덮어쓴다.';
 
 --
 -- Name: site_settings; Type: TABLE; Schema: public; Owner: -
@@ -1427,6 +1478,13 @@ ALTER TABLE ONLY public.sponsorship_group_applications
     ADD CONSTRAINT sponsorship_group_applications_pkey PRIMARY KEY (id);
 
 --
+-- Name: theme_price_tiers theme_price_tiers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.theme_price_tiers
+    ADD CONSTRAINT theme_price_tiers_pkey PRIMARY KEY (theme_id, min_headcount);
+
+--
 -- Name: themes themes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1619,6 +1677,13 @@ ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_venue_id_override_fkey FOREIGN KEY (venue_id_override) REFERENCES public.venues(id);
 
 --
+-- Name: theme_price_tiers theme_price_tiers_theme_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.theme_price_tiers
+    ADD CONSTRAINT theme_price_tiers_theme_id_fkey FOREIGN KEY (theme_id) REFERENCES public.themes(id) ON DELETE CASCADE;
+
+--
 -- Name: themes themes_venue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1794,6 +1859,18 @@ ALTER TABLE public.sponsorship_dating_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sponsorship_group_applications ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: theme_price_tiers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.theme_price_tiers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: theme_price_tiers theme_price_tiers_select_public; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY theme_price_tiers_select_public ON public.theme_price_tiers FOR SELECT USING (true);
+
+--
 -- Name: themes; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -1911,6 +1988,15 @@ GRANT ALL ON FUNCTION public.lookup_application(p_phone_digits text, p_confirmat
 
 REVOKE ALL ON FUNCTION public.normalize_depositor_name(p_name text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.normalize_depositor_name(p_name text) TO service_role;
+
+--
+-- Name: FUNCTION resolve_unit_price(p_theme_id uuid, p_headcount integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.resolve_unit_price(p_theme_id uuid, p_headcount integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.resolve_unit_price(p_theme_id uuid, p_headcount integer) TO anon;
+GRANT ALL ON FUNCTION public.resolve_unit_price(p_theme_id uuid, p_headcount integer) TO authenticated;
+GRANT ALL ON FUNCTION public.resolve_unit_price(p_theme_id uuid, p_headcount integer) TO service_role;
 
 --
 -- Name: FUNCTION submit_application(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean); Type: ACL; Schema: public; Owner: -
@@ -2119,6 +2205,14 @@ GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_venues
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.sessions TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.sessions TO authenticated;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.sessions TO service_role;
+
+--
+-- Name: TABLE theme_price_tiers; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.theme_price_tiers TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.theme_price_tiers TO authenticated;
+GRANT ALL ON TABLE public.theme_price_tiers TO service_role;
 
 --
 -- Name: TABLE themes; Type: ACL; Schema: public; Owner: -
