@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
-import type { Venue, ThemePriceTier, ThemeWithTiers } from "@/types/catalog";
+import type { Venue, ThemePriceTier, ThemeWithTiers, ThemeCategory } from "@/types/catalog";
 import { ThemeEditor } from "./ThemeEditor";
 
 export const dynamic = "force-dynamic";
@@ -8,10 +8,11 @@ export const dynamic = "force-dynamic";
 export default async function AdminThemesPage() {
   const supabase = createAdminClient();
 
-  const [themesRes, tiersRes, venuesRes] = await Promise.all([
+  const [themesRes, tiersRes, venuesRes, categoriesRes] = await Promise.all([
     supabase.from("themes").select("*").order("sort_order").order("created_at"),
     supabase.from("theme_price_tiers").select("*").order("min_headcount"),
     supabase.from("venues").select("*").order("created_at"),
+    supabase.from("theme_categories").select("*").order("sort_order"),
   ]);
 
   const error = themesRes.error ?? tiersRes.error ?? venuesRes.error;
@@ -45,7 +46,11 @@ export default async function AdminThemesPage() {
           </p>
         </header>
 
-        <ThemeEditor themes={themes} venues={(venuesRes.data ?? []) as Venue[]} />
+        <ThemeEditor
+          themes={themes}
+          venues={(venuesRes.data ?? []) as Venue[]}
+          categories={(categoriesRes.data ?? []) as ThemeCategory[]}
+        />
       </div>
     </div>
   );

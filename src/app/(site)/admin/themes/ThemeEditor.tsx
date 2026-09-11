@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { Venue, ThemeWithTiers, ThemeContent } from "@/types/catalog";
+import Image from "next/image";
+import type { Venue, ThemeWithTiers, ThemeContent, ThemeCategory } from "@/types/catalog";
 import { EMPTY_THEME_CONTENT, normalizeThemeContent, resolveUnitPrice } from "@/types/catalog";
 import { saveTheme, deleteTheme, type ThemeInput, type PriceTierInput } from "./actions";
 import { ContentBlocksEditor } from "./ContentBlocksEditor";
@@ -49,6 +50,7 @@ function emptyTheme(venueId: string): ThemeInput {
     venue_id: venueId,
     accent_color: "",
     hero_image_path: "",
+    category_id: null,
     content: structuredClone(EMPTY_THEME_CONTENT),
     is_active: true,
     is_listed: true,
@@ -74,6 +76,7 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     venue_id: t.venue_id,
     accent_color: t.accent_color ?? "",
     hero_image_path: t.hero_image_path ?? "",
+    category_id: t.category_id ?? null,
     // 옛 4칸 구조로 저장된 테마도 블록으로 읽어준다. 저장하면 새 구조로 덮인다.
     content: normalizeThemeContent(t.content),
     is_active: t.is_active,
@@ -94,9 +97,11 @@ const num = (v: string) => (v === "" ? null : Number(v));
 export function ThemeEditor({
   themes,
   venues,
+  categories,
 }: {
   themes: ThemeWithTiers[];
   venues: Venue[];
+  categories: ThemeCategory[];
 }) {
   const [editing, setEditing] = useState<ThemeInput | null>(null);
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
@@ -157,14 +162,21 @@ export function ThemeEditor({
         </div>
       )}
 
-      <div className="flex justify-end">
-        <button
-          onClick={() => setEditing(emptyTheme(activeVenues[0].id))}
-          className="rounded bg-glow px-3 py-2 text-sm text-glow-foreground"
-        >
-          + 테마 추가
-        </button>
-      </div>
+      {/*
+        편집 중에는 목록과 '추가' 버튼을 숨긴다.
+        예전에는 편집 폼이 목록 위에 열려서, 수정을 누르면 한참 스크롤해야
+        내가 고치는 테마가 보였다.
+      */}
+      {!editing && (
+        <div className="flex justify-end">
+          <button
+            onClick={() => setEditing(emptyTheme(activeVenues[0].id))}
+            className="rounded bg-glow px-3 py-2 text-sm text-glow-foreground"
+          >
+            + 테마 추가
+          </button>
+        </div>
+      )}
 
       {editing && (
         <div className="space-y-4">
@@ -240,6 +252,23 @@ export function ThemeEditor({
                   ))}
                 </select>
               </div>
+              <div>
+                <label className={label}>카테고리</label>
+                <select
+                  className={field}
+                  value={editing.category_id ?? ""}
+                  onChange={(e) => patch({ category_id: e.target.value || null })}
+                >
+                  <option value="">분류 없음</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-muted">
+                  상세 화면에서 테마명 아래에 보입니다 (예: 파티형 방탈출).
+                </p>
+              </div>
+
               <div>
                 <label className={label}>강조색</label>
                 <input className={field} value={editing.accent_color} onChange={(e) => patch({ accent_color: e.target.value })} placeholder="#3dffb0" />
@@ -454,57 +483,91 @@ export function ThemeEditor({
             </div>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button onClick={submit} disabled={pending} className="rounded bg-glow px-4 py-2 text-sm text-glow-foreground disabled:opacity-50">
               {pending ? "저장 중…" : "저장"}
             </button>
             <button onClick={() => setEditing(null)} className="rounded border border-border px-4 py-2 text-sm">
               취소
             </button>
+            {/* 목록이 포스터 격자가 되면서 줄별 삭제 버튼이 사라졌다. 편집 화면에 둔다. */}
+            {editing.id && (
+              <button
+                onClick={() => remove(editing.id!, editing.name)}
+                disabled={pending}
+                className="ml-auto rounded border border-red-500/50 px-4 py-2 text-sm text-red-400 disabled:opacity-50"
+              >
+                이 테마 삭제
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── 목록 ── */}
-      <div className="space-y-2">
-        {themes.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">등록된 테마가 없습니다.</p>
-        ) : (
-          themes.map((t) => {
-            const venue = venues.find((v) => v.id === t.venue_id);
-            const prices = t.tiers.map((x) => x.unit_price_krw);
-            return (
-              <div key={t.id} className="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
-                <div className="min-w-0">
-                  <p className="font-medium">
-                    {t.name}
-                    <span className="ml-2 text-xs text-muted">/{t.slug}</span>
-                    {!t.is_active && <span className="ml-2 text-xs text-amber-400">신청 중지</span>}
-                    {!t.is_listed && <span className="ml-2 text-xs text-muted">목록 숨김</span>}
-                  </p>
-                  <p className="mt-1 text-sm text-muted">
-                    난이도 {t.difficulty} · {t.duration_minutes}분 · 확정 {t.capacity_confirm_line} / 정원 {t.capacity_max}
-                    {venue && ` · ${venue.name}`}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {prices.length > 0
-                      ? `인당 ${Math.min(...prices).toLocaleString()}~${Math.max(...prices).toLocaleString()}원 (구간 ${t.tiers.length}개)`
-                      : "요금 구간 없음"}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <button onClick={() => setEditing(toInput(t))} className="rounded border border-border px-3 py-1.5 text-xs">
-                    수정
+      {/* ── 목록 (포스터 격자) ── */}
+      {!editing && (
+        <div>
+          {themes.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted">등록된 테마가 없습니다.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {themes.map((t) => {
+                const prices = t.tiers.map((x) => x.unit_price_krw);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setEditing(toInput(t))}
+                    className="group overflow-hidden rounded-lg border border-border text-left transition-colors hover:border-glow"
+                  >
+                    <div className="relative aspect-[4/5] bg-background">
+                      {t.hero_image_path ? (
+                        <Image
+                          src={t.hero_image_path}
+                          alt={t.name}
+                          fill
+                          className="object-cover"
+                          sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+                        />
+                      ) : (
+                        <span className="flex h-full items-center justify-center text-xs text-muted">
+                          포스터 없음
+                        </span>
+                      )}
+
+                      {(!t.is_active || !t.is_listed) && (
+                        <div className="absolute left-2 top-2 flex flex-col gap-1">
+                          {!t.is_active && (
+                            <span className="rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] text-black">
+                              신청 중지
+                            </span>
+                          )}
+                          {!t.is_listed && (
+                            <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+                              목록 숨김
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-3">
+                      <p className="truncate text-sm font-medium">{t.name}</p>
+                      <p className="mt-0.5 text-[11px] text-muted">
+                        난이도 {t.difficulty} · {t.duration_minutes}분
+                      </p>
+                      <p className="text-[11px] text-muted">
+                        {prices.length > 0
+                          ? `인당 ${Math.min(...prices).toLocaleString()}~${Math.max(...prices).toLocaleString()}원`
+                          : "요금 미설정"}
+                      </p>
+                    </div>
                   </button>
-                  <button onClick={() => remove(t.id, t.name)} className="rounded border border-red-500/50 px-3 py-1.5 text-xs text-red-400">
-                    삭제
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

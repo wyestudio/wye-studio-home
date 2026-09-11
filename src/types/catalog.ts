@@ -86,6 +86,12 @@ export function normalizeThemeContent(raw: unknown): ThemeContent {
   return { blocks };
 }
 
+export type ThemeCategory = {
+  id: string;
+  name: string;
+  sort_order: number;
+};
+
 export type Theme = {
   id: string;
   slug: string;
@@ -102,6 +108,7 @@ export type Theme = {
   venue_id: string;
   accent_color: string | null;
   hero_image_path: string | null;
+  category_id: string | null;
   content: ThemeContent;
   is_active: boolean;
   is_listed: boolean;
