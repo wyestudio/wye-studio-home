@@ -46,6 +46,7 @@ function emptyTheme(venueId: string): ThemeInput {
     max_group_size: null,
     venue_id: venueId,
     accent_color: "",
+    hero_image_path: "",
     content: structuredClone(EMPTY_THEME_CONTENT),
     is_active: true,
     is_listed: true,
@@ -70,6 +71,7 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     max_group_size: t.max_group_size,
     venue_id: t.venue_id,
     accent_color: t.accent_color ?? "",
+    hero_image_path: t.hero_image_path ?? "",
     content: { ...EMPTY_THEME_CONTENT, ...(t.content ?? {}) },
     is_active: t.is_active,
     is_listed: t.is_listed,
@@ -239,6 +241,20 @@ export function ThemeEditor({
                 <label className={label}>강조색</label>
                 <input className={field} value={editing.accent_color} onChange={(e) => patch({ accent_color: e.target.value })} placeholder="#3dffb0" />
               </div>
+            </div>
+
+            <div>
+              <label className={label}>대표 이미지 경로</label>
+              <input
+                className={field}
+                value={editing.hero_image_path}
+                onChange={(e) => patch({ hero_image_path: e.target.value })}
+                placeholder="/bar-o-title.png"
+              />
+              <p className="mt-1 text-[11px] text-muted">
+                홈·목록의 포스터로 쓰입니다. 비우면 기본 아트웍이 나옵니다.
+                (현재는 <code>public/</code> 폴더에 있는 파일 경로만 가능 — 업로드 기능은 준비 중)
+              </p>
             </div>
           </div>
 

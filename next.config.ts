@@ -4,6 +4,18 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        // 프리오픈 회차 URL 은 이미 SNS·문자에 배포돼 있다. 주소를 살려두고
+        // 테마 페이지로 넘겨 SEO 점수를 한 URL 에 모은다.
+        source: "/sessions/0829-meeting",
+        destination: "/themes/baotalchul",
+        permanent: true,
+      },
+      {
+        source: "/sessions/0829-dating",
+        destination: "/themes/baotalchul",
+        permanent: true,
+      },
+      {
         // 후기 페이백 안내 페이지용 짧은 링크.
         source: "/review.go",
         destination: "/review-guide",
@@ -21,14 +33,14 @@ const nextConfig: NextConfig = {
         // 인스타그램 게시물(소개팅 회차)용 짧은 링크.
         source: "/ig-dating.go",
         destination:
-          "/sessions/0829-dating?utm_source=instagram&utm_medium=post&utm_campaign=0829_dating",
+          "/themes/baotalchul?utm_source=instagram&utm_medium=post&utm_campaign=0829_dating",
         permanent: false,
       },
       {
         // 인스타그램 게시물(모임 회차)용 짧은 링크.
         source: "/ig-meeting.go",
         destination:
-          "/sessions/0829-meeting?utm_source=instagram&utm_medium=post&utm_campaign=0829_meeting",
+          "/themes/baotalchul?utm_source=instagram&utm_medium=post&utm_campaign=0829_meeting",
         permanent: false,
       },
       {
@@ -43,14 +55,14 @@ const nextConfig: NextConfig = {
         // 당근마켓 게시물(소개팅 회차)용 짧은 링크.
         source: "/dg-dating.go",
         destination:
-          "/sessions/0829-dating?utm_source=daangn&utm_medium=post&utm_campaign=0829_dating",
+          "/themes/baotalchul?utm_source=daangn&utm_medium=post&utm_campaign=0829_dating",
         permanent: false,
       },
       {
         // 당근마켓 게시물(모임 회차)용 짧은 링크.
         source: "/dg-meeting.go",
         destination:
-          "/sessions/0829-meeting?utm_source=daangn&utm_medium=post&utm_campaign=0829_meeting",
+          "/themes/baotalchul?utm_source=daangn&utm_medium=post&utm_campaign=0829_meeting",
         permanent: false,
       },
       {
@@ -71,14 +83,14 @@ const nextConfig: NextConfig = {
         // 유튜브 영상(소개팅 회차)용 짧은 링크.
         source: "/yt-dating.go",
         destination:
-          "/sessions/0829-dating?utm_source=youtube&utm_medium=video&utm_campaign=0829_dating",
+          "/themes/baotalchul?utm_source=youtube&utm_medium=video&utm_campaign=0829_dating",
         permanent: false,
       },
       {
         // 유튜브 영상(모임/비소개팅 회차)용 짧은 링크.
         source: "/yt-meeting.go",
         destination:
-          "/sessions/0829-meeting?utm_source=youtube&utm_medium=video&utm_campaign=0829_meeting",
+          "/themes/baotalchul?utm_source=youtube&utm_medium=video&utm_campaign=0829_meeting",
         permanent: false,
       },
       {
