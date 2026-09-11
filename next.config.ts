@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        // 테마 포스터는 Supabase Storage(theme-assets 버킷)에 올라간다.
+        // 호스트를 명시하지 않으면 Next/Image 가 외부 이미지를 거부한다.
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+    ],
+  },
+
   async redirects() {
     return [
       {

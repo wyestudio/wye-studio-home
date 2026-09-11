@@ -5,6 +5,7 @@ import type { Venue, ThemeWithTiers, ThemeContent } from "@/types/catalog";
 import { EMPTY_THEME_CONTENT, normalizeThemeContent, resolveUnitPrice } from "@/types/catalog";
 import { saveTheme, deleteTheme, type ThemeInput, type PriceTierInput } from "./actions";
 import { ContentBlocksEditor } from "./ContentBlocksEditor";
+import { ImageUploadField } from "./ImageUploadField";
 
 const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
 const label = "block text-xs font-medium text-muted mb-1";
@@ -245,19 +246,12 @@ export function ThemeEditor({
               </div>
             </div>
 
-            <div>
-              <label className={label}>대표 이미지 경로</label>
-              <input
-                className={field}
-                value={editing.hero_image_path}
-                onChange={(e) => patch({ hero_image_path: e.target.value })}
-                placeholder="/bar-o-title.png"
-              />
-              <p className="mt-1 text-[11px] text-muted">
-                홈·목록의 포스터로 쓰입니다. 비우면 기본 아트웍이 나옵니다.
-                (현재는 <code>public/</code> 폴더에 있는 파일 경로만 가능 — 업로드 기능은 준비 중)
-              </p>
-            </div>
+            <ImageUploadField
+              label="포스터"
+              value={editing.hero_image_path}
+              onChange={(hero_image_path) => patch({ hero_image_path })}
+              hint="목록·상세의 포스터로 쓰입니다. 비우면 기본 아트웍이 나옵니다. 세로로 긴 이미지(4:5)가 잘 맞아요."
+            />
           </div>
 
           {/* ── 정원 · 연령 ── */}
