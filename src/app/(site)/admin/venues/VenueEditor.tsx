@@ -39,6 +39,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
       const res = await saveVenue(editing);
       if ("error" in res && res.error) {
         setMessage({ kind: "err", text: res.error });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setMessage({ kind: "ok", text: "저장되었습니다." });
         setEditing(null);
@@ -143,6 +144,12 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
             />
             사용 중
           </label>
+
+          {message?.kind === "err" && (
+            <div className="rounded border border-red-500 px-3 py-2 text-sm text-red-400">
+              {message.text}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <button

@@ -17,6 +17,20 @@ const DEFAULT_TIERS: PriceTierInput[] = [
   { min_headcount: 4, unit_price_krw: 50000, original_unit_price_krw: null },
 ];
 
+/**
+ * 이름에서 slug 후보를 만든다.
+ * 한글은 URL 로 쓰기 어려워 로마자 변환 대신 안전한 임의값을 붙인다.
+ * 운영자가 slug 규칙을 몰라도 저장이 막히지 않게 하는 것이 목적이다.
+ */
+function suggestSlug(name: string): string {
+  const ascii = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (ascii) return ascii;
+  return `theme-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function emptyTheme(venueId: string): ThemeInput {
   return {
     slug: "",
@@ -98,6 +112,7 @@ export function ThemeEditor({
       const res = await saveTheme(editing);
       if ("error" in res && res.error) {
         setMessage({ kind: "err", text: res.error });
+        window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setMessage({ kind: "ok", text: "저장되었습니다." });
         setEditing(null);
@@ -158,13 +173,26 @@ export function ThemeEditor({
                 <input className={field} value={editing.name} onChange={(e) => patch({ name: e.target.value })} />
               </div>
               <div>
-                <label className={label}>slug * (URL 주소. 영문 소문자·숫자·하이픈)</label>
-                <input
-                  className={field}
-                  value={editing.slug}
-                  onChange={(e) => patch({ slug: e.target.value })}
-                  placeholder="baotalchul"
-                />
+                <label className={label}>slug * (주소창에 쓰일 영문 이름)</label>
+                <div className="flex gap-2">
+                  <input
+                    className={field}
+                    value={editing.slug}
+                    onChange={(e) => patch({ slug: e.target.value })}
+                    placeholder="baotalchul"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => patch({ slug: suggestSlug(editing.name) })}
+                    className="shrink-0 rounded border border-border px-3 text-xs"
+                  >
+                    자동
+                  </button>
+                </div>
+                <p className="mt-1 text-[11px] text-muted">
+                  영문 소문자·숫자·하이픈만. 예) <code>baotalchul</code> → 주소는{" "}
+                  <code>/themes/baotalchul</code>
+                </p>
               </div>
             </div>
 
@@ -423,6 +451,13 @@ export function ThemeEditor({
               </div>
             </div>
           </div>
+
+          {/* 폼이 길어서 맨 위 메시지가 화면 밖에 있을 수 있다. 버튼 옆에도 보여준다. */}
+          {message?.kind === "err" && (
+            <div className="rounded border border-red-500 px-3 py-2 text-sm text-red-400">
+              {message.text}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <button onClick={submit} disabled={pending} className="rounded bg-glow px-4 py-2 text-sm text-glow-foreground disabled:opacity-50">

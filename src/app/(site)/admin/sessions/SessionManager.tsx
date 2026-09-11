@@ -193,6 +193,12 @@ export function SessionManager({
           <input className={field} value={note} onChange={(e) => setNote(e.target.value)} />
         </div>
 
+        {message?.kind === "err" && (
+          <div className="rounded border border-red-500 px-3 py-2 text-sm text-red-400">
+            {message.text}
+          </div>
+        )}
+
         <div className="flex items-center gap-3">
           <button
             onClick={submit}
