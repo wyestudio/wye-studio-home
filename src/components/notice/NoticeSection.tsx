@@ -3,6 +3,8 @@ import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
 import { RichText } from "@/components/ui/RichText";
 import type { Notice } from "@/lib/content";
 
+// 기존 표기(2026.08.14)를 유지한다. ko-KR 기본 포맷은 "2026. 08. 14." 라
+// 점 뒤 공백과 끝점이 붙는다.
 const kstDate = (iso: string) =>
   new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -11,6 +13,7 @@ const kstDate = (iso: string) =>
     day: "2-digit",
   })
     .format(new Date(iso))
+    .replace(/\s/g, "")
     .replace(/\.$/, "");
 
 /** 표시 전용. 데이터는 서버에서 받아 내려준다 (NoticeTabs 가 클라이언트라 직접 조회 못 함). */
