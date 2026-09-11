@@ -72,12 +72,21 @@ export async function cancelApplicationAction(
 
   // 환불 필요한 경우만 Slack 알림 발송 (입금 확정 후 취소일 때) (after()로 감싸서 비동기 처리)
   if (lookupResult && lookupResult.payment_status === "confirmed") {
-    const refundAmount = calculateRefundAmount(lookupResult.start_at, lookupResult.price_krw * lookupResult.attendees.length);
+    const refundAmount = calculateRefundAmount(lookupResult.start_at, lookupResult.amount_krw);
 
     after(async () => {
       try {
         await sendCancellationSlackAlert({
-          sessionTitle: lookupResult.session_title,
+          // session_title 컬럼이 사라져(테마·회차 분리) 표시용 제목을 조합한다.
+          sessionTitle: `${lookupResult.theme_name} ${new Intl.DateTimeFormat("ko-KR", {
+            timeZone: "Asia/Seoul",
+            month: "numeric",
+            day: "numeric",
+            weekday: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }).format(new Date(lookupResult.start_at))}`,
           confirmationCode: lookupResult.confirmation_code,
           representative: lookupResult.attendees[0],
           refundAmount,

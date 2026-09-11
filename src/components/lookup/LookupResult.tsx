@@ -10,9 +10,8 @@ import { ThemeTag } from "@/components/ui/ThemeTag";
 import { InfoRow } from "./InfoRow";
 import { CompanionPager } from "./CompanionPager";
 import { RefundInfoDialog } from "./RefundInfoDialog";
-import { formatSessionDateTime, formatSessionDate, formatSessionTime, formatRefundTierDeadlines, formatKrw, calculateRefundAmount } from "@/lib/format";
+import { formatSessionDateTime, formatSessionDateDotted, formatSessionTime, formatRefundTierDeadlines, formatKrw, calculateRefundAmount } from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
-import { isDatingTheme } from "@/lib/theme";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { LIFECYCLE_LABEL, LIFECYCLE_TONE } from "@/lib/lookupStatus";
 import { cancelApplicationAction, type LookupState } from "@/app/(site)/lookup/actions";
@@ -66,7 +65,8 @@ export function LookupResult() {
   const representative = result.attendees[0];
   const companions = result.attendees.slice(1);
   const smsRecipientLabel = isGroup ? "대표 신청자" : "신청자";
-  const accentColor = isDatingTheme(result.session_type) ? "#ff5ec4" : "#3dffb0";
+  // 과거 소개팅 회차만 다른 색을 쓴다. 신규 회차는 기본 강조색.
+  const accentColor = result.format_label === "소개팅" ? "#ff5ec4" : "#3dffb0";
 
   async function handleCancelConfirm() {
     setCancelling(true);
@@ -157,12 +157,14 @@ export function LookupResult() {
       {/* 신청 정보 카드 (헤더 없음) */}
       <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
         <div className="flex items-center gap-2">
-          <ThemeTag sessionType={result.session_type} className="text-lg font-bold" />
+          {result.format_label && (
+            <ThemeTag sessionType={result.format_label} className="text-lg font-bold" />
+          )}
           <span className="text-xs font-semibold text-muted">
             {result.theme_name}
           </span>
         </div>
-        <InfoRow label="날짜" value={formatSessionDate(result.event_date)} />
+        <InfoRow label="날짜" value={formatSessionDateDotted(result.start_at)} />
         <InfoRow label="시간" value={formatSessionTime(result.start_at)} />
         <InfoRow label="위치" value={result.venue_area} />
       </div>
@@ -171,7 +173,7 @@ export function LookupResult() {
       <div className="mb-6">
         <p className="mb-3 text-sm font-bold text-muted">신청자 정보</p>
         <div className="rounded-xl border border-border bg-surface p-4">
-          <AttendeeDisplay attendee={representative} isDatingSession={isDatingTheme(result.session_type)} />
+          <AttendeeDisplay attendee={representative} isDatingSession={result.format_label === "소개팅"} />
         </div>
       </div>
 
@@ -182,7 +184,7 @@ export function LookupResult() {
           <CompanionPager count={companions.length}>
             {(index) => (
               <div className="rounded-xl border border-border bg-surface p-4">
-                <AttendeeDisplay attendee={companions[index]} isDatingSession={isDatingTheme(result.session_type)} />
+                <AttendeeDisplay attendee={companions[index]} isDatingSession={result.format_label === "소개팅"} />
               </div>
             )}
           </CompanionPager>
@@ -214,7 +216,7 @@ export function LookupResult() {
             <span className="text-muted">참가비</span>
             <div className="text-right">
               <p className="font-semibold text-foreground">
-                {formatKrw(result.price_krw)} × {result.attendees.length}명 = {formatKrw(result.price_krw * result.attendees.length)}
+                {formatKrw(result.unit_price_krw)} × {result.headcount}명 = {formatKrw(result.amount_krw)}
               </p>
               <p className="mt-1 text-xs text-muted">
                 pre-open 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }} className="font-semibold">5,000원</span> 페이백 (SNS 리뷰 업로드 후 7일 유지 시)
@@ -268,7 +270,7 @@ export function LookupResult() {
       {state?.result && (
         <RefundInfoDialog
           open={showRefundInfoDialog}
-          refundAmount={calculateRefundAmount(state.result.start_at, state.result.price_krw * state.result.attendees.length)}
+          refundAmount={calculateRefundAmount(state.result.start_at, state.result.amount_krw)}
           bankName={refundBankName}
           accountNumber={refundAccountNumber}
           accountHolder={refundAccountHolder}

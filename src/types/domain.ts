@@ -96,18 +96,24 @@ export type ApplicationAttendee = {
 
 export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200+";
 
-// 참여내역 조회(lookup_application RPC) 결과.
+/**
+ * 참여내역 조회(lookup_application_v2 RPC) 결과.
+ *
+ * 이 한 타입이 신·구 신청을 모두 담는다. DB 함수가 coalesce 로 양쪽에서
+ * 값을 끌어오므로, 기존 8/29 신청도 새 구조 신청도 같은 모양으로 온다.
+ */
 export type ApplicationLookupResult = {
-  session_title: string;
-  theme_label: string;
   theme_name: string;
-  session_type: SessionType;
+  /** 과거 회차의 진행 형식(그룹/소개팅). 신규 회차는 null */
+  format_label: string | null;
   venue_area: string;
   start_at: string;
   end_at: string | null;
-  event_date: string;
-  slot: SessionSlot;
-  price_krw: number;
+  /** 회차별 최소 연령. 과거 회차는 null */
+  min_age: number | null;
+  headcount: number;
+  unit_price_krw: number;
+  amount_krw: number;
   status: ApplicationStatus;
   payment_status: PaymentStatus;
   confirmation_code: string;
