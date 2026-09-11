@@ -433,13 +433,33 @@ export function ThemeEditor({
           <div className={section}>
             <h3 className="text-sm font-semibold">노출</h3>
             <div className="flex flex-wrap gap-6">
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={editing.is_active} onChange={(e) => patch({ is_active: e.target.checked })} />
-                신청 받기 <span className="text-xs text-muted">(끄면 신규 신청 불가)</span>
+              <label className="flex max-w-xs items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={editing.is_active}
+                  onChange={(e) => patch({ is_active: e.target.checked })}
+                />
+                <span>
+                  신청 받기
+                  <span className="mt-0.5 block text-xs text-muted">
+                    끄면 <strong>신청 버튼만</strong> 비활성화됩니다. 테마 페이지는 계속 보입니다.
+                  </span>
+                </span>
               </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={editing.is_listed} onChange={(e) => patch({ is_listed: e.target.checked })} />
-                목록에 노출
+              <label className="flex max-w-xs items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={editing.is_listed}
+                  onChange={(e) => patch({ is_listed: e.target.checked })}
+                />
+                <span>
+                  목록에 노출
+                  <span className="mt-0.5 block text-xs text-muted">
+                    끄면 컨텐츠 목록·검색엔진에 안 나옵니다. 주소를 아는 사람은 볼 수 있습니다.
+                  </span>
+                </span>
               </label>
               <div className="w-28">
                 <label className={label}>정렬 순서</label>
@@ -484,7 +504,7 @@ export function ThemeEditor({
                   <p className="font-medium">
                     {t.name}
                     <span className="ml-2 text-xs text-muted">/{t.slug}</span>
-                    {!t.is_active && <span className="ml-2 text-xs text-red-400">신청 중지</span>}
+                    {!t.is_active && <span className="ml-2 text-xs text-amber-400">신청 중지</span>}
                     {!t.is_listed && <span className="ml-2 text-xs text-muted">목록 숨김</span>}
                   </p>
                   <p className="mt-1 text-sm text-muted">

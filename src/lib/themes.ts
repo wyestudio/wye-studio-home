@@ -8,7 +8,11 @@ import type {
 } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 
-/** 목록에 노출할 테마들 (신청 가능 + 목록 노출). */
+/**
+ * 목록(/contents)에 노출할 테마들.
+ * 판단 기준은 is_listed 하나뿐이다 — is_active(신청 받기)는 신청 버튼만
+ * 좌우하므로, 신청을 잠시 닫아둔 테마도 목록에는 계속 보인다.
+ */
 export async function getListedThemes(): Promise<ThemeWithTiers[]> {
   const supabase = await createClient();
 
@@ -16,7 +20,6 @@ export async function getListedThemes(): Promise<ThemeWithTiers[]> {
     supabase
       .from("themes")
       .select("*")
-      .eq("is_active", true)
       .eq("is_listed", true)
       .order("sort_order")
       .order("created_at"),
@@ -32,7 +35,10 @@ export async function getListedThemes(): Promise<ThemeWithTiers[]> {
   }));
 }
 
-/** slug 로 테마 1건. 비활성 테마는 RLS 정책상 anon 에게 보이지 않는다. */
+/**
+ * slug 로 테마 1건.
+ * is_active 가 false 여도 페이지는 보여야 하므로 여기서 거르지 않는다.
+ */
 export async function getThemeBySlug(slug: string): Promise<ThemeWithTiers | null> {
   const supabase = await createClient();
 

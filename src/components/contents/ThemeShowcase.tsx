@@ -77,7 +77,9 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                   </div>
 
                   <div className="mt-5 border-t border-white/12 pt-4">
-                    {theme.upcomingCount > 0 ? (
+                    {!theme.is_active ? (
+                      <p className="text-sm text-muted">현재 신청을 받지 않습니다</p>
+                    ) : theme.upcomingCount > 0 ? (
                       <p className="text-sm">
                         <span style={{ color: accent }}>●</span> 신청 가능한 회차{" "}
                         <strong>{theme.upcomingCount}개</strong>
@@ -86,7 +88,7 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                       <p className="text-sm text-muted">예정된 회차 준비 중</p>
                     )}
                     <p className="mt-2 text-sm font-semibold" style={{ color: accent }}>
-                      자세히 보고 날짜 선택하기 →
+                      {theme.is_active ? "자세히 보고 날짜 선택하기 →" : "자세히 보기 →"}
                     </p>
                   </div>
                 </HudCard>

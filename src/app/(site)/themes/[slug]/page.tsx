@@ -56,7 +56,10 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   const { slug } = await params;
 
   const theme = await getThemeBySlug(slug);
-  if (!theme || !theme.is_active) notFound();
+  if (!theme) notFound();
+
+  // is_active 는 '신청 받기' 여부일 뿐이다. 꺼져 있어도 페이지는 보여준다.
+  const acceptingApplications = theme.is_active;
 
   const rawSessions = await getUpcomingSessionsForTheme(theme.id);
   const withStats = await attachStats(rawSessions);
@@ -116,6 +119,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               sessions={sessions}
               tiers={theme.tiers}
               accentColor={accent}
+              accepting={acceptingApplications}
             />
           </Suspense>
         </div>

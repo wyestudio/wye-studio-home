@@ -45,11 +45,14 @@ export function SessionPicker({
   sessions,
   tiers,
   accentColor,
+  accepting,
 }: {
   themeSlug: string;
   sessions: PickerSession[];
   tiers: ThemePriceTier[];
   accentColor: string;
+  /** 테마가 '신청 받기' 상태인가. false 면 회차가 있어도 신청할 수 없다. */
+  accepting: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -185,7 +188,12 @@ export function SessionPicker({
 
       {/* ── CTA ── */}
       <div>
-        {selected ? (
+        {!accepting ? (
+          <div className="rounded-lg border border-white/15 bg-white/5 px-6 py-4 text-center">
+            <p className="font-semibold">현재 신청을 받고 있지 않습니다.</p>
+            <p className="mt-1 text-sm text-muted">신청이 열리면 공지로 안내드릴게요.</p>
+          </div>
+        ) : selected ? (
           <a
             href={`/themes/${themeSlug}/apply?session=${selected.id}`}
             className="block rounded-lg px-6 py-4 text-center text-base font-bold transition-opacity hover:opacity-90"
