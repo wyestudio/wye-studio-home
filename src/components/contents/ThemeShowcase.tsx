@@ -22,10 +22,16 @@ function durationLabel(minutes: number): string {
 }
 
 /**
- * 테마 목록 — 포스터 중심.
+ * 테마 목록 — 행성에서 카드로.
  *
- * 카드에 정보를 늘어놓으면 포스터가 묻힌다. 포스터만 보여주고 정보는
- * 마우스를 올렸을 때(터치 기기는 항상) 위에 겹쳐 띄운다.
+ * 우주 컨셉에 맞춰 평소에는 동그란 행성으로 떠 있다가, 마우스를 올리면
+ * 네모난 카드로 펼쳐지며 정보가 드러난다.
+ *
+ * ⚠️ 자리(공간)는 펼쳐진 크기로 미리 잡아둔다. hover 때 높이가 커지면
+ *    격자 전체가 밀려 다른 카드들이 출렁인다.
+ *
+ * 터치 기기에는 hover 가 없으므로 원형 그대로 두고 이름만 보여준다.
+ * 눌러야 알 수 있는 정보는 모바일에서 영영 안 보이기 때문이다.
  */
 export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
   return (
@@ -38,45 +44,51 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
           <p className="mt-2 text-sm text-muted">새 컨텐츠가 준비되면 안내드릴게요.</p>
         </div>
       ) : (
-        <div className="mt-10 grid gap-5 sm:grid-cols-2">
+        <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
           {themes.map((theme) => {
             const accent = theme.accent_color || DEFAULT_ACCENT;
 
             return (
-              <Link
-                key={theme.id}
-                href={`/themes/${theme.slug}`}
-                className="group relative block overflow-hidden rounded-xl border border-white/15"
-              >
-                <div className="relative aspect-[4/5] bg-surface">
-                  <Image
-                    src={theme.hero_image_path || FALLBACK_POSTER}
-                    alt={`${theme.name} 포스터`}
-                    fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                    sizes="(min-width: 640px) 50vw, 100vw"
-                  />
-
-                  {/*
-                    정보 오버레이.
-                    마우스가 없는 기기(터치)에서는 hover 가 일어나지 않으므로
-                    항상 보이게 한다 — 안 그러면 모바일에서 정보가 영영 안 보인다.
-                  */}
+              <Link key={theme.id} href={`/themes/${theme.slug}`} className="group block">
+                {/* 펼쳐진 크기로 자리를 잡아둔다 (모바일은 원형이라 정사각) */}
+                <div className="relative aspect-square [@media(hover:hover)]:aspect-[4/5]">
                   <div
-                    className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 px-5 text-center opacity-100 transition-opacity duration-300
-                               [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
+                    className="absolute left-1/2 top-1/2 aspect-square w-full -translate-x-1/2 -translate-y-1/2
+                               overflow-hidden rounded-full border border-white/15
+                               transition-[width,border-radius,aspect-ratio] duration-500 ease-out
+                               [@media(hover:hover)]:w-[86%]
+                               [@media(hover:hover)]:group-hover:aspect-[4/5]
+                               [@media(hover:hover)]:group-hover:w-full
+                               [@media(hover:hover)]:group-hover:rounded-xl"
                   >
-                    <h3 className="text-2xl font-extrabold" style={{ color: accent }}>
-                      {theme.name}
-                    </h3>
-                    <DifficultyLocks rating={theme.difficulty} />
-                    <span className="text-sm text-white/80">
-                      ⏱ {durationLabel(theme.duration_minutes)}
-                    </span>
-                    {!theme.is_active && (
-                      <span className="text-xs text-white/60">현재 신청을 받지 않습니다</span>
-                    )}
+                    <Image
+                      src={theme.hero_image_path || FALLBACK_POSTER}
+                      alt={`${theme.name} 포스터`}
+                      fill
+                      className="object-cover"
+                      sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+                    />
                   </div>
+                </div>
+
+                <div className="mt-3 text-center">
+                  <h3 className="text-sm font-bold" style={{ color: accent }}>
+                    {theme.name}
+                  </h3>
+
+                  {/* 난이도·시간은 펼쳤을 때만. 모바일에서는 이름만 남는다. */}
+                  <div
+                    className="mt-1.5 hidden flex-col items-center gap-1 text-xs text-muted
+                               opacity-0 transition-opacity duration-300
+                               [@media(hover:hover)]:flex [@media(hover:hover)]:group-hover:opacity-100"
+                  >
+                    <DifficultyLocks rating={theme.difficulty} />
+                    <span>⏱ {durationLabel(theme.duration_minutes)}</span>
+                  </div>
+
+                  {!theme.is_active && (
+                    <p className="mt-1 text-[11px] text-muted">현재 신청을 받지 않습니다</p>
+                  )}
                 </div>
               </Link>
             );
