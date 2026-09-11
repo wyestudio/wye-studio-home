@@ -1,0 +1,28 @@
+-- Phase 3 — sessions 테이블 쓰기 권한을 service_role 에 부여
+--
+-- 적용: ⚠️ test·운영 모두 미적용. 아래 SQL 을 Supabase SQL Editor 에서 실행할 것.
+-- 되돌리기:
+--   revoke insert, update, delete on public.sessions from service_role;
+--
+-- 배경: 배포된 테스트 어드민에서 "회차 비활성화" 를 눌렀더니 실패했다.
+--   세션 비활성화 실패: permission denied for table sessions
+--
+-- 원인은 RLS 가 아니라 테이블 GRANT 다. service_role 은 RLS 를 우회하지만
+-- GRANT 는 별개다(CLAUDE.md 의 교훈). sessions 에는 SELECT 만 있었다:
+--
+--   select has_table_privilege('service_role','public.sessions','UPDATE');
+--   -- test, 운영 둘 다 false
+--
+-- 과거에는 회차를 SQL Editor 에서 직접 만들었고 신청 생성은 SECURITY DEFINER
+-- 함수를 거쳤기 때문에 이 공백이 드러날 일이 없었다. Phase 1 에서 새로 만든
+-- themes/venues/theme_price_tiers 에는 grant 를 명시해 두었으나, 기존 테이블인
+-- sessions 는 그대로 남아 있었다.
+--
+-- 영향 범위 (전부 현재 실패한다):
+--   · /admin/sessions 회차 생성·수정·삭제 — 정기 운영의 핵심
+--   · 회차 최소연령 변경
+--   · 회차 비활성화 + 문자7 일괄 발송
+--
+-- anon/authenticated 에는 주지 않는다. 회차 쓰기는 어드민 전용이다.
+
+grant insert, update, delete on public.sessions to service_role;
