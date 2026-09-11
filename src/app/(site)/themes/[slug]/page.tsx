@@ -88,11 +88,11 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         예약을 아래 별도 섹션으로 내리면 첫 화면에서 "언제 갈 수 있는지"가
         안 보인다. 포스터 옆 빈 공간이 그 자리다.
       */}
-      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[19rem_minmax(0,1fr)]">
+      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[20rem_minmax(0,1fr)]">
         {/*
           넓은 화면에서는 포스터를 오른쪽 칸 높이에 맞춰 늘린다. 그래야
           포스터 아래끝 = 달력 아래끝 = 신청 버튼 아래끝이 한 선에 놓인다.
-          칸 너비(19rem)를 4:5 에 가깝게 잡아 잘려나가는 부분은 거의 없다.
+          칸 너비(20rem)를 4:5 에 가깝게 잡아 잘려나가는 부분은 거의 없다.
         */}
         <div className="mx-auto w-44 shrink-0 sm:w-52 md:mx-0 md:w-full lg:h-full">
           <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface lg:aspect-auto lg:h-full">
@@ -101,7 +101,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               alt={`${theme.name} 포스터`}
               fill
               className="object-cover"
-              sizes="(min-width: 1024px) 304px, (min-width: 768px) 288px, 208px"
+              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 208px"
               priority
             />
           </div>
