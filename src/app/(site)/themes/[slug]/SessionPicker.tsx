@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { SessionView, ThemePriceTier } from "@/types/catalog";
+import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 import { BookingCalendar } from "./BookingCalendar";
 
@@ -37,6 +37,9 @@ const kstTime = (iso: string) =>
  * 회차마다 별도 페이지를 만들지 않는 이유: 내용이 거의 같은 페이지가 매주
  * 늘어나면 검색엔진이 중복으로 판단한다. 페이지를 하나로 모으면 그 URL 에
  * SEO 점수가 누적된다. 특정 날짜 딥링크는 ?d=YYYY-MM-DD 로 처리한다.
+ *
+ * 배치는 넓은 화면에서 달력 | 시간 2열, 좁은 화면에서는 위아래로 쌓인다.
+ * 신청 버튼은 mt-auto 로 밀어 포스터 아래 끝선에 맞춘다.
  */
 export function SessionPicker({
   themeSlug,
@@ -46,13 +49,13 @@ export function SessionPicker({
 }: {
   themeSlug: string;
   sessions: PickerSession[];
-  tiers: ThemePriceTier[];
   accentColor: string;
   /** 테마가 '신청 받기' 상태인가. false 면 회차가 있어도 신청할 수 없다. */
   accepting: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const timeRef = useRef<HTMLDivElement>(null);
 
   // 날짜별로 묶는다 (하루에 여러 회차가 있으므로).
   const byDate = useMemo(() => {
@@ -99,71 +102,90 @@ export function SessionPicker({
     ? `${kstDayLabel(selected.start_at)} ${kstTime(selected.start_at)} 신청하기`
     : "날짜와 시간을 선택해주세요";
 
+  function selectDate(d: string) {
+    setSelectedDate(d);
+    setSelectedId(null);
+    const next = new URLSearchParams(params.toString());
+    next.set("d", d);
+    router.replace(`/themes/${themeSlug}?${next.toString()}`, { scroll: false });
+    // 좁은 화면에서는 시간 목록이 달력 아래라 화면 밖에 있다. 눈에 보이게 옮겨준다.
+    if (window.matchMedia("(max-width: 1023px)").matches) {
+      requestAnimationFrame(() =>
+        timeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+      );
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="mb-2 text-sm font-semibold">1. 날짜 선택</p>
-        <BookingCalendar
-          dateStatus={dateStatus}
-          selected={selectedDate}
+    <div className="flex h-full flex-col">
+      <div className="flex flex-col gap-5 lg:flex-row lg:gap-5">
+        <div className="lg:w-[17.5rem] lg:shrink-0">
+          <p className="mb-2 text-xs font-bold text-muted">날짜 선택</p>
+          <BookingCalendar
+            dateStatus={dateStatus}
+            selected={selectedDate}
+            accentColor={accentColor}
+            onSelect={selectDate}
+          />
+        </div>
+
+        <div ref={timeRef} className="min-w-0 flex-1 scroll-mt-28">
+          <p className="mb-2 text-xs font-bold text-muted">
+            시간 선택
+            {selectedDate && (
+              <span className="ml-1.5 font-medium text-white/70">
+                {kstDayLabel(`${selectedDate}T00:00:00+09:00`)}
+              </span>
+            )}
+          </p>
+
+          {daySessions.length === 0 ? (
+            <p className="rounded-lg border border-white/15 bg-white/5 p-4 text-sm text-muted">
+              이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+              {daySessions.map((s) => {
+                const isActive = s.id === selectedId;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setSelectedId(s.id)}
+                    disabled={!s.bookable}
+                    className={`rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 lg:flex lg:items-center lg:gap-3 ${
+                      isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
+                    }`}
+                    style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
+                  >
+                    <p className="text-base font-bold lg:w-16">{kstTime(s.start_at)}</p>
+                    <p className={`mt-0.5 text-xs lg:mt-0 lg:flex-1 ${isActive ? "opacity-80" : "text-muted"}`}>
+                      만 {s.min_age}세 이상
+                    </p>
+                    <p className={`mt-1 text-xs lg:mt-0 ${isActive ? "opacity-80" : "text-muted"}`}>
+                      {!s.bookable
+                        ? "마감"
+                        : s.remaining === null
+                          ? ""
+                          : s.remaining <= 5
+                            ? `잔여 ${s.remaining}석`
+                            : "예약 가능"}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-auto pt-5">
+        <BookingCta
+          accepting={accepting}
+          href={selected ? `/themes/${themeSlug}/apply?session=${selected.id}` : null}
+          label={ctaLabel}
           accentColor={accentColor}
-          onSelect={(d) => {
-            setSelectedDate(d);
-            setSelectedId(null);
-            const next = new URLSearchParams(params.toString());
-            next.set("d", d);
-            router.replace(`/themes/${themeSlug}?${next.toString()}`, { scroll: false });
-          }}
         />
       </div>
-
-      {/* ── 시간 ── */}
-      <div>
-        <p className="mb-2 text-sm font-semibold">2. 시간 선택</p>
-        {daySessions.length === 0 ? (
-          <p className="rounded-lg border border-white/15 bg-white/5 p-4 text-sm text-muted">
-            이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
-          </p>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-3">
-            {daySessions.map((s) => {
-              const isActive = s.id === selectedId;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedId(s.id)}
-                  disabled={!s.bookable}
-                  className={`rounded-lg border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                    isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
-                  }`}
-                  style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
-                >
-                  <p className="text-base font-bold">{kstTime(s.start_at)}</p>
-                  <p className={`mt-0.5 text-xs ${isActive ? "opacity-80" : "text-muted"}`}>
-                    만 {s.min_age}세 이상
-                  </p>
-                  <p className={`mt-1 text-xs ${isActive ? "opacity-80" : "text-muted"}`}>
-                    {!s.bookable
-                      ? "마감"
-                      : s.remaining === null
-                        ? ""
-                        : s.remaining <= 5
-                          ? `잔여 ${s.remaining}석`
-                          : "예약 가능"}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <BookingCta
-        accepting={accepting}
-        href={selected ? `/themes/${themeSlug}/apply?session=${selected.id}` : null}
-        label={ctaLabel}
-        accentColor={accentColor}
-      />
     </div>
   );
 }

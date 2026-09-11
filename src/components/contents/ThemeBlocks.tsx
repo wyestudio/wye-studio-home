@@ -35,70 +35,87 @@ export function ThemeBlocks({
     <>
       {blocks.map((block, i) => (
         <section key={i} className="mb-14">
-          {block.title && (
-            <SectionHeading eyebrow="" title={block.title} align="left" eyebrowColor={accent} />
-          )}
-
-          {block.type === "text" && (
-            <RichText text={block.body} className="mt-4 block leading-relaxed" />
-          )}
-
-          {block.type === "image" && block.src && (
-            <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-xl border border-white/12">
-              <Image src={block.src} alt={block.alt || block.title} fill className="object-cover" />
-            </div>
-          )}
-
-          {block.type === "list" && (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {block.items.map((c, x) => (
-                <HudCard key={x} className="p-4">
-                  {c.emoji && <p className="text-lg">{c.emoji}</p>}
-                  <p className="mt-1 font-semibold">{c.title}</p>
-                  {c.desc && <p className="mt-1 text-sm text-muted">{c.desc}</p>}
-                </HudCard>
-              ))}
-            </div>
-          )}
-
-          {block.type === "timetable" && (
-            <>
-              {sampleStartAt && (
-                <p className="mt-2 text-xs text-muted">
-                  아래 시각은 선택하신 회차 시작 시간에 맞춰 자동으로 조정됩니다.
-                </p>
-              )}
-              <ol className="mt-5 space-y-2">
-                {block.items.map((t, x) => (
-                  <li key={x} className="flex gap-4 border-l-2 pl-4" style={{ borderColor: accent }}>
-                    <span
-                      className="w-14 shrink-0 font-mono text-sm font-bold"
-                      style={{ color: accent }}
-                    >
-                      {sampleStartAt ? offsetToTime(sampleStartAt, t.offset_min) : `+${t.offset_min}분`}
-                    </span>
-                    <div className="pb-3">
-                      <p className="font-semibold">{t.title}</p>
-                      {t.desc && <p className="mt-0.5 text-sm text-muted">{t.desc}</p>}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </>
-          )}
-
-          {block.type === "callout" && (
-            <ul className="mt-5 space-y-3">
-              {block.items.map((p, x) => (
-                <li key={x} className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
-                  <p className="font-semibold">{p.title}</p>
-                  {p.desc && <p className="mt-1 text-sm text-muted">{p.desc}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ThemeBlockView block={block} accent={accent} sampleStartAt={sampleStartAt} />
         </section>
       ))}
+    </>
+  );
+}
+
+/**
+ * 블록 하나. 어드민 편집 화면의 미리보기도 이걸 그대로 쓴다 —
+ * 미리보기와 실제 화면이 다른 코드로 그려지면 반드시 어긋난다.
+ */
+export function ThemeBlockView({
+  block,
+  accent,
+  sampleStartAt,
+}: {
+  block: ThemeBlock;
+  accent: string;
+  sampleStartAt: string | null;
+}) {
+  return (
+    <>
+      {block.title && (
+        <SectionHeading eyebrow="" title={block.title} align="left" eyebrowColor={accent} />
+      )}
+
+      {block.type === "text" && (
+        <RichText text={block.body} className="mt-4 block leading-relaxed" />
+      )}
+
+      {block.type === "image" && block.src && (
+        <div className="relative mt-4 aspect-[16/9] overflow-hidden rounded-xl border border-white/12">
+          <Image src={block.src} alt={block.alt || block.title} fill className="object-cover" />
+        </div>
+      )}
+
+      {block.type === "list" && (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {block.items.map((c, x) => (
+            <HudCard key={x} className="p-4">
+              {c.emoji && <p className="text-lg">{c.emoji}</p>}
+              <p className="mt-1 font-semibold">{c.title}</p>
+              {c.desc && <p className="mt-1 text-sm text-muted">{c.desc}</p>}
+            </HudCard>
+          ))}
+        </div>
+      )}
+
+      {block.type === "timetable" && (
+        <>
+          {sampleStartAt && (
+            <p className="mt-2 text-xs text-muted">
+              아래 시각은 선택하신 회차 시작 시간에 맞춰 자동으로 조정됩니다.
+            </p>
+          )}
+          <ol className="mt-5 space-y-2">
+            {block.items.map((t, x) => (
+              <li key={x} className="flex gap-4 border-l-2 pl-4" style={{ borderColor: accent }}>
+                <span className="w-14 shrink-0 font-mono text-sm font-bold" style={{ color: accent }}>
+                  {sampleStartAt ? offsetToTime(sampleStartAt, t.offset_min) : `+${t.offset_min}분`}
+                </span>
+                <div className="pb-3">
+                  <p className="font-semibold">{t.title}</p>
+                  {t.desc && <p className="mt-0.5 text-sm text-muted">{t.desc}</p>}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </>
+      )}
+
+      {block.type === "callout" && (
+        <ul className="mt-5 space-y-3">
+          {block.items.map((p, x) => (
+            <li key={x} className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
+              <p className="font-semibold">{p.title}</p>
+              {p.desc && <p className="mt-1 text-sm text-muted">{p.desc}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
     </>
   );
 }

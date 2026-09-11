@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import type { Venue, ThemeWithTiers, ThemeContent, ThemeCategory } from "@/types/catalog";
 import { EMPTY_THEME_CONTENT, normalizeThemeContent, resolveUnitPrice } from "@/types/catalog";
+import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { saveTheme, deleteTheme, type ThemeInput, type PriceTierInput } from "./actions";
 import { ContentBlocksEditor } from "./ContentBlocksEditor";
 import { ImageUploadField } from "./ImageUploadField";
@@ -11,6 +12,11 @@ import { ImageUploadField } from "./ImageUploadField";
 const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
 const label = "block text-xs font-medium text-muted mb-1";
 const section = "rounded-lg border border-border p-4 space-y-4";
+
+/** 강조색을 안 정한 테마가 쓰는 기본값. 고객 화면의 DEFAULT_ACCENT 와 같아야 한다. */
+const DEFAULT_ACCENT = "#3dffb0";
+/** 포스터를 안 올린 테마가 쓰는 기본 아트웍. 고객 화면과 같은 파일. */
+const FALLBACK_POSTER = "/bar-o-title.png";
 
 /** 확정된 기본 요금표. 새 테마를 만들 때 출발점으로 깔아준다. */
 const DEFAULT_TIERS: PriceTierInput[] = [
@@ -50,6 +56,7 @@ function emptyTheme(venueId: string): ThemeInput {
     venue_id: venueId,
     accent_color: "",
     hero_image_path: "",
+    logo_image_path: "",
     category_id: null,
     content: structuredClone(EMPTY_THEME_CONTENT),
     is_active: true,
@@ -64,6 +71,7 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     id: t.id,
     slug: t.slug,
     name: t.name,
+    // 폼에서 뺀 값이지만 저장할 때 날려버리지 않도록 그대로 들고 다닌다.
     tagline: t.tagline ?? "",
     description: t.description ?? "",
     difficulty: t.difficulty,
@@ -76,6 +84,7 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     venue_id: t.venue_id,
     accent_color: t.accent_color ?? "",
     hero_image_path: t.hero_image_path ?? "",
+    logo_image_path: t.logo_image_path ?? "",
     category_id: t.category_id ?? null,
     // 옛 4칸 구조로 저장된 테마도 블록으로 읽어준다. 저장하면 새 구조로 덮인다.
     content: normalizeThemeContent(t.content),
@@ -150,6 +159,9 @@ export function ThemeEditor({
     );
   }
 
+  const accent = editing?.accent_color?.trim() || DEFAULT_ACCENT;
+  const categoryName = categories.find((c) => c.id === editing?.category_id)?.name ?? null;
+
   return (
     <div className="space-y-6">
       {message && (
@@ -180,113 +192,258 @@ export function ThemeEditor({
 
       {editing && (
         <div className="space-y-4">
-          {/* ── 기본 정보 ── */}
+          {/*
+            ── 최상단: 좌 포스터 / 우 정보 ──
+            고객이 보는 상세 페이지와 같은 배치다. 어디를 고치면 어디가
+            바뀌는지 폼만 보고 알 수 있어야 한다.
+          */}
           <div className={section}>
             <h2 className="font-semibold">{editing.id ? "테마 수정" : "새 테마"}</h2>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className={label}>테마 이름 *</label>
-                <input className={field} value={editing.name} onChange={(e) => patch({ name: e.target.value })} />
+            <div className="flex flex-col gap-6 md:flex-row">
+              <div className="w-full shrink-0 space-y-4 md:w-56">
+                <ImageUploadField
+                  label="포스터"
+                  value={editing.hero_image_path}
+                  onChange={(hero_image_path) => patch({ hero_image_path })}
+                  hint="상세 페이지 왼쪽에 이 크기로 보입니다. 세로로 긴 이미지(4:5)가 잘 맞아요."
+                />
+                <ImageUploadField
+                  label="행성 로고"
+                  shape="circle"
+                  value={editing.logo_image_path}
+                  onChange={(logo_image_path) => patch({ logo_image_path })}
+                  hint="컨텐츠 목록에서 행성으로 떠 있는 그림입니다. 배경이 비어 있는 PNG 를 권합니다."
+                />
               </div>
-              <div>
-                <label className={label}>slug * (주소창에 쓰일 영문 이름)</label>
-                <div className="flex gap-2">
+
+              <div className="flex-1 space-y-4">
+                <div>
+                  <label className={label}>테마 이름 *</label>
                   <input
-                    className={field}
-                    value={editing.slug}
-                    onChange={(e) => patch({ slug: e.target.value })}
-                    placeholder="baotalchul"
+                    className={`${field} text-lg font-bold`}
+                    value={editing.name}
+                    onChange={(e) => patch({ name: e.target.value })}
                   />
-                  <button
-                    type="button"
-                    onClick={() => patch({ slug: suggestSlug(editing.name) })}
-                    className="shrink-0 rounded border border-border px-3 text-xs"
-                  >
-                    자동
-                  </button>
                 </div>
-                <p className="mt-1 text-[11px] text-muted">
-                  영문 소문자·숫자·하이픈만. 예) <code>baotalchul</code> → 주소는{" "}
-                  <code>/themes/baotalchul</code>
-                </p>
+
+                <div>
+                  <label className={label}>카테고리</label>
+                  <select
+                    className={field}
+                    value={editing.category_id ?? ""}
+                    onChange={(e) => patch({ category_id: e.target.value || null })}
+                  >
+                    <option value="">분류 없음</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-muted">
+                    상세 화면에서 테마명 바로 아래에 강조색으로 보입니다.
+                    {categoryName && ` 지금은 '${categoryName}'.`}
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className={label}>난이도 (1~5)</label>
+                    <input
+                      type="number" min={1} max={5} className={field}
+                      value={editing.difficulty}
+                      onChange={(e) => patch({ difficulty: Number(e.target.value) })}
+                    />
+                    <div className="mt-1.5">
+                      <DifficultyLocks rating={editing.difficulty} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={label}>소요시간 (분) *</label>
+                    <input
+                      type="number" min={1} className={field}
+                      value={editing.duration_minutes}
+                      onChange={(e) => patch({ duration_minutes: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className={label}>장소 *</label>
+                  <select className={field} value={editing.venue_id} onChange={(e) => patch({ venue_id: e.target.value })}>
+                    {activeVenues.map((v) => (
+                      <option key={v.id} value={v.id}>{v.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={label}>slug * (주소창에 쓰일 영문 이름)</label>
+                  <div className="flex gap-2">
+                    <input
+                      className={field}
+                      value={editing.slug}
+                      onChange={(e) => patch({ slug: e.target.value })}
+                      placeholder="baotalchul"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => patch({ slug: suggestSlug(editing.name) })}
+                      className="shrink-0 rounded border border-border px-3 text-xs"
+                    >
+                      자동
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted">
+                    영문 소문자·숫자·하이픈만. 주소는 <code>/themes/{editing.slug || "…"}</code>
+                  </p>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className={label}>한 줄 소개</label>
-              <input className={field} value={editing.tagline} onChange={(e) => patch({ tagline: e.target.value })} />
-            </div>
-
+          {/* ── 설명 · 강조색 ── */}
+          <div className={section}>
             <div>
               <label className={label}>설명</label>
               <textarea
                 className={`${field} min-h-24`}
                 value={editing.description}
                 onChange={(e) => patch({ description: e.target.value })}
+                placeholder="상세 페이지 상단, 테마 정보 아래에 그대로 보입니다."
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
-              <div>
-                <label className={label}>난이도 (1~5)</label>
+            <div>
+              <label className={label}>강조색</label>
+              <div className="flex items-center gap-2">
                 <input
-                  type="number" min={1} max={5} className={field}
-                  value={editing.difficulty}
-                  onChange={(e) => patch({ difficulty: Number(e.target.value) })}
+                  type="color"
+                  className="h-9 w-12 shrink-0 cursor-pointer rounded border border-border bg-background"
+                  value={/^#[0-9a-fA-F]{6}$/.test(editing.accent_color) ? editing.accent_color : DEFAULT_ACCENT}
+                  onChange={(e) => patch({ accent_color: e.target.value })}
                 />
-              </div>
-              <div>
-                <label className={label}>소요시간 (분) *</label>
                 <input
-                  type="number" min={1} className={field}
-                  value={editing.duration_minutes}
-                  onChange={(e) => patch({ duration_minutes: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className={label}>장소 *</label>
-                <select className={field} value={editing.venue_id} onChange={(e) => patch({ venue_id: e.target.value })}>
-                  {activeVenues.map((v) => (
-                    <option key={v.id} value={v.id}>{v.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className={label}>카테고리</label>
-                <select
                   className={field}
-                  value={editing.category_id ?? ""}
-                  onChange={(e) => patch({ category_id: e.target.value || null })}
-                >
-                  <option value="">분류 없음</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <p className="mt-1 text-[11px] text-muted">
-                  상세 화면에서 테마명 아래에 보입니다 (예: 파티형 방탈출).
-                </p>
+                  value={editing.accent_color}
+                  onChange={(e) => patch({ accent_color: e.target.value })}
+                  placeholder={`비우면 ${DEFAULT_ACCENT}`}
+                />
               </div>
-
-              <div>
-                <label className={label}>강조색</label>
-                <input className={field} value={editing.accent_color} onChange={(e) => patch({ accent_color: e.target.value })} placeholder="#3dffb0" />
-              </div>
+              <p className="mt-1 text-[11px] text-muted">
+                카테고리·선택한 날짜·신청 버튼 등 상세 페이지 곳곳에 쓰입니다.
+              </p>
             </div>
+          </div>
 
-            <ImageUploadField
-              label="포스터"
-              value={editing.hero_image_path}
-              onChange={(hero_image_path) => patch({ hero_image_path })}
-              hint="목록·상세의 포스터로 쓰입니다. 비우면 기본 아트웍이 나옵니다. 세로로 긴 이미지(4:5)가 잘 맞아요."
+          {/* ── 상세 콘텐츠 ── */}
+          <div className={section}>
+            <h3 className="text-sm font-semibold">상세 페이지 콘텐츠</h3>
+            <p className="text-xs text-muted">
+              아래는 고객 화면과 같은 미리보기입니다. 블록 사이의 <strong>+</strong> 를 눌러 원하는
+              자리에 끼워넣을 수 있어요.
+            </p>
+            <ContentBlocksEditor
+              blocks={editing.content.blocks}
+              accent={accent}
+              onChange={(blocks) => patchContent({ blocks })}
             />
           </div>
 
-          {/* ── 정원 · 연령 ── */}
-          <div className={section}>
-            <h3 className="text-sm font-semibold">정원 · 연령</h3>
-            <div className="grid gap-4 md:grid-cols-4">
+          {/* ── 요금 구간 · 정원/연령 (둘 다 좁아서 2열로 붙인다) ── */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className={section}>
+              <h3 className="text-sm font-semibold">요금 구간 (인당 가격)</h3>
+              <p className="text-xs text-muted">
+                해당 인원 <strong>이상</strong>일 때 적용되며, 조건을 만족하는 구간 중 가장 큰 것이 쓰입니다.
+                예를 들어 4인 구간이 마지막이면 5인·6인도 4인 가격이 적용됩니다.
+              </p>
+
+              <div className="space-y-2">
+                {editing.tiers.map((t, i) => (
+                  <div key={i} className="flex flex-wrap items-end gap-2">
+                    <div className="w-20">
+                      <label className={label}>인원 이상</label>
+                      <input
+                        type="number" min={1} className={field}
+                        value={t.min_headcount}
+                        onChange={(e) => {
+                          const tiers = [...editing.tiers];
+                          tiers[i] = { ...t, min_headcount: Number(e.target.value) };
+                          patch({ tiers });
+                        }}
+                      />
+                    </div>
+                    <div className="w-28">
+                      <label className={label}>인당 가격</label>
+                      <input
+                        type="number" min={0} step={1000} className={field}
+                        value={t.unit_price_krw}
+                        onChange={(e) => {
+                          const tiers = [...editing.tiers];
+                          tiers[i] = { ...t, unit_price_krw: Number(e.target.value) };
+                          patch({ tiers });
+                        }}
+                      />
+                    </div>
+                    <div className="w-28">
+                      <label className={label}>정가 (할인 표시)</label>
+                      <input
+                        type="number" min={0} step={1000} className={field}
+                        value={t.original_unit_price_krw ?? ""}
+                        onChange={(e) => {
+                          const tiers = [...editing.tiers];
+                          tiers[i] = { ...t, original_unit_price_krw: num(e.target.value) };
+                          patch({ tiers });
+                        }}
+                        placeholder="없으면 비움"
+                      />
+                    </div>
+                    <button
+                      onClick={() => patch({ tiers: editing.tiers.filter((_, x) => x !== i) })}
+                      className="rounded border border-red-500/50 px-2.5 py-2 text-xs text-red-400"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() =>
+                  patch({
+                    tiers: [
+                      ...editing.tiers,
+                      {
+                        min_headcount: (editing.tiers.at(-1)?.min_headcount ?? 0) + 1,
+                        unit_price_krw: editing.tiers.at(-1)?.unit_price_krw ?? 0,
+                        original_unit_price_krw: null,
+                      },
+                    ],
+                  })
+                }
+                className="rounded border border-border px-3 py-1.5 text-xs"
+              >
+                + 구간 추가
+              </button>
+
+              <div className="rounded bg-muted/10 p-3 text-xs">
+                <p className="mb-1 font-medium">미리보기</p>
+                {[1, 2, 3, 4, 5, 6].map((n) => {
+                  const unit = resolveUnitPrice(
+                    editing.tiers.map((t) => ({ ...t, theme_id: "" })),
+                    n
+                  );
+                  return (
+                    <span key={n} className="mr-3 inline-block text-muted">
+                      {n}인 {unit === null ? "—" : `${unit.toLocaleString()}원 (총 ${(unit * n).toLocaleString()}원)`}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className={section}>
+              <h3 className="text-sm font-semibold">정원 · 연령</h3>
               <div>
                 <label className={label}>즉시확정 인원 *</label>
                 <input
@@ -294,7 +451,7 @@ export function ThemeEditor({
                   value={editing.capacity_confirm_line}
                   onChange={(e) => patch({ capacity_confirm_line: Number(e.target.value) })}
                 />
-                <p className="mt-1 text-[11px] text-muted">여기까지는 바로 확정</p>
+                <p className="mt-1 text-[11px] text-muted">여기까지는 바로 확정됩니다.</p>
               </div>
               <div>
                 <label className={label}>정원 (대기 포함) *</label>
@@ -303,16 +460,7 @@ export function ThemeEditor({
                   value={editing.capacity_max}
                   onChange={(e) => patch({ capacity_max: Number(e.target.value) })}
                 />
-                <p className="mt-1 text-[11px] text-muted">이 수를 넘으면 신청 거부</p>
-              </div>
-              <div>
-                <label className={label}>최대 그룹 인원</label>
-                <input
-                  type="number" min={1} className={field}
-                  value={editing.max_group_size ?? ""}
-                  onChange={(e) => patch({ max_group_size: num(e.target.value) })}
-                  placeholder="비우면 제한 없음"
-                />
+                <p className="mt-1 text-[11px] text-muted">이 수를 넘으면 신청이 거부됩니다.</p>
               </div>
               <div>
                 <label className={label}>테마 최소 연령</label>
@@ -327,110 +475,6 @@ export function ThemeEditor({
                 </p>
               </div>
             </div>
-          </div>
-
-          {/* ── 요금 구간 ── */}
-          <div className={section}>
-            <h3 className="text-sm font-semibold">요금 구간 (인당 가격)</h3>
-            <p className="text-xs text-muted">
-              해당 인원 <strong>이상</strong>일 때 적용되며, 조건을 만족하는 구간 중 가장 큰 것이 쓰입니다.
-              예를 들어 4인 구간이 마지막이면 5인·6인도 4인 가격이 적용됩니다.
-            </p>
-
-            <div className="space-y-2">
-              {editing.tiers.map((t, i) => (
-                <div key={i} className="flex flex-wrap items-end gap-2">
-                  <div className="w-24">
-                    <label className={label}>인원 이상</label>
-                    <input
-                      type="number" min={1} className={field}
-                      value={t.min_headcount}
-                      onChange={(e) => {
-                        const tiers = [...editing.tiers];
-                        tiers[i] = { ...t, min_headcount: Number(e.target.value) };
-                        patch({ tiers });
-                      }}
-                    />
-                  </div>
-                  <div className="w-36">
-                    <label className={label}>인당 가격</label>
-                    <input
-                      type="number" min={0} step={1000} className={field}
-                      value={t.unit_price_krw}
-                      onChange={(e) => {
-                        const tiers = [...editing.tiers];
-                        tiers[i] = { ...t, unit_price_krw: Number(e.target.value) };
-                        patch({ tiers });
-                      }}
-                    />
-                  </div>
-                  <div className="w-36">
-                    <label className={label}>정가 (할인 표시용)</label>
-                    <input
-                      type="number" min={0} step={1000} className={field}
-                      value={t.original_unit_price_krw ?? ""}
-                      onChange={(e) => {
-                        const tiers = [...editing.tiers];
-                        tiers[i] = { ...t, original_unit_price_krw: num(e.target.value) };
-                        patch({ tiers });
-                      }}
-                      placeholder="없으면 비움"
-                    />
-                  </div>
-                  <button
-                    onClick={() => patch({ tiers: editing.tiers.filter((_, x) => x !== i) })}
-                    className="rounded border border-red-500/50 px-2.5 py-2 text-xs text-red-400"
-                  >
-                    삭제
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={() =>
-                patch({
-                  tiers: [
-                    ...editing.tiers,
-                    {
-                      min_headcount: (editing.tiers.at(-1)?.min_headcount ?? 0) + 1,
-                      unit_price_krw: editing.tiers.at(-1)?.unit_price_krw ?? 0,
-                      original_unit_price_krw: null,
-                    },
-                  ],
-                })
-              }
-              className="rounded border border-border px-3 py-1.5 text-xs"
-            >
-              + 구간 추가
-            </button>
-
-            <div className="rounded bg-muted/10 p-3 text-xs">
-              <p className="mb-1 font-medium">미리보기</p>
-              {[1, 2, 3, 4, 5, 6].map((n) => {
-                const unit = resolveUnitPrice(
-                  editing.tiers.map((t) => ({ ...t, theme_id: "" })),
-                  n
-                );
-                return (
-                  <span key={n} className="mr-3 inline-block text-muted">
-                    {n}인 {unit === null ? "—" : `${unit.toLocaleString()}원 (총 ${(unit * n).toLocaleString()}원)`}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* ── 상세 콘텐츠 ── */}
-          <div className={section}>
-            <h3 className="text-sm font-semibold">상세 페이지 콘텐츠</h3>
-            <p className="text-xs text-muted">
-              필요한 블록만 골라 쌓으세요. 순서는 ↑↓ 로 바꿉니다.
-            </p>
-            <ContentBlocksEditor
-              blocks={editing.content.blocks}
-              onChange={(blocks) => patchContent({ blocks })}
-            />
           </div>
 
           {/* ── 노출 ── */}
@@ -490,7 +534,7 @@ export function ThemeEditor({
             <button onClick={() => setEditing(null)} className="rounded border border-border px-4 py-2 text-sm">
               취소
             </button>
-            {/* 목록이 포스터 격자가 되면서 줄별 삭제 버튼이 사라졌다. 편집 화면에 둔다. */}
+            {/* 목록이 행성 격자가 되면서 줄별 삭제 버튼이 사라졌다. 편집 화면에 둔다. */}
             {editing.id && (
               <button
                 onClick={() => remove(editing.id!, editing.name)}
@@ -504,7 +548,7 @@ export function ThemeEditor({
         </div>
       )}
 
-      {/* ── 목록 (포스터 격자) ── */}
+      {/* ── 목록 (행성 + 정보) ── */}
       {!editing && (
         <div>
           {themes.length === 0 ? (
@@ -513,26 +557,22 @@ export function ThemeEditor({
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {themes.map((t) => {
                 const prices = t.tiers.map((x) => x.unit_price_krw);
+                // 고객 화면과 같은 대체 규칙 — 로고가 없으면 포스터, 포스터도 없으면 기본 아트웍.
+                const logo = t.logo_image_path;
                 return (
                   <button
                     key={t.id}
                     onClick={() => setEditing(toInput(t))}
-                    className="group overflow-hidden rounded-lg border border-border text-left transition-colors hover:border-glow"
+                    className="overflow-hidden rounded-lg border border-border text-left transition-colors hover:border-glow"
                   >
-                    <div className="relative aspect-[4/5] bg-background">
-                      {t.hero_image_path ? (
-                        <Image
-                          src={t.hero_image_path}
-                          alt={t.name}
-                          fill
-                          className="object-cover"
-                          sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
-                        />
-                      ) : (
-                        <span className="flex h-full items-center justify-center text-xs text-muted">
-                          포스터 없음
-                        </span>
-                      )}
+                    <div className="relative aspect-square bg-background">
+                      <Image
+                        src={logo || t.hero_image_path || FALLBACK_POSTER}
+                        alt={t.name}
+                        fill
+                        className={logo ? "object-contain p-3" : "object-cover"}
+                        sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+                      />
 
                       {(!t.is_active || !t.is_listed) && (
                         <div className="absolute left-2 top-2 flex flex-col gap-1">
@@ -550,7 +590,7 @@ export function ThemeEditor({
                       )}
                     </div>
 
-                    <div className="p-3">
+                    <div className="border-t border-border p-3">
                       <p className="truncate text-sm font-medium">{t.name}</p>
                       <p className="mt-0.5 text-[11px] text-muted">
                         난이도 {t.difficulty} · {t.duration_minutes}분
@@ -568,77 +608,6 @@ export function ThemeEditor({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-/** 콘텐츠 블록(배열) 편집기. 행 추가/삭제/순서변경. */
-function BlockEditor<T extends Record<string, string | number>>({
-  title,
-  rows,
-  cols,
-  colLabels,
-  onChange,
-  blank,
-  numericCols = [],
-}: {
-  title: string;
-  rows: T[];
-  cols: (keyof T & string)[];
-  colLabels: string[];
-  onChange: (rows: T[]) => void;
-  blank: T;
-  numericCols?: string[];
-}) {
-  const move = (i: number, d: number) => {
-    const next = [...rows];
-    const j = i + d;
-    if (j < 0 || j >= next.length) return;
-    [next[i], next[j]] = [next[j], next[i]];
-    onChange(next);
-  };
-
-  return (
-    <div>
-      {title && <p className="mb-2 text-xs font-medium">{title}</p>}
-      <div className="space-y-2">
-        {rows.map((row, i) => (
-          <div key={i} className="flex flex-wrap items-end gap-2">
-            {cols.map((c, ci) => (
-              <div key={c} className={ci === cols.length - 1 ? "min-w-48 flex-1" : "w-28"}>
-                <label className={label}>{colLabels[ci]}</label>
-                <input
-                  type={numericCols.includes(c) ? "number" : "text"}
-                  className={field}
-                  value={row[c] as string | number}
-                  onChange={(e) => {
-                    const next = [...rows];
-                    next[i] = {
-                      ...row,
-                      [c]: numericCols.includes(c) ? Number(e.target.value) : e.target.value,
-                    };
-                    onChange(next);
-                  }}
-                />
-              </div>
-            ))}
-            <button onClick={() => move(i, -1)} className="rounded border border-border px-2 py-2 text-xs" title="위로">↑</button>
-            <button onClick={() => move(i, 1)} className="rounded border border-border px-2 py-2 text-xs" title="아래로">↓</button>
-            <button
-              onClick={() => onChange(rows.filter((_, x) => x !== i))}
-              className="rounded border border-red-500/50 px-2 py-2 text-xs text-red-400"
-            >
-              삭제
-            </button>
-          </div>
-        ))}
-      </div>
-      <button
-        onClick={() => onChange([...rows, structuredClone(blank)])}
-        className="mt-2 rounded border border-border px-3 py-1.5 text-xs"
-      >
-        + 항목 추가
-      </button>
     </div>
   );
 }

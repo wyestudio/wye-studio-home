@@ -82,7 +82,7 @@ export function BookingCalendar({
   const [y, m] = month.split("-");
 
   return (
-    <div className="rounded-xl border border-white/15 bg-white/[0.03] p-4">
+    <div className="rounded-xl border border-white/15 bg-white/[0.03] p-3">
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"

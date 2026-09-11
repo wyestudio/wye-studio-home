@@ -26,6 +26,7 @@ export type ThemeInput = {
   venue_id: string;
   accent_color: string;
   hero_image_path: string;
+  logo_image_path: string;
   category_id: string | null;
   content: ThemeContent;
   is_active: boolean;
@@ -142,6 +143,7 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       venue_id: input.venue_id,
       accent_color: input.accent_color.trim() || null,
       hero_image_path: input.hero_image_path.trim() || null,
+      logo_image_path: input.logo_image_path.trim() || null,
       category_id: input.category_id || null,
       content: sanitizeContent(input.content),
       is_active: input.is_active,

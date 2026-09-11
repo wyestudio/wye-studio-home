@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { ThemeBlockView } from "@/components/contents/ThemeBlocks";
 import {
   THEME_BLOCK_LABELS,
   type ThemeBlock,
@@ -26,17 +28,24 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
 /**
  * 상세 페이지 콘텐츠 편집기.
  *
- * 예전에는 '이런 분께 추천 / 진행 방식 / 타임테이블 / 주의사항' 4칸이 고정이라
- * 그 구성이 안 맞는 테마는 빈 칸을 남기거나 억지로 끼워야 했다.
- * 필요한 블록만 골라 쌓고 순서를 바꾼다.
+ * 블록은 고객 화면과 **같은 컴포넌트(ThemeBlockView)** 로 미리 그린다.
+ * 어드민용 미리보기를 따로 만들면 실제 화면과 반드시 어긋난다.
+ *
+ * 추가 버튼은 목록 아래 한 곳이 아니라 블록 사이사이에 둔다 — 중간에
+ * 끼워넣으려고 추가한 뒤 ↑ 를 여러 번 누를 일이 없어진다.
  */
 export function ContentBlocksEditor({
   blocks,
+  accent,
   onChange,
 }: {
   blocks: ThemeBlock[];
+  accent: string;
   onChange: (blocks: ThemeBlock[]) => void;
 }) {
+  /** 폼이 열려 있는 블록. 미리보기만 보고 싶을 때가 대부분이라 기본은 닫힘. */
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   const patch = (i: number, next: Partial<ThemeBlock>) =>
     onChange(blocks.map((b, x) => (x === i ? ({ ...b, ...next } as ThemeBlock) : b)));
 
@@ -46,77 +55,148 @@ export function ContentBlocksEditor({
     const next = [...blocks];
     [next[i], next[j]] = [next[j], next[i]];
     onChange(next);
+    setOpenIndex(openIndex === i ? j : openIndex === j ? i : openIndex);
   };
 
-  const remove = (i: number) => onChange(blocks.filter((_, x) => x !== i));
+  const remove = (i: number) => {
+    onChange(blocks.filter((_, x) => x !== i));
+    setOpenIndex(null);
+  };
+
+  /** i 번째 자리에 새 블록을 끼운다. 갓 만든 블록은 비어 있으니 폼을 열어둔다. */
+  const insert = (i: number, type: ThemeBlockType) => {
+    onChange([...blocks.slice(0, i), emptyBlock(type), ...blocks.slice(i)]);
+    setOpenIndex(i);
+  };
 
   return (
-    <div className="space-y-3">
+    <div>
       {blocks.length === 0 && (
-        <p className="rounded border border-dashed border-border py-8 text-center text-sm text-muted">
+        <p className="mb-1 rounded border border-dashed border-border py-6 text-center text-sm text-muted">
           아직 내용이 없습니다. 아래에서 블록을 추가해주세요.
         </p>
       )}
 
-      {blocks.map((b, i) => (
-        <div key={i} className="rounded-lg border border-border p-3">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="rounded bg-muted/20 px-2 py-0.5 text-[11px] text-muted">
-              {THEME_BLOCK_LABELS[b.type]}
-            </span>
-            <input
-              className={`${field} flex-1`}
-              value={b.title}
-              onChange={(e) => patch(i, { title: e.target.value })}
-              placeholder="블록 제목 (비우면 제목 없이 나갑니다)"
-            />
-            <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
-              className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30">↑</button>
-            <button type="button" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}
-              className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30">↓</button>
-            <button type="button" onClick={() => remove(i)}
-              className="rounded border border-red-500/40 px-2 py-1 text-xs text-red-400">삭제</button>
-          </div>
+      <InsertRow onInsert={(t) => insert(0, t)} />
 
-          {b.type === "text" && (
-            <textarea
-              className={`${field} min-h-28`}
-              value={b.body}
-              onChange={(e) => patch(i, { body: e.target.value })}
-              placeholder="내용. 줄바꿈은 그대로 보이고 https:// 주소는 자동으로 링크가 됩니다."
-            />
-          )}
+      {blocks.map((b, i) => {
+        const open = openIndex === i;
+        return (
+          <div key={i}>
+            <div className="rounded-lg border border-border">
+              <div className="flex items-center gap-2 border-b border-border bg-white/[0.02] px-3 py-2">
+                <span className="shrink-0 rounded bg-muted/20 px-2 py-0.5 text-[11px] text-muted">
+                  {THEME_BLOCK_LABELS[b.type]}
+                </span>
+                <span className="flex-1 truncate text-xs text-muted">
+                  {b.title || "(제목 없음)"}
+                </span>
+                <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
+                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30" title="위로">↑</button>
+                <button type="button" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}
+                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30" title="아래로">↓</button>
+                <button type="button" onClick={() => setOpenIndex(open ? null : i)}
+                  className="rounded border border-border px-2 py-1 text-xs">
+                  {open ? "접기" : "편집"}
+                </button>
+                <button type="button" onClick={() => remove(i)}
+                  className="rounded border border-red-500/40 px-2 py-1 text-xs text-red-400">삭제</button>
+              </div>
 
-          {b.type === "image" && (
-            <div className="grid gap-2 sm:grid-cols-2">
-              <input className={field} value={b.src}
-                onChange={(e) => patch(i, { src: e.target.value })}
-                placeholder="/theme-detail.png 또는 https://..." />
-              <input className={field} value={b.alt}
-                onChange={(e) => patch(i, { alt: e.target.value })}
-                placeholder="이미지 설명 (화면에 안 보임)" />
+              {/* 미리보기 — 고객 화면과 같은 컴포넌트 */}
+              <div className="px-4 py-4">
+                <ThemeBlockView block={b} accent={accent} sampleStartAt={null} />
+              </div>
+
+              {open && (
+                <div className="space-y-2 border-t border-border bg-white/[0.02] p-3">
+                  <input
+                    className={field}
+                    value={b.title}
+                    onChange={(e) => patch(i, { title: e.target.value })}
+                    placeholder="블록 제목 (비우면 제목 없이 나갑니다)"
+                  />
+
+                  {b.type === "text" && (
+                    <textarea
+                      className={`${field} min-h-28`}
+                      value={b.body}
+                      onChange={(e) => patch(i, { body: e.target.value })}
+                      placeholder="내용. 줄바꿈은 그대로 보이고 https:// 주소는 자동으로 링크가 됩니다."
+                    />
+                  )}
+
+                  {b.type === "image" && (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input className={field} value={b.src}
+                        onChange={(e) => patch(i, { src: e.target.value })}
+                        placeholder="/theme-detail.png 또는 https://..." />
+                      <input className={field} value={b.alt}
+                        onChange={(e) => patch(i, { alt: e.target.value })}
+                        placeholder="이미지 설명 (화면에 안 보임)" />
+                    </div>
+                  )}
+
+                  {(b.type === "list" || b.type === "timetable" || b.type === "callout") && (
+                    <RowsEditor block={b} onChange={(items) => patch(i, { items } as Partial<ThemeBlock>)} />
+                  )}
+                </div>
+              )}
             </div>
-          )}
 
-          {(b.type === "list" || b.type === "timetable" || b.type === "callout") && (
-            <RowsEditor block={b} onChange={(items) => patch(i, { items } as Partial<ThemeBlock>)} />
-          )}
-        </div>
-      ))}
+            <InsertRow onInsert={(t) => insert(i + 1, t)} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-        <span className="text-xs text-muted">블록 추가</span>
+/**
+ * 블록과 블록 사이의 삽입 자리.
+ * 평소에는 얇은 선이고, + 를 누르면 블록 종류가 펼쳐진다.
+ */
+function InsertRow({ onInsert }: { onInsert: (type: ThemeBlockType) => void }) {
+  const [open, setOpen] = useState(false);
+
+  if (open) {
+    return (
+      <div className="my-2 flex flex-wrap items-center gap-1.5 rounded border border-border p-2">
         {(Object.keys(THEME_BLOCK_LABELS) as ThemeBlockType[]).map((t) => (
           <button
             key={t}
             type="button"
-            onClick={() => onChange([...blocks, emptyBlock(t)])}
-            className="rounded border border-border px-3 py-1.5 text-xs"
+            onClick={() => {
+              onInsert(t);
+              setOpen(false);
+            }}
+            className="rounded border border-border px-3 py-1.5 text-xs hover:border-glow"
           >
-            + {THEME_BLOCK_LABELS[t]}
+            {THEME_BLOCK_LABELS[t]}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="ml-auto px-2 py-1.5 text-xs text-muted"
+        >
+          취소
+        </button>
       </div>
+    );
+  }
+
+  return (
+    <div className="group relative flex h-7 items-center justify-center">
+      <span className="absolute inset-x-0 top-1/2 h-px bg-border opacity-0 transition-opacity group-hover:opacity-100" />
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="여기에 블록 추가"
+        className="relative rounded-full border border-border bg-background px-2.5 text-xs leading-5 text-muted opacity-40 transition-opacity hover:border-glow hover:text-glow group-hover:opacity-100"
+      >
+        +
+      </button>
     </div>
   );
 }

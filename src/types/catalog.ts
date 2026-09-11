@@ -108,6 +108,8 @@ export type Theme = {
   venue_id: string;
   accent_color: string | null;
   hero_image_path: string | null;
+  /** 행성 로고. 목록에서 원형으로 노출. 비우면 포스터로 대체한다. */
+  logo_image_path: string | null;
   category_id: string | null;
   content: ThemeContent;
   is_active: boolean;

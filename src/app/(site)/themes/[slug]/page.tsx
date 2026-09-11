@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import Image from "next/image";
 import {
   getThemeBySlug,
   getUpcomingSessionsForTheme,
@@ -8,17 +9,15 @@ import {
   remainingSeats,
   isBookable,
 } from "@/lib/themes";
-import { formatKrw } from "@/lib/format";
-import Image from "next/image";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
-import { HudCard } from "@/components/ui/HudCard";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { normalizeThemeContent, type ThemeContent } from "@/types/catalog";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
+import { DetailTabs } from "./DetailTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -43,17 +42,6 @@ export async function generateMetadata({
     alternates: { canonical: `${SITE_URL}/themes/${theme.slug}` },
     openGraph: { title, description, url: `${SITE_URL}/themes/${theme.slug}` },
   };
-}
-
-/** 시작 시각 + 경과 분 → 표시용 시각. 회차 시각이 몇 시든 자동 계산된다. */
-function offsetToTime(startAt: string, offsetMin: number): string {
-  const t = new Date(new Date(startAt).getTime() + offsetMin * 60_000);
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(t);
 }
 
 export default async function ThemeDetailPage({ params }: PageProps<"/themes/[slug]">) {
@@ -86,87 +74,90 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   // 시각이 달라도 offset_min 으로 저장돼 있어 자동으로 다시 계산된다.
   const sampleSession = sessions.find((s) => s.bookable) ?? sessions[0] ?? null;
 
-  const minUnit = theme.tiers.length ? Math.min(...theme.tiers.map((t) => t.unit_price_krw)) : null;
-  const maxUnit = theme.tiers.length ? Math.max(...theme.tiers.map((t) => t.unit_price_krw)) : null;
   const hours = Math.floor(theme.duration_minutes / 60);
   const mins = theme.duration_minutes % 60;
   const durationLabel = mins === 0 ? `${hours}시간` : `${hours}시간 ${mins}분`;
 
   return (
-    <main className="mx-auto max-w-3xl px-5 py-12">
-      {/* ── 헤더: 좌 포스터 / 우 정보 ── */}
-      <header className="mb-10 flex flex-col gap-6 sm:flex-row sm:gap-8">
-        <div className="mx-auto w-56 shrink-0 sm:mx-0 sm:w-64">
+    <main className="mx-auto max-w-5xl px-5 pb-20">
+      {/* 모바일에서만 — 회차 선택 / 상세 정보 사이를 오가는 탭 */}
+      <DetailTabs accent={accent} />
+
+      {/*
+        ── 상단: 좌 포스터 / 우 정보 + 예약 ──
+        예약을 아래 별도 섹션으로 내리면 첫 화면에서 "언제 갈 수 있는지"가
+        안 보인다. 포스터 옆 빈 공간이 그 자리다.
+      */}
+      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[20rem_minmax(0,1fr)]">
+        <div className="mx-auto w-44 shrink-0 sm:w-52 md:mx-0 md:w-full">
           <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface">
             <Image
               src={theme.hero_image_path || FALLBACK_POSTER}
               alt={`${theme.name} 포스터`}
               fill
               className="object-cover"
-              sizes="(min-width: 640px) 256px, 224px"
+              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 208px"
               priority
             />
           </div>
         </div>
 
-        <div className="flex-1">
-          <h1 className="text-3xl font-extrabold sm:text-4xl">{theme.name}</h1>
-          {categoryName && (
-            <p className="mt-1.5 text-xl font-bold sm:text-2xl" style={{ color: accent }}>
-              {categoryName}
-            </p>
-          )}
-          {theme.tagline && <p className="mt-3 text-muted">{theme.tagline}</p>}
+        <div className="flex min-w-0 flex-col">
+          <div className="text-center md:text-left">
+            <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
+            {categoryName && (
+              <p className="mt-1 text-lg font-bold sm:text-xl" style={{ color: accent }}>
+                {categoryName}
+              </p>
+            )}
 
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-            <DifficultyLocks rating={theme.difficulty} />
-            <span>⏱ {durationLabel}</span>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted md:justify-start">
+              <DifficultyLocks rating={theme.difficulty} />
+              <span>⏱ {durationLabel}</span>
+            </div>
+
+            {theme.description && (
+              <p className="mt-4 whitespace-pre-line text-left leading-relaxed">
+                {theme.description}
+              </p>
+            )}
+
+            <div className="mt-4 flex justify-center md:justify-start">
+              <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
+            </div>
           </div>
 
-          {theme.description && (
-            <p className="mt-5 whitespace-pre-line leading-relaxed">{theme.description}</p>
-          )}
-
-          <div className="mt-6">
-            <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
-          </div>
+          <section id="booking" className="mt-8 flex flex-1 scroll-mt-28 flex-col">
+            <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
+              <SessionPicker
+                themeSlug={theme.slug}
+                sessions={sessions}
+                accentColor={accent}
+                accepting={acceptingApplications}
+              />
+            </Suspense>
+          </section>
         </div>
-      </header>
+      </div>
 
-      {/* ── 날짜 선택 (핵심) ── */}
-      <section className="mb-14 scroll-mt-20" id="booking">
-        <SectionHeading eyebrow="BOOKING" title="날짜를 선택해주세요" align="left" eyebrowColor={accent} />
-        <div className="mt-5">
-          <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
-            <SessionPicker
-              themeSlug={theme.slug}
-              sessions={sessions}
-              tiers={theme.tiers}
-              accentColor={accent}
-              accepting={acceptingApplications}
-            />
-          </Suspense>
-        </div>
-      </section>
+      {/* ── 상세 정보 ── */}
+      <div id="detail" className="mt-16 scroll-mt-28">
+        {theme.tiers.length > 0 && (
+          <section className="mb-14">
+            <SectionHeading eyebrow="PRICE" title="인원별 참가비" align="left" eyebrowColor={accent} />
+            <div className="mt-5">
+              <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
+            </div>
+          </section>
+        )}
 
-      {/* ── 참가비 ── */}
-      {theme.tiers.length > 0 && (
-        <section className="mb-14">
-          <SectionHeading eyebrow="PRICE" title="인원별 참가비" align="left" eyebrowColor={accent} />
-          <div className="mt-5">
-            <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
-          </div>
-        </section>
-      )}
-
-      {/* ── 상세 콘텐츠 (어드민에서 쌓은 블록 순서대로) ── */}
-      <ThemeBlocks
-        blocks={content.blocks}
-        accent={accent}
-        sampleStartAt={sampleSession?.start_at ?? null}
-      />
-
-
+        {/* 어드민에서 쌓은 블록 순서대로 */}
+        <ThemeBlocks
+          blocks={content.blocks}
+          accent={accent}
+          sampleStartAt={sampleSession?.start_at ?? null}
+        />
+      </div>
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}
       <KakaoChannelButton />

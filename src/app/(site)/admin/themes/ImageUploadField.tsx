@@ -7,6 +7,9 @@ import { uploadThemeImage } from "./uploadActions";
 /**
  * 이미지 업로드 + 미리보기.
  *
+ * 미리보기를 위에 크게 두고 조작 버튼을 그 아래에 둔다 — 고객 화면에서
+ * 어떻게 보일지가 먼저 보여야 고를 수 있다.
+ *
  * 값은 여전히 URL 문자열이다. 업로드는 그 문자열을 채우는 한 가지 방법일 뿐이고,
  * 외부 URL 을 직접 붙여넣는 것도 계속 된다.
  */
@@ -15,11 +18,14 @@ export function ImageUploadField({
   onChange,
   label = "포스터",
   hint,
+  shape = "poster",
 }: {
   value: string;
   onChange: (url: string) => void;
   label?: string;
   hint?: string;
+  /** poster = 세로 4:5 / circle = 목록에 뜨는 원형 행성 로고 */
+  shape?: "poster" | "circle";
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -47,61 +53,72 @@ export function ImageUploadField({
     }
   }
 
+  const circle = shape === "circle";
+
   return (
     <div>
-      <label className="mb-1 block text-xs text-muted">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-muted">{label}</label>
 
-      <div className="flex items-start gap-3">
-        <div className="relative h-32 w-[6.4rem] shrink-0 overflow-hidden rounded border border-border bg-background">
-          {value ? (
-            <Image src={value} alt="미리보기" fill className="object-cover" sizes="103px" />
-          ) : (
-            <span className="flex h-full items-center justify-center text-[11px] text-muted">
-              없음
-            </span>
-          )}
-        </div>
-
-        <div className="flex-1 space-y-2">
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) pick(f);
-              e.target.value = ""; // 같은 파일을 다시 골라도 이벤트가 나게 한다
-            }}
+      <div
+        className={`relative overflow-hidden border border-border bg-background ${
+          circle ? "mx-auto aspect-square w-32 rounded-full" : "aspect-[4/5] w-full rounded-lg"
+        }`}
+      >
+        {value ? (
+          <Image
+            src={value}
+            alt="미리보기"
+            fill
+            className={circle ? "object-contain" : "object-cover"}
+            sizes="256px"
           />
+        ) : (
+          <span className="flex h-full items-center justify-center text-xs text-muted">
+            등록된 이미지 없음
+          </span>
+        )}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) pick(f);
+          e.target.value = ""; // 같은 파일을 다시 골라도 이벤트가 나게 한다
+        }}
+      />
+
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          className="flex-1 rounded border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+        >
+          {busy ? "올리는 중…" : value ? "변경" : "이미지 올리기"}
+        </button>
+        {value && (
           <button
             type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            className="rounded border border-border px-3 py-1.5 text-sm disabled:opacity-50"
+            onClick={() => onChange("")}
+            className="rounded border border-red-500/40 px-3 py-1.5 text-xs text-red-400"
           >
-            {busy ? "올리는 중…" : value ? "이미지 변경" : "이미지 올리기"}
+            삭제
           </button>
-          {value && (
-            <button
-              type="button"
-              onClick={() => onChange("")}
-              className="ml-2 rounded border border-border px-3 py-1.5 text-sm text-muted"
-            >
-              제거
-            </button>
-          )}
-
-          <input
-            className="w-full rounded border border-border bg-background px-2 py-1.5 text-xs"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="또는 이미지 주소를 직접 붙여넣기"
-          />
-          {hint && <p className="text-[11px] text-muted">{hint}</p>}
-          {error && <p className="text-xs text-red-400">{error}</p>}
-        </div>
+        )}
       </div>
+
+      <input
+        className="mt-2 w-full rounded border border-border bg-background px-2 py-1.5 text-[11px]"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="또는 이미지 주소를 직접 붙여넣기"
+      />
+      {hint && <p className="mt-1 text-[11px] text-muted">{hint}</p>}
+      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </div>
   );
 }
