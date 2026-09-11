@@ -1,6 +1,7 @@
 -- Phase 3 — sessions 테이블 쓰기 권한을 service_role 에 부여
 --
--- 적용: ⚠️ test·운영 모두 미적용. 아래 SQL 을 Supabase SQL Editor 에서 실행할 것.
+-- 적용: test·운영 모두 적용 완료 (2026-09-10). test 에서 어드민 4개 액션을
+--       실제로 눌러 검증한 뒤 운영 반영.
 -- 되돌리기:
 --   revoke insert, update, delete on public.sessions from service_role;
 --

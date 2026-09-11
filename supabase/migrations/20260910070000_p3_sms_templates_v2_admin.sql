@@ -1,6 +1,6 @@
 -- Phase 3 — 어드민 문자 템플릿 신규판 (문자4·6·7)
 --
--- 적용: test 적용 완료 / ⚠️ 운영 미적용 (Phase 4 오픈 전 반드시 적용할 것)
+-- 적용: test·운영 모두 적용 완료 (2026-09-10)
 -- 되돌리기:
 --   delete from sms_templates
 --   where key in ('application_cancelled_v2','waitlist_promoted_v2','minimum_not_met_cancellation_v2');
