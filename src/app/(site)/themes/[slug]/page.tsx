@@ -88,7 +88,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         예약을 아래 별도 섹션으로 내리면 첫 화면에서 "언제 갈 수 있는지"가
         안 보인다. 포스터 옆 빈 공간이 그 자리다.
       */}
-      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[20rem_minmax(0,1fr)]">
+      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[22.5rem_minmax(0,1fr)]">
         <div className="mx-auto w-44 shrink-0 sm:w-52 md:mx-0 md:w-full">
           <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface">
             <Image
@@ -96,7 +96,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               alt={`${theme.name} 포스터`}
               fill
               className="object-cover"
-              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 208px"
+              sizes="(min-width: 1024px) 360px, (min-width: 768px) 288px, 208px"
               priority
             />
           </div>
@@ -111,9 +111,14 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               </p>
             )}
 
+            {/*
+              공유 버튼을 이 줄에 같이 둔다. 따로 한 줄을 차지하면 오른쪽 칸이
+              그만큼 길어져 신청 버튼이 포스터 아래 끝선에서 더 멀어진다.
+            */}
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted md:justify-start">
               <DifficultyLocks rating={theme.difficulty} />
               <span>⏱ {durationLabel}</span>
+              <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
             </div>
 
             {theme.description && (
@@ -121,13 +126,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
                 {theme.description}
               </p>
             )}
-
-            <div className="mt-4 flex justify-center md:justify-start">
-              <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
-            </div>
           </div>
 
-          <section id="booking" className="mt-8 flex flex-1 scroll-mt-28 flex-col">
+          <section id="booking" className="mt-6 flex flex-1 scroll-mt-28 flex-col">
             <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
               <SessionPicker
                 themeSlug={theme.slug}

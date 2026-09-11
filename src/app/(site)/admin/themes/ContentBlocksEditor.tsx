@@ -9,6 +9,9 @@ import {
 } from "@/types/catalog";
 
 const field = "w-full rounded border border-border bg-background px-2 py-1.5 text-sm";
+// ⚠️ 줄 편집기는 flex 라 w-full 을 쓰면 안 된다. width:100% 인 칸이 basis:auto 로
+//    공간을 다 먹어 나머지 칸이 0 폭으로 찌그러진다(실제로 그랬다).
+const cell = "rounded border border-border bg-background px-2 py-1.5 text-sm";
 
 function emptyBlock(type: ThemeBlockType): ThemeBlock {
   switch (type) {
@@ -92,9 +95,9 @@ export function ContentBlocksEditor({
                   {b.title || "(제목 없음)"}
                 </span>
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
-                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30" title="위로">↑</button>
+                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30">위로</button>
                 <button type="button" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}
-                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30" title="아래로">↓</button>
+                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30">아래로</button>
                 <button type="button" onClick={() => setOpenIndex(open ? null : i)}
                   className="rounded border border-border px-2 py-1 text-xs">
                   {open ? "접기" : "편집"}
@@ -247,7 +250,7 @@ function RowsEditor({
           {cols.map((c) => (
             <input
               key={c.key}
-              className={`${field} ${c.width ?? "flex-1"}`}
+              className={`${cell} ${c.width ?? "min-w-0 flex-1"}`}
               type={c.numeric ? "number" : "text"}
               value={String(row[c.key] ?? "")}
               placeholder={c.label}
