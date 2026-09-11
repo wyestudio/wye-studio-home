@@ -5,17 +5,6 @@ import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import type { ThemeBlock } from "@/types/catalog";
 
-/** 시작 시각 + 경과 분 → 표시용 시각. */
-function offsetToTime(startAt: string, offsetMin: number): string {
-  const d = new Date(new Date(startAt).getTime() + offsetMin * 60 * 1000);
-  return new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(d);
-}
-
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
 
@@ -25,21 +14,12 @@ const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
  * 운영자가 어드민에서 쌓은 순서 그대로 그린다. 블록 종류마다 모양만 다르고
  * 어떤 블록이 몇 개 오든 상관없다.
  */
-export function ThemeBlocks({
-  blocks,
-  accent,
-  sampleStartAt,
-}: {
-  blocks: ThemeBlock[];
-  accent: string;
-  /** 타임테이블의 경과 분을 실제 시각으로 바꿀 기준. 없으면 "+30분" 으로 표시. */
-  sampleStartAt: string | null;
-}) {
+export function ThemeBlocks({ blocks, accent }: { blocks: ThemeBlock[]; accent: string }) {
   return (
     <>
       {blocks.map((block, i) => (
         <section key={i} className="mb-12">
-          <ThemeBlockView block={block} accent={accent} sampleStartAt={sampleStartAt} />
+          <ThemeBlockView block={block} accent={accent} />
         </section>
       ))}
     </>
@@ -52,15 +32,7 @@ export function ThemeBlocks({
  *
  * 모양은 8/29 회차 페이지(`/sessions/[slug]`)의 것을 그대로 옮겼다.
  */
-export function ThemeBlockView({
-  block,
-  accent,
-  sampleStartAt,
-}: {
-  block: ThemeBlock;
-  accent: string;
-  sampleStartAt: string | null;
-}) {
+export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: string }) {
   const heading = (block.eyebrow || block.title) && (
     <SectionHeading
       eyebrow={block.eyebrow ?? ""}
@@ -129,7 +101,7 @@ export function ThemeBlockView({
               </div>
               <div className="pb-1">
                 <p className="text-xs font-extrabold" style={{ color: accent }}>
-                  {sampleStartAt ? offsetToTime(sampleStartAt, t.offset_min) : `+${t.offset_min}분`}
+                  {i + 1}
                 </p>
                 <p className="mt-0.5 font-bold text-foreground">{t.title}</p>
                 {t.desc && <p className="mt-1 text-xs text-muted">{t.desc}</p>}

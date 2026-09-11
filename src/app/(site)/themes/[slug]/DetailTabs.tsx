@@ -38,8 +38,15 @@ export function DetailTabs({ accent }: { accent: string }) {
   }, []);
 
   return (
+    /*
+      ⚠️ z 는 헤더(z-20)보다 낮게. before 로 위쪽을 배경으로 채워두면
+         --header-height 가 실제 헤더 높이와 1~2px 어긋나도 그 틈으로 본문이
+         비쳐 보이지 않는다. 겹치는 부분은 헤더가 위에서 덮는다.
+    */
     <nav
-      className="sticky top-[var(--header-height,52px)] z-20 -mx-5 mb-2 flex border-b border-white/10 bg-background/95 backdrop-blur sm:hidden"
+      className="sticky top-[var(--header-height,52px)] z-10 -mx-5 mb-2 flex border-b border-white/10 bg-background
+                 before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-background
+                 sm:hidden"
       aria-label="섹션 이동"
     >
       {TABS.map((t) => {

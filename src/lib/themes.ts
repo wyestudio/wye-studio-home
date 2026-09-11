@@ -64,16 +64,21 @@ export async function getThemeBySlug(slug: string): Promise<ThemeWithTiers | nul
  * 해당 테마의 "앞으로 진행될" 회차들. 지난 회차와 비활성화된 회차는 뺀다.
  * session_view 를 쓰는 이유는 가격·정원·장소의 override 규칙이 그 안에만
  * 존재하기 때문이다 (sessions 테이블을 직접 읽지 않는다).
+ *
+ * ⚠️ opens_at 이 아직 안 온 회차는 뺀다. 롤링 오픈이라 회차는 몇 달 치가 미리
+ *    만들어져 있고, 공개 시각이 지나야 고객 화면에 나온다.
  */
 export async function getUpcomingSessionsForTheme(themeId: string): Promise<SessionView[]> {
   const supabase = await createClient();
+  const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("session_view")
     .select("*")
     .eq("theme_id", themeId)
     .neq("status", "cancelled")
-    .gte("start_at", new Date().toISOString())
+    .gte("start_at", now)
+    .lte("opens_at", now)
     .order("start_at", { ascending: true });
 
   if (error) throw error;

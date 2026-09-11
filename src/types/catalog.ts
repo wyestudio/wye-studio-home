@@ -45,8 +45,12 @@ export type ThemeBlock =
       variant?: "card" | "step";
       items: { emoji: string; title: string; desc: string }[];
     } & BlockCommon)
-  /** ⭐ 절대시각이 아니라 시작 시각으로부터의 경과 분. 회차 시각이 달라도 재입력 불필요. */
-  | ({ type: "timetable"; items: { offset_min: number; title: string; desc: string }[] } & BlockCommon)
+  /**
+   * 진행 순서. 1·2·3… 으로만 매긴다.
+   * ⚠️ 시각은 일부러 뺐다. "현장 상황에 따라 다를 수 있다" 고 적어둬도 적힌 시각과
+   *    다르면 항의가 들어온다(실제로 그랬다). 순서만 약속한다.
+   */
+  | ({ type: "timetable"; items: { title: string; desc: string }[] } & BlockCommon)
   /** 눈에 띄어야 하는 안내(주의사항 등). 번호가 붙는다. */
   | ({ type: "callout"; items: { title: string; desc: string }[] } & BlockCommon)
   /** 자주 묻는 질문. 눌러서 펼치는 아코디언으로 나간다. */
@@ -66,7 +70,7 @@ export const EMPTY_THEME_CONTENT: ThemeContent = { blocks: [] };
 export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
   text: "제목 + 문단",
   list: "목록",
-  timetable: "타임테이블",
+  timetable: "진행 순서",
   callout: "강조 박스",
   faq: "자주 묻는 질문",
   image: "이미지",
@@ -92,7 +96,7 @@ export function normalizeThemeContent(raw: unknown): ThemeContent {
   if (list(o.steps).length)
     blocks.push({ type: "list", title: "진행 방식", items: list(o.steps) as never });
   if (list(o.timetable).length)
-    blocks.push({ type: "timetable", title: "타임테이블", items: list(o.timetable) as never });
+    blocks.push({ type: "timetable", title: "진행 순서", items: list(o.timetable) as never });
   if (list(o.precautions).length)
     blocks.push({ type: "callout", title: "주의사항", items: list(o.precautions) as never });
 

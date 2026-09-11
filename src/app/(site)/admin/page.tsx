@@ -2,15 +2,14 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatSessionDateTime } from "@/lib/format";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
-import { getSessionStats } from "@/lib/sessions";
 import {
   formatCapacityLine,
   formatHeadcountLine,
   countUnpaidConfirmed,
+  computeSessionStats,
   type SessionDisplayRow,
 } from "@/lib/sessionStatsFormat";
-import type { Session, SessionStats } from "@/types/domain";
+import { DashboardSessions, type DashboardSession } from "./DashboardSessions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,16 +30,17 @@ function getNowMs(): number {
 export default async function AdminDashboard() {
   const supabase = createAdminClient();
 
-  const [sessionsRes, appsRes, attendeesRes, unmatchedRes] = await Promise.all([
+  const [sessionsRes, themesRes, appsRes, attendeesRes, unmatchedRes] = await Promise.all([
     // 표시값(테마명·정원·장소·링크)은 session_display 가 통일해준다.
     // sessions 를 직접 읽으면 신규 회차에서 옛 컬럼(정원 50명, 성별 정원)이 나온다.
     supabase.from("session_display").select("*").order("start_at", { ascending: false }),
+    supabase.from("themes").select("id, name").order("sort_order").order("created_at"),
     supabase
       .from("admin_application_view")
       .select(
         "id, session_id, status, payment_status, created_at, refund_bank_name, refund_completed_at, payment_confirmed_sms_sent_at"
       ),
-    supabase.from("admin_attendee_view").select("application_id"),
+    supabase.from("admin_attendee_view").select("application_id, gender"),
     supabase
       .from("bank_transactions")
       .select("id", { count: "exact", head: true })
@@ -60,9 +60,12 @@ export default async function AdminDashboard() {
   }
 
   const sessions = (sessionsRes.data ?? []) as (SessionDisplayRow & {
+    theme_id: string | null;
     start_at: string;
     status: string;
+    opens_at: string | null;
   })[];
+  const themes = (themesRes.data ?? []) as { id: string; name: string }[];
   const apps = (appsRes.data ?? []) as {
     id: string;
     session_id: string;
@@ -73,7 +76,7 @@ export default async function AdminDashboard() {
     refund_completed_at: string | null;
     payment_confirmed_sms_sent_at: string | null;
   }[];
-  const attendees = (attendeesRes.data ?? []) as { application_id: string }[];
+  const attendees = (attendeesRes.data ?? []) as { application_id: string; gender: string | null }[];
 
   const headcountOf = (appId: string) => attendees.filter((a) => a.application_id === appId).length;
 
@@ -105,18 +108,27 @@ export default async function AdminDashboard() {
     .filter((s) => new Date(s.start_at).getTime() > nowMs && s.status !== "cancelled")
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
 
-  const statsBySessionId = new Map<string, SessionStats>();
-  await Promise.all(
-    sessions.map(async (s) => {
-      try {
-        statsBySessionId.set(s.id, await getSessionStats(s.id));
-      } catch (err) {
-        console.error(`[admin] 세션 통계 조회 실패: ${s.id}`, err);
-      }
-    })
-  );
-
+  // ⚠️ 회차마다 RPC 를 부르지 않는다. 롤링 오픈으로 회차가 수백 개라
+  //    한 번 여는 데 RPC 가 수백 번 나가게 된다. 이미 읽어온 데이터로 계산한다.
+  const statsBySessionId = computeSessionStats(apps, attendees);
   const unpaidBySession = countUnpaidConfirmed(apps, attendees);
+
+  const dashboardSessions: DashboardSession[] = sessions.map((s) => {
+    const stats = statsBySessionId.get(s.id);
+    return {
+      id: s.id,
+      theme_id: s.theme_id,
+      start_at: s.start_at,
+      status: s.status,
+      opens_at: s.opens_at,
+      theme_name: s.theme_name,
+      format_label: s.format_label,
+      capacity_line: formatCapacityLine(s),
+      headcount_line: stats ? formatHeadcountLine(s, stats) : "확정 0명 · 대기 0명",
+      unpaid: unpaidBySession.get(s.id) ?? 0,
+      public_path: s.public_path,
+    };
+  });
 
   // 카드를 누르면 해당 조건이 걸린 신청 목록으로 바로 간다.
   const todo = [
@@ -182,62 +194,21 @@ export default async function AdminDashboard() {
           )}
         </section>
 
-        {/* ── 회차 목록 ── */}
+        {/* ── 회차 ── */}
         <section>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-muted">회차 ({sessions.length})</h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted">회차</h2>
             <Link href="/sessions" className="text-xs text-glow underline">
-              회차 관리 →
+              회차 편성 →
             </Link>
           </div>
 
-          <div className="space-y-3">
-            {sessions.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted">
-                등록된 회차가 없습니다. <Link href="/sessions" className="underline">회차 열기</Link>
-              </p>
-            ) : (
-              sessions.map((session) => {
-                const stats = statsBySessionId.get(session.id);
-                return (
-                  <Link
-                    key={session.id}
-                    href={`/sessions/${session.id}`}
-                    className="block rounded-lg border border-border p-4 transition-colors hover:bg-muted/10"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-semibold">
-                          {session.theme_name ?? "(테마 미지정)"}
-                          {session.format_label && (
-                            <span className="ml-2 rounded bg-muted/20 px-1.5 py-0.5 text-[11px] font-normal text-muted">
-                              {session.format_label}
-                            </span>
-                          )}
-                        </h3>
-                        <p className="mt-1 text-sm text-muted">{formatSessionDateTime(session.start_at)}</p>
-                        <p className="mt-1 text-xs text-muted">{formatCapacityLine(session)}</p>
-                        {stats && <p className="mt-1 text-xs text-muted">{formatHeadcountLine(session, stats)}</p>}
-                        <p className="mt-1 text-xs text-muted">
-                          입금 확인 전 인원: {unpaidBySession.get(session.id) ?? 0}명
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-2">
-                        <span className="text-sm font-medium">
-                          <span className={session.status === "cancelled" ? "text-red-500" : "text-glow"}>
-                            {session.status === "open" ? "모집중" : session.status === "cancelled" ? "비활성화" : "마감"}
-                          </span>
-                        </span>
-                        {session.public_path && (
-                          <CopyUrlButton url={`${SITE_URL}${session.public_path}`} />
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })
-            )}
-          </div>
+          <DashboardSessions
+            themes={themes}
+            sessions={dashboardSessions}
+            siteUrl={SITE_URL}
+            nowMs={nowMs}
+          />
         </section>
 
         <p className="mt-8 text-center text-xs text-muted">

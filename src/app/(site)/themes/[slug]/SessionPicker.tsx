@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
-import { BookingCalendar } from "./BookingCalendar";
+import { BookingCalendar } from "@/components/booking/BookingCalendar";
 
 export type PickerSession = SessionView & {
   stats: SessionStats | null;

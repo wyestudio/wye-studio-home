@@ -3,52 +3,56 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { defaultMinAge } from "@/types/catalog";
+import {
+  addDays,
+  computeOpensAt,
+  kstToUtcIso,
+  scheduledDates,
+  todayKst,
+} from "@/lib/scheduleRules";
 
-/**
- * KST 기준 "YYYY-MM-DD" + "HH:MM" 을 UTC ISO 문자열로 바꾼다.
- *
- * ⚠️ 서버(Vercel)는 UTC 로 돌기 때문에 new Date("2026-09-26T11:30") 처럼 쓰면
- *    KST 가 아니라 UTC 로 해석돼 9시간이 어긋난다. 오프셋을 명시한다.
- *    한국은 서머타임이 없어 +09:00 고정이 안전하다.
- */
-function kstToUtcIso(date: string, time: string): string {
-  return new Date(`${date}T${time}:00+09:00`).toISOString();
-}
-
-const WEEKDAY_INDEX: Record<string, number> = {
-  Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6,
-};
-
-/** KST 기준 요일 (0=일 … 6=토) */
-function kstWeekday(d: Date): number {
-  const short = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Seoul",
-    weekday: "short",
-  }).format(d);
-  return WEEKDAY_INDEX[short] ?? -1;
-}
-
-export type SessionCreateInput = {
+export type ScheduleInput = {
   theme_id: string;
   /** 시작일 (KST, YYYY-MM-DD) */
   start_date: string;
-  /** 하루에 열 회차 시각들 (KST, HH:MM) */
-  times: string[];
-  /** 반복할 요일 (0=일 … 6=토). 비우면 start_date 하루만 생성 */
+  /** 반복 요일 (0=일 … 6=토) */
   weekdays: number[];
-  /** 반복 주 수 (1 = 그 주만) */
-  weeks: number;
-  admin_note: string;
+  /** 하루 회차 시각 (KST, HH:MM) */
+  times: string[];
+  /** 회차일로부터 N주 전에 연다 */
+  open_weeks_before: number;
+  /** 그 주의 어느 요일 (0=일 … 6=토) */
+  open_weekday: number;
+  /** 그 날 몇 시 (KST, HH:MM) */
+  open_time: string;
 };
 
-const MAX_CREATE = 200;
+/** 한 번에 만들어 둘 기간. 지나면 어드민에서 다시 저장해 늘린다. */
+const HORIZON_WEEKS = 26;
+const MAX_CREATE = 800;
 
-export async function createSessions(input: SessionCreateInput): Promise<ActionResult> {
+function validateSchedule(input: ScheduleInput): string | null {
+  if (!input.theme_id) return "테마를 선택해주세요.";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.start_date)) return "시작일을 입력해주세요.";
+  if (input.weekdays.length === 0) return "반복 요일을 최소 하나 선택해주세요.";
+  if (input.times.filter(Boolean).length === 0) return "회차 시각을 최소 1개 입력해주세요.";
+  if (!Number.isInteger(input.open_weeks_before) || input.open_weeks_before < 0 || input.open_weeks_before > 52)
+    return "공개 주기는 0~52주 사이여야 합니다.";
+  if (!/^\d{2}:\d{2}$/.test(input.open_time)) return "공개 시각을 입력해주세요.";
+  return null;
+}
+
+/**
+ * 편성을 저장하고 그에 맞는 회차를 만들어 둔다.
+ *
+ * ⚠️ 공개 여부를 나중에 크론으로 바꾸지 않는다. 회차마다 opens_at 을 미리 박아두면
+ *    시간이 지나는 것만으로 열린다 — 실행이 밀려서 안 열리는 일이 없다.
+ * ⚠️ 이미 있는 회차는 건드리지 않는다. 신청이 붙어 있을 수 있다.
+ */
+export async function saveSchedule(input: ScheduleInput): Promise<ActionResult> {
   try {
-    if (!input.theme_id) return { error: "테마를 선택해주세요." };
-    if (!input.start_date) return { error: "시작일을 입력해주세요." };
-    if (input.times.length === 0) return { error: "회차 시각을 최소 1개 입력해주세요." };
-    if (input.weeks < 1) return { error: "반복 주 수는 1 이상이어야 합니다." };
+    const invalid = validateSchedule(input);
+    if (invalid) return { error: invalid };
 
     const supabase = await requireAdmin();
 
@@ -59,79 +63,87 @@ export async function createSessions(input: SessionCreateInput): Promise<ActionR
       .single();
     if (themeErr || !theme) return { error: "테마를 찾을 수 없습니다." };
 
-    // ── 생성할 날짜 목록 계산 ──────────────────────────────────
-    const dates: string[] = [];
-    const start = new Date(`${input.start_date}T00:00:00+09:00`);
+    const times = input.times.filter(Boolean);
+    const rule = {
+      start_date: input.start_date,
+      weekdays: input.weekdays,
+      times,
+      open_weeks_before: input.open_weeks_before,
+      open_weekday: input.open_weekday,
+      open_time: input.open_time,
+    };
 
-    if (input.weekdays.length === 0) {
-      dates.push(input.start_date);
-    } else {
-      for (let w = 0; w < input.weeks; w++) {
-        for (let d = 0; d < 7; d++) {
-          const cur = new Date(start);
-          cur.setUTCDate(cur.getUTCDate() + w * 7 + d);
-          // KST 기준 요일로 판정한다. 서버가 UTC 라 UTC 요일과 다를 수 있다.
-          if (!input.weekdays.includes(kstWeekday(cur))) continue;
+    const today = todayKst();
+    const until = addDays(today, 7 * HORIZON_WEEKS);
+    // 과거 날짜는 만들지 않는다. 편성 시작일이 미래면 거기서부터.
+    const dates = scheduledDates(rule, today, until);
 
-          const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(cur);
-          if (ymd < input.start_date) continue;
-          if (!dates.includes(ymd)) dates.push(ymd);
-        }
+    const rows = dates.flatMap((ymd) =>
+      times.map((t) => {
+        const startIso = kstToUtcIso(ymd, t);
+        return {
+          theme_id: input.theme_id,
+          start_at: startIso,
+          end_at: new Date(new Date(startIso).getTime() + theme.duration_minutes * 60_000).toISOString(),
+          status: "open" as const,
+          min_age: defaultMinAge(Number(t.split(":")[0]), theme.min_age_floor),
+          opens_at: computeOpensAt(ymd, rule),
+        };
+      })
+    );
+
+    if (rows.length > MAX_CREATE) {
+      return { error: `만들 회차가 ${rows.length}개로 너무 많습니다. 요일·시각을 줄여주세요.` };
+    }
+
+    const { error: schedErr } = await supabase.from("theme_schedules").upsert(
+      {
+        theme_id: input.theme_id,
+        start_date: input.start_date,
+        weekdays: input.weekdays,
+        times,
+        open_weeks_before: input.open_weeks_before,
+        open_weekday: input.open_weekday,
+        open_time: input.open_time,
+        generated_until: until,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "theme_id" }
+    );
+    if (schedErr) throw schedErr;
+
+    let created = 0;
+    if (rows.length > 0) {
+      const { data: existing } = await supabase
+        .from("sessions")
+        .select("start_at")
+        .eq("theme_id", input.theme_id)
+        .gte("start_at", rows[0].start_at);
+
+      const taken = new Set(
+        (existing ?? []).map((e) => new Date(e.start_at as string).toISOString())
+      );
+      const fresh = rows.filter((r) => !taken.has(r.start_at));
+
+      if (fresh.length > 0) {
+        const { error } = await supabase.from("sessions").insert(fresh);
+        if (error) throw error;
+        created = fresh.length;
       }
     }
-
-    const rows = dates
-      .sort()
-      .flatMap((ymd) =>
-        input.times.map((t) => {
-          const startIso = kstToUtcIso(ymd, t);
-          const endIso = new Date(
-            new Date(startIso).getTime() + theme.duration_minutes * 60_000
-          ).toISOString();
-          const hour = Number(t.split(":")[0]);
-          return {
-            theme_id: input.theme_id,
-            start_at: startIso,
-            end_at: endIso,
-            status: "open" as const,
-            min_age: defaultMinAge(hour, theme.min_age_floor),
-            admin_note: input.admin_note.trim() || null,
-          };
-        })
-      );
-
-    if (rows.length === 0) return { error: "생성할 회차가 없습니다. 요일·기간을 확인해주세요." };
-    if (rows.length > MAX_CREATE) {
-      return { error: `한 번에 ${MAX_CREATE}개까지만 만들 수 있습니다 (요청 ${rows.length}개).` };
-    }
-
-    // 같은 테마·같은 시각이 이미 있으면 건너뛴다(unique 제약이 없으므로 앱에서 확인).
-    const { data: existing } = await supabase
-      .from("sessions")
-      .select("start_at")
-      .eq("theme_id", input.theme_id)
-      .in("start_at", rows.map((r) => r.start_at));
-
-    const taken = new Set((existing ?? []).map((e) => new Date(e.start_at as string).toISOString()));
-    const fresh = rows.filter((r) => !taken.has(r.start_at));
-
-    if (fresh.length === 0) {
-      return { error: "요청한 회차가 이미 전부 등록돼 있습니다." };
-    }
-
-    const { error } = await supabase.from("sessions").insert(fresh);
-    if (error) throw error;
 
     revalidatePath("/admin/sessions");
     revalidatePath("/admin");
 
-    const skipped = rows.length - fresh.length;
     return {
       success: true as const,
-      message: `회차 ${fresh.length}개를 만들었습니다.${skipped > 0 ? ` (이미 있던 ${skipped}개는 건너뜀)` : ""}`,
+      message:
+        created > 0
+          ? `편성을 저장하고 회차 ${created}개를 만들었습니다. (${until}까지)`
+          : `편성을 저장했습니다. 새로 만들 회차는 없습니다. (${until}까지 이미 생성됨)`,
     };
   } catch (err) {
-    return toActionError(err, "회차 생성 실패");
+    return toActionError(err, "편성 저장 실패");
   }
 }
 

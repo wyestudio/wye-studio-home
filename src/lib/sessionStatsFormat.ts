@@ -62,3 +62,58 @@ export function countUnpaidConfirmed(
   }
   return counts;
 }
+
+/**
+ * 회차별 확정·대기 인원을 이미 읽어둔 신청·참여자 목록에서 계산한다.
+ *
+ * ⚠️ 예전에는 회차마다 get_session_stats() RPC 를 한 번씩 불렀다. 롤링 오픈으로
+ *    회차가 수백 개가 되면서 대시보드 한 번 여는 데 RPC 가 수백 번 나가게 됐다.
+ *    같은 값을 이미 가진 데이터로 계산할 수 있으므로 여기서 한 번에 만든다.
+ *    판정 기준은 DB 의 get_session_stats() 와 같아야 한다.
+ */
+export function computeSessionStats(
+  applications: { id: string; session_id: string; status: string; payment_status: string }[],
+  attendees: { application_id: string; gender: string | null }[]
+): Map<string, SessionStats> {
+  const appById = new Map(applications.map((a) => [a.id, a]));
+  const out = new Map<string, SessionStats>();
+
+  const blank = (): SessionStats => ({
+    confirmed_count: 0,
+    waiting_count: 0,
+    male_confirmed_count: 0,
+    male_waiting_count: 0,
+    female_confirmed_count: 0,
+    female_waiting_count: 0,
+    paid_confirmed_count: 0,
+    male_paid_confirmed_count: 0,
+    female_paid_confirmed_count: 0,
+  });
+
+  for (const at of attendees) {
+    const app = appById.get(at.application_id);
+    if (!app) continue;
+    if (app.status !== "confirmed" && app.status !== "waiting") continue;
+
+    const s = out.get(app.session_id) ?? blank();
+    const male = at.gender === "M";
+    const female = at.gender === "F";
+
+    if (app.status === "confirmed") {
+      s.confirmed_count += 1;
+      if (male) s.male_confirmed_count += 1;
+      if (female) s.female_confirmed_count += 1;
+      if (app.payment_status === "confirmed") {
+        s.paid_confirmed_count += 1;
+        if (male) s.male_paid_confirmed_count += 1;
+        if (female) s.female_paid_confirmed_count += 1;
+      }
+    } else {
+      s.waiting_count += 1;
+      if (male) s.male_waiting_count += 1;
+      if (female) s.female_waiting_count += 1;
+    }
+    out.set(app.session_id, s);
+  }
+  return out;
+}

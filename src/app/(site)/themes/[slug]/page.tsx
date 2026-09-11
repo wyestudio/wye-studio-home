@@ -69,10 +69,6 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
   const content: ThemeContent = normalizeThemeContent(theme.content);
 
-  // 타임테이블은 "첫 신청 가능 회차"를 기준으로 보여준다.
-  // 시각이 달라도 offset_min 으로 저장돼 있어 자동으로 다시 계산된다.
-  const sampleSession = sessions.find((s) => s.bookable) ?? sessions[0] ?? null;
-
   const hours = Math.floor(theme.duration_minutes / 60);
   const mins = theme.duration_minutes % 60;
   const durationLabel = mins === 0 ? `${hours}시간` : `${hours}시간 ${mins}분`;
@@ -167,11 +163,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         )}
 
         {/* 어드민에서 쌓은 블록 순서대로 */}
-        <ThemeBlocks
-          blocks={content.blocks}
-          accent={accent}
-          sampleStartAt={sampleSession?.start_at ?? null}
-        />
+        <ThemeBlocks blocks={content.blocks} accent={accent} />
       </div>
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}

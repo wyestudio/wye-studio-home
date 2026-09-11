@@ -77,7 +77,6 @@ function sanitizeContent(raw: unknown): ThemeContent {
             ...common,
             type: "timetable",
             items: arr(b.items).map((x) => ({
-              offset_min: Number((x as Record<string, unknown>)?.offset_min) || 0,
               title: str((x as Record<string, unknown>)?.title),
               desc: str((x as Record<string, unknown>)?.desc),
             })),

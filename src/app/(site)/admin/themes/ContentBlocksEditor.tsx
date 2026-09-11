@@ -20,7 +20,7 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
     case "list":
       return { type, title: "", items: [{ emoji: "", title: "", desc: "" }] };
     case "timetable":
-      return { type, title: "타임테이블", items: [{ offset_min: 0, title: "", desc: "" }] };
+      return { type, title: "진행 순서", eyebrow: "SCHEDULE", items: [{ title: "", desc: "" }] };
     case "callout":
       return { type, title: "", items: [{ title: "", desc: "" }] };
     case "faq":
@@ -110,7 +110,7 @@ export function ContentBlocksEditor({
 
               {/* 미리보기 — 고객 화면과 같은 컴포넌트 */}
               <div className="px-4 py-4">
-                <ThemeBlockView block={b} accent={accent} sampleStartAt={null} />
+                <ThemeBlockView block={b} accent={accent} />
               </div>
 
               {open && (
@@ -252,12 +252,11 @@ function RowsEditor({
           { key: "a", label: "답변" },
         ]
       : block.type === "timetable"
-      ? [
-          { key: "offset_min", label: "경과(분)", numeric: true, width: "w-24" },
-          { key: "title", label: "제목" },
-          { key: "desc", label: "설명" },
-        ]
-      : block.type === "list"
+        ? [
+            { key: "title", label: "제목" },
+            { key: "desc", label: "설명" },
+          ]
+        : block.type === "list"
         ? [
             { key: "emoji", label: "이모지", width: "w-20" },
             { key: "title", label: "제목" },
@@ -274,8 +273,7 @@ function RowsEditor({
     <div className="space-y-2">
       {block.type === "timetable" && (
         <p className="text-[11px] text-muted">
-          ⭐ 시각이 아니라 <strong>시작 후 경과 분</strong>을 적습니다. 그래야 11:30 회차든 19:30 회차든
-          같은 내용으로 자동 계산됩니다.
+          시각은 적지 않습니다. 화면에는 <strong>1·2·3…</strong> 순서로만 나갑니다.
         </p>
       )}
 
