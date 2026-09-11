@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LogoutButton } from "@/components/admin/LogoutButton";
 
 /**
  * 어드민 공통 네비게이션.
@@ -41,7 +42,7 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
 
 export function AdminNav({ current }: { current?: string }) {
   return (
-    <nav className="mb-8 flex flex-wrap gap-x-6 gap-y-3 border-b border-border pb-4">
+    <nav className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border pb-4">
       {GROUPS.map((group) => (
         <div key={group.label} className="flex items-center gap-2">
           <span className="text-[11px] uppercase tracking-wide text-muted">{group.label}</span>
@@ -62,6 +63,10 @@ export function AdminNav({ current }: { current?: string }) {
           </div>
         </div>
       ))}
+
+      <div className="ml-auto">
+        <LogoutButton />
+      </div>
     </nav>
   );
 }
