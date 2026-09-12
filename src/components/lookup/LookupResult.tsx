@@ -300,22 +300,33 @@ export function LookupResult() {
             )
           }
         />
-        {/* 돌려받을 돈이 있을 때만. 취소했어도 환불 금액이 0이면 굳이 알리지 않는다. */}
-        {refundAmount > 0 && (
+        {/* 환불이 끝난 건은 금액을 못 구해도(옛 건은 취소 시각이 없다) 완료 사실은 알린다. */}
+        {result.refund_completed_at ? (
           <Row
-            label={result.refund_completed_at ? "환불 완료" : "환불 예정"}
+            label="환불 완료"
             value={
               <>
-                {formatKrw(refundAmount)}
+                {refundAmount > 0 ? formatKrw(refundAmount) : "완료"}
                 <span className="ml-1.5 text-xs text-muted">
-                  {result.refund_completed_at
-                    ? `(${formatDateTimeFull(result.refund_completed_at)})`
-                    : "(영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다)"}
+                  ({formatDateTimeFull(result.refund_completed_at)})
                 </span>
               </>
             }
           />
-        )}
+        ) : refundAmount > 0 ? (
+          /* 돌려받을 돈이 있을 때만. 취소했어도 환불 금액이 0이면 굳이 알리지 않는다. */
+          <Row
+            label="환불 예정"
+            value={
+              <>
+                {formatKrw(refundAmount)}
+                <span className="ml-1.5 text-xs text-muted">
+                  (영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다)
+                </span>
+              </>
+            }
+          />
+        ) : null}
 
         <div className="mt-4 space-y-3">
           <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
