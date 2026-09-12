@@ -4,7 +4,7 @@
 export type Venue = {
   id: string;
   name: string;          // 상호명 (비공개 — 고객 화면에 노출하지 않음)
-  address: string;       // 정확 주소 (비공개, 전날안내 SMS용)
+  address: string;       // 정확 주소 (비공개, 장소안내 SMS용)
   area_label: string;    // 공개용 대략 위치
   parking_note: string | null;
   map_url: string | null;

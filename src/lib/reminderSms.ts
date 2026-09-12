@@ -21,7 +21,7 @@ export type ReminderPreview = {
   skipped?: string[];
 };
 
-// 어드민 "전날안내 발송" 확인창에 실제 수신자·문구를 미리 보여주기 위한 조회 전용
+// 어드민 "장소안내 발송" 확인창에 실제 수신자·문구를 미리 보여주기 위한 조회 전용
 // 함수. sendSessionReminders와 같은 대상 조건(확정+입금확인+미발송)을 공유한다.
 export async function getSessionReminderPreview(
   supabase: SupabaseClient,
@@ -81,7 +81,7 @@ export async function getSessionReminderPreview(
   };
 }
 
-// 크론(/api/cron/reminder)과 어드민 "전날안내 발송" 버튼이 공유하는 발송 로직 —
+// 크론(/api/cron/reminder)과 어드민 "장소안내 발송" 버튼이 공유하는 발송 로직 —
 // 세션 하나를 받아 확정+입금확인된, 아직 리마인더를 못 받은 신청 전체에 발송한다.
 export async function sendSessionReminders(
   supabase: SupabaseClient,

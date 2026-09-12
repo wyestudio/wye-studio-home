@@ -29,9 +29,14 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
 
-    // 24시간 이내에 시작하는 회차 조회 (시간 필터가 필요하므로 sessions에서 먼저)
+    // 48시간 이내에 시작하는 회차 조회 (시간 필터가 필요하므로 sessions에서 먼저)
+    //
+    // 전날이 아니라 이틀 전에 보낸다 — 환불 가능 기한(진행일 2일 전부터 불가)
+    // 직전에 장소를 알려드려야 참석이 어려운 분이 손해 없이 취소할 수 있다.
+    // 이미 보낸 건은 reminder_sms_sent_at 으로 걸러지므로 구간을 늘려도
+    // 중복 발송은 생기지 않는다.
     const now = new Date();
-    const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
     // status='closed'는 정원마감(참가자에게는 정상 진행되는 회차)이라 리마인더
     // 대상에 포함해야 한다 — 최소인원 미달로 비활성화된('cancelled') 회차만 제외.
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
       .select("*")
       .neq("status", "cancelled")
       .gte("start_at", now.toISOString())
-      .lte("start_at", oneDayLater.toISOString());
+      .lte("start_at", windowEnd.toISOString());
 
     if (sessionsError) {
       console.error("[cron] 세션 조회 오류:", sessionsError);
@@ -52,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     if (!sessions || sessions.length === 0) {
       return NextResponse.json(
-        { success: true, count: 0, message: "24시간 내 시작 세션이 없습니다." }
+        { success: true, count: 0, message: "48시간 내 시작 세션이 없습니다." }
       );
     }
 

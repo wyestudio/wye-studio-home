@@ -301,7 +301,7 @@ export async function sendSessionCancelledSmsV2(p: {
 }
 
 /**
- * 문자3 — 전날안내 (신규 회차용).
+ * 문자3 — 장소안내 (신규 회차용).
  *
  * 옛 버전은 소개팅/그룹 두 템플릿으로 갈라져 있었고 음주 문구가 들어 있었다.
  * 신규는 템플릿 하나이고 연령이 회차별로 치환된다.
@@ -334,5 +334,5 @@ export async function sendEventReminderSmsV2(p: {
     name: p.name,
     venue_address_text: p.venueAddress ?? "현장 안내 예정",
     parking_note: p.parkingNote ?? "인근 유료주차장을 이용해 주세요.",
-  }, "전날안내 문자");
+  }, "장소안내 문자");
 }

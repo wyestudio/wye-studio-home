@@ -17,8 +17,9 @@ const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
 export function ThemeBlocks({ blocks, accent }: { blocks: ThemeBlock[]; accent: string }) {
   return (
     <>
+      {/* 블록 사이는 넉넉히 띄운다 — 붙어 있으면 어디서 끊기는지 안 보인다. */}
       {blocks.map((block, i) => (
-        <section key={i} className="mb-12">
+        <section key={i} className="mb-20 last:mb-0 sm:mb-24">
           <ThemeBlockView block={block} accent={accent} />
         </section>
       ))}
@@ -33,11 +34,15 @@ export function ThemeBlocks({ blocks, accent }: { blocks: ThemeBlock[]; accent: 
  * 모양은 8/29 회차 페이지(`/sessions/[slug]`)의 것을 그대로 옮겼다.
  */
 export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: string }) {
+  // 타임테이블은 가운데 정렬. 본문이 가운데 좁게 서 있는데 제목만 왼쪽에
+  // 붙어 있으면 따로 논다.
+  const centered = block.type === "timetable";
+
   const heading = (block.eyebrow || block.title) && (
     <SectionHeading
       eyebrow={block.eyebrow ?? ""}
       title={block.title}
-      align="left"
+      align={centered ? "center" : "left"}
       className="mb-6"
       eyebrowColor={accent}
     />

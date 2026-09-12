@@ -53,7 +53,7 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
   if (result) {
     return (
       <span className="text-glow text-xs font-semibold">
-        ✓ 전날안내 발송됨 — {result.count}/{result.total}건
+        ✓ 장소안내 발송됨 — {result.count}/{result.total}건
       </span>
     );
   }
@@ -65,18 +65,18 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
         disabled={isLoading}
         className="px-3 py-1.5 text-xs bg-glow text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
       >
-        {isLoading ? "처리중..." : "전날안내 발송"}
+        {isLoading ? "처리중..." : "장소안내 발송"}
       </button>
       <ConfirmDialog
         open={open}
         wide
-        title="전날안내 문자를 발송할까요?"
+        title="장소안내 문자를 발송할까요?"
         message={
           isPreviewLoading
             ? "발송 대상을 불러오는 중..."
             : preview
-              ? `확정+입금확인된 신청 중 아직 전날안내를 받지 않은 대표 신청자 ${preview.total}명에게 문자가 발송됩니다.`
-              : "이 회차의 확정+입금확인된 신청 중 아직 전날안내를 받지 않은 대표 신청자 전원에게 문자가 발송됩니다."
+              ? `확정+입금확인된 신청 중 아직 장소안내를 받지 않은 대표 신청자 ${preview.total}명에게 문자가 발송됩니다.`
+              : "이 회차의 확정+입금확인된 신청 중 아직 장소안내를 받지 않은 대표 신청자 전원에게 문자가 발송됩니다."
         }
         cancelLabel="아니요"
         confirmLabel="네, 발송"

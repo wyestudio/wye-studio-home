@@ -132,6 +132,17 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               <span>⏱ {durationLabel}</span>
             </div>
 
+            {/*
+              장소는 대략 위치만 내보낸다. 정확한 주소는 진행 이틀 전 문자로만
+              간다 — 매번 파티룸을 대관하는 구조라 미리 공개할 수 없다.
+            */}
+            {theme.venue && (
+              <p className="mt-2 text-sm text-muted">
+                📍 {theme.venue.area_label}
+                <span className="text-xs"> · 정확한 주소는 진행 이틀 전 문자로 안내드려요</span>
+              </p>
+            )}
+
             {theme.description && (
               <p className="mt-4 whitespace-pre-line leading-relaxed">{theme.description}</p>
             )}
@@ -154,9 +165,10 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       {/* ── 상세 정보 ── */}
       <div id="detail" className="mt-16 scroll-mt-28">
         {theme.tiers.length > 0 && (
-          <section className="mb-14">
-            <SectionHeading eyebrow="PRICE" title="인원별 참가비" align="left" eyebrowColor={accent} />
-            <div className="mt-5">
+          <section className="mb-20 sm:mb-24">
+            <SectionHeading eyebrow="PRICE" title="인원별 참가비" eyebrowColor={accent} />
+            {/* 두 칸짜리 표라 화면 폭을 다 쓰면 휑하다. 좁게 잡아 가운데에 둔다. */}
+            <div className="mx-auto mt-5 w-full max-w-sm">
               <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
             </div>
           </section>

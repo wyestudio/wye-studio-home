@@ -365,7 +365,7 @@ export async function getDeactivatePreview(
   return { success: true, confirmedCount, waitingCount };
 }
 
-// "전날안내 발송" 확인창에 실제 수신자 목록·문구를 미리 보여주기 위한 조회.
+// "장소안내 발송" 확인창에 실제 수신자 목록·문구를 미리 보여주기 위한 조회.
 export async function getReminderPreview(
   sessionId: string
 ): Promise<{ error: string } | ({ success: true } & ReminderPreview)> {
@@ -480,7 +480,7 @@ export async function deactivateSession(sessionId: string) {
   return { success: true, count: successCount, total: applications?.length ?? 0, errors: errors.length > 0 ? errors : undefined };
 }
 
-// 문자3(전날안내) — 외부 크론 없이도 운영자가 원하는 시점에 수동으로 발송할 수
+// 문자3(장소안내) — 외부 크론 없이도 운영자가 원하는 시점에 수동으로 발송할 수
 // 있도록 세션 단위 버튼. /api/cron/reminder와 동일한 발송 로직을 공유한다.
 export async function sendSessionReminderAdmin(
   sessionId: string
@@ -503,7 +503,7 @@ export async function sendSessionReminderAdmin(
 
   const result = await sendSessionReminders(supabase, session);
 
-  console.log(`[admin] 전날안내 문자 수동 발송됨: ${sessionId} (${result.count}/${result.total}건)`);
+  console.log(`[admin] 장소안내 문자 수동 발송됨: ${sessionId} (${result.count}/${result.total}건)`);
 
   return { success: true, ...result };
 }

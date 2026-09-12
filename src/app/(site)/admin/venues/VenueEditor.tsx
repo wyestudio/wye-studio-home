@@ -106,7 +106,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
           </div>
 
           <div>
-            <label className={label}>정확 주소 * (비공개 — 전날안내 문자에만 사용)</label>
+            <label className={label}>정확 주소 * (비공개 — 장소안내 문자에만 사용)</label>
             <input
               className={field}
               value={editing.address}

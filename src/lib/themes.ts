@@ -39,7 +39,16 @@ export async function getListedThemes(): Promise<ThemeWithTiers[]> {
  * slug 로 테마 1건.
  * is_active 가 false 여도 페이지는 보여야 하므로 여기서 거르지 않는다.
  */
-export async function getThemeBySlug(slug: string): Promise<ThemeWithTiers | null> {
+/** 고객 화면에 내보내도 되는 장소 정보. 상호명·정확 주소는 들어 있지 않다. */
+export type PublicVenue = {
+  area_label: string;
+  parking_note: string | null;
+  map_url: string | null;
+};
+
+export type ThemeDetail = ThemeWithTiers & { venue: PublicVenue | null };
+
+export async function getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
   const supabase = await createClient();
 
   // 카테고리 이름을 함께 가져온다. 상세 화면에서 테마명 아래에 보인다.
@@ -57,7 +66,19 @@ export async function getThemeBySlug(slug: string): Promise<ThemeWithTiers | nul
     .eq("theme_id", (data as Theme).id)
     .order("min_headcount");
 
-  return { ...(data as Theme), tiers: (tiers ?? []) as ThemePriceTier[] };
+  // 장소는 venues 를 직접 못 읽는다(정확 주소가 같이 딸려 나오므로 anon 에
+  // grant 가 없다). 공개해도 되는 칸만 추린 theme_public_venue 뷰를 쓴다.
+  const { data: venue } = await supabase
+    .from("theme_public_venue")
+    .select("area_label, parking_note, map_url")
+    .eq("theme_id", (data as Theme).id)
+    .maybeSingle();
+
+  return {
+    ...(data as Theme),
+    tiers: (tiers ?? []) as ThemePriceTier[],
+    venue: (venue ?? null) as PublicVenue | null,
+  };
 }
 
 /**

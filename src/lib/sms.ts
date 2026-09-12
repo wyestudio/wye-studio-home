@@ -315,7 +315,7 @@ export async function sendEventReminderSms(
   const senderNumber = process.env.SOLAPI_SENDER_NUMBER;
   const messageService = getSolapiMessageService();
   if (!messageService || !senderNumber) {
-    console.warn("[sms] SOLAPI_* 환경변수가 설정되지 않아 전날안내 문자를 건너뜁니다.");
+    console.warn("[sms] SOLAPI_* 환경변수가 설정되지 않아 장소안내 문자를 건너뜁니다.");
     return;
   }
 
@@ -327,9 +327,9 @@ export async function sendEventReminderSms(
       to: phoneDigits(representativePhone),
       text,
     });
-    console.log(`[sms] 전날안내 문자 발송 완료: ${application.confirmation_code}`);
+    console.log(`[sms] 장소안내 문자 발송 완료: ${application.confirmation_code}`);
   } catch (err) {
-    console.error("[sms] 전날안내 문자 발송 중 에러", err);
+    console.error("[sms] 장소안내 문자 발송 중 에러", err);
   }
 }
 
