@@ -276,9 +276,9 @@ export function ThemeEditor({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className={label}>난이도 (1~5)</label>
+                    <label className={label}>난이도 (0~5, 0 = 미정)</label>
                     <input
-                      type="number" min={1} max={5} className={field}
+                      type="number" min={0} max={5} className={field}
                       value={editing.difficulty}
                       onChange={(e) => patch({ difficulty: Number(e.target.value) })}
                     />
@@ -287,9 +287,9 @@ export function ThemeEditor({
                     </div>
                   </div>
                   <div>
-                    <label className={label}>소요시간 (분) *</label>
+                    <label className={label}>소요시간 (분, 0 = 미정)</label>
                     <input
-                      type="number" min={1} className={field}
+                      type="number" min={0} className={field}
                       value={editing.duration_minutes}
                       onChange={(e) => patch({ duration_minutes: Number(e.target.value) })}
                     />

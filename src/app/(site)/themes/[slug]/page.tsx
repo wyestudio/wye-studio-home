@@ -127,10 +127,13 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-              <DifficultyLocks rating={theme.difficulty} />
-              <span>⏱ {durationLabel}</span>
-            </div>
+            {/* 0 은 '미정'(아직 만들지 않은 테마) — 줄 자체를 감춘다. */}
+            {(theme.difficulty > 0 || theme.duration_minutes > 0) && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+                {theme.difficulty > 0 && <DifficultyLocks rating={theme.difficulty} />}
+                {theme.duration_minutes > 0 && <span>⏱ {durationLabel}</span>}
+              </div>
+            )}
 
             {/*
               장소는 대략 위치만 내보낸다. 정확한 주소는 진행 이틀 전 문자로만

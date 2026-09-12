@@ -57,11 +57,19 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                   <p className={`truncate text-base font-bold text-white ${themeTitleFontClass(theme.title_font)}`}>
                     {theme.name}
                   </p>
-                  <p className="mt-1.5 text-xs text-muted">
-                    🔒 난이도 {theme.difficulty} · ⏱ {theme.duration_minutes}분
-                  </p>
+                  {/* 0 은 '미정' 이라 감춘다 — "난이도 0 · 0분" 은 고장으로 읽힌다. */}
+                  {(theme.difficulty > 0 || theme.duration_minutes > 0) && (
+                    <p className="mt-1.5 text-xs text-muted">
+                      {[
+                        theme.difficulty > 0 ? `🔒 난이도 ${theme.difficulty}` : null,
+                        theme.duration_minutes > 0 ? `⏱ ${theme.duration_minutes}분` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
                   {!theme.is_active && (
-                    <p className="mt-1 text-xs text-muted">현재 신청을 받지 않습니다</p>
+                    <p className="mt-1 text-xs text-muted">아직 탐사되지 않은 행성입니다</p>
                   )}
                 </div>
               </Link>

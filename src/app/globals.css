@@ -413,3 +413,36 @@ body:has(.admin-shell) header {
     bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
 }
+
+/* 잠긴 행성을 눌렀을 때 자물쇠가 한 번 흔들린다.
+   "눌리긴 했는데 열리지 않는다" 를 말 대신 몸짓으로 알린다. */
+@keyframes lock-shake {
+  0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+  15% { transform: translate(-50%, -50%) rotate(-9deg); }
+  30% { transform: translate(-50%, -50%) rotate(8deg); }
+  45% { transform: translate(-50%, -50%) rotate(-6deg); }
+  60% { transform: translate(-50%, -50%) rotate(4deg); }
+  75% { transform: translate(-50%, -50%) rotate(-2deg); }
+}
+
+.animate-lock-shake {
+  animation: lock-shake 0.6s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-lock-shake { animation: none; }
+}
+
+/* 'Planets to Escape' 가로 스크롤 막대.
+   기본 막대는 어두운 우주 배경 위에서 흰 띠로 너무 도드라진다. */
+.planet-track {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+.planet-track::-webkit-scrollbar { height: 6px; }
+.planet-track::-webkit-scrollbar-track { background: transparent; }
+.planet-track::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+.planet-track::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }

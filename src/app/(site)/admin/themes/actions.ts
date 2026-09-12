@@ -118,9 +118,11 @@ function validate(input: ThemeInput): string | null {
   // ⚠️ 숫자 칸을 비우면 <input type="number"> 가 "" 를 주고 Number("") 은 0 이다.
   //    여기서 안 걸러내면 DB CHECK 제약에 막혀 "테마 저장 실패: new row for
   //    relation ... violates check constraint" 같은 원문이 그대로 뜬다.
-  if (!Number.isInteger(input.difficulty) || input.difficulty < 1 || input.difficulty > 5)
-    return "난이도를 1~5 사이로 입력해주세요.";
-  if (input.duration_minutes <= 0) return "소요시간을 입력해주세요.";
+  // 0 은 '미정' — 아직 만들지 않은 테마를 미리 띄워 둘 때 쓴다. 화면에서는 감춘다.
+  if (!Number.isInteger(input.difficulty) || input.difficulty < 0 || input.difficulty > 5)
+    return "난이도를 0~5 사이로 입력해주세요. (0 = 미정)";
+  if (!Number.isInteger(input.duration_minutes) || input.duration_minutes < 0)
+    return "소요시간을 0분 이상으로 입력해주세요. (0 = 미정)";
   if (input.min_age_floor !== null && (input.min_age_floor < 0 || input.min_age_floor > 100))
     return "최소 연령은 0~100 사이로 입력해주세요.";
   if (input.capacity_min !== null && input.capacity_min < 1)
