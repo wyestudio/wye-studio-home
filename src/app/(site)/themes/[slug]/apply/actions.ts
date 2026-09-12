@@ -3,6 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendApplicationConfirmationSmsV2 } from "@/lib/smsV2";
+import { sendApplicationSlackAlertV2 } from "@/lib/slackV2";
+import { formatSessionDateTime } from "@/lib/format";
 import { isValidNickname } from "@/lib/validation";
 import { phoneDigits } from "@/lib/phone";
 
@@ -216,7 +218,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
   // 확정 건에만 문자1 을 보낸다. 대기자는 화면 안내로 충분하다.
   try {
     const isTest = process.env.NEXT_PUBLIC_IS_TEST_ENV === "true";
-    if (!isTest && r.status === "confirmed") {
+    if (!isTest) {
       const admin = createAdminClient();
       const { data: sv } = await admin
         .from("session_view")
@@ -224,7 +226,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
         .eq("id", input.sessionId)
         .single();
 
-      if (sv) {
+      if (sv && r.status === "confirmed") {
         await sendApplicationConfirmationSmsV2({
           session: {
             themeName: sv.theme_name as string,
@@ -240,8 +242,34 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
           depositorName: input.depositorName.trim(),
         });
       }
-    } else if (isTest) {
-      console.log(`[apply] 테스트 환경이라 문자 발송을 건너뜁니다: ${r.confirmation_code}`);
+
+      // ⚠️ Slack 알림은 **대기 건도** 보낸다. 문자5(대기접수완료)를 안 보내기로
+      //    한 것은 고객 대상 결정이고, 운영자는 대기 신청도 알아야 한다.
+      //    2026-09-13 이전에는 이 호출 자체가 없어서 신규 신청이 Slack 에
+      //    전혀 뜨지 않았다(레거시 폼에만 붙어 있었다).
+      if (sv) {
+        await sendApplicationSlackAlertV2({
+          sessionId: input.sessionId,
+          themeName: sv.theme_name as string,
+          sessionLabel: formatSessionDateTime(sv.start_at as string),
+          confirmationCode: r.confirmation_code,
+          status: r.status,
+          createdAt: new Date().toISOString(),
+          headcount: r.headcount,
+          amountKrw: r.amount_krw,
+          discountKrw: r.discount_krw,
+          depositorName: input.depositorName.trim(),
+          representative: {
+            name: input.attendees[0].name.trim(),
+            nickname: input.attendees[0].nickname?.trim() || null,
+            birthYear: input.attendees[0].birth_year,
+            gender: input.attendees[0].gender || null,
+            experienceRange: input.attendees[0].experience_range || null,
+          },
+        });
+      }
+    } else {
+      console.log(`[apply] 테스트 환경이라 문자·Slack 발송을 건너뜁니다: ${r.confirmation_code}`);
     }
   } catch (err) {
     console.error("[apply] 신청 후 알림 처리 실패 (신청 자체는 성공)", err);

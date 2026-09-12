@@ -14,6 +14,8 @@ import {
 import { requireAdminAuth } from "@/lib/adminAuth";
 import { sendSmsBulk, type BulkMessage } from "@/lib/smsBulk";
 import { writeAuditLog } from "@/lib/auditLog";
+import { sendRefundNeededSlackAlertV2, sendBulkRefundNeededSlackAlertV2 } from "@/lib/slackV2";
+import { formatSessionDateTime } from "@/lib/format";
 import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
 import { isDatingTheme } from "@/lib/theme";
 import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
@@ -139,6 +141,49 @@ export async function confirmPayment(applicationId: string, sessionId: string) {
   return { success: true };
 }
 
+/**
+ * 입금된 건을 취소했으면 환불 알림을 보낸다.
+ *
+ * ⚠️ 예전에는 /lookup 셀프 취소에만 알림이 있어서, 운영자가 어드민에서
+ *    입금된 건을 취소하면 환불이 필요한데도 Slack 에 아무것도 오지 않았다.
+ *    (2026-09-13 확인)
+ * ⚠️ 입금 여부는 paid_at 으로 본다. payment_status 는 취소와 함께
+ *    'cancelled' 로 덮여서 취소 후에는 판별에 쓸 수 없다.
+ */
+async function notifyRefundIfPaid(
+  app: { id: string; confirmation_code: string; paid_at?: string | null; amount_krw?: number | null;
+         refund_bank_name?: string | null },
+  supabase: ReturnType<typeof createAdminClient>,
+  sessionId: string,
+  representative: { name: string; phone: string }
+) {
+  if (!app.paid_at) return; // 입금 전 취소는 돌려줄 돈이 없다
+
+  try {
+    const sd = await getSessionDisplay(sessionId);
+    const { data: full } = await supabase
+      .from("admin_application_view")
+      .select("refund_bank_name, refund_account_number, refund_account_holder")
+      .eq("id", app.id)
+      .single();
+
+    await sendRefundNeededSlackAlertV2({
+      themeName: sd?.theme_name ?? "-",
+      sessionLabel: sd ? formatSessionDateTime(sd.start_at) : "",
+      confirmationCode: app.confirmation_code,
+      representativeName: representative.name,
+      representativePhone: representative.phone,
+      refundAmountKrw: app.amount_krw ?? 0,
+      refundBankName: full?.refund_bank_name ?? null,
+      refundAccountNumber: full?.refund_account_number ?? null,
+      refundAccountHolder: full?.refund_account_holder ?? null,
+      cancelledBy: "어드민",
+    });
+  } catch (err) {
+    console.error("[admin] 환불 알림 실패 (취소 자체는 성공)", err);
+  }
+}
+
 // 문자4(미입금 취소 안내) — 어드민이 "신청 취소" 버튼을 눌렀을 때 신청을
 // cancelled로 전환하고 안내 문자를 보낸다.
 export async function cancelApplicationAdmin(applicationId: string, sessionId: string) {
@@ -196,6 +241,8 @@ export async function cancelApplicationAdmin(applicationId: string, sessionId: s
     });
   }
 
+  await notifyRefundIfPaid(application, supabase, sessionId, representative);
+
   console.log(`[admin] 신청 취소됨(미입금): ${applicationId} (${application.confirmation_code})`);
 
   await writeAuditLog({
@@ -241,6 +288,12 @@ export async function silentCancelApplicationAdmin(applicationId: string, sessio
 
   if (updateError) {
     return { error: "업데이트 실패: " + updateError.message };
+  }
+
+  // 문자는 안 보내지만 환불 의무는 그대로다. 운영자가 놓치면 안 된다.
+  const silentRep = await getRepresentative(supabase, applicationId);
+  if (silentRep) {
+    await notifyRefundIfPaid(application, supabase, sessionId, silentRep);
   }
 
   console.log(`[admin] 신청 무통보 취소됨: ${applicationId} (${application.confirmation_code}), 안내 문자 발송 안 함`);
@@ -543,6 +596,32 @@ export async function deactivateSession(sessionId: string) {
       messages.push({ key: application.id, to: representative.phone, text });
     } catch (err) {
       errors.push(`신청 ${application.confirmation_code}: ${err instanceof Error ? err.message : "문구 생성 실패"}`);
+    }
+  }
+
+  // ⚠️ 입금된 건은 환불 의무가 남는다. 문자와 별개로 운영자에게 알린다.
+  //    paid_at 으로 판단한다 — payment_status 는 방금 'cancelled' 로 덮였다.
+  const refundTargets = targets.filter((a) => (a as { paid_at?: string | null }).paid_at);
+  if (refundTargets.length > 0 && sdSession) {
+    try {
+      await sendBulkRefundNeededSlackAlertV2({
+        themeName: sdSession.theme_name ?? "-",
+        sessionLabel: formatSessionDateTime(sdSession.start_at),
+        items: refundTargets.map((a) => {
+          const rep = repByApp.get(a.id);
+          return {
+            confirmationCode: a.confirmation_code as string,
+            name: rep?.name ?? "-",
+            phone: rep?.phone ?? "-",
+            amountKrw:
+              (a as { amount_krw?: number | null }).amount_krw ??
+              (session.price_krw ?? 0) * (countByApp.get(a.id) ?? 1),
+            hasAccount: Boolean((a as { refund_bank_name?: string | null }).refund_bank_name),
+          };
+        }),
+      });
+    } catch (err) {
+      console.error("[admin] 회차취소 환불 알림 실패 (취소 자체는 성공)", err);
     }
   }
 
