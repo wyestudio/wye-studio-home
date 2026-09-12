@@ -167,8 +167,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         {theme.tiers.length > 0 && (
           <section className="mb-24 sm:mb-32">
             <SectionHeading eyebrow="PRICE" title="인원별 참가비" eyebrowColor={accent} />
-            {/* 두 칸짜리 표라 화면 폭을 다 쓰면 휑하다. 좁게 잡아 가운데에 둔다. */}
-            <div className="mx-auto mt-5 w-full max-w-sm sm:max-w-md">
+            {/* 폭은 아래 블록들과 맞춘다. 좁게 잡았더니 혼자만 쪼그라들어 보였다. */}
+            <div className="mt-5 w-full">
               <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
             </div>
           </section>
