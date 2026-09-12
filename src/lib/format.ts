@@ -43,6 +43,13 @@ export function formatDateTimeFull(iso: string): string {
   return `${year}.${p2(month)}.${p2(day)} ${p2(hour)}:${p2(minute)}`;
 }
 
+/** "YYYY.MM.DD" — 시각이 의미 없는 값(게시일·발급일·유효기간)에 쓴다. */
+export function formatDateFull(iso: string): string {
+  const { year, month, day } = seoulParts(iso);
+  const p2 = (n: number) => n.toString().padStart(2, "0");
+  return `${year}.${p2(month)}.${p2(day)}`;
+}
+
 export function formatSessionDateTime(startAt: string): string {
   const { month, day, weekday, hour, minute } = seoulParts(startAt);
   const hh = hour.toString().padStart(2, "0");

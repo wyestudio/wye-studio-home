@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatSessionDateTime, formatDateTimeDotted } from "@/lib/format";
+import { formatDateTimeFull } from "@/lib/format";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
 import { SessionStatusToggle } from "@/components/admin/SessionStatusToggle";
 import { SendReminderButton } from "./SendReminderButton";
@@ -94,7 +94,7 @@ function PromotedCell({ app }: { app: any }) {
     <td className="py-3 px-4 text-sm">
       {app.promoted_from_waiting_at ? (
         <span className="text-glow font-semibold">
-          대기→확정 <span className="text-xs text-muted">({formatDateTimeDotted(app.promoted_from_waiting_at)})</span>
+          대기→확정 <span className="text-xs text-muted">({formatDateTimeFull(app.promoted_from_waiting_at)})</span>
         </span>
       ) : (
         <span className="text-muted">즉시확정</span>
@@ -265,7 +265,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
             <h1 className="text-3xl font-bold mb-2">
               {session.session_type} {session.theme_name}
             </h1>
-            <p className="text-muted">{formatSessionDateTime(session.start_at)}</p>
+            <p className="text-muted">{formatDateTimeFull(session.start_at)}</p>
             <p className="text-sm mt-1">
               상태:{" "}
               <span
@@ -286,7 +286,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
               <SessionStatusToggle
                 sessionId={session.id}
                 status={session.status}
-                label={formatSessionDateTime(session.start_at)}
+                label={formatDateTimeFull(session.start_at)}
                 size="md"
               />
               <ManualApplyButton sessionId={session.id} isDatingSession={isDatingTheme(session.session_type)} />
@@ -429,7 +429,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                         <td className="py-3 px-4 text-sm">
                           {app.refund_completed_at ? (
                             <span className="text-green-500 font-semibold">
-                              완료 <span className="text-xs text-muted">({formatDateTimeDotted(app.refund_completed_at)})</span>
+                              완료 <span className="text-xs text-muted">({formatDateTimeFull(app.refund_completed_at)})</span>
                             </span>
                           ) : needsRefund(app) ? (
                             <span className="text-yellow-500 font-semibold">미완료</span>

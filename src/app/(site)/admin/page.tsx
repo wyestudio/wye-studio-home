@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatSessionDateTime } from "@/lib/format";
+import { formatDateTimeFull } from "@/lib/format";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
   formatCapacityLine,
@@ -184,7 +184,7 @@ export default async function AdminDashboard() {
           </p>
           {upcoming.length > 0 ? (
             <p className="mt-2 text-sm text-muted">
-              다가오는 회차: <strong className="text-foreground">{formatSessionDateTime(upcoming[0].start_at)}</strong>
+              다가오는 회차: <strong className="text-foreground">{formatDateTimeFull(upcoming[0].start_at)}</strong>
               {upcoming.length > 1 && ` 외 ${upcoming.length - 1}건`}
             </p>
           ) : (

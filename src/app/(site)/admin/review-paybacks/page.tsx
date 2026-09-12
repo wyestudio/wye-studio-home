@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatDateTimeDotted } from "@/lib/format";
+import { formatDateTimeFull } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +79,7 @@ export default async function AdminReviewPaybacksPage() {
               <tbody>
                 {rows.map((app) => (
                   <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
-                    <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeDotted(app.created_at)}</td>
+                    <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
                     <td className="py-3 px-4 text-sm">{app.name}</td>
                     <td className="py-3 px-4 text-sm whitespace-nowrap">{app.phone}</td>
                     <td className="py-3 px-4 text-sm whitespace-nowrap">{SESSION_LABELS[app.session_slug] ?? app.session_slug}</td>

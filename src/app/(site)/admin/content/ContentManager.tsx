@@ -3,14 +3,10 @@
 import { useState } from "react";
 import { NoticeEditor, type NoticeRow } from "./NoticeEditor";
 import { FaqEditor, type FaqRow } from "./FaqEditor";
+import { formatDateFull } from "@/lib/format";
 
-const kst = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(iso));
+// 날짜 형식은 어드민 전체가 같아야 한다 — formatDateFull 하나만 쓴다.
+const kst = formatDateFull;
 
 /**
  * 공지·FAQ 관리.

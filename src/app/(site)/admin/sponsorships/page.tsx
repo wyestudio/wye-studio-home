@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatDateTimeDotted } from "@/lib/format";
+import { formatDateTimeFull } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -130,7 +130,7 @@ function GroupApplicationsTable({ applications }: { applications: GroupApplicati
         <tbody>
           {applications.map((app) => (
             <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
-              <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeDotted(app.created_at)}</td>
+              <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
               <td className="py-3 px-4 text-sm">{app.name}</td>
               <td className="py-3 px-4 text-sm">{app.birth_year}</td>
               <td className="py-3 px-4 text-sm">{genderLabel(app.gender)}</td>
@@ -195,7 +195,7 @@ function DatingApplicationsTable({ applications }: { applications: DatingApplica
         <tbody>
           {applications.map((app) => (
             <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
-              <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeDotted(app.created_at)}</td>
+              <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
               <td className="py-3 px-4 text-sm">{app.name}</td>
               <td className="py-3 px-4 text-sm">{app.birth_year}</td>
               <td className="py-3 px-4 text-sm">{genderLabel(app.gender)}</td>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CampaignEditor, type CampaignRow } from "./CampaignEditor";
 import { issueCoupons } from "./actions";
 import { formatCouponCode } from "@/lib/coupon";
-import { formatKrw } from "@/lib/format";
+import { formatKrw, formatDateFull } from "@/lib/format";
 
 const field = "rounded border border-border bg-background px-3 py-2 text-sm";
 
@@ -17,13 +17,8 @@ export type CouponRow = {
   used_at: string | null;
 };
 
-const kst = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(iso));
+// 날짜 형식은 어드민 전체가 같아야 한다 — formatDateFull 하나만 쓴다.
+const kst = formatDateFull;
 
 function discountLabel(c: CampaignRow): string {
   if (c.discount_type === "fixed") return `${formatKrw(c.discount_value)} 할인`;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { InfoRow } from "@/components/lookup/InfoRow";
-import { formatSessionDateTime, formatDateTimeDotted } from "@/lib/format";
+import { formatDateTimeFull } from "@/lib/format";
 import { EXPERIENCE_RANGE_LABELS, type ExperienceRange } from "@/lib/validation";
 
 // consent_photo/consent_marketing 컬럼은 not null default false라 값만으로는
@@ -85,10 +85,10 @@ export function ApplicationDetailDialog({
               <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">신청 정보</h3>
               <div className="rounded-lg border border-border p-3">
                 <InfoRow label="입금자명" value={application.depositor_name} />
-                <InfoRow label="신청일시" value={formatSessionDateTime(application.created_at)} />
+                <InfoRow label="신청일시" value={formatDateTimeFull(application.created_at)} />
                 <InfoRow
                   label="입금기한"
-                  value={formatDateTimeDotted(
+                  value={formatDateTimeFull(
                     new Date(new Date(application.created_at).getTime() + 30 * 60 * 1000).toISOString()
                   )}
                 />
@@ -96,7 +96,7 @@ export function ApplicationDetailDialog({
                   label="입금확인일시"
                   value={
                     application.payment_confirmed_sms_sent_at
-                      ? formatDateTimeDotted(application.payment_confirmed_sms_sent_at)
+                      ? formatDateTimeFull(application.payment_confirmed_sms_sent_at)
                       : "-"
                   }
                 />

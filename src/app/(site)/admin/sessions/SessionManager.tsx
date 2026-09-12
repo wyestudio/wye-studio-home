@@ -6,6 +6,7 @@ import type { Theme } from "@/types/catalog";
 import { defaultMinAge } from "@/types/catalog";
 import { nextOpening, todayKst } from "@/lib/scheduleRules";
 import { saveSchedule, type ScheduleInput } from "./actions";
+import { formatDateFull, formatDateTimeFull } from "@/lib/format";
 
 const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
 const label = "block text-xs font-medium text-muted mb-1";
@@ -30,18 +31,8 @@ export type ThemeSchedule = {
   generated_until: string | null;
 };
 
-const fmtOpensAt = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "long", day: "numeric", weekday: "short",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  }).format(new Date(iso));
-
-const fmtDate = (ymd: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "long", day: "numeric", weekday: "short",
-  }).format(new Date(`${ymd}T12:00:00+09:00`));
+const fmtOpensAt = formatDateTimeFull;
+const fmtDate = (ymd: string) => formatDateFull(`${ymd}T12:00:00+09:00`);
 
 function blankSchedule(themeId: string): ScheduleInput {
   return {

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { BookingCalendar } from "@/components/booking/BookingCalendar";
 import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
+import { formatDateFull, formatDateTimeFull } from "@/lib/format";
 import { SessionStatusToggle } from "@/components/admin/SessionStatusToggle";
 
 const ACCENT = "#3dffb0";
@@ -33,16 +34,7 @@ const kstTime = (iso: string) =>
     timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false,
   }).format(new Date(iso));
 
-const kstDateLabel = (ymd: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul", year: "numeric", month: "long", day: "numeric", weekday: "short",
-  }).format(new Date(`${ymd}T12:00:00+09:00`));
-
-const kstOpensAt = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul", month: "long", day: "numeric", weekday: "short",
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  }).format(new Date(iso));
+const kstDateLabel = (ymd: string) => formatDateFull(`${ymd}T12:00:00+09:00`);
 
 /**
  * 대시보드 회차 보기.
@@ -179,7 +171,7 @@ export function DashboardSessions({
                           <p className="mt-1 text-xs text-muted">입금 확인 전 인원: {s.unpaid}명</p>
                           {pending && s.opens_at && (
                             <p className="mt-1 text-xs text-amber-400">
-                              공개 예정: {kstOpensAt(s.opens_at)}
+                              공개 예정: {formatDateTimeFull(s.opens_at)}
                             </p>
                           )}
                         </div>

@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CouponTabs } from "./CouponTabs";
+import { formatDateTimeFull } from "@/lib/format";
 import type { CampaignRow } from "./CampaignEditor";
 import type { CouponRow } from "./CouponPanel";
 
@@ -46,14 +47,7 @@ export default async function AdminCouponsPage() {
             themes={(themesRes.data ?? []) as { id: string; name: string }[]}
             sessions={(sessionsRes.data ?? []).map((s) => ({
               id: s.id as string,
-              label: `${new Intl.DateTimeFormat("ko-KR", {
-                timeZone: "Asia/Seoul",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              }).format(new Date(s.start_at as string))} ${s.theme_name ?? ""}${
+              label: `${formatDateTimeFull(s.start_at as string)} ${s.theme_name ?? ""}${
                 s.format_label ? ` (${s.format_label})` : ""
               }`,
             }))}

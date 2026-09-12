@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { formatKrw } from "@/lib/format";
+import { formatKrw, formatDateTimeFull, formatDateFull } from "@/lib/format";
 import { ApplicationFilters } from "./ApplicationFilters";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +25,6 @@ type Row = {
   depositor_name: string | null;
   total_count: number;
 };
-
-const kst = (iso: string, opts: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", ...opts }).format(new Date(iso));
 
 const STATUS_LABEL: Record<string, string> = {
   confirmed: "확정",
@@ -101,7 +98,7 @@ export default async function AdminApplicationsPage({
 
   const sessionOptions = (sessionsRes.data ?? []).map((s) => ({
     id: s.id as string,
-    label: `${kst(s.start_at as string, { month: "2-digit", day: "2-digit", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false })}${
+    label: `${formatDateTimeFull(s.start_at as string)}${
       s.legacy_format ? ` (${s.legacy_format})` : ""
     }`,
   }));
@@ -160,10 +157,7 @@ export default async function AdminApplicationsPage({
                     </td>
                     <td className="px-3 py-2.5">{r.headcount}명</td>
                     <td className="px-3 py-2.5 text-xs">
-                      {kst(r.session_start_at, {
-                        month: "2-digit", day: "2-digit", weekday: "short",
-                        hour: "2-digit", minute: "2-digit", hour12: false,
-                      })}
+                      {formatDateTimeFull(r.session_start_at)}
                       {r.format_label && <span className="ml-1 text-muted">({r.format_label})</span>}
                     </td>
                     <td className={`px-3 py-2.5 ${statusTone(r.status)}`}>{STATUS_LABEL[r.status]}</td>
@@ -174,7 +168,7 @@ export default async function AdminApplicationsPage({
                     </td>
                     <td className="px-3 py-2.5 text-right">{r.amount_krw != null ? formatKrw(r.amount_krw) : "-"}</td>
                     <td className="px-3 py-2.5 text-xs text-muted">
-                      {kst(r.created_at, { month: "2-digit", day: "2-digit" })}
+                      {formatDateFull(r.created_at)}
                     </td>
                     <td className="px-3 py-2.5">
                       <Link href={`/sessions/${r.session_id}`} className="text-xs text-glow underline">
