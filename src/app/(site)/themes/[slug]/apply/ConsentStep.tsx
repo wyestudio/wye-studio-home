@@ -33,7 +33,10 @@ type Item = {
   /** 2인 이상일 때만 보인다 */
   groupOnly?: boolean;
   label: React.ReactNode;
+  /** 펼쳐서 보여줄 요약. 오른쪽 '보기' 로 연다. */
   detail?: React.ReactNode;
+  /** 별도 문서로 보낼 때. detail 대신 쓴다. */
+  href?: string;
 };
 
 /**
@@ -44,16 +47,15 @@ const ITEMS: Item[] = [
   { key: "ageSelf", id: "age-self", required: true, label: "만 19세 이상이며 본인이 직접 신청합니다." },
   {
     key: "terms", id: "terms", required: true,
-    label: (
-      <>
-        이용약관에 동의합니다.{" "}
-        <a href="/terms" target="_blank" className="underline decoration-dotted underline-offset-2">이용약관</a>
-      </>
-    ),
+    label: "이용약관에 동의합니다.",
     detail: (
       <>
         참가 중 알게 된 <strong>문제·시나리오·정답 등 콘텐츠는 기간 제한 없이 외부에 공개·공유하지 않습니다.</strong>{" "}
         시설·장비 파손 시 실제 손해를 배상하며, 부적절한 행위 시 참여가 제한될 수 있습니다. (약관 제10·11조)
+        <br />
+        <a href="/terms" target="_blank" className="underline decoration-dotted underline-offset-2">
+          이용약관 전문 보기
+        </a>
       </>
     ),
   },
@@ -72,12 +74,8 @@ const ITEMS: Item[] = [
   },
   {
     key: "privacyPolicy", id: "privacy-policy", required: true,
-    label: (
-      <>
-        개인정보처리방침을 확인했습니다.{" "}
-        <a href="/privacy" target="_blank" className="underline decoration-dotted underline-offset-2">개인정보처리방침</a>
-      </>
-    ),
+    label: "개인정보처리방침을 확인했습니다.",
+    href: "/privacy",
   },
   {
     key: "noRebooking", id: "no-rebooking", required: true,
@@ -148,8 +146,12 @@ export function firstMissingConsentId(consents: ConsentState, attendeeCount: num
 /**
  * 약관 동의 단계.
  *
- * 필수/선택을 별도 그룹으로 나누지 않고 한 줄씩 늘어놓되 앞에 [필수]/[선택] 을 붙인다.
- * 맨 위에 전체 동의 한 줄을 둔다 — 대부분은 그것만 누른다.
+ * 필수와 선택을 **다른 상자로 갈라** 놓는다. 한 줄씩 [필수]/[선택] 을 붙여
+ * 늘어놓던 때는 어디까지 꼭 눌러야 하는지가 한눈에 안 들어왔다.
+ * 자세한 내용은 각 줄 오른쪽 끝의 '보기' 로 연다 — 줄 아래에 링크를 달면
+ * 항목 자체보다 링크가 먼저 읽힌다.
+ *
+ * 맨 위 전체 동의는 그대로 둔다 — 대부분은 그것만 누른다.
  */
 export function ConsentStep({
   attendeeCount,
@@ -181,6 +183,73 @@ export function ConsentStep({
     });
   }
 
+  function row(it: Item) {
+    return (
+      <div key={it.id}>
+        <div className="flex items-start gap-3">
+          <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-2.5">
+            <input
+              id={it.id}
+              type="checkbox"
+              className="mt-0.5 shrink-0 accent-[var(--glow)]"
+              checked={consents[it.key]}
+              onChange={() => onChange({ ...consents, [it.key]: !consents[it.key] })}
+            />
+            <span className="text-sm leading-snug">{it.label}</span>
+          </label>
+
+          {it.href ? (
+            <a
+              href={it.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline"
+            >
+              보기 ›
+            </a>
+          ) : it.detail ? (
+            <button
+              type="button"
+              onClick={() => toggleExpand(it.id)}
+              aria-expanded={expanded.has(it.id)}
+              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline"
+            >
+              {expanded.has(it.id) ? "닫기 ˄" : "보기 ›"}
+            </button>
+          ) : null}
+        </div>
+
+        {it.detail && expanded.has(it.id) && (
+          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-muted">
+            {it.detail}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function group(title: string, note: string, tone: "required" | "optional", list: Item[]) {
+    if (list.length === 0) return null;
+    return (
+      <section className="rounded-lg border border-white/15 p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-white/10 pb-2.5">
+          <span className="text-sm font-bold">{title}</span>
+          <span
+            className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${
+              tone === "required"
+                ? "bg-[var(--glow)]/15 text-glow"
+                : "bg-white/10 text-muted"
+            }`}
+          >
+            {tone === "required" ? "필수" : "선택"}
+          </span>
+          <span className="text-xs text-muted">{note}</span>
+        </div>
+        <div className="space-y-3">{list.map(row)}</div>
+      </section>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3.5">
@@ -194,44 +263,8 @@ export function ConsentStep({
         <span className="text-xs text-muted">필수·선택 항목에 모두 동의합니다.</span>
       </label>
 
-      <div className="space-y-2.5 rounded-lg border border-white/15 p-4 text-sm">
-        {items.map((it) => (
-          <div key={it.id}>
-            <label className="flex cursor-pointer items-start gap-2.5">
-              <input
-                id={it.id}
-                type="checkbox"
-                className="mt-1 shrink-0 accent-[var(--glow)]"
-                checked={consents[it.key]}
-                onChange={() => onChange({ ...consents, [it.key]: !consents[it.key] })}
-              />
-              <span>
-                <strong className={it.required ? "" : "font-normal text-muted"}>
-                  [{it.required ? "필수" : "선택"}]
-                </strong>{" "}
-                {it.label}
-              </span>
-            </label>
-
-            {it.detail && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => toggleExpand(it.id)}
-                  className="ml-7 mt-1 text-xs font-semibold text-glow"
-                >
-                  {expanded.has(it.id) ? "닫기 ▲" : "자세히 ▼"}
-                </button>
-                {expanded.has(it.id) && (
-                  <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-muted">
-                    {it.detail}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        ))}
-      </div>
+      {group("필수 동의", "모두 동의해야 신청할 수 있어요.", "required", items.filter((it) => it.required))}
+      {group("선택 동의", "동의하지 않아도 신청할 수 있어요.", "optional", items.filter((it) => !it.required))}
 
       {showError && !allRequiredChecked(consents, attendeeCount) && (
         <p className="text-sm text-danger">필수 항목에 모두 동의해주세요.</p>
