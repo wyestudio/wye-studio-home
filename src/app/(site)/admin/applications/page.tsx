@@ -96,8 +96,11 @@ export default async function AdminApplicationsPage({
   const total = rows[0]?.total_count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // 필터가 달력으로 날짜를 먼저 고르고 그날 회차만 보여주므로 start_at 을 같이 넘긴다.
+  // (롤링 오픈으로 회차가 150개 가까이 되어 한 줄 목록으로는 고를 수 없다)
   const sessionOptions = (sessionsRes.data ?? []).map((s) => ({
     id: s.id as string,
+    start_at: s.start_at as string,
     label: `${formatDateTimeFull(s.start_at as string)}${
       s.legacy_format ? ` (${s.legacy_format})` : ""
     }`,
