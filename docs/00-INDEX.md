@@ -40,3 +40,9 @@
 | [08-architecture-screens-and-admin.md](./08-architecture-screens-and-admin.md) | 설계(2) 공개 화면 · 라우팅 · 신청 폼 · 어드민 IA |
 | [09-implementation-roadmap.md](./09-implementation-roadmap.md) | **구현 로드맵 · 배포 전략** — Phase 0~8, 롤백 계획 |
 | [RUNBOOK-db-backup-restore.md](./RUNBOOK-db-backup-restore.md) | 운영 런북 — DB 백업 설정 · 복구 절차 |
+
+### 반영 결과
+
+| 문서 | 내용 |
+|---|---|
+| [10-production-rollout-2026-09-12.md](./10-production-rollout-2026-09-12.md) | **운영 반영 완료 보고** (2026-09-12) — 마이그레이션 29건 · 커밋 106개 · 실 플로우 검증 · 발견한 결함 4건 |
