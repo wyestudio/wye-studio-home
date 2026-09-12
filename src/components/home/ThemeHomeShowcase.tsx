@@ -103,6 +103,19 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
               style={{ borderLeftColor: accent, borderLeftWidth: 2 }}
             >
               <div className="flex gap-4 sm:gap-5">
+                {/*
+                  포스터는 '미션 파일' 처럼 패널 왼쪽에 끼워둔다.
+                  비율은 4:5 그대로 — 원본이 그 비율이라 더 세로로 늘리면 잘린다.
+                  키우면 높이도 같이 자란다.
+                */}
+                <div className="relative hidden aspect-[4/5] w-36 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-44">
+                  <PosterImage
+                    src={theme.hero_image_path}
+                    alt={`${theme.name} 포스터`}
+                    sizes="176px"
+                  />
+                </div>
+
                 <div className="min-w-0 flex-1 sm:flex sm:flex-col sm:justify-center">
                   <h3
                     className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
@@ -120,15 +133,6 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
                   {!theme.is_active && (
                     <p className="mt-1.5 text-xs text-muted">현재 신청을 받지 않습니다</p>
                   )}
-                </div>
-
-                {/* 포스터는 '미션 파일' 처럼 패널 한쪽에 끼워둔다. 잘리지 않게 세로 비율 그대로. */}
-                <div className="relative hidden aspect-[4/5] w-28 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-32">
-                  <PosterImage
-                    src={theme.hero_image_path}
-                    alt={`${theme.name} 포스터`}
-                    sizes="128px"
-                  />
                 </div>
               </div>
             </div>

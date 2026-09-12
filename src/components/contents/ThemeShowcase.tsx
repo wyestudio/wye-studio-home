@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { PosterImage } from "@/components/contents/PosterImage";
-import { formatKrw } from "@/lib/format";
 import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
 export type ThemeCardData = ThemeWithTiers & {
@@ -36,10 +35,6 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
         */
         <div className="mt-10 flex flex-wrap justify-center gap-5">
           {themes.map((theme) => {
-            const prices = theme.tiers.map((t) => t.unit_price_krw);
-            const minPrice = prices.length ? Math.min(...prices) : null;
-            const maxPrice = prices.length ? Math.max(...prices) : null;
-
             return (
               <Link
                 key={theme.id}
@@ -65,14 +60,6 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                   <p className="mt-1.5 text-xs text-muted">
                     🔒 난이도 {theme.difficulty} · ⏱ {theme.duration_minutes}분
                   </p>
-                  {minPrice !== null && maxPrice !== null && (
-                    <p className="mt-1 text-xs text-muted">
-                      인당{" "}
-                      {minPrice === maxPrice
-                        ? formatKrw(minPrice)
-                        : `${formatKrw(minPrice)}~${formatKrw(maxPrice)}`}
-                    </p>
-                  )}
                   {!theme.is_active && (
                     <p className="mt-1 text-xs text-muted">현재 신청을 받지 않습니다</p>
                   )}
