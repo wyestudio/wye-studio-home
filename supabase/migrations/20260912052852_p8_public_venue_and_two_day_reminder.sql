@@ -60,3 +60,9 @@ set content = replace(
       '정확한 참여 장소는 참여 확정 후 진행 이틀 전에 문자로 안내드립니다.'
     )::jsonb
 where content::text like '%시작 48시간%';
+
+-- 4) 문자 템플릿 '이름' 도 같이 바꾼다 (본문만 고치고 label 을 빼먹었었다).
+--    어드민 > 문자 포맷 관리 목록에 그대로 보이는 값이다.
+update sms_templates
+set label = replace(label, '전날안내', '장소안내'), updated_at = now()
+where label like '%전날안내%';
