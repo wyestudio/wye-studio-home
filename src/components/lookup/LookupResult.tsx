@@ -3,20 +3,56 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { ThemeTag } from "@/components/ui/ThemeTag";
-import { InfoRow } from "./InfoRow";
 import { CompanionPager } from "./CompanionPager";
 import { RefundInfoDialog } from "./RefundInfoDialog";
-import { formatSessionDateTime, formatSessionDateDotted, formatSessionTime, formatRefundTierDeadlines, formatKrw, calculateRefundAmount } from "@/lib/format";
+import {
+  formatSessionDateTime,
+  formatRefundTierDeadlines,
+  formatKrw,
+  calculateRefundAmount,
+} from "@/lib/format";
 import { formatPhoneDigits } from "@/lib/phone";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { LIFECYCLE_LABEL, LIFECYCLE_TONE } from "@/lib/lookupStatus";
 import { cancelApplicationAction, type LookupState } from "@/app/(site)/lookup/actions";
 import type { ApplicationAttendee } from "@/types/domain";
 
+const DEFAULT_ACCENT = "#3dffb0";
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0">
+      <span className="shrink-0 text-xs text-muted">{label}</span>
+      <span className="text-right text-sm">{value}</span>
+    </div>
+  );
+}
+
+/** 흔히 쓰는 두 장 겹친 복사 아이콘. */
+function CopyIcon() {
+  return (
+    <svg
+      width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+/**
+ * 참여내역 조회 결과.
+ *
+ * 신청 완료 화면과 같은 언어로 그린다 — 접수번호를 먼저 보여주고, 제출한 내용을
+ * 그대로 다시 확인시킨 뒤, 취소는 맨 아래에 둔다.
+ *
+ * ⚠️ 계좌번호는 여기에도 띄우지 않는다. 입금 안내는 대표 신청자 문자에만 담는다
+ *    (신청 완료 화면과 같은 규칙).
+ */
 export function LookupResult() {
   const router = useRouter();
   const [state, setState] = useState<LookupState | null>(null);
@@ -25,6 +61,7 @@ export function LookupResult() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [phone, setPhone] = useState<string>("");
   const [confirmationCode, setConfirmationCode] = useState<string>("");
   const [refundBankName, setRefundBankName] = useState<string>("");
@@ -56,25 +93,29 @@ export function LookupResult() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
-  if (!state || !state.result) {
-    return null;
+  async function copyCode(code: string) {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 클립보드 권한이 없거나 보안 컨텍스트가 아니면 조용히 넘어간다.
+      // 번호는 화면에 그대로 있으므로 직접 적을 수 있다.
+    }
   }
-
-  const { result } = state;
-  const isGroup = result.attendees.length > 1;
-  const representative = result.attendees[0];
-  const companions = result.attendees.slice(1);
-  const smsRecipientLabel = isGroup ? "대표 신청자" : "신청자";
-  // 과거 소개팅 회차만 다른 색을 쓴다. 신규 회차는 기본 강조색.
-  const accentColor = result.format_label === "소개팅" ? "#ff5ec4" : "#3dffb0";
 
   async function handleCancelConfirm() {
     setCancelling(true);
     setCancelError(null);
     try {
-      const refundInfo = state?.result && state.result.payment_status === "confirmed"
-        ? { bankName: refundBankName, accountNumber: refundAccountNumber, accountHolder: refundAccountHolder }
-        : undefined;
+      const refundInfo =
+        state?.result && state.result.payment_status === "confirmed"
+          ? {
+              bankName: refundBankName,
+              accountNumber: refundAccountNumber,
+              accountHolder: refundAccountHolder,
+            }
+          : undefined;
 
       const response = await cancelApplicationAction(phone, confirmationCode, refundInfo, state?.result);
       if (response.error) {
@@ -111,161 +152,226 @@ export function LookupResult() {
 
   if (cancelled) {
     return (
-      <div className="text-center mb-6">
+      <div className="py-10 text-center">
         <h1 className="text-2xl font-extrabold">취소되었습니다.</h1>
         <p className="mt-1 text-sm text-muted">다음 기회에 뵙겠습니다. (제발)</p>
+        <Link
+          href="/contents"
+          className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-bold"
+          style={{ backgroundColor: DEFAULT_ACCENT, color: "#0a0a12" }}
+        >
+          다른 컨텐츠 보기
+        </Link>
       </div>
     );
   }
 
+  if (!state || !state.result) return null;
+
+  const { result } = state;
+  const accent = result.accent_color || DEFAULT_ACCENT;
+  const representative = result.attendees[0];
+  const companions = result.attendees.slice(1);
+  const isGroup = result.attendees.length > 1;
+  // 취소·참여완료 건은 더 이상 취소할 게 없다.
+  const canCancel = result.status !== "cancelled" && result.lifecycleStatus !== "attended";
+  const refundDeadlines = formatRefundTierDeadlines(result.start_at);
+
   return (
-    <>
-      {/* 접수번호 + 상태 배지 */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <p className="text-sm text-muted">접수번호</p>
-          <p className="text-3xl font-extrabold">{result.confirmation_code}</p>
+    <div className="space-y-6">
+      {/* ── 접수번호 ── */}
+      <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center">
+        <div className="mb-3 flex justify-center">
+          <Badge tone={LIFECYCLE_TONE[result.lifecycleStatus]}>
+            {LIFECYCLE_LABEL[result.lifecycleStatus]}
+          </Badge>
+        </div>
+        <p className="text-xs text-muted">접수번호</p>
+        <div className="mt-1 flex items-center justify-center gap-2">
+          <p className="text-3xl font-extrabold tracking-wider" style={{ color: accent }}>
+            {result.confirmation_code}
+          </p>
           <button
             type="button"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(result.confirmation_code);
-              } catch {
-                // no-op
-              }
-            }}
-            className="rounded-md border border-border px-2 py-1 text-xs text-muted hover:text-foreground transition-colors"
+            onClick={() => copyCode(result.confirmation_code)}
+            aria-label="접수번호 복사"
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/40 hover:text-foreground"
           >
-            복사
+            {copied ? <>복사됨</> : <CopyIcon />}
           </button>
         </div>
-        <Badge tone={LIFECYCLE_TONE[result.lifecycleStatus]}>
-          {LIFECYCLE_LABEL[result.lifecycleStatus]}
-        </Badge>
-      </div>
 
-      {/* 대기 상태 안내 */}
-      {result.status === "waiting" && result.waiting_number ? (
-        <div className="mb-6 text-center">
-          <p className="text-sm text-muted">대기번호 {result.waiting_number}번</p>
-          <p className="mt-1 text-xs text-muted">
-            정원이 마감되었습니다. 취소 발생 시 신청자 전화번호로 연락드리겠습니다.
+        {result.status === "waiting" && result.waiting_number ? (
+          <p className="mt-4 text-sm text-amber-300">
+            현재 대기 {result.waiting_number}번입니다. 자리가 나면 개별 연락드립니다.
+            <span className="mt-1 block text-xs text-muted">
+              앞선 신청이 취소되면 순번은 앞당겨질 수 있습니다.
+            </span>
           </p>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
-      {/* 신청 정보 카드 (헤더 없음) */}
-      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-surface p-4">
-        <div className="flex items-center gap-2">
-          {result.format_label && (
-            <ThemeTag sessionType={result.format_label} className="text-lg font-bold" />
+      {/* ── 입금 안내: 계좌는 문자로만 ── */}
+      {result.lifecycleStatus === "awaiting_payment" && (
+        <div className="rounded-xl border-2 p-5" style={{ borderColor: accent }}>
+          <h2 className="text-center font-bold">입금 안내를 문자로 보내드렸어요</h2>
+          <p className="mt-2 text-center text-sm text-muted">
+            <strong className="text-foreground">
+              {representative ? formatPhoneDigits(representative.phone) : ""}
+            </strong>{" "}
+            으로 입금하실 계좌와 금액을 보냈습니다.
+          </p>
+          <div className="mt-4 rounded-lg bg-white/5 p-4 text-center">
+            <p className="text-xs text-muted">입금하실 금액</p>
+            <p className="mt-1 text-2xl font-extrabold" style={{ color: accent }}>
+              {formatKrw(result.amount_krw)}
+            </p>
+          </div>
+          <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-xs text-amber-200">
+            <p>⚠️ 입금자명이 다르면 처리가 늦어질 수 있습니다.</p>
+            <p>⏱ 시간 내 미입금 시 자동으로 취소될 수 있습니다.</p>
+            <p>💬 문자가 오지 않으면 카카오 채널로 문의해주세요.</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── 신청 내용 ── */}
+      <div className="rounded-xl border border-white/15 p-5">
+        <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <h2 className="font-bold">{result.theme_name}</h2>
+          {result.category_name && (
+            <span
+              className="rounded-full border px-2 py-0.5 text-[11px] font-bold"
+              style={{
+                color: accent,
+                borderColor: `${accent}59`,
+                backgroundColor: `${accent}1f`,
+              }}
+            >
+              {result.category_name}
+            </span>
           )}
-          <span className="text-xs font-semibold text-muted">
-            {result.theme_name}
-          </span>
+          {/* 옛 회차만 그룹/소개팅 구분이 있다. 신규 회차는 카테고리로 대신한다. */}
+          {result.format_label && (
+            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-muted">
+              {result.format_label}
+            </span>
+          )}
         </div>
-        <InfoRow label="날짜" value={formatSessionDateDotted(result.start_at)} />
-        <InfoRow label="시간" value={formatSessionTime(result.start_at)} />
-        <InfoRow label="위치" value={result.venue_area} />
+
+        <Row label="일시" value={formatSessionDateTime(result.start_at)} />
+        <Row label="위치" value={result.venue_area} />
+        <Row label="신청일" value={formatSessionDateTime(result.created_at)} />
+        <Row
+          label="입금확인일"
+          value={
+            result.payment_confirmed_sms_sent_at
+              ? formatSessionDateTime(result.payment_confirmed_sms_sent_at)
+              : "-"
+          }
+        />
+        <Row
+          label="참가비"
+          value={
+            result.discount_krw > 0 ? (
+              <>
+                {formatKrw(result.amount_krw)}
+                <span className="ml-1.5 text-xs text-muted">
+                  ({result.headcount}명 × {formatKrw(result.unit_price_krw)} ={" "}
+                  {formatKrw(result.base_amount_krw)}
+                </span>
+                <span className="text-xs text-glow"> − 쿠폰 {formatKrw(result.discount_krw)}</span>
+                <span className="text-xs text-muted">)</span>
+              </>
+            ) : (
+              <>
+                {formatKrw(result.amount_krw)}
+                <span className="ml-1.5 text-xs text-muted">
+                  ({result.headcount}명 × {formatKrw(result.unit_price_krw)})
+                </span>
+              </>
+            )
+          }
+        />
+
+        <div className="mt-4 space-y-3">
+          <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
+            <p className="mb-1 text-xs font-bold text-muted">
+              {isGroup ? "대표 신청자 (본인)" : "신청자"}
+            </p>
+            <AttendeeDisplay attendee={representative} />
+          </div>
+
+          {companions.length > 0 && (
+            <CompanionPager count={companions.length}>
+              {(index) => (
+                <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
+                  <p className="mb-1 text-xs font-bold text-muted">동행자 {index + 1}</p>
+                  <AttendeeDisplay attendee={companions[index]} />
+                </div>
+              )}
+            </CompanionPager>
+          )}
+        </div>
+
+        {/* 요청사항은 더 이상 받지 않지만, 예전 신청에는 남아 있다. */}
+        {result.notes && (
+          <div className="mt-4 rounded-lg border border-white/12 bg-white/[0.03] p-4">
+            <p className="mb-1 text-xs font-bold text-muted">요청사항</p>
+            <p className="whitespace-pre-wrap text-sm">{result.notes}</p>
+          </div>
+        )}
       </div>
 
-      {/* 신청자 정보 */}
-      <div className="mb-6">
-        <p className="mb-3 text-sm font-bold text-muted">신청자 정보</p>
-        <div className="rounded-xl border border-border bg-surface p-4">
-          <AttendeeDisplay attendee={representative} isDatingSession={result.format_label === "소개팅"} />
-        </div>
-      </div>
-
-      {/* 동행자 (그룹일 때만) */}
-      {companions.length > 0 ? (
-        <div className="mb-6">
-          <p className="mb-3 text-sm font-bold text-muted">동행자 정보</p>
-          <CompanionPager count={companions.length}>
-            {(index) => (
-              <div className="rounded-xl border border-border bg-surface p-4">
-                <AttendeeDisplay attendee={companions[index]} isDatingSession={result.format_label === "소개팅"} />
-              </div>
-            )}
-          </CompanionPager>
-        </div>
-      ) : null}
-
-      {/* 비고 (그룹이고 notes가 있을 때만) */}
-      {isGroup && result.notes ? (
-        <div className="mb-6">
-          <p className="mb-3 text-sm font-bold text-muted">비고</p>
-          <div className="rounded-xl border border-border bg-surface p-4">
-            <p className="text-sm text-foreground whitespace-pre-wrap">{result.notes}</p>
+      {/* ── 환불 기한 ── */}
+      {canCancel && (
+        <div className="rounded-xl border border-white/15 bg-white/5 p-5 text-sm">
+          <p className="font-semibold">환불 기한</p>
+          <div className="mt-2 space-y-1 text-muted">
+            <p>
+              {refundDeadlines.full}까지 취소 시 <strong className="text-foreground">100% 환불</strong>
+            </p>
+            <p>
+              {refundDeadlines.full} ~ {refundDeadlines.half} 취소 시{" "}
+              <strong className="text-foreground">50% 환불</strong>
+            </p>
+            <p>
+              {refundDeadlines.half} 이후 취소 시{" "}
+              <strong className="text-danger">환불 불가</strong>
+            </p>
           </div>
         </div>
-      ) : null}
+      )}
 
-      {/* 주문 정보 */}
-      <div className="mb-6">
-        <p className="mb-3 text-sm font-bold text-muted">주문 정보</p>
-        <div className="rounded-xl border border-border bg-surface p-4">
-          <InfoRow label="신청일" value={formatSessionDateTime(result.created_at)} />
-          <div className="border-t border-border py-1.5" />
-          <InfoRow
-            label="입금확인일"
-            value={result.payment_confirmed_sms_sent_at ? formatSessionDateTime(result.payment_confirmed_sms_sent_at) : "-"}
-          />
-          <div className="border-t border-border py-1.5" />
-          <div className="flex items-start justify-between gap-4 py-1.5 text-sm">
-            <span className="text-muted">참가비</span>
-            <div className="text-right">
-              <p className="font-semibold text-foreground">
-                {formatKrw(result.unit_price_krw)} × {result.headcount}명 = {formatKrw(result.amount_krw)}
-              </p>
-              <p className="mt-1 text-xs text-muted">
-                pre-open 기간 한정 · 리뷰 작성 시 인당 <span style={{ color: "var(--brand)" }} className="font-semibold">5,000원</span> 페이백 (SNS 리뷰 업로드 후 7일 유지 시)
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 입금 안내 */}
-      <p className="mb-6 text-center text-sm text-muted">
-        {smsRecipientLabel} 전화번호({representative ? formatPhoneDigits(representative.phone) : ""})로 입금 안내를 문자로 전송드렸어요.
-      </p>
-
-      {/* 환불 기한 */}
-      {(() => {
-        const refundDeadlines = formatRefundTierDeadlines(result.start_at);
-        return (
-          <div className="mb-6 rounded-lg bg-danger-soft p-4 text-sm text-danger">
-            <p className="font-bold">환불 기한</p>
-            <div className="mt-1 flex flex-col gap-0.5">
-              <p>{refundDeadlines.full}까지 취소 시 <span className="font-semibold">100% 환불</span></p>
-              <p>{refundDeadlines.full} ~ {refundDeadlines.half} 취소 시 <span className="font-semibold">50% 환불</span></p>
-              <p>{refundDeadlines.half} 이후 취소 시 <span className="font-semibold">환불 불가</span></p>
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* 버튼 행 */}
-      <div className="flex gap-3">
+      {/* ── 버튼 ── */}
+      <div className="flex flex-wrap gap-2">
         <Link
           href="/lookup"
-          className="inline-flex flex-1 items-center justify-center rounded-lg border border-border bg-surface px-5 py-3 text-sm font-semibold text-foreground transition-all hover:bg-white/5"
+          className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-sm"
         >
-          돌아가기
+          다시 조회
         </Link>
-        <Button
-          variant="danger"
-          onClick={handleCancelClick}
-          className="flex-1"
-        >
-          취소하기
-        </Button>
+        {result.theme_slug && (
+          <Link
+            href={`/themes/${result.theme_slug}`}
+            className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-sm"
+          >
+            테마 보기
+          </Link>
+        )}
+        {canCancel && (
+          <button
+            type="button"
+            onClick={handleCancelClick}
+            disabled={cancelling}
+            className="flex-1 rounded-lg border border-red-500/50 px-4 py-3 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+          >
+            {cancelling ? "처리 중…" : "신청 취소"}
+          </button>
+        )}
       </div>
 
-      {cancelError ? (
-        <p className="mt-4 text-center text-sm text-danger">{cancelError}</p>
-      ) : null}
+      {cancelError ? <p className="text-center text-sm text-danger">{cancelError}</p> : null}
 
       {state?.result && (
         <RefundInfoDialog
@@ -296,32 +402,34 @@ export function LookupResult() {
         onConfirm={handleCancelConfirm}
         danger
         error={cancelError}
+        confirmDisabled={cancelling}
       />
-    </>
+    </div>
   );
 }
 
-function AttendeeDisplay({
-  attendee,
-  isDatingSession,
-}: {
-  attendee: ApplicationAttendee;
-  isDatingSession: boolean;
-}) {
+function AttendeeDisplay({ attendee }: { attendee: ApplicationAttendee }) {
   return (
-    <div className="flex flex-col gap-2">
-      <InfoRow
+    <>
+      <Row
         label="이름"
-        value={`${attendee.name}${attendee.nickname ? ` (${attendee.nickname})` : ""}`}
+        value={
+          <>
+            {attendee.name}
+            {attendee.nickname && <span className="ml-1 text-muted">({attendee.nickname})</span>}
+          </>
+        }
       />
-      <InfoRow label="전화번호" value={formatPhoneDigits(attendee.phone)} />
-      <InfoRow label="출생년도" value={`${attendee.birth_year}년생`} />
-      {attendee.gender ? (
-        <InfoRow label="성별" value={attendee.gender === "M" ? "남성" : "여성"} />
-      ) : null}
-      {attendee.experience_range ? (
-        <InfoRow label="방탈출 경험" value={EXPERIENCE_RANGE_LABELS[attendee.experience_range]} />
-      ) : null}
-    </div>
+      <Row label="휴대폰" value={formatPhoneDigits(attendee.phone)} />
+      <Row label="출생연도" value={`${attendee.birth_year}년생`} />
+      <Row
+        label="방탈출 경험"
+        value={attendee.experience_range ? EXPERIENCE_RANGE_LABELS[attendee.experience_range] : "-"}
+      />
+      <Row
+        label="성별"
+        value={attendee.gender === "M" ? "남성" : attendee.gender === "F" ? "여성" : "선택 안 함"}
+      />
+    </>
   );
 }

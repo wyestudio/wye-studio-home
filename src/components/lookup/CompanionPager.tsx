@@ -26,8 +26,8 @@ export function CompanionPager({
           onClick={() => setIndex((i) => i - 1)}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm transition-all ${
             isFirst
-              ? "pointer-events-none border-border bg-surface text-muted opacity-30"
-              : "border-border bg-surface text-foreground hover:border-brand hover:text-brand"
+              ? "pointer-events-none border-white/15 text-muted opacity-30"
+              : "border-white/25 text-foreground hover:border-white/50"
           }`}
         >
           ‹
@@ -41,8 +41,8 @@ export function CompanionPager({
           onClick={() => setIndex((i) => i + 1)}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm transition-all ${
             isLast
-              ? "pointer-events-none border-border bg-surface text-muted opacity-30"
-              : "border-border bg-surface text-foreground hover:border-brand hover:text-brand"
+              ? "pointer-events-none border-white/15 text-muted opacity-30"
+              : "border-white/25 text-foreground hover:border-white/50"
           }`}
         >
           ›

@@ -8,14 +8,14 @@ export async function lookupApplication(
   const phoneDigits = phone.replace(/[^0-9]/g, "");
   const supabase = await createClient();
   const { data, error } = await supabase
-    .rpc("lookup_application_v2", {
+    .rpc("lookup_application_v3", {
       p_phone_digits: phoneDigits,
       p_confirmation_code: confirmationCode.trim(),
     })
     .maybeSingle();
 
   if (error) {
-    console.error(`[lookup] lookup_application_v2 failed: ${error.message}`);
+    console.error(`[lookup] lookup_application_v3 failed: ${error.message}`);
     return null;
   }
   return data as ApplicationLookupResult | null;

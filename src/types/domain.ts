@@ -114,6 +114,12 @@ export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200-500" | 
  */
 export type ApplicationLookupResult = {
   theme_name: string;
+  /** 테마 페이지로 돌아가는 링크. 이관 전 옛 회차는 null */
+  theme_slug: string | null;
+  /** 테마 카테고리(파티형 방탈출 등). 없으면 배지를 안 그린다 */
+  category_name: string | null;
+  /** 테마 강조색. 없으면 기본 강조색 */
+  accent_color: string | null;
   /** 과거 회차의 진행 형식(그룹/소개팅). 신규 회차는 null */
   format_label: string | null;
   venue_area: string;
@@ -123,6 +129,10 @@ export type ApplicationLookupResult = {
   min_age: number | null;
   headcount: number;
   unit_price_krw: number;
+  /** 할인 전 금액. 쿠폰을 안 썼으면 amount_krw 와 같다 */
+  base_amount_krw: number;
+  /** 쿠폰 할인액. 없으면 0 */
+  discount_krw: number;
   amount_krw: number;
   status: ApplicationStatus;
   payment_status: PaymentStatus;
