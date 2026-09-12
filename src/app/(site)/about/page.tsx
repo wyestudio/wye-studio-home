@@ -43,7 +43,7 @@ export default function AboutPage() {
               <div>
                 <p className="font-bold">케이프를 소개합니다</p>
                 <p className="text-sm text-muted">
-                  우주이스케이프의 마스코트예요. 아직 pre-open이라 할 일이 많아서 늘 바빠요.
+                  우주이스케이프의 마스코트예요. 새 행성을 찾아다니느라 늘 바빠요.
                 </p>
               </div>
             </HudCard>

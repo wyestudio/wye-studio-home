@@ -4,7 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Badge } from "@/components/ui/Badge";
 import { RandomLetterSwap } from "@/components/ui/RandomLetterSwap";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인/계정 네비게이션은
@@ -59,7 +58,6 @@ export function Header() {
               우주이스케이프
             </span>
           </Link>
-          <Badge tone="confirm">PRE-OPEN</Badge>
         </div>
         {/* 데스크톱 네비게이션 */}
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-bold text-muted">
@@ -95,8 +93,7 @@ export function Header() {
                 우주이스케이프
               </span>
             </Link>
-            <Badge tone="confirm">PRE-OPEN</Badge>
-          </div>
+            </div>
           {/* 모바일 햄버거 버튼 */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
