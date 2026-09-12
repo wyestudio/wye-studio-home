@@ -27,7 +27,20 @@ function seoulParts(iso: string) {
   const minute = Number(map.minute);
   // 순수 캘린더 날짜(연/월/일)만으로 요일을 구하면 타임존 왕복 오차가 없다.
   const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
-  return { month, day, weekday, hour, minute };
+  return { year, month, day, weekday, hour, minute };
+}
+
+/**
+ * "YYYY.MM.DD HH:mm" — 신청 완료·참여내역 조회에서 쓰는 통일 형식.
+ *
+ * 이 두 화면은 회차 일시·신청일·입금확인일을 한 화면에 같이 보여준다.
+ * 형식이 서로 다르면(M/D(요일) vs YYYY.M.D) 같은 종류의 값으로 읽히지 않는다.
+ * 월·일은 0을 채워 자릿수를 맞춘다 — 세로로 늘어놓았을 때 어긋나지 않는다.
+ */
+export function formatDateTimeFull(iso: string): string {
+  const { year, month, day, hour, minute } = seoulParts(iso);
+  const p2 = (n: number) => n.toString().padStart(2, "0");
+  return `${year}.${p2(month)}.${p2(day)} ${p2(hour)}:${p2(minute)}`;
 }
 
 export function formatSessionDateTime(startAt: string): string {

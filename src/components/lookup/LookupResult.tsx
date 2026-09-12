@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { CompanionPager } from "./CompanionPager";
 import { RefundInfoDialog } from "./RefundInfoDialog";
 import {
-  formatSessionDateTime,
+  formatDateTimeFull,
   formatRefundTierDeadlines,
   formatKrw,
   calculateRefundAmount,
@@ -259,14 +259,14 @@ export function LookupResult() {
           )}
         </div>
 
-        <Row label="일시" value={formatSessionDateTime(result.start_at)} />
+        <Row label="일시" value={formatDateTimeFull(result.start_at)} />
         <Row label="위치" value={result.venue_area} />
-        <Row label="신청일" value={formatSessionDateTime(result.created_at)} />
+        <Row label="신청일" value={formatDateTimeFull(result.created_at)} />
         <Row
           label="입금확인일"
           value={
             result.payment_confirmed_sms_sent_at
-              ? formatSessionDateTime(result.payment_confirmed_sms_sent_at)
+              ? formatDateTimeFull(result.payment_confirmed_sms_sent_at)
               : "-"
           }
         />

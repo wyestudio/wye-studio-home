@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getThemeBySlug, getUpcomingSessionsForTheme, attachStats, isBookable } from "@/lib/themes";
+// 날짜 형식은 완료 화면·참여내역 조회와 같아야 한다. 한 화면 안에서 회차 일시와
+// 신청일이 다른 모양이면 같은 종류의 값으로 읽히지 않는다.
+import { formatDateTimeFull } from "@/lib/format";
 import { ApplyForm } from "./ApplyForm";
 
 export const dynamic = "force-dynamic";
@@ -13,18 +16,6 @@ export const metadata: Metadata = {
   title: "참가 신청",
   robots: { index: false },
 };
-
-const sessionLabel = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
 
 export default async function ApplyPage({
   params,
@@ -75,7 +66,7 @@ export default async function ApplyPage({
         backHref={`/themes/${slug}`}
         sessionId={target.id}
         themeName={theme.name}
-        sessionLabel={sessionLabel(target.start_at)}
+        sessionLabel={formatDateTimeFull(target.start_at)}
         minAge={target.min_age}
         maxGroupSize={theme.max_group_size}
         tiers={theme.tiers}

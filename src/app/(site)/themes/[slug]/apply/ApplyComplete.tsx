@@ -160,7 +160,7 @@ export function ApplyComplete({
 
       {/* ── 제출한 내용 ── */}
       <div className="rounded-xl border border-white/15 p-5">
-        <h2 className="mb-2 font-bold">제출하신 내용</h2>
+        <h2 className="mb-2 font-bold">신청 정보</h2>
 
         <Row label="테마" value={themeName} />
         <Row label="일시" value={sessionLabel} />
