@@ -23,8 +23,8 @@ export type ScheduleInput = {
   times: string[];
   /** 회차일로부터 N주 전에 연다 */
   open_weeks_before: number;
-  /** 그 주의 어느 요일 (0=일 … 6=토) */
-  open_weekday: number;
+  /** 공개를 고정할 요일 (0=일 … 6=토). null 이면 회차마다 정확히 N주 전 */
+  open_weekday: number | null;
   /** 그 날 몇 시 (KST, HH:MM) */
   open_time: string;
 };

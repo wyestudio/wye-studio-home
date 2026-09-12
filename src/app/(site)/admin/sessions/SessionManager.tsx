@@ -26,7 +26,7 @@ export type ThemeSchedule = {
   weekdays: number[];
   times: string[];
   open_weeks_before: number;
-  open_weekday: number;
+  open_weekday: number | null;
   open_time: string;
   generated_until: string | null;
 };
@@ -42,7 +42,8 @@ function blankSchedule(themeId: string): ScheduleInput {
     weekdays: [6, 0],
     times: ["11:30", "15:30", "19:30"],
     open_weeks_before: 3,
-    open_weekday: 6,
+    // 기본은 요일 고정 없이 — "3주 전에 열려요" 라는 안내와 그대로 맞는다.
+    open_weekday: null,
     open_time: "00:00",
   };
 }
@@ -289,8 +290,19 @@ export function SessionManager({
             />
           </div>
           <div>
-            <label className={label}>요일</label>
+            <label className={label}>요일 고정</label>
             <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => patch({ open_weekday: null })}
+                className={`h-9 rounded px-2.5 text-sm ${
+                  draft.open_weekday === null
+                    ? "bg-glow text-glow-foreground"
+                    : "border border-border text-muted"
+                }`}
+              >
+                안 함
+              </button>
               {WEEKDAYS.map((d) => (
                 <button
                   key={d.v}
@@ -306,6 +318,11 @@ export function SessionManager({
                 </button>
               ))}
             </div>
+            <p className="mt-1 text-xs text-muted">
+              {draft.open_weekday === null
+                ? "회차마다 정확히 N주 전에 하나씩 열립니다."
+                : "N주 전에서 이 요일로 되감아 한꺼번에 엽니다 (일부는 더 일찍 열림)."}
+            </p>
           </div>
           <div className="w-32">
             <label className={label}>시각</label>

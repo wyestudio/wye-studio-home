@@ -40,8 +40,11 @@ export function todayKst(now: Date = new Date()): string {
 export type OpenRule = {
   /** 회차일로부터 며칠 전 주에 여는가 (주 단위) */
   open_weeks_before: number;
-  /** 그 주의 어느 요일에 여는가 (0=일 … 6=토) */
-  open_weekday: number;
+  /**
+   * 공개를 고정할 요일 (0=일 … 6=토). null 이면 고정하지 않는다 —
+   * 회차마다 자기 날짜의 정확히 N주 전에 열린다.
+   */
+  open_weekday: number | null;
   /** 그 날 몇 시에 여는가 (KST 'HH:MM') */
   open_time: string;
 };
@@ -49,12 +52,19 @@ export type OpenRule = {
 /**
  * 회차 날짜(KST) → 공개 시각(UTC ISO).
  *
- * "3주 전 토요일 0시" 규칙이면 10/3(토) 회차는 9/12(토) 0시에 열린다.
- * 일요일 회차(10/4)도 3주 전이 9/13(일)이고 거기서 가장 가까운 이전 토요일인
- * 9/12 로 감기므로 토·일이 같이 열린다 — 주말 한 세트가 함께 열리는 게 맞다.
+ * open_weekday 가 null 이면 회차일에서 그대로 N주를 뺀다 — "3주 전 0시" 규칙이면
+ * 10/3(토) 회차는 9/12(토) 0시에, 10/4(일) 회차는 9/13(일) 0시에 열린다.
+ *
+ * 요일을 지정하면 거기서 **이전(또는 같은 날)의 그 요일로 되감는다.** 예를 들어
+ * "3주 전 토요일" 이면 10/4(일)의 3주 전인 9/13(일)이 9/12(토)로 감겨,
+ * 그 주말 회차가 토요일 0시에 한꺼번에 열린다.
+ *
+ * ⚠️ 요일을 지정하면 일부 회차는 N주보다 **더 일찍** 열린다(최대 6일). 고객에게
+ *    "3주 전에 열려요" 라고 안내한다면 null 이 말과 맞는다.
  */
 export function computeOpensAt(sessionYmd: string, rule: OpenRule): string {
   const base = addDays(sessionYmd, -7 * rule.open_weeks_before);
+  if (rule.open_weekday === null) return kstToUtcIso(base, rule.open_time);
   // base 이전(또는 같은 날)의 가장 가까운 open_weekday 로 되감는다.
   const back = (weekdayOf(base) - rule.open_weekday + 7) % 7;
   return kstToUtcIso(addDays(base, -back), rule.open_time);
