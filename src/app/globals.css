@@ -401,3 +401,15 @@ html.custom-cursor-active label {
 body:has(.admin-shell) header {
   background-color: var(--background);
 }
+
+/* 모바일 하단 고정 CTA 가 떠 있는 동안에는 카카오 채널 버튼을 그 위로 올린다.
+   그냥 두면 '신청하기' 버튼 오른쪽 끝을 가려서 누를 수가 없었다.
+
+   ⚠️ 막대는 sm 이상에서 숨겨지지만 DOM 에는 그대로 남는다. :has 는 그걸
+      구분하지 못하므로 미디어 쿼리로 모바일에만 적용한다.
+   높이는 막대(패딩 12 + 버튼 14·2 + 글줄 24 ≈ 76px)에 여백을 더한 값. */
+@media (max-width: 639px) {
+  body:has(.mobile-cta-bar) .kakao-float {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}

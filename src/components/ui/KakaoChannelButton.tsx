@@ -7,7 +7,7 @@ export function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="카카오톡 채널로 문의하기"
-      className={`fixed right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-[#FEE500] text-[#391B1B] shadow-lg shadow-black/40 transition-transform hover:scale-105 sm:h-14 sm:w-14 lg:right-20 ${
+      className={`kakao-float fixed right-4 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-[#FEE500] text-[#391B1B] shadow-lg shadow-black/40 transition-transform hover:scale-105 sm:h-14 sm:w-14 lg:right-20 ${
         raised ? "bottom-36" : "bottom-5"
       }`}
     >

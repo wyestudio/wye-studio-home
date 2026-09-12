@@ -244,9 +244,13 @@ function BookingCta({
     <>
       <div ref={anchorRef}>{inner}</div>
 
-      {/* 모바일 전용 하단 고정. 원래 버튼이 화면 밖일 때만 뜬다. */}
+      {/*
+        모바일 전용 하단 고정. 원래 버튼이 화면 밖일 때만 뜬다.
+        mobile-cta-bar 는 카카오 채널 버튼이 이 막대를 비켜 가도록 알리는
+        표식이다 — globals.css 의 body:has(.mobile-cta-bar) 규칙이 읽는다.
+      */}
       {stuck && accepting && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-background/95 p-3 backdrop-blur sm:hidden">
+        <div className="mobile-cta-bar fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-background/95 p-3 backdrop-blur sm:hidden">
           {href ? (
             <a
               href={href}
