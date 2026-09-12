@@ -34,15 +34,11 @@ export function ThemeBlocks({ blocks, accent }: { blocks: ThemeBlock[]; accent: 
  * 모양은 8/29 회차 페이지(`/sessions/[slug]`)의 것을 그대로 옮겼다.
  */
 export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: string }) {
-  // 타임테이블은 가운데 정렬. 본문이 가운데 좁게 서 있는데 제목만 왼쪽에
-  // 붙어 있으면 따로 논다.
-  const centered = block.type === "timetable";
-
+  // 제목은 전부 가운데. 블록마다 왼쪽/가운데가 섞이면 시선이 계속 튄다.
   const heading = (block.eyebrow || block.title) && (
     <SectionHeading
       eyebrow={block.eyebrow ?? ""}
       title={block.title}
-      align={centered ? "center" : "left"}
       className="mb-6"
       eyebrowColor={accent}
     />

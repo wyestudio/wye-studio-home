@@ -30,7 +30,11 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
           <p className="mt-2 text-sm text-muted">새 컨텐츠가 준비되면 안내드릴게요.</p>
         </div>
       ) : (
-        <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
+        /*
+          격자 대신 flex — 테마가 열 수보다 적을 때 왼쪽에 붙지 않고 가운데로
+          모인다. 폭은 gap(1.25rem)을 뺀 뒤 열 수로 나눠 격자와 똑같이 맞춘다.
+        */
+        <div className="mt-10 flex flex-wrap justify-center gap-5">
           {themes.map((theme) => {
             const prices = theme.tiers.map((t) => t.unit_price_krw);
             const minPrice = prices.length ? Math.min(...prices) : null;
@@ -41,8 +45,9 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                 key={theme.id}
                 href={`/themes/${theme.slug}`}
                 /* 모서리는 둥글리지 않는다 — 각진 쪽이 더 정제돼 보인다는 결정. */
-                className="group overflow-hidden border border-white/12 bg-white/[0.03]
-                           transition-colors duration-200 hover:border-white/30"
+                className="group basis-[calc((100%-1.25rem)/2)] overflow-hidden border border-white/12
+                           bg-white/[0.03] transition-colors duration-200 hover:border-white/30
+                           sm:basis-[calc((100%-2.5rem)/3)] lg:basis-[calc((100%-3.75rem)/4)]"
               >
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/[0.02]">
                   <PosterImage

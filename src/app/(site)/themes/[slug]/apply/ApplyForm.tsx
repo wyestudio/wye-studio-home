@@ -514,6 +514,18 @@ export function ApplyForm({
                   label: `${n}명`,
                 }))}
               />
+              <p className="mt-1.5 text-xs text-muted">
+                ※ 10인 이상 단체 문의는{" "}
+                <a
+                  href="http://pf.kakao.com/_EGNBX"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                >
+                  카카오톡 채널
+                </a>
+                로 문의바랍니다.
+              </p>
             </div>
 
             <AttendeeTabs

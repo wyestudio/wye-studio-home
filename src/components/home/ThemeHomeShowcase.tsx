@@ -2,7 +2,6 @@ import Link from "next/link";
 import { SpinningPlanet } from "@/components/home/SpinningPlanet";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { PosterImage, FALLBACK_LOGO } from "@/components/contents/PosterImage";
-import { formatKrw } from "@/lib/format";
 import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
 const DEFAULT_ACCENT = "#3dffb0";
@@ -40,22 +39,19 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex max-w-2xl flex-col gap-8 sm:gap-10">
       {themes.map((theme) => {
         const accent = theme.accent_color || DEFAULT_ACCENT;
-        const prices = theme.tiers.map((t) => t.unit_price_krw);
-        const minPrice = prices.length ? Math.min(...prices) : null;
-        const maxPrice = prices.length ? Math.max(...prices) : null;
         const logo = theme.logo_image_path || FALLBACK_LOGO;
 
         return (
           <Link
             key={theme.id}
             href={`/themes/${theme.slug}`}
-            className="group flex items-center gap-4 sm:gap-6"
+            className="group flex items-center gap-6 sm:gap-10"
           >
             {/* ── 행성 ── */}
-            <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full sm:h-36 sm:w-36">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24">
               {/*
                 자전은 SpinningPlanet 이 캔버스로 그린다. 그림을 옆으로 미는
                 방식은 구면 눌림이 없어 "그림이 지나간다" 로만 보였다.
@@ -98,41 +94,21 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
             >
               <div className="flex gap-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                    <h3
-                      className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
-                      style={{ color: accent }}
-                    >
-                      {theme.name}
-                    </h3>
-                    <span className="text-[11px] uppercase tracking-[0.2em] text-muted">
-                      {theme.is_active && theme.upcomingCount > 0 ? "OPEN" : "STANDBY"}
-                    </span>
-                  </div>
+                  <h3
+                    className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
+                    style={{ color: accent }}
+                  >
+                    {theme.name}
+                  </h3>
 
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
                     <DifficultyLocks rating={theme.difficulty} />
                     <span>⏱ {durationLabel(theme.duration_minutes)}</span>
                   </div>
 
-                  {minPrice !== null && maxPrice !== null && (
-                    <p className="mt-1.5 text-sm">
-                      <span className="text-muted">1인 </span>
-                      <strong>
-                        {minPrice === maxPrice
-                          ? formatKrw(minPrice)
-                          : `${formatKrw(minPrice)}~${formatKrw(maxPrice)}`}
-                      </strong>
-                    </p>
+                  {!theme.is_active && (
+                    <p className="mt-1.5 text-xs text-muted">현재 신청을 받지 않습니다</p>
                   )}
-
-                  <p className="mt-1.5 text-xs text-muted">
-                    {!theme.is_active
-                      ? "현재 신청을 받지 않습니다"
-                      : theme.upcomingCount > 0
-                        ? `신청 가능한 회차 ${theme.upcomingCount}개`
-                        : "예정된 회차 준비 중"}
-                  </p>
                 </div>
 
                 {/* 포스터는 '미션 파일' 처럼 패널 한쪽에 끼워둔다. 잘리지 않게 세로 비율 그대로. */}

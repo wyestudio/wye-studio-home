@@ -28,8 +28,9 @@ export function ThemeScene({
       isLast={isLast}
       variant="rise"
     >
+      {/* 제목은 가운데, 목록과는 넉넉히 띄운다 — 시원시원하게 보이도록. */}
       <div className="mx-auto w-full max-w-4xl px-5 sm:px-8 lg:px-0">
-        <h2 className="mb-3 text-left text-lg font-extrabold tracking-[0.08em] sm:mb-5 sm:text-2xl">
+        <h2 className="mb-10 text-center text-2xl font-extrabold tracking-[0.12em] sm:mb-16 sm:text-4xl">
           Planets to Escape
         </h2>
         <ThemeHomeShowcase themes={themes} />
