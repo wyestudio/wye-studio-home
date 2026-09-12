@@ -36,7 +36,7 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const planetRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
+  const [paths, setPaths] = useState<string[]>([]);
 
   /**
    * 이음선은 **행성 중심끼리** 잇는다.
@@ -55,8 +55,15 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
         const b = el.getBoundingClientRect();
         return { x: b.left - hostBox.left + b.width / 2, y: b.top - hostBox.top + b.height / 2 };
       });
-    setLines(
-      pts.slice(1).map((p, i) => ({ x1: pts[i].x, y1: pts[i].y, x2: p.x, y2: p.y }))
+    // 행성에서 가파르게 떠났다가 다음 행성 앞에서 눕는 곡선. 직선으로 그으면
+    // 옆 패널의 한복판을 가로질러 지나간다.
+    setPaths(
+      pts.slice(1).map((p, i) => {
+        const a = pts[i];
+        const dx = p.x - a.x;
+        const dy = p.y - a.y;
+        return `M ${a.x} ${a.y} C ${a.x + dx * 0.22} ${a.y + dy * 0.85}, ${a.x + dx * 0.7} ${p.y}, ${p.x} ${p.y}`;
+      })
     );
   }, []);
 
@@ -130,21 +137,19 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
       onClickCapture={onClickCapture}
       className="planet-track w-full overflow-x-auto overflow-y-hidden
                  px-5 sm:cursor-grab sm:px-8 sm:active:cursor-grabbing
-                 lg:px-[max(2rem,calc((100%-56rem)/2))]"
+                 lg:pl-[max(2rem,calc((100%-56rem)/2))] lg:pr-8"
     >
       <div
         ref={contentRef}
-        className="relative flex w-full flex-col gap-10 sm:h-[25rem] sm:w-max sm:min-w-full sm:flex-row sm:items-start"
+        className="relative flex w-full flex-col gap-10 sm:h-[25rem] sm:w-max sm:min-w-full sm:flex-row sm:items-start sm:gap-12 lg:h-[26rem]"
       >
         {/* 행성끼리 잇는 점선 */}
         <svg className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block" aria-hidden>
-          {lines.map((l, i) => (
-            <line
+          {paths.map((d, i) => (
+            <path
               key={i}
-              x1={l.x1}
-              y1={l.y1}
-              x2={l.x2}
-              y2={l.y2}
+              d={d}
+              fill="none"
               stroke="rgba(255,255,255,0.4)"
               strokeWidth="3"
               strokeDasharray="7 12"
@@ -157,7 +162,7 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
           // 지그재그 — 홀수 칸만 아래로 내린다. 좁은 화면에서는 세로로 쌓인다.
           <div
             key={slot.kind === "theme" ? slot.theme.id : "soon"}
-            className={`relative flex shrink-0 items-center sm:h-72 ${i % 2 === 1 ? "sm:mt-28" : ""}`}
+            className={`relative flex shrink-0 items-center sm:h-52 lg:h-56 ${i % 2 === 1 ? "sm:mt-48" : ""}`}
           >
             {slot.kind === "theme" ? (
               <ThemeSlot
@@ -181,30 +186,35 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
 }
 
 /**
- * 잠긴 자리 한가운데의 자물쇠.
+ * 자물쇠 아이콘. 모서리를 굴리지 않는다 — 각진 쪽이 우주선 계기판 느낌에 맞는다.
  *
- * ⚠️ 흔들기는 **안쪽 요소**에만 건다. 바깥에 걸면 Tailwind 의 가운데 맞춤
- *    (translate 속성)과 애니메이션의 transform 이 겹쳐 좌상단으로 튄다.
+ * ⚠️ 흔들기는 **이 요소**에만 건다. 가운데 맞춤을 하는 바깥 요소에 걸면
+ *    Tailwind 의 translate 속성과 애니메이션의 transform 이 겹쳐 좌상단으로 튄다.
  */
+function LockIcon({ shaking, px = 34 }: { shaking: boolean; px?: number }) {
+  return (
+    <span className={`block ${shaking ? "animate-lock-shake" : ""}`} aria-hidden>
+      <svg
+        width={px}
+        height={px}
+        viewBox="0 0 24 24"
+        fill="none"
+        shapeRendering="crispEdges"
+        style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.8))" }}
+      >
+        <rect x="4" y="10" width="16" height="10" fill="#fff" />
+        <path d="M8 10V6h8v4" stroke="#fff" strokeWidth="2.4" strokeLinecap="butt" fill="none" />
+        <rect x="11" y="13" width="2" height="4" fill="#0a0a12" />
+      </svg>
+    </span>
+  );
+}
+
+/** 행성 한가운데의 자물쇠. */
 function LockBadge({ shaking, px = 34 }: { shaking: boolean; px?: number }) {
   return (
-    <span
-      className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
-      aria-hidden
-    >
-      <span className={`block ${shaking ? "animate-lock-shake" : ""}`}>
-        <svg
-          width={px}
-          height={px}
-          viewBox="0 0 24 24"
-          fill="none"
-          style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.8))" }}
-        >
-          <rect x="4" y="10" width="16" height="10" rx="2.5" fill="#fff" />
-          <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
-          <circle cx="12" cy="15" r="1.7" fill="#0a0a12" />
-        </svg>
-      </span>
+    <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2">
+      <LockIcon shaking={shaking} px={px} />
     </span>
   );
 }
@@ -280,7 +290,7 @@ function ThemeSlot({
   const panel = (
     <div
       className="relative flex min-h-28 min-w-0 flex-1 items-center overflow-hidden rounded-xl
-                 border border-white/12 bg-white/[0.04] p-4 opacity-100 transition-all duration-500
+                 border border-white/12 bg-background p-4 opacity-100 transition-all duration-500
                  sm:min-h-0 sm:flex-none
                  [@media(hover:hover)]:-translate-x-3 [@media(hover:hover)]:opacity-0
                  [@media(hover:hover)]:peer-hover:translate-x-0
@@ -293,11 +303,11 @@ function ThemeSlot({
           포스터는 '미션 파일' 처럼 패널 왼쪽에 끼워둔다.
           비율은 4:5 그대로 — 원본이 그 비율이라 더 세로로 늘리면 잘린다.
         */}
-        <div className="relative hidden aspect-[4/5] w-36 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-44">
-          <PosterImage src={theme.hero_image_path} alt={`${theme.name} 포스터`} sizes="176px" />
+        <div className="relative hidden aspect-[4/5] w-28 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-32">
+          <PosterImage src={theme.hero_image_path} alt={`${theme.name} 포스터`} sizes="128px" />
         </div>
 
-        <div className="min-w-0 flex-1 sm:flex sm:flex-col sm:justify-center">
+        <div className="min-w-0 flex-1 sm:flex sm:w-44 sm:flex-none sm:flex-col sm:justify-center">
           <h3
             className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
             style={{ color: accent }}
@@ -316,19 +326,17 @@ function ThemeSlot({
             </div>
           )}
 
-          {locked && (
-            <p className="mt-1.5 text-xs text-muted">
-              {knocked ? "아직 탈출할 수 없는 행성입니다." : "아직 탐사되지 않은 행성입니다."}
-            </p>
-          )}
         </div>
       </div>
 
+      {/* 자물쇠와 같은 선상, 바로 아래에 문구. 본문에 두면 자물쇠에 가려 읽히지 않는다. */}
       {locked && (
-        <>
-          <LockedVeil rounded="rounded-xl" />
-          <LockBadge shaking={knocked} px={30} />
-        </>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/55">
+          <LockIcon shaking={knocked} px={30} />
+          <p className="px-3 text-center text-xs font-medium text-white">
+            아직 탈출할 수 없는 행성입니다.
+          </p>
+        </div>
       )}
     </div>
   );
@@ -347,7 +355,7 @@ function ThemeSlot({
             knock();
           }
         }}
-        className="flex w-full cursor-not-allowed items-center gap-6 sm:w-auto sm:gap-10"
+        className="flex w-full cursor-not-allowed items-center gap-6 sm:w-auto sm:gap-6"
       >
         {planet}
         {panel}
@@ -358,7 +366,7 @@ function ThemeSlot({
   return (
     <Link
       href={`/themes/${theme.slug}`}
-      className="flex w-full items-center gap-6 sm:w-auto sm:gap-10"
+      className="flex w-full items-center gap-6 sm:w-auto sm:gap-6"
     >
       {planet}
       {panel}
@@ -375,7 +383,7 @@ function ThemeSlot({
 function ComingSoonSlot({ planetRef }: { planetRef: (el: HTMLDivElement | null) => void }) {
   return (
     <div
-      className="flex w-full cursor-not-allowed select-none items-center gap-6 sm:w-auto sm:gap-10"
+      className="flex w-full cursor-not-allowed select-none items-center gap-6 sm:w-auto sm:gap-6"
       aria-label="출시 예정"
     >
       <div
@@ -397,7 +405,7 @@ function ComingSoonSlot({ planetRef }: { planetRef: (el: HTMLDivElement | null) 
 
       {/* 넓은 화면에서는 패널 자체가 없다. 좁은 화면에서만 한 줄. */}
       <div className="flex min-h-28 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-black/40 p-4 sm:hidden">
-        <p className="text-xs font-bold uppercase tracking-[0.25em] text-white/45">COMING SOON</p>
+        <p className="text-xs font-medium text-white/55">미탐사된 행성입니다.</p>
       </div>
     </div>
   );
