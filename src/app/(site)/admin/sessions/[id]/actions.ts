@@ -101,9 +101,11 @@ export async function confirmPayment(applicationId: string, sessionId: string) {
 
   const { error: updateError } = await supabase
     .from("applications")
+    // 이쪽은 실제로 문자2 를 보내므로 발송 시각과 입금 시각을 둘 다 남긴다.
     .update({
       payment_status: "confirmed",
       payment_confirmed_sms_sent_at: new Date().toISOString(),
+      paid_at: new Date().toISOString(),
     })
     .eq("id", applicationId);
 
@@ -658,9 +660,12 @@ export async function adminManualApply(
   if (markPaid) {
     const { error: updateError } = await adminClient
       .from("applications")
+      // ⚠️ payment_confirmed_sms_sent_at 은 찍지 않는다. 여기서는 문자를 보내지
+      //    않는데(아래 로그 참고) 그 값을 찍으면 어드민 상세의 '입금확인일시' 에
+      //    보내지도 않은 문자의 발송 시각이 뜬다. 입금 사실은 paid_at 이 담는다.
       .update({
         payment_status: "confirmed",
-        payment_confirmed_sms_sent_at: new Date().toISOString(),
+        paid_at: new Date().toISOString(),
       })
       .eq("id", application.id);
 

@@ -38,7 +38,7 @@ export default async function AdminDashboard() {
     supabase
       .from("admin_application_view")
       .select(
-        "id, session_id, status, payment_status, created_at, refund_bank_name, refund_completed_at, payment_confirmed_sms_sent_at"
+        "id, session_id, status, payment_status, created_at, refund_bank_name, refund_completed_at, paid_at"
       ),
     supabase.from("admin_attendee_view").select("application_id, gender"),
     supabase
@@ -74,7 +74,7 @@ export default async function AdminDashboard() {
     created_at: string;
     refund_bank_name: string | null;
     refund_completed_at: string | null;
-    payment_confirmed_sms_sent_at: string | null;
+    paid_at: string | null;
   }[];
   const attendees = (attendeesRes.data ?? []) as { application_id: string; gender: string | null }[];
 
@@ -111,16 +111,16 @@ export default async function AdminDashboard() {
   //    왜 이렇게 갈랐나 (2026-09-12 확인):
   //    취소되면 payment_status 가 'cancelled' 로 덮여서 "입금했었는지"를 DB 가
   //    알 수 없다. 그래서 입금확인 표시(payment_confirmed_sms_sent_at)를 대신
-  //    썼는데, 이 값은 어드민 수동 등록(adminManualApply)에서 markPaid 면
-  //    **문자를 보내지 않고도** 찍힌다. 그 결과 8/29 팀 내부 테스트 신청 5건이
-  //    (입금자명 '테스트'·'김종진'·'이은지', 문자1 미발송) 영원히 '환불 대기'로
-  //    남아 있었다. 실제 입금도 환불 의무도 없는 건이다.
+  //    썼는데, 그 값은 어드민 수동 등록에서도 문자 없이 찍혀 오탐이 났다.
+  //    그 결과 8/29 팀 내부 테스트 신청 5건(입금자명 '테스트'·'김종진'·'이은지',
+  //    문자1 미발송)이 영원히 '환불 대기'로 남아 있었다.
+  //    지금은 의미가 분명한 paid_at 을 쓴다(마이그레이션 p20).
   //    환불 계좌를 준 것은 고객이 직접 "돌려달라"고 한 것이라 오탐이 없다.
   const refundPending = apps.filter(
     (a) =>
       a.status === "cancelled" &&
       !a.refund_completed_at &&
-      (a.refund_bank_name || (a.payment_confirmed_sms_sent_at && isActive(a)))
+      (a.refund_bank_name || (a.paid_at && isActive(a)))
   );
   const unmatchedDeposits = unmatchedRes.count ?? 0;
 

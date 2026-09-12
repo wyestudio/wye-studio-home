@@ -159,14 +159,17 @@ function ActionCell({
  * 이 취소 건에 돌려줄 돈이 있는가.
  *
  * 취소되면 payment_status 가 'cancelled' 로 덮여 입금 여부를 잃는다.
- * 대신 입금확인 문자 발송 시각(payment_confirmed_sms_sent_at)이 남아 있어
- * "입금까지 갔던 건" 인지 판별할 수 있다.
+ * 그래서 취소돼도 남는 paid_at 으로 "입금까지 갔던 건" 인지 판별한다.
+ *
+ * ⚠️ 예전에는 payment_confirmed_sms_sent_at 을 썼는데, 그 값은 어드민 수동
+ *    등록에서도 문자 없이 찍혀 오탐이 났다(2026-09-12). paid_at 으로 옮겼다.
+ *    옛 데이터는 마이그레이션 p20 에서 paid_at 으로 백필했다.
  *
  * 이걸 구분하지 않으면 입금 전 단순 취소까지 전부 "환불 미완료" 로 보여
  * 처리할 게 없는데도 처리 대기처럼 쌓인다.
  */
 function needsRefund(app: any): boolean {
-  return Boolean(app.payment_confirmed_sms_sent_at) || Boolean(app.refund_bank_name);
+  return Boolean(app.paid_at) || Boolean(app.refund_bank_name);
 }
 
 function RefundActionCell({ app, sessionId }: { app: any; sessionId: string }) {

@@ -18,7 +18,7 @@ type AdminApplication = {
   consent_optional: boolean;
   consent_photo: boolean;
   consent_marketing: boolean;
-  payment_confirmed_sms_sent_at?: string | null;
+  paid_at?: string | null;
   confirmation_code: string;
   status: string;
   payment_status: string;
@@ -94,11 +94,7 @@ export function ApplicationDetailDialog({
                 />
                 <InfoRow
                   label="입금확인일시"
-                  value={
-                    application.payment_confirmed_sms_sent_at
-                      ? formatDateTimeFull(application.payment_confirmed_sms_sent_at)
-                      : "-"
-                  }
+                  value={application.paid_at ? formatDateTimeFull(application.paid_at) : "-"}
                 />
                 <InfoRow
                   label="신청 상태"
