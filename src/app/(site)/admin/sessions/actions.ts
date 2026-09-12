@@ -90,7 +90,7 @@ export async function saveSchedule(input: ScheduleInput): Promise<ActionResult> 
           start_at: startIso,
           end_at: new Date(new Date(startIso).getTime() + theme.duration_minutes * 60_000).toISOString(),
           status: "open" as const,
-          min_age: defaultMinAge(Number(t.split(":")[0]), theme.min_age_floor),
+          min_age: defaultMinAge(t, theme.duration_minutes, theme.min_age_floor),
           opens_at: computeOpensAt(ymd, rule),
         };
       })

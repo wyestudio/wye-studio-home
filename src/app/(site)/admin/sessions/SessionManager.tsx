@@ -263,7 +263,7 @@ export function SessionManager({
           <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
             {times.map((t, i) => (
               <span key={i} className="rounded bg-muted/15 px-2 py-0.5 text-muted">
-                {t} → 만 {defaultMinAge(Number(t.split(":")[0]), theme.min_age_floor)}세 이상
+                {t} → 만 {defaultMinAge(t, theme.duration_minutes, theme.min_age_floor)}세 이상
               </span>
             ))}
           </div>

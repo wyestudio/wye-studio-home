@@ -167,14 +167,26 @@ export type SessionView = {
 };
 
 /**
- * 회차 최소 연령 (D-03).
- * 시작 시각 18시 이전 → 만 16세 / 18시 이후 → 만 19세.
+ * 회차 최소 연령.
+ *
+ * 이용약관 제9조 제1항 — **종료 시각** 기준이다.
+ *   22:00 이전 종료 → 만 16세 이상 / 22:00 이후(및 정각) 종료 → 만 19세 이상.
  * 테마에 min_age_floor 가 있으면 그보다 낮출 수 없다.
  *
- * ⚠️ DB 의 default_min_age() 와 같은 규칙이다. 한쪽만 바꾸면 어긋난다.
+ * ⚠️ v1.1 까지는 '시작 시각 18시' 기준이었다. 지금 운영 중인 회차
+ *    (11:30·15:30·19:30 / 180분)는 두 규칙의 결과가 같아 데이터는 안 바뀐다.
+ * ⚠️ DB 의 default_min_age() 는 옛 규칙 그대로다. 2026-09-10 마이그레이션에서
+ *    한 번 쓰였을 뿐 지금은 아무 데서도 호출되지 않는다(함수·뷰·컬럼 기본값
+ *    전부 확인). 새 회차의 min_age 는 이 함수가 정한다.
  */
-export function defaultMinAge(startAtKstHour: number, themeFloor?: number | null): number {
-  const byTime = startAtKstHour < 18 ? 16 : 19;
+export function defaultMinAge(
+  startKstHhMm: string,
+  durationMinutes: number,
+  themeFloor?: number | null
+): number {
+  const [h, m] = startKstHhMm.split(":").map(Number);
+  const endMinutes = h * 60 + (m || 0) + durationMinutes;
+  const byTime = endMinutes < 22 * 60 ? 16 : 19;
   return Math.max(byTime, themeFloor ?? 0);
 }
 
