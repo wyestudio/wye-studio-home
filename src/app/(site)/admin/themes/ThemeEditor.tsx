@@ -633,8 +633,10 @@ export function ThemeEditor({
 
                     <div className="border-t border-border p-3">
                       <p className="truncate text-sm font-medium">{t.name}</p>
+                      {/* 0 은 '미정'. 숫자 그대로 보이면 데이터가 깨진 것처럼 읽힌다. */}
                       <p className="mt-0.5 text-[11px] text-muted">
-                        난이도 {t.difficulty} · {t.duration_minutes}분
+                        난이도 {t.difficulty > 0 ? t.difficulty : "미정"} ·{" "}
+                        {t.duration_minutes > 0 ? `${t.duration_minutes}분` : "시간 미정"}
                       </p>
                       <p className="text-[11px] text-muted">
                         {prices.length > 0

@@ -268,7 +268,8 @@ export function SessionManager({
             ))}
           </div>
           <p className="mt-1 text-[11px] text-muted">
-            최소 연령은 시각으로 자동 결정됩니다 — <strong>18시 이전 만 16세 / 이후 만 19세</strong>
+            최소 연령은 <strong>종료 시각</strong>으로 자동 결정됩니다 —{" "}
+            <strong>22:00 이전 종료 만 16세 / 이후 종료 만 19세</strong> (약관 제9조)
             {theme.min_age_floor ? ` (이 테마는 최소 ${theme.min_age_floor}세)` : ""}.
           </p>
         </div>
