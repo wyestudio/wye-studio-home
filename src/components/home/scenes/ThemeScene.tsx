@@ -28,11 +28,17 @@ export function ThemeScene({
       isLast={isLast}
       variant="rise"
     >
-      {/* 목록과는 넉넉히 띄운다 — 시원시원하게 보이도록. */}
-      <div className="mx-auto w-full max-w-4xl px-5 sm:px-8 lg:px-0">
-        <h2 className="mb-10 text-left text-2xl font-extrabold tracking-[0.12em] sm:mb-16 sm:text-4xl">
-          Planets to Escape
-        </h2>
+      {/*
+        제목만 가운데 폭(max-w-4xl)에 맞추고, 행성 줄은 **화면 폭 전체**를 쓴다.
+        옆으로 밀 때 행성이 화면 밖에서 들어왔다 밖으로 빠져나가야 끝이 없는
+        우주처럼 보인다. 줄의 좌우 여백은 목록 쪽에서 제목선에 맞춘다.
+      */}
+      <div className="w-full">
+        <div className="mx-auto w-full max-w-4xl px-5 sm:px-8 lg:px-0">
+          <h2 className="mb-10 text-left text-2xl font-extrabold tracking-[0.12em] sm:mb-16 sm:text-4xl">
+            Planets to Escape
+          </h2>
+        </div>
         <ThemeHomeShowcase themes={themes} />
       </div>
     </SceneShell>
