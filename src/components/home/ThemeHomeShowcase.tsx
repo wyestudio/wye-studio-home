@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { PosterImage, FALLBACK_LOGO } from "@/components/contents/PosterImage";
@@ -54,27 +55,42 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
             className="group flex items-center gap-4 sm:gap-6"
           >
             {/* ── 행성 ── */}
-            <div className="relative h-28 w-28 shrink-0 sm:h-36 sm:w-36">
+            <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full sm:h-36 sm:w-36">
               {/*
-                자전은 배경 이미지를 좌우로 흘려 흉내낸다. 이미지 한 장으로
-                구체가 도는 것처럼 보이게 하는 가장 싼 방법이다.
+                표면 띠. [원본 | 좌우반전 | 원본] 을 이어 붙여 끊김 없이 흐른다.
+                반전본을 가운데 끼우면 이음매에서 무늬가 맞아 떨어진다.
               */}
-              <div
-                className="animate-planet-spin absolute inset-0 rounded-full"
-                style={{
-                  backgroundImage: `url(${logo})`,
-                  backgroundSize: "200% 100%",
-                  backgroundRepeat: "repeat-x",
-                }}
-              />
-              {/* 구체처럼 보이도록 가장자리를 어둡게 깎는다 */}
+              <div className="animate-planet-spin absolute inset-y-0 left-0 flex w-[300%]">
+                {[false, true, false].map((mirrored, i) => (
+                  <div
+                    key={i}
+                    className={`relative h-full w-1/3 ${mirrored ? "-scale-x-100" : ""}`}
+                  >
+                    <Image
+                      src={logo}
+                      alt=""
+                      fill
+                      className="object-cover"
+                      sizes="144px"
+                      priority={i === 0}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/*
+                구체 음영 — 표면과 달리 **움직이지 않는다**. 빛이 한쪽에서
+                고정으로 들어오고 그 아래로 지형이 흘러가야 공이 도는 것처럼 보인다.
+              */}
               <div
                 className="pointer-events-none absolute inset-0 rounded-full"
                 style={{
                   background:
-                    "radial-gradient(circle at 34% 30%, transparent 40%, rgba(0,0,0,0.55) 100%)",
+                    "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.28) 0%, transparent 42%), " +
+                    "radial-gradient(circle at 50% 50%, transparent 52%, rgba(0,0,0,0.5) 82%, rgba(0,0,0,0.8) 100%)",
                 }}
               />
+
               {/* 멈춘 순간 '조준됨' 을 알리는 테두리 */}
               <div
                 className="pointer-events-none absolute inset-0 rounded-full border opacity-0 transition-opacity duration-300 group-hover:opacity-100"
