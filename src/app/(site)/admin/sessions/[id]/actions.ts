@@ -13,6 +13,7 @@ import {
 } from "@/lib/smsV2";
 import { requireAdminAuth } from "@/lib/adminAuth";
 import { sendSmsBulk, type BulkMessage } from "@/lib/smsBulk";
+import { writeAuditLog } from "@/lib/auditLog";
 import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
 import { isDatingTheme } from "@/lib/theme";
 import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
@@ -126,6 +127,14 @@ export async function confirmPayment(applicationId: string, sessionId: string) {
 
   console.log(`[admin] 입금 확인됨: ${applicationId} (${application.confirmation_code})`);
 
+  await writeAuditLog({
+    action: "application.payment_confirmed",
+    targetType: "application",
+    targetId: applicationId,
+    summary: `입금 확인 (접수번호 ${application.confirmation_code})`,
+    detail: { session_id: sessionId, confirmation_code: application.confirmation_code, headcount: attendeeCount },
+  });
+
   revalidateSession(sessionId);
   return { success: true };
 }
@@ -189,6 +198,14 @@ export async function cancelApplicationAdmin(applicationId: string, sessionId: s
 
   console.log(`[admin] 신청 취소됨(미입금): ${applicationId} (${application.confirmation_code})`);
 
+  await writeAuditLog({
+    action: "application.cancelled",
+    targetType: "application",
+    targetId: applicationId,
+    summary: `신청 취소 + 안내 문자 (접수번호 ${application.confirmation_code})`,
+    detail: { session_id: sessionId, confirmation_code: application.confirmation_code },
+  });
+
   revalidateSession(sessionId);
   return { success: true };
 }
@@ -227,6 +244,14 @@ export async function silentCancelApplicationAdmin(applicationId: string, sessio
   }
 
   console.log(`[admin] 신청 무통보 취소됨: ${applicationId} (${application.confirmation_code}), 안내 문자 발송 안 함`);
+
+  await writeAuditLog({
+    action: "application.cancelled_silent",
+    targetType: "application",
+    targetId: applicationId,
+    summary: `신청 취소 (문자 없음, 접수번호 ${application.confirmation_code})`,
+    detail: { session_id: sessionId, confirmation_code: application.confirmation_code },
+  });
 
   revalidateSession(sessionId);
   return { success: true };
@@ -300,6 +325,14 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
 
   console.log(`[admin] 대기자 확정 전환됨: ${applicationId} (${application.confirmation_code})`);
 
+  await writeAuditLog({
+    action: "application.promoted",
+    targetType: "application",
+    targetId: applicationId,
+    summary: `대기 → 확정 전환 (접수번호 ${application.confirmation_code})`,
+    detail: { session_id: sessionId, confirmation_code: application.confirmation_code },
+  });
+
   revalidateSession(sessionId);
   return { success: true };
 }
@@ -337,6 +370,14 @@ export async function markRefundCompleted(applicationId: string, sessionId: stri
   }
 
   console.log(`[admin] 환불 완료 처리됨: ${applicationId} (${application.confirmation_code})`);
+
+  await writeAuditLog({
+    action: "application.refund_completed",
+    targetType: "application",
+    targetId: applicationId,
+    summary: `환불 완료 처리 (접수번호 ${application.confirmation_code})`,
+    detail: { session_id: sessionId, confirmation_code: application.confirmation_code },
+  });
 
   revalidateSession(sessionId);
   return { success: true };
@@ -514,6 +555,19 @@ export async function deactivateSession(sessionId: string) {
 
   console.log(`[admin] 회차 비활성화됨: ${sessionId} (신청 ${targets.length}건 취소 / 안내 ${successCount}건)`);
 
+  await writeAuditLog({
+    action: "session.deactivated",
+    targetType: "session",
+    targetId: sessionId,
+    summary: `회차 비활성화 — 신청 ${targets.length}건 일괄 취소, 안내 ${successCount}건 발송`,
+    detail: {
+      cancelled_count: targets.length,
+      sms_sent: successCount,
+      confirmation_codes: targets.map((a) => a.confirmation_code),
+      errors: errors.length > 0 ? errors : undefined,
+    },
+  });
+
   revalidateSession(sessionId);
   return { success: true, count: successCount, total: targets.length, errors: errors.length > 0 ? errors : undefined };
 }
@@ -542,6 +596,14 @@ export async function sendSessionReminderAdmin(
   const result = await sendSessionReminders(supabase, session);
 
   console.log(`[admin] 장소안내 문자 수동 발송됨: ${sessionId} (${result.count}/${result.total}건)`);
+
+  await writeAuditLog({
+    action: "session.reminder_sent",
+    targetType: "session",
+    targetId: sessionId,
+    summary: `장소안내 문자 수동 발송 ${result.count}/${result.total}건`,
+    detail: { sent: result.count, total: result.total, errors: result.errors },
+  });
 
   return { success: true, ...result };
 }
@@ -676,6 +738,19 @@ export async function adminManualApply(
 
   console.log(`[admin] 수동 등록됨: ${application.id} (${application.confirmation_code}), 안내 문자 발송 안 함`);
 
+  await writeAuditLog({
+    action: "application.manual_created",
+    targetType: "application",
+    targetId: application.id,
+    summary: `수동 등록 (접수번호 ${application.confirmation_code}${markPaid ? ", 입금 확인 표시" : ""})`,
+    detail: {
+      session_id: sessionId,
+      confirmation_code: application.confirmation_code,
+      headcount: attendees.length,
+      marked_paid: markPaid,
+    },
+  });
+
   revalidateSession(sessionId);
   return { success: true, confirmationCode: application.confirmation_code, status: application.status };
 }
@@ -783,6 +858,14 @@ export async function adminUpdateApplication(
   }
 
   console.log(`[admin] 신청 정보 수정됨: ${applicationId}, 안내 문자 발송 안 함`);
+
+  await writeAuditLog({
+    action: "application.updated",
+    targetType: "application",
+    targetId: applicationId,
+    summary: "신청·참여자 정보 수정 (문자 없음)",
+    detail: { session_id: sessionId, attendee_count: attendees.length },
+  });
 
   revalidateSession(sessionId);
   return { success: true };

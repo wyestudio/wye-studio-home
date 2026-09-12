@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
+import { writeAuditLog } from "@/lib/auditLog";
 import { generateUniqueCodes } from "@/lib/couponCode";
 
 /**
@@ -65,6 +66,13 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
       : await supabase.from("coupon_campaigns").insert(row);
     if (error) throw error;
 
+    await writeAuditLog({
+      action: "coupon.campaign_saved",
+      targetType: "coupon_campaign",
+      targetId: input.id ?? "(신규)",
+      summary: `쿠폰 종류 저장 — ${input.name}`,
+    });
+
     revalidatePath("/admin/coupons");
     return { success: true as const };
   } catch (err) {
@@ -89,6 +97,13 @@ export async function deleteCampaign(id: string): Promise<ActionResult> {
 
     const { error } = await supabase.from("coupon_campaigns").delete().eq("id", id);
     if (error) throw error;
+
+    await writeAuditLog({
+      action: "coupon.campaign_deleted",
+      targetType: "coupon_campaign",
+      targetId: id,
+      summary: "쿠폰 종류 삭제",
+    });
 
     revalidatePath("/admin/coupons");
     return { success: true as const };
@@ -131,6 +146,13 @@ export async function issueCoupons(input: {
     // 유니크 충돌은 DB 가 최종 판정한다. 여기서 걸리면 그냥 다시 누르면 된다.
     if (error) throw error;
 
+    await writeAuditLog({
+      action: "coupon.issued",
+      targetType: "coupon_campaign",
+      targetId: input.campaignId,
+      summary: `쿠폰 ${codes.length}장 발행`,
+    });
+
     revalidatePath("/admin/coupons");
     return { success: true as const, codes };
   } catch (err) {
@@ -144,6 +166,13 @@ export async function deleteUnusedCoupon(id: string): Promise<ActionResult> {
     const supabase = await requireAdmin();
     const { error } = await supabase.from("coupons").delete().eq("id", id).is("used_at", null);
     if (error) throw error;
+    await writeAuditLog({
+      action: "coupon.deleted",
+      targetType: "coupon",
+      targetId: id,
+      summary: "미사용 쿠폰 삭제",
+    });
+
     revalidatePath("/admin/coupons");
     return { success: true as const };
   } catch (err) {

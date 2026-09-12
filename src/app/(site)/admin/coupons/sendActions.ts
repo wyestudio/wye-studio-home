@@ -9,6 +9,7 @@ import {
   type SendOutcome,
 } from "@/lib/couponSms";
 import { sendSmsBulk } from "@/lib/smsBulk";
+import { writeAuditLog } from "@/lib/auditLog";
 import { formatCouponCode } from "@/lib/coupon";
 import { formatDateFull } from "@/lib/format";
 
@@ -287,6 +288,22 @@ export async function sendCoupons(input: {
         ok: !reason,
         detail: reason ?? "발송 완료",
       };
+    });
+
+    await writeAuditLog({
+      action: "coupon.sent",
+      targetType: "coupon_campaign",
+      targetId: input.selfCampaignId,
+      summary: `쿠폰 문자 발송 — 성공 ${outcomes.filter((o) => o.ok).length}/${outcomes.length}건`,
+      detail: {
+        self_campaign_id: input.selfCampaignId,
+        friend_campaign_id: input.friendCampaignId,
+        template_key: input.templateKey,
+        requested: input.phoneHashes.length,
+        succeeded: outcomes.filter((o) => o.ok).length,
+        // ⚠️ 이름·전화번호는 넣지 않는다. 쿠폰 코드만으로 추적 가능하다.
+        codes: outcomes.map((o) => o.code).filter(Boolean),
+      },
     });
 
     revalidatePath("/admin/coupons");

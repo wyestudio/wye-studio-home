@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
+import { writeAuditLog } from "@/lib/auditLog";
 import { normalizeThemeContent, type ThemeBlock, type ThemeContent } from "@/types/catalog";
 
 export type PriceTierInput = {
@@ -207,6 +208,14 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
     );
     if (tierErr) throw tierErr;
 
+    await writeAuditLog({
+      action: "theme.saved",
+      targetType: "theme",
+      targetId: themeId,
+      summary: `테마 저장 — ${input.name} (${input.slug})`,
+      detail: { slug: input.slug, is_active: input.is_active, is_listed: input.is_listed },
+    });
+
     revalidatePath("/admin/themes");
     return { success: true as const };
   } catch (err) {
@@ -231,6 +240,13 @@ export async function deleteTheme(id: string): Promise<ActionResult> {
 
     const { error } = await supabase.from("themes").delete().eq("id", id);
     if (error) throw error;
+
+    await writeAuditLog({
+      action: "theme.deleted",
+      targetType: "theme",
+      targetId: id,
+      summary: "테마 삭제",
+    });
 
     revalidatePath("/admin/themes");
     return { success: true as const };

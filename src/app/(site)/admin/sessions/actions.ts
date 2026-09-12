@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
+import { writeAuditLog } from "@/lib/auditLog";
 import { defaultMinAge } from "@/types/catalog";
 import {
   addDays,
@@ -137,6 +138,14 @@ export async function saveSchedule(input: ScheduleInput): Promise<ActionResult> 
       }
     }
 
+    await writeAuditLog({
+      action: "schedule.saved",
+      targetType: "schedule",
+      targetId: input.theme_id,
+      summary: `회차 편성 저장 — 새 회차 ${created}개 생성 (${until}까지)`,
+      detail: { ...rule, created, until },
+    });
+
     revalidatePath("/admin/sessions");
     revalidatePath("/admin");
 
@@ -161,6 +170,14 @@ export async function updateSessionStatus(id: string, status: "open" | "closed")
       .eq("id", id);
     if (error) throw error;
 
+    await writeAuditLog({
+      action: "session.status_changed",
+      targetType: "session",
+      targetId: id,
+      summary: `회차 상태를 '${status}' 로 변경`,
+      detail: { status },
+    });
+
     revalidatePath("/admin/sessions");
     return { success: true as const };
   } catch (err) {
@@ -179,6 +196,14 @@ export async function updateSessionMinAge(id: string, minAge: number): Promise<A
       .update({ min_age: minAge, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) throw error;
+
+    await writeAuditLog({
+      action: "session.min_age_changed",
+      targetType: "session",
+      targetId: id,
+      summary: `회차 최소 연령을 만 ${minAge}세로 변경`,
+      detail: { min_age: minAge },
+    });
 
     revalidatePath("/admin/sessions");
     return { success: true as const };
@@ -204,6 +229,14 @@ export async function deleteSession(id: string): Promise<ActionResult> {
     }
 
     const { error } = await supabase.from("sessions").delete().eq("id", id);
+    if (!error) {
+      await writeAuditLog({
+        action: "session.deleted",
+        targetType: "session",
+        targetId: id,
+        summary: "회차 삭제 (신청 0건)",
+      });
+    }
     if (error) throw error;
 
     revalidatePath("/admin/sessions");

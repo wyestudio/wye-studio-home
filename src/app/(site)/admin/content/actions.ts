@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
+import { writeAuditLog } from "@/lib/auditLog";
 
 /**
  * 공지·FAQ 편집.
@@ -49,6 +50,13 @@ export async function saveNotice(input: NoticeInput): Promise<ActionResult> {
       : await supabase.from("notices").insert(row);
     if (error) throw error;
 
+    await writeAuditLog({
+      action: "notice.saved",
+      targetType: "notice",
+      targetId: input.id ?? "(신규)",
+      summary: `공지 저장 — ${input.title}`,
+    });
+
     revalidatePath("/admin/content");
     revalidatePath("/notice");
     return { success: true as const };
@@ -62,6 +70,13 @@ export async function deleteNotice(id: string): Promise<ActionResult> {
     const supabase = await requireAdmin();
     const { error } = await supabase.from("notices").delete().eq("id", id);
     if (error) throw error;
+
+    await writeAuditLog({
+      action: "notice.deleted",
+      targetType: "notice",
+      targetId: id,
+      summary: "공지 삭제",
+    });
 
     revalidatePath("/admin/content");
     revalidatePath("/notice");
@@ -91,6 +106,13 @@ export async function saveFaq(input: FaqInput): Promise<ActionResult> {
       : await supabase.from("faqs").insert(row);
     if (error) throw error;
 
+    await writeAuditLog({
+      action: "faq.saved",
+      targetType: "faq",
+      targetId: input.id ?? "(신규)",
+      summary: `FAQ 저장 — ${input.question}`,
+    });
+
     revalidatePath("/admin/content");
     revalidatePath("/notice");
     return { success: true as const };
@@ -104,6 +126,13 @@ export async function deleteFaq(id: string): Promise<ActionResult> {
     const supabase = await requireAdmin();
     const { error } = await supabase.from("faqs").delete().eq("id", id);
     if (error) throw error;
+
+    await writeAuditLog({
+      action: "faq.deleted",
+      targetType: "faq",
+      targetId: id,
+      summary: "FAQ 삭제",
+    });
 
     revalidatePath("/admin/content");
     revalidatePath("/notice");

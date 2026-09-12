@@ -42,7 +42,10 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
   },
   {
     label: "설정",
-    items: [{ href: "/sms-templates", label: "문자 템플릿" }],
+    items: [
+      { href: "/sms-templates", label: "문자 템플릿" },
+      { href: "/audit", label: "감사로그" },
+    ],
   },
 ];
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
+import { writeAuditLog } from "@/lib/auditLog";
 
 export type VenueInput = {
   id?: string;
@@ -36,13 +37,23 @@ export async function saveVenue(input: VenueInput): Promise<ActionResult> {
       updated_at: new Date().toISOString(),
     };
 
+    // 감사로그에 남길 대상 id 가 필요해 insert 시 id 를 돌려받는다.
+    let venueId = input.id ?? "";
     if (input.id) {
       const { error } = await supabase.from("venues").update(row).eq("id", input.id);
       if (error) throw error;
     } else {
-      const { error } = await supabase.from("venues").insert(row);
+      const { data, error } = await supabase.from("venues").insert(row).select("id").single();
       if (error) throw error;
+      venueId = data.id as string;
     }
+
+    await writeAuditLog({
+      action: "venue.saved",
+      targetType: "venue",
+      targetId: venueId,
+      summary: `장소 저장 — ${input.name}`,
+    });
 
     revalidatePath("/admin/venues");
     return { success: true as const };
@@ -67,6 +78,13 @@ export async function deleteVenue(id: string): Promise<ActionResult> {
 
     const { error } = await supabase.from("venues").delete().eq("id", id);
     if (error) throw error;
+
+    await writeAuditLog({
+      action: "venue.deleted",
+      targetType: "venue",
+      targetId: id,
+      summary: "장소 삭제",
+    });
 
     revalidatePath("/admin/venues");
     return { success: true as const };
