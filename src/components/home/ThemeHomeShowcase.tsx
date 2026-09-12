@@ -92,49 +92,53 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
                          [@media(hover:hover)]:group-hover:border-white/25"
               style={{ borderLeftColor: accent, borderLeftWidth: 2 }}
             >
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-                <h3
-                  className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
-                  style={{ color: accent }}
-                >
-                  {theme.name}
-                </h3>
-                <span className="text-[11px] uppercase tracking-[0.2em] text-muted">
-                  {theme.is_active && theme.upcomingCount > 0 ? "OPEN" : "STANDBY"}
-                </span>
-              </div>
+              <div className="flex gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                    <h3
+                      className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
+                      style={{ color: accent }}
+                    >
+                      {theme.name}
+                    </h3>
+                    <span className="text-[11px] uppercase tracking-[0.2em] text-muted">
+                      {theme.is_active && theme.upcomingCount > 0 ? "OPEN" : "STANDBY"}
+                    </span>
+                  </div>
 
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-                <DifficultyLocks rating={theme.difficulty} />
-                <span>⏱ {durationLabel(theme.duration_minutes)}</span>
-              </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                    <DifficultyLocks rating={theme.difficulty} />
+                    <span>⏱ {durationLabel(theme.duration_minutes)}</span>
+                  </div>
 
-              {minPrice !== null && maxPrice !== null && (
-                <p className="mt-1.5 text-sm">
-                  <span className="text-muted">1인 </span>
-                  <strong>
-                    {minPrice === maxPrice
-                      ? formatKrw(minPrice)
-                      : `${formatKrw(minPrice)}~${formatKrw(maxPrice)}`}
-                  </strong>
-                </p>
-              )}
+                  {minPrice !== null && maxPrice !== null && (
+                    <p className="mt-1.5 text-sm">
+                      <span className="text-muted">1인 </span>
+                      <strong>
+                        {minPrice === maxPrice
+                          ? formatKrw(minPrice)
+                          : `${formatKrw(minPrice)}~${formatKrw(maxPrice)}`}
+                      </strong>
+                    </p>
+                  )}
 
-              <p className="mt-1.5 text-xs text-muted">
-                {!theme.is_active
-                  ? "현재 신청을 받지 않습니다"
-                  : theme.upcomingCount > 0
-                    ? `신청 가능한 회차 ${theme.upcomingCount}개`
-                    : "예정된 회차 준비 중"}
-              </p>
+                  <p className="mt-1.5 text-xs text-muted">
+                    {!theme.is_active
+                      ? "현재 신청을 받지 않습니다"
+                      : theme.upcomingCount > 0
+                        ? `신청 가능한 회차 ${theme.upcomingCount}개`
+                        : "예정된 회차 준비 중"}
+                  </p>
+                </div>
 
-              {/* 포스터는 패널 안에서 한 번 더 보여준다 — 미션 파일 첨부 느낌 */}
-              <div className="relative mt-3 hidden aspect-[16/7] overflow-hidden rounded-lg border border-white/10 sm:block">
-                <PosterImage
-                  src={theme.hero_image_path}
-                  alt={`${theme.name} 포스터`}
-                  sizes="(min-width: 640px) 420px, 100vw"
-                />
+                {/* 포스터는 '미션 파일' 처럼 패널 한쪽에 끼워둔다. 잘리지 않게 세로 비율 그대로. */}
+                <div className="relative hidden aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block">
+                  <PosterImage
+                    src={theme.hero_image_path}
+                    alt={`${theme.name} 포스터`}
+                    sizes="80px"
+                  />
+                </div>
               </div>
             </div>
           </Link>
