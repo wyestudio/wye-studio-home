@@ -115,7 +115,18 @@ function validate(input: ThemeInput): string | null {
   if (!/^[a-z0-9-]+$/.test(input.slug.trim())) return "slug 는 영문 소문자·숫자·하이픈만 쓸 수 있습니다.";
   if (!input.name.trim()) return "테마 이름을 입력해주세요.";
   if (!input.venue_id) return "장소를 선택해주세요.";
+  // ⚠️ 숫자 칸을 비우면 <input type="number"> 가 "" 를 주고 Number("") 은 0 이다.
+  //    여기서 안 걸러내면 DB CHECK 제약에 막혀 "테마 저장 실패: new row for
+  //    relation ... violates check constraint" 같은 원문이 그대로 뜬다.
+  if (!Number.isInteger(input.difficulty) || input.difficulty < 1 || input.difficulty > 5)
+    return "난이도를 1~5 사이로 입력해주세요.";
   if (input.duration_minutes <= 0) return "소요시간을 입력해주세요.";
+  if (input.min_age_floor !== null && (input.min_age_floor < 0 || input.min_age_floor > 100))
+    return "최소 연령은 0~100 사이로 입력해주세요.";
+  if (input.capacity_min !== null && input.capacity_min < 1)
+    return "최소 진행 인원은 1명 이상이어야 합니다.";
+  if (input.max_group_size !== null && input.max_group_size < 1)
+    return "최대 그룹 인원은 1명 이상이어야 합니다.";
   if (input.capacity_confirm_line <= 0 || input.capacity_max <= 0) return "정원을 입력해주세요.";
   if (input.capacity_confirm_line > input.capacity_max)
     return "즉시확정 인원은 정원보다 클 수 없습니다.";

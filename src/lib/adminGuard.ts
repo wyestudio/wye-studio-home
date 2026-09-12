@@ -33,6 +33,9 @@ export function toActionError(err: unknown, fallback: string): ActionErr {
   if (message.includes("themes_capacity_order")) {
     return { error: "즉시확정 인원은 정원보다 클 수 없습니다." };
   }
+  if (message.includes("themes_difficulty_check")) {
+    return { error: "난이도는 1~5 사이여야 합니다." };
+  }
   if (message.includes("어드민 인증")) {
     return { error: "로그인이 만료되었습니다. 다시 로그인해주세요." };
   }
