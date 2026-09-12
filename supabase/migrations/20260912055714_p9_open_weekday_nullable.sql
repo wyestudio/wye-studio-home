@@ -1,6 +1,6 @@
 -- Phase 9 — 공개 요일 고정을 선택으로
 --
--- 적용: test 20260912055714 (적용 완료) / 운영 (미적용)
+-- 적용: test 20260912055714 (적용 완료) / 운영 적용 완료 (2026-09-12)
 -- 되돌리기:
 --   update theme_schedules set open_weekday = 6 where open_weekday is null;
 --   alter table theme_schedules alter column open_weekday set not null;

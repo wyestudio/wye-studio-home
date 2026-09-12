@@ -1,6 +1,6 @@
 -- 회차 롤링 오픈 (Phase 4)
 --
--- 적용: test 적용 완료 (2026-09-11) / ⚠️ 운영 미적용
+-- 적용: test 적용 완료 (2026-09-11) / 운영 적용 완료 (2026-09-12)
 -- 되돌리기:
 --   drop table if exists public.theme_schedules;
 --   alter table public.sessions drop column if exists opens_at;

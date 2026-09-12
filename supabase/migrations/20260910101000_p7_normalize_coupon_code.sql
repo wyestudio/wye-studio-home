@@ -1,6 +1,6 @@
 -- 쿠폰 코드 입력 정규화
 --
--- 적용: test 적용 완료 (2026-09-10) / ⚠️ 운영 미적용
+-- 적용: test 적용 완료 (2026-09-10) / 운영 적용 완료 (2026-09-12)
 -- 되돌리기: drop function normalize_coupon_code(text); 후 preview_coupon /
 --           submit_application_v2 의 조회를 upper(btrim(...)) 로 되돌린다.
 --

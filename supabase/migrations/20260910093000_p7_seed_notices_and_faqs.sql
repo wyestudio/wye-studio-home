@@ -1,4 +1,9 @@
 -- Phase 7 — 공지·FAQ 를 코드에서 DB 로 옮긴다.
+-- ⚠️ 운영에는 이 파일을 적용하지 않았다. 시드 이후 어드민에서 문안이 여러 번
+--    바뀌어(약관 v1.2 환불 문구 · 정식 오픈 안내 · 회차 오픈 주기 안내) 이 파일은
+--    옛 문안이다. 운영 이관은 test 최종 상태를 옮긴
+--    20260912101543_p7b_transfer_notices_and_faqs_from_test.sql 로 했다.
+--
 --
 -- 적용: test 적용 완료 (2026-09-10) / ⚠️ 운영 미적용
 -- 되돌리기: delete from notices; delete from faqs;

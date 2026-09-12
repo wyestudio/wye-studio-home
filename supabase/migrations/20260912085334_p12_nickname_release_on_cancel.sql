@@ -1,6 +1,6 @@
 -- Phase 12 — 취소한 신청이 닉네임을 계속 점유하던 문제
 --
--- 적용: test 20260912085334 (적용 완료) / 운영 (미적용)
+-- 적용: test 20260912085334 (적용 완료) / 운영 적용 완료 (2026-09-12)
 -- 되돌리기:
 --   drop trigger if exists application_attendees_nickname_unique on application_attendees;
 --   drop function if exists enforce_session_nickname_unique();

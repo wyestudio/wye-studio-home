@@ -1,6 +1,6 @@
 -- 같은 테마 중복 신청 사전 확인 (신 구조)
 --
--- 적용: test 적용 완료 (2026-09-11) / ⚠️ 운영 미적용
+-- 적용: test 적용 완료 (2026-09-11) / 운영 적용 완료 (2026-09-12)
 -- 되돌리기: drop function if exists public.check_active_applications_v2(text[], uuid);
 --
 -- 기존 check_active_applications() 는 sessions.content_group 으로 비교한다.

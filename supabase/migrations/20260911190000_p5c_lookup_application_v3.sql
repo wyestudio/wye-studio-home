@@ -1,6 +1,6 @@
 -- 참여내역 조회 v3 — 쿠폰 할인 · 테마 정보 추가
 --
--- 적용: test 적용 완료 (2026-09-11) / ⚠️ 운영 미적용
+-- 적용: test 적용 완료 (2026-09-11) / 운영 적용 완료 (2026-09-12)
 -- 되돌리기: drop function if exists public.lookup_application_v3(text, text);
 --           (v2 는 그대로 두므로 앱만 되돌리면 된다)
 --
