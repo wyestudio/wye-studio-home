@@ -163,12 +163,12 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       </div>
 
       {/* ── 상세 정보 ── */}
-      <div id="detail" className="mt-16 scroll-mt-28">
+      <div id="detail" className="mt-24 scroll-mt-28 sm:mt-32">
         {theme.tiers.length > 0 && (
-          <section className="mb-20 sm:mb-24">
+          <section className="mb-24 sm:mb-32">
             <SectionHeading eyebrow="PRICE" title="인원별 참가비" eyebrowColor={accent} />
             {/* 두 칸짜리 표라 화면 폭을 다 쓰면 휑하다. 좁게 잡아 가운데에 둔다. */}
-            <div className="mx-auto mt-5 w-full max-w-sm">
+            <div className="mx-auto mt-5 w-full max-w-sm sm:max-w-md">
               <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
             </div>
           </section>

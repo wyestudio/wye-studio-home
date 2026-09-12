@@ -28,11 +28,11 @@ export function PriceTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/15">
-      <table className="w-full text-sm">
+      <table className="w-full text-sm sm:text-base">
         <thead>
           <tr className="border-b border-white/12 bg-white/[0.04] text-xs text-muted">
-            <th className="px-4 py-2.5 text-left font-medium">인원</th>
-            <th className="px-4 py-2.5 text-right font-medium">1인당</th>
+            <th className="px-4 py-2.5 text-left font-medium sm:px-6 sm:py-3.5">인원</th>
+            <th className="px-4 py-2.5 text-right font-medium sm:px-6 sm:py-3.5">1인당</th>
           </tr>
         </thead>
         <tbody>
@@ -40,10 +40,10 @@ export function PriceTable({
             if (unit === null) return null;
             return (
               <tr key={n} className="border-b border-white/8 last:border-0">
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 sm:px-6 sm:py-5">
                   {n}인{isLast && maxGroupSize === null ? " 이상" : ""}
                 </td>
-                <td className="px-4 py-3 text-right font-bold" style={{ color: accent }}>
+                <td className="px-4 py-3 text-right font-bold sm:px-6 sm:py-5" style={{ color: accent }}>
                   {formatKrw(unit)}
                 </td>
               </tr>

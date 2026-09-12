@@ -19,7 +19,7 @@ export function ThemeBlocks({ blocks, accent }: { blocks: ThemeBlock[]; accent: 
     <>
       {/* 블록 사이는 넉넉히 띄운다 — 붙어 있으면 어디서 끊기는지 안 보인다. */}
       {blocks.map((block, i) => (
-        <section key={i} className="mb-20 last:mb-0 sm:mb-24">
+        <section key={i} className="mb-24 last:mb-0 sm:mb-32">
           <ThemeBlockView block={block} accent={accent} />
         </section>
       ))}
@@ -48,7 +48,10 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
     <>
       {heading}
 
-      {block.type === "text" && <RichText text={block.body} className="block leading-relaxed" />}
+      {/* 짧은 주석 한 줄로 쓰이는 자리라 제목들과 같이 가운데로 둔다. */}
+      {block.type === "text" && (
+        <RichText text={block.body} className="block text-center leading-relaxed" />
+      )}
 
       {block.type === "image" && block.src && (
         <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-border">

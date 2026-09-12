@@ -284,8 +284,9 @@ export function SpinningPlanet({
     if (!wctx) return;
 
     // 커서를 올리면 멈춘다 — "지령을 받는 동안 행성이 정지" 하는 연출.
-    // hover 대상은 카드 전체(<a>)라 거기에 붙인다.
-    const hoverTarget = canvas.closest("a") ?? canvas.parentElement;
+    // 판정 범위는 행성 자리(부모)까지다. 카드 전체에 걸면 옆의 빈 자리에
+    // 커서만 올려도 멈춰서 무엇을 가리키는지가 흐려진다.
+    const hoverTarget = canvas.parentElement;
     const onEnter = () => { paused = true; };
     const onLeave = () => { paused = false; };
     hoverTarget?.addEventListener("pointerenter", onEnter);

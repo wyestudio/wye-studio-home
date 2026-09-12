@@ -48,10 +48,15 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
           <Link
             key={theme.id}
             href={`/themes/${theme.slug}`}
-            className="group flex items-center gap-6 sm:gap-10"
+            className="flex items-center gap-6 sm:gap-10"
           >
-            {/* ── 행성 ── */}
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24">
+            {/*
+              ── 행성 ──
+              hover 판정은 **행성에만** 건다. 카드 전체에 걸면 옆의 빈 자리에
+              커서를 올려도 패널이 떠서, 무엇을 가리키고 있는지가 흐려진다.
+              peer 로 오른쪽 형제(패널)를, group 으로 내부(조준 테두리)를 연다.
+            */}
+            <div className="group peer relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24">
               {/*
                 자전은 SpinningPlanet 이 캔버스로 그린다. 그림을 옆으로 미는
                 방식은 구면 눌림이 없어 "그림이 지나간다" 로만 보였다.
@@ -82,18 +87,23 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
               />
             </div>
 
-            {/* ── 지령 패널 ── */}
+            {/*
+              ── 지령 패널 ──
+              모바일에서는 hover 가 없으니 늘 펼쳐 두고 가로를 다 쓴다.
+              넓은 화면에서는 내용 크기만큼만 차지한다 — 가로로 길게 늘어나면
+              오른쪽이 텅 비어 보인다.
+            */}
             <div
               className="min-w-0 flex-1 overflow-hidden rounded-xl border border-white/12 bg-white/[0.04] p-4
-                         opacity-100 transition-all duration-500
+                         opacity-100 transition-all duration-500 sm:flex-none
                          [@media(hover:hover)]:-translate-x-3 [@media(hover:hover)]:opacity-0
-                         [@media(hover:hover)]:group-hover:translate-x-0
-                         [@media(hover:hover)]:group-hover:opacity-100
-                         [@media(hover:hover)]:group-hover:border-white/25"
+                         [@media(hover:hover)]:peer-hover:translate-x-0
+                         [@media(hover:hover)]:peer-hover:opacity-100
+                         [@media(hover:hover)]:peer-hover:border-white/25"
               style={{ borderLeftColor: accent, borderLeftWidth: 2 }}
             >
-              <div className="flex gap-4">
-                <div className="min-w-0 flex-1">
+              <div className="flex gap-4 sm:gap-5">
+                <div className="min-w-0 flex-1 sm:flex sm:flex-col sm:justify-center">
                   <h3
                     className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
                     style={{ color: accent }}
@@ -101,7 +111,8 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
                     {theme.name}
                   </h3>
 
-                  <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                  {/* 넓은 화면에서는 테마명 / 난이도 / 시간 세 줄로 선다. */}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted sm:mt-2 sm:flex-col sm:items-start sm:gap-y-1.5">
                     <DifficultyLocks rating={theme.difficulty} />
                     <span>⏱ {durationLabel(theme.duration_minutes)}</span>
                   </div>
@@ -112,11 +123,11 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
                 </div>
 
                 {/* 포스터는 '미션 파일' 처럼 패널 한쪽에 끼워둔다. 잘리지 않게 세로 비율 그대로. */}
-                <div className="relative hidden aspect-[4/5] w-20 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block">
+                <div className="relative hidden aspect-[4/5] w-28 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-32">
                   <PosterImage
                     src={theme.hero_image_path}
                     alt={`${theme.name} 포스터`}
-                    sizes="80px"
+                    sizes="128px"
                   />
                 </div>
               </div>
