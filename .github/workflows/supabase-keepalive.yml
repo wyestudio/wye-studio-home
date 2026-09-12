@@ -1,20 +1,98 @@
 name: Supabase Keepalive
 
+# Supabase Free 플랜은 7일간 활동이 없으면 프로젝트를 자동 일시정지한다.
+# /api/cron/keepalive 가 가벼운 select 하나를 던져 활동 기록을 남긴다.
+# (SMS 등 부수효과 없음)
+#
+# ─────────────────────────────────────────────────────────────────
+# ⚠️ 2026-09-12 점검에서 이 잡이 **한 번도 제대로 동작한 적이 없었다**는 것을 확인했다.
+#    원인 셋이 겹쳐 있었고, 셋 다 초록불(success)로 보고되고 있었다.
+#
+#    1) 운영 URL 에 www 가 빠져 있었다.
+#       https://wouldyouescape.com/... → 308 리다이렉트
+#       curl 에 -L 이 없어 리다이렉트를 따라가지 않으므로 엔드포인트는 호출되지 않았다.
+#    2) test 사이트는 HTTP 500 을 돌려주고 있었다.
+#       test Vercel 프로젝트의 환경변수 이름이 TEST_CRON_SECRET 인데
+#       코드는 process.env.CRON_SECRET 을 읽는다 → 값이 없어 500.
+#       (TEST_ 접두사는 **GitHub Secrets 에서 운영/테스트를 구분하려고** 붙인 것이고,
+#        각 Vercel 프로젝트 안에서는 둘 다 CRON_SECRET 이어야 한다)
+#    3) curl 은 HTTP 401/500 을 받아도 종료코드가 0 이다.
+#       상태 코드를 검사하지 않아 위 두 실패가 전부 성공으로 찍혔다.
+#
+#    그래서 이제는 상태 코드를 직접 확인하고, 실패하면 Slack 으로 알린다.
+#    "조용히 아무것도 안 하는 잡" 은 없는 잡보다 나쁘다.
+# ─────────────────────────────────────────────────────────────────
+
 on:
   schedule:
+    # 매일 03:00 UTC = 12:00 KST
     - cron: "0 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
 
 jobs:
   keepalive:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - name: Ping production
+      - name: Ping keepalive endpoints
+        env:
+          PROD_SECRET: ${{ secrets.CRON_SECRET }}
+          TEST_SECRET: ${{ secrets.TEST_CRON_SECRET }}
         run: |
-          curl -X GET "https://wouldyouescape.com/api/cron/keepalive" \
-            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
-            -w "\nHTTP Status: %{http_code}\n"
-      - name: Ping test
+          set -uo pipefail
+
+          failed=0
+
+          # ⚠️ 한쪽이 실패해도 다른 쪽을 건너뛰지 않는다.
+          #    step 을 나누면 앞 step 실패 시 뒤 step 이 아예 실행되지 않아
+          #    문제가 하나씩만 드러난다.
+          ping() {
+            local label="$1" url="$2" secret="$3"
+
+            if [ -z "${secret:-}" ]; then
+              echo "::error::${label}: 시크릿이 비어 있습니다."
+              failed=1
+              return
+            fi
+
+            # -L 을 쓰지 않고 정규 URL(www 포함)을 직접 친다.
+            # 리다이렉트가 뜨면 그것 자체가 설정이 틀렸다는 신호다.
+            local code
+            code=$(curl -sS -o /tmp/keepalive.out -w '%{http_code}' \
+              -X GET "$url" \
+              -H "x-cron-secret: ${secret}" \
+              --max-time 60) || code="000"
+
+            echo "${label}: HTTP ${code}"
+            cat /tmp/keepalive.out 2>/dev/null || true
+            echo
+
+            if [ "$code" != "200" ]; then
+              echo "::error::${label} 실패 (HTTP ${code}) — ${url}"
+              failed=1
+            fi
+          }
+
+          ping "운영" "https://www.wouldyouescape.com/api/cron/keepalive" "$PROD_SECRET"
+          ping "테스트" "https://test.wouldyouescape.com/api/cron/keepalive" "$TEST_SECRET"
+
+          exit "$failed"
+
+      - name: Notify Slack on failure
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
-          curl -X GET "https://test.wouldyouescape.com/api/cron/keepalive" \
-            -H "x-cron-secret: ${{ secrets.TEST_CRON_SECRET }}" \
-            -w "\nHTTP Status: %{http_code}\n"
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK_WEBHOOK_URL 미설정 — 알림 생략"
+            exit 0
+          fi
+          curl -sS -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{\"text\":\":rotating_light: Supabase keepalive 실패 — 7일 무활동 시 프로젝트가 정지될 수 있습니다. <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|실행 로그 보기>\"}"
