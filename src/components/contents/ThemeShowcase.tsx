@@ -40,7 +40,8 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
               <Link
                 key={theme.id}
                 href={`/themes/${theme.slug}`}
-                className="group overflow-hidden rounded-xl border border-white/12 bg-white/[0.03]
+                /* 모서리는 둥글리지 않는다 — 각진 쪽이 더 정제돼 보인다는 결정. */
+                className="group overflow-hidden border border-white/12 bg-white/[0.03]
                            transition-colors duration-200 hover:border-white/30"
               >
                 <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/[0.02]">
@@ -56,11 +57,11 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
                   <p className={`truncate text-base font-bold text-white ${themeTitleFontClass(theme.title_font)}`}>
                     {theme.name}
                   </p>
-                  <p className="mt-1 text-xs text-muted">
-                    난이도 {theme.difficulty} · {theme.duration_minutes}분
+                  <p className="mt-1.5 text-xs text-muted">
+                    🔒 난이도 {theme.difficulty} · ⏱ {theme.duration_minutes}분
                   </p>
                   {minPrice !== null && maxPrice !== null && (
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-1 text-xs text-muted">
                       인당{" "}
                       {minPrice === maxPrice
                         ? formatKrw(minPrice)
