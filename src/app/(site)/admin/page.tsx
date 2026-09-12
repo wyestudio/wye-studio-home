@@ -102,6 +102,15 @@ export default async function AdminDashboard() {
   const unpaidConfirmed = apps.filter(
     (a) => a.status === "confirmed" && a.payment_status === "pending" && isActive(a)
   );
+  // 입금기한(30분)을 넘긴 건은 따로 센다. 신청 직후 몇 분 지난 건과
+  // 한참 전에 신청해놓고 입금이 없는 건은 운영자가 할 일이 다르다.
+  // ⚠️ 자동 취소하지 않는다 — 지금 payment_status 를 바꾸는 건 사람이라
+  //    타이머가 재는 것은 고객의 입금 시간이 아니라 운영자의 확인 시간이다.
+  //    (/api/cron/unpaid-alert 주석 참고)
+  const UNPAID_DEADLINE_MS = 30 * 60 * 1000;
+  const unpaidOverdue = unpaidConfirmed.filter(
+    (a) => nowMs - new Date(a.created_at).getTime() > UNPAID_DEADLINE_MS
+  );
   const waiting = apps.filter((a) => a.status === "waiting" && isActive(a));
 
   // ⚠️ 환불 대기만 규칙이 다르다 — 환불 의무는 회차가 끝나도 사라지지 않는다.
@@ -164,6 +173,12 @@ export default async function AdminDashboard() {
       href: "/applications?status=confirmed&payment=pending",
       tone: "amber" as const,
     },
+    {
+      label: `기한 넘김 (${30}분)`,
+      count: unpaidOverdue.length,
+      href: "/applications?status=confirmed&payment=pending",
+      tone: "red" as const,
+    },
     { label: "환불 대기", count: refundPending.length, href: "/applications?status=cancelled", tone: "amber" as const },
     { label: "대기자", count: waiting.length, href: "/applications?status=waiting", tone: "blue" as const },
   ];
@@ -184,7 +199,7 @@ export default async function AdminDashboard() {
         {/* ── 처리 대기 ── */}
         <section className="mb-6">
           <h2 className="mb-2 text-sm font-semibold text-muted">처리 대기</h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             {todo.map((t) => (
               <Link
                 key={t.label}
