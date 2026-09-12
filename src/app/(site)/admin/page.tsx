@@ -80,26 +80,51 @@ export default async function AdminDashboard() {
 
   const headcountOf = (appId: string) => attendees.filter((a) => a.application_id === appId).length;
 
-  // ── 처리 대기 ─────────────────────────────────────────────
-  const unpaidConfirmed = apps.filter((a) => a.status === "confirmed" && a.payment_status === "pending");
-  const waiting = apps.filter((a) => a.status === "waiting");
-  // ⚠️ 환불 대기는 "돌려줄 돈이 실제로 있는 취소 건"만 센다.
-  //    refund_completed_at is null 만으로 세면 입금 전 단순 취소까지 잡힌다(2026-09-10 확인).
-  //    취소되면 payment_status 가 'cancelled' 로 덮이므로 입금 여부는
-  //    입금확인 문자 발송 시각으로 판별한다. 환불 계좌를 준 건도 당연히 포함.
-  const refundPending = apps.filter(
-    (a) =>
-      a.status === "cancelled" &&
-      !a.refund_completed_at &&
-      (a.payment_confirmed_sms_sent_at || a.refund_bank_name)
-  );
-  const unmatchedDeposits = unmatchedRes.count ?? 0;
-
-  // ── 이번 주 ───────────────────────────────────────────────
   // ⚠️ 렌더 중 Date.now() 를 직접 부르면 react-hooks/purity 위반이다.
   //    이 페이지는 force-dynamic 이라 요청마다 새로 계산되며,
   //    기준 시각을 한 번만 구해 아래에서 재사용한다.
   const nowMs = getNowMs();
+
+  // ── 처리 대기 ─────────────────────────────────────────────
+  //
+  // ⚠️ 이 카드들은 "지금 내가 처리할 것"만 센다. 이미 끝난 회차는 세지 않는다.
+  //    롤링 오픈으로 지난 회차가 계속 쌓이는데, 그 회차의 미입금·대기자까지
+  //    합치면 숫자가 줄지 않아 카드가 의미를 잃는다(지난 회차는 이제 와서
+  //    입금을 받을 일도, 대기자를 승격시킬 일도 없다).
+  //    지난 회차의 개별 건은 회차별 목록에서 그대로 볼 수 있다.
+  const activeSessionIds = new Set(
+    sessions
+      .filter((s) => new Date(s.start_at).getTime() > nowMs && s.status !== "cancelled")
+      .map((s) => s.id)
+  );
+  const isActive = (a: { session_id: string }) => activeSessionIds.has(a.session_id);
+
+  const unpaidConfirmed = apps.filter(
+    (a) => a.status === "confirmed" && a.payment_status === "pending" && isActive(a)
+  );
+  const waiting = apps.filter((a) => a.status === "waiting" && isActive(a));
+
+  // ⚠️ 환불 대기만 규칙이 다르다 — 환불 의무는 회차가 끝나도 사라지지 않는다.
+  //    그래서 "고객이 환불 계좌를 준 건"(refund_bank_name)은 지난 회차라도 계속 센다.
+  //    반대로 계좌가 없는 건은 진행 예정 회차만 센다.
+  //
+  //    왜 이렇게 갈랐나 (2026-09-12 확인):
+  //    취소되면 payment_status 가 'cancelled' 로 덮여서 "입금했었는지"를 DB 가
+  //    알 수 없다. 그래서 입금확인 표시(payment_confirmed_sms_sent_at)를 대신
+  //    썼는데, 이 값은 어드민 수동 등록(adminManualApply)에서 markPaid 면
+  //    **문자를 보내지 않고도** 찍힌다. 그 결과 8/29 팀 내부 테스트 신청 5건이
+  //    (입금자명 '테스트'·'김종진'·'이은지', 문자1 미발송) 영원히 '환불 대기'로
+  //    남아 있었다. 실제 입금도 환불 의무도 없는 건이다.
+  //    환불 계좌를 준 것은 고객이 직접 "돌려달라"고 한 것이라 오탐이 없다.
+  const refundPending = apps.filter(
+    (a) =>
+      a.status === "cancelled" &&
+      !a.refund_completed_at &&
+      (a.refund_bank_name || (a.payment_confirmed_sms_sent_at && isActive(a)))
+  );
+  const unmatchedDeposits = unmatchedRes.count ?? 0;
+
+  // ── 이번 주 ───────────────────────────────────────────────
   const weekAgo = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString();
   const recentApps = apps.filter((a) => a.created_at >= weekAgo);
   const recentPeople = recentApps.reduce((sum, a) => sum + headcountOf(a.id), 0);
