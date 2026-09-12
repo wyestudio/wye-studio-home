@@ -59,18 +59,23 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
               {/*
                 표면 띠. [원본 | 좌우반전 | 원본] 을 이어 붙여 끊김 없이 흐른다.
                 반전본을 가운데 끼우면 이음매에서 무늬가 맞아 떨어진다.
+
+                ⚠️ 이미지를 1.45배로 키워 **구체의 어두운 테두리를 잘라낸다.**
+                   원본은 이미 음영이 들어간 구체 그림이라, 그대로 흘리면 그
+                   가장자리가 한가운데를 가로질러 지나가 공이 도는 게 아니라
+                   그림이 지나가는 것처럼 보인다. 안쪽 무늬만 흘러야 한다.
               */}
               <div className="animate-planet-spin absolute inset-y-0 left-0 flex w-[300%]">
                 {[false, true, false].map((mirrored, i) => (
-                  <div
-                    key={i}
-                    className={`relative h-full w-1/3 ${mirrored ? "-scale-x-100" : ""}`}
-                  >
+                  <div key={i} className="relative h-full w-1/3 overflow-hidden">
                     <Image
                       src={logo}
                       alt=""
                       fill
-                      className="object-cover"
+                      className="origin-center object-cover"
+                      // ⚠️ Tailwind scale 유틸을 두 개 겹치면 어느 쪽이 이기는지가
+                      //    생성 순서에 달린다. 값을 직접 준다.
+                      style={{ transform: `scale(${mirrored ? -1.45 : 1.45}, 1.45)` }}
                       sizes="144px"
                       priority={i === 0}
                     />
