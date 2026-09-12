@@ -41,15 +41,18 @@ export function calculateRefundAmount(
 }
 
 /** 화면에 늘어놓을 규정 3줄. 순서 그대로 쓴다. */
+/**
+ * 화면에 보여주는 환불 단계. 이용약관 제8조 제1항과 **같은 문장**을 쓴다 —
+ * 요약하려고 줄이면 경계(그날 몇 시까지인지)가 흐려져 분쟁이 난다.
+ */
 export const REFUND_TIERS = [
-  { when: "진행일 4일 전까지", result: "100% 환불", tone: "ok" as const },
-  { when: "진행일 3일 전", result: "50% 환불", tone: "warn" as const },
-  { when: "진행일 2일 전부터", result: "환불 불가", tone: "danger" as const },
+  { when: "행사일 4일 전 23:59까지", result: "100% 환불", tone: "ok" as const },
+  { when: "행사일 3일 전 23:59까지", result: "50% 환불", tone: "warn" as const },
+  { when: "행사일 2일 전 00:00 이후", result: "환불 불가", tone: "danger" as const },
 ];
 
-/** 문자처럼 줄 수가 아까운 곳에서 쓰는 짧은 형태. */
 export const REFUND_POLICY_SMS = [
-  "· 4일 전까지 취소: 전액 환불",
-  "· 3일 전 취소: 50% 환불",
-  "· 2일 전부터: 환불 불가",
+  "· 행사일 4일 전 23:59까지 취소: 전액 환불",
+  "· 행사일 3일 전 23:59까지 취소: 50% 환불",
+  "· 행사일 2일 전 00:00 이후 취소: 환불 불가",
 ].join("\n");

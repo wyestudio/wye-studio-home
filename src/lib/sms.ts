@@ -44,9 +44,9 @@ https://pf.kakao.com/_EGNBX/chat`,
 www.wouldyouescape.com/lookup
 
 [환불 규정]
-· 4일 전까지 취소: 전액 환불
-· 3일 전 취소: 50% 환불
-· 2일 전부터: 환불 불가
+· 행사일 4일 전 23:59까지 취소: 전액 환불
+· 행사일 3일 전 23:59까지 취소: 50% 환불
+· 행사일 2일 전 00:00 이후 취소: 환불 불가
 
 문의: 카카오톡 채널 우주이스케이프
 https://pf.kakao.com/_EGNBX/chat`,

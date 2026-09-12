@@ -14,7 +14,7 @@ export default function TermsPage() {
         <h1 className="mb-2 text-3xl font-extrabold">이용약관</h1>
         <p className="text-sm text-muted">
           wouldyouescape (우주이스케이프)<br />
-          시행일자: 2026년 8월 14일
+          v1.2 · 시행일자: 2026년 9월 12일
         </p>
       </div>
 
@@ -42,6 +42,7 @@ export default function TermsPage() {
                 <li>"이용자"란 이 약관에 따라 회사가 제공하는 서비스를 이용하는 회원 및 비회원을 말합니다.</li>
                 <li>"예약자"란 오프라인 행사 참가를 신청하고 결제를 완료한 이용자를 말합니다.</li>
                 <li>"참가자"란 예약자 본인 및 예약자가 등록한 동반 참가 인원을 말합니다.</li>
+                <li>"행사일"이란 예약자가 신청한 회차가 진행되는 날짜를 말합니다. 같은 행사일에 복수의 회차가 운영되는 경우에도 행사일은 해당 날짜 하나를 의미합니다.</li>
               </ol>
             </div>
 
@@ -129,13 +130,14 @@ export default function TermsPage() {
           </h3>
           <ol className="ml-4 list-decimal space-y-2 text-muted">
             <li className="space-y-1">
-              <p>예약자의 사정으로 인한 취소 시 환불 기준은 다음과 같습니다.</p>
+              <p>예약자의 사정으로 인한 취소 시 환불 기준은 다음과 같습니다. 기준 시점은 행사일이며, 같은 행사일에 운영되는 모든 회차에 동일하게 적용됩니다.</p>
               <ul className="ml-4 list-disc space-y-1 text-muted">
-                <li>행사 진행일 기준 4일 전까지 취소: 결제 금액의 100% 환불</li>
-                <li>행사 진행일 기준 3일 전 취소: 결제 금액의 50% 환불</li>
-                <li>행사 진행일 기준 2일 전부터 행사 당일까지 취소: 환불 불가</li>
+                <li>행사일 4일 전 23:59까지 취소: 결제 금액의 100% 환불</li>
+                <li>행사일 3일 전 23:59까지 취소: 결제 금액의 50% 환불</li>
+                <li>행사일 2일 전 00:00 이후 취소: 환불 불가</li>
               </ul>
             </li>
+            <li>제1항의 취소 시점은 취소 요청이 회사가 지정한 접수 경로에 도달한 시각을 기준으로 하며, 모든 시각은 대한민국 표준시(KST)를 따릅니다. 접수 경로는 홈페이지 또는 신청 페이지에 게시합니다.</li>
             <li>회사의 사정(최소 인원 미달, 대관 장소 사정, 천재지변 등)으로 행사가 취소되는 경우, 예약자에게 결제 금액 전액을 환불합니다.</li>
             <li>환불은 결제 수단과 동일한 방법으로 영업일 기준 3~5일 이내 처리됩니다.</li>
             <li>사전 취소 통보 없이 행사에 불참(노쇼)한 예약자는 블랙리스트로 분류되며, 이후 회사 서비스에 대한 예약 신청이 제한될 수 있습니다.</li>
@@ -243,9 +245,13 @@ export default function TermsPage() {
         {/* 부칙 */}
         <div className="pt-6">
           <h2 className="mb-4 font-bold text-muted">부칙</h2>
-          <p className="text-muted">이 약관은 2026년 8월 14일부터 시행합니다.</p>
+          <p className="text-muted">이 약관은 2026년 9월 12일부터 시행합니다.</p>
+          <ul className="mt-3 ml-4 list-disc space-y-2 text-muted">
+            <li>[개정] 2026년 8월 14일 (v1.1): 제8조 환불 기준을 일자 기준에서 시간 기준(행사 시작 48시간 전 100% / 24시간 전 50%)으로 변경</li>
+            <li>[개정] 2026년 9월 12일 (v1.2): 제8조 환불 기준을 행사일 기준으로 변경(행사일 4일 전 23:59까지 100% / 3일 전 23:59까지 50% / 2일 전 00:00 이후 환불 불가). 제2조에 "행사일" 정의를 신설하고, 제8조에 취소 시점 판정 기준 조항을 추가.</li>
+          </ul>
           <p className="mt-4 text-center text-xs text-muted">
-            wouldyouescape (우주이스케이프) · 본 약관은 2026년 8월 14일부터 시행됩니다.
+            wouldyouescape (우주이스케이프) · 본 약관은 2026년 9월 12일부터 시행됩니다.
           </p>
         </div>
       </div>

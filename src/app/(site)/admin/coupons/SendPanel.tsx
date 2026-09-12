@@ -28,7 +28,11 @@ export function SendPanel({
   templates: { key: string; label: string }[];
 }) {
   const router = useRouter();
-  const [campaignId, setCampaignId] = useState(campaigns[0]?.id ?? "");
+  // 한 통에 본인·지인 쿠폰을 함께 담으므로 캠페인을 두 개 고른다.
+  const [selfCampaignId, setSelfCampaignId] = useState(campaigns[0]?.id ?? "");
+  const [friendCampaignId, setFriendCampaignId] = useState(
+    campaigns[1]?.id ?? campaigns[0]?.id ?? ""
+  );
   const [sessionId, setSessionId] = useState(sessions[0]?.id ?? "");
   const [templateKey, setTemplateKey] = useState(templates[0]?.key ?? "");
   const [paidOnly, setPaidOnly] = useState(true);
@@ -47,17 +51,28 @@ export function SendPanel({
     setBusy(true);
     setError(null);
     setOutcomes(null);
-    const result = await loadRecipients({ sessionId, campaignId, paidOnly });
+    const result = await loadRecipients({ sessionId, selfCampaignId, friendCampaignId, paidOnly });
     setBusy(false);
     if (!result.ok) return setError(result.error);
     setRecipients(result.recipients);
     // 아직 쿠폰을 안 받은 사람만 기본 선택 — 재발송으로 중복 지급되는 걸 막는다.
-    setSelected(new Set(result.recipients.filter((r) => !r.assignedCode).map((r) => r.phoneHash)));
+    setSelected(
+      new Set(
+        result.recipients
+          .filter((r) => !r.assignedCode && !r.assignedFriendCode)
+          .map((r) => r.phoneHash)
+      )
+    );
   }
 
   async function doPreview() {
     setError(null);
-    const result = await previewCouponSms({ campaignId, templateKey, sampleName: "홍길동" });
+    const result = await previewCouponSms({
+      selfCampaignId,
+      friendCampaignId,
+      templateKey,
+      sampleName: "홍길동",
+    });
     if (!result.ok) return setError(result.error);
     setPreview(result.text);
   }
@@ -67,7 +82,8 @@ export function SendPanel({
     setError(null);
     setConfirming(false);
     const result = await sendCoupons({
-      campaignId,
+      selfCampaignId,
+      friendCampaignId,
       templateKey,
       phoneHashes: [...selected],
     });
@@ -90,8 +106,24 @@ export function SendPanel({
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border p-4">
         <div>
-          <label className="mb-1 block text-xs text-muted">쿠폰 종류</label>
-          <select className={field} value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
+          <label className="mb-1 block text-xs text-muted">① 참가자 혜택 쿠폰</label>
+          <select
+            className={field}
+            value={selfCampaignId}
+            onChange={(e) => setSelfCampaignId(e.target.value)}
+          >
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-muted">② 지인 혜택 쿠폰</label>
+          <select
+            className={field}
+            value={friendCampaignId}
+            onChange={(e) => setFriendCampaignId(e.target.value)}
+          >
             {campaigns.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -119,7 +151,7 @@ export function SendPanel({
         </label>
         <button
           onClick={load}
-          disabled={busy || !campaignId || !sessionId}
+          disabled={busy || !selfCampaignId || !friendCampaignId || !sessionId}
           className="rounded bg-glow px-4 py-2 text-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           {busy ? "불러오는 중…" : "대상 불러오기"}
@@ -169,7 +201,8 @@ export function SendPanel({
               대상 <strong>{recipients.length}</strong>명 · 선택{" "}
               <strong className="text-glow">{selected.size}</strong>명
               <span className="ml-2 text-muted">
-                (이미 받은 사람 {recipients.filter((r) => r.assignedCode).length}명)
+                (이미 받은 사람{" "}
+                {recipients.filter((r) => r.assignedCode || r.assignedFriendCode).length}명)
               </span>
             </p>
             <div className="flex gap-2">
@@ -227,7 +260,7 @@ export function SendPanel({
                   <th className="px-3 py-2">이름</th>
                   <th className="px-3 py-2">전화번호</th>
                   <th className="px-3 py-2">접수번호</th>
-                  <th className="px-3 py-2">배정된 쿠폰</th>
+                  <th className="px-3 py-2">배정된 쿠폰 (참가자 / 지인)</th>
                 </tr>
               </thead>
               <tbody>
@@ -249,8 +282,12 @@ export function SendPanel({
                     <td className="px-3 py-2 text-xs text-muted">···{r.phone.slice(-4)}</td>
                     <td className="px-3 py-2 font-mono text-xs">{r.confirmationCode}</td>
                     <td className="px-3 py-2 font-mono text-xs">
-                      {r.assignedCode ? (
-                        <span className="text-amber-400">{formatCouponCode(r.assignedCode)}</span>
+                      {r.assignedCode || r.assignedFriendCode ? (
+                        <span className="text-amber-400">
+                          {r.assignedCode ? formatCouponCode(r.assignedCode) : "-"}
+                          {" / "}
+                          {r.assignedFriendCode ? formatCouponCode(r.assignedFriendCode) : "-"}
+                        </span>
                       ) : (
                         <span className="text-muted">-</span>
                       )}
