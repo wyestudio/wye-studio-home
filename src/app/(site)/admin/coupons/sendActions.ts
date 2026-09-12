@@ -5,10 +5,10 @@ import { requireAdmin } from "@/lib/adminGuard";
 import {
   buildCouponSms,
   getCouponTemplate,
-  sendCouponSms,
   discountLabel,
   type SendOutcome,
 } from "@/lib/couponSms";
+import { sendSmsBulk } from "@/lib/smsBulk";
 import { formatCouponCode } from "@/lib/coupon";
 import { formatDateFull } from "@/lib/format";
 
@@ -196,24 +196,41 @@ export async function sendCoupons(input: {
     }
 
     // 이름·전화번호는 암호화돼 있어 해시만으로는 알 수 없다. 다시 조회한다.
-    const outcomes: (SendOutcome & { name: string; code: string })[] = [];
+    //
+    // ⚠️ 쿠폰 배정(assign_coupon)은 한 명씩 그대로 둔다 — 되돌릴 수 없는 작업이라
+    //    한 건씩 결과를 확인하고 넘어가야 한다. 묶는 것은 **발송뿐**이다.
+    //    배정을 모두 끝낸 뒤 문자를 한 번에 보낸다. 37명이면 솔라피 왕복이
+    //    37번에서 1번이 되고, 중간에 함수가 끊겨 운영자가 다시 누르는 바람에
+    //    같은 사람이 문자를 두 번 받는 일도 사라진다.
+    //    (배정 자체는 재실행해도 안전하다 — assign_coupon 이 이미 배정된 쿠폰을
+    //     reused 로 돌려준다)
+    type Ordered =
+      | { kind: "done"; outcome: SendOutcome & { name: string; code: string } }
+      | { kind: "pending"; key: string; to: string; text: string; name: string; code: string };
+    const ordered: Ordered[] = [];
 
     for (const phoneHash of input.phoneHashes) {
       // ⚠️ 두 쿠폰을 모두 확보한 뒤에 보낸다. 하나만 배정된 채로 보내면
       //    문자에 빈 쿠폰번호가 찍히고, 배정된 쿠폰은 되돌릴 수 없다.
       const selfRes = await assign(input.selfCampaignId, phoneHash);
       if (!selfRes.code) {
-        outcomes.push({ phone: "", name: "", code: "", ok: false, detail: `본인 쿠폰: ${selfRes.reason}` });
+        ordered.push({
+          kind: "done",
+          outcome: { phone: "", name: "", code: "", ok: false, detail: `본인 쿠폰: ${selfRes.reason}` },
+        });
         continue;
       }
       const friendRes = await assign(input.friendCampaignId, phoneHash);
       if (!friendRes.code) {
-        outcomes.push({
-          phone: "",
-          name: "",
-          code: formatCouponCode(selfRes.code),
-          ok: false,
-          detail: `지인 쿠폰: ${friendRes.reason} (본인 쿠폰은 배정됨 — 미발송)`,
+        ordered.push({
+          kind: "done",
+          outcome: {
+            phone: "",
+            name: "",
+            code: formatCouponCode(selfRes.code),
+            ok: false,
+            detail: `지인 쿠폰: ${friendRes.reason} (본인 쿠폰은 배정됨 — 미발송)`,
+          },
         });
         continue;
       }
@@ -223,12 +240,15 @@ export async function sendCoupons(input: {
       });
       const person = (who as { name: string; phone: string }[] | null)?.[0];
       if (!person) {
-        outcomes.push({
-          phone: "",
-          name: "",
-          code: formatCouponCode(selfRes.code),
-          ok: false,
-          detail: "수신자 조회 실패",
+        ordered.push({
+          kind: "done",
+          outcome: {
+            phone: "",
+            name: "",
+            code: formatCouponCode(selfRes.code),
+            ok: false,
+            detail: "수신자 조회 실패",
+          },
         });
         continue;
       }
@@ -239,13 +259,35 @@ export async function sendCoupons(input: {
         friend: partOf(friendCamp, friendRes.code, siteUrl),
       });
 
-      const result = await sendCouponSms(person.phone, text);
-      outcomes.push({
-        ...result,
+      ordered.push({
+        kind: "pending",
+        key: phoneHash,
+        to: person.phone,
+        text,
         name: person.name,
         code: `${formatCouponCode(selfRes.code)} / ${formatCouponCode(friendRes.code)}`,
       });
     }
+
+    // 배정이 끝난 사람 전원에게 한 번의 요청으로 보낸다.
+    const pending = ordered.filter((o) => o.kind === "pending");
+    const { failures } = await sendSmsBulk(
+      pending.map((p) => ({ key: p.key, to: p.to, text: p.text })),
+      "쿠폰 문자"
+    );
+    const failByKey = new Map(failures.map((f) => [f.key, f.reason]));
+
+    const outcomes = ordered.map((o) => {
+      if (o.kind === "done") return o.outcome;
+      const reason = failByKey.get(o.key);
+      return {
+        phone: o.to.replace(/\D/g, ""),
+        name: o.name,
+        code: o.code,
+        ok: !reason,
+        detail: reason ?? "발송 완료",
+      };
+    });
 
     revalidatePath("/admin/coupons");
     return { ok: true, outcomes };

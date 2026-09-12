@@ -74,6 +74,12 @@ export type SendOutcome = { phone: string; ok: boolean; detail: string };
  * ⚠️ 테스트 환경에서는 실제 발송하지 않는다. 테스트 DB 에도 실제 고객 번호가
  *    들어 있어, 화면에서 눌러보는 것만으로 문자가 나갈 수 있다.
  */
+/**
+ * @deprecated 한 명씩 보낸다. 여러 명에게 보내는 곳에서는 쓰지 말 것 —
+ * 솔라피 왕복이 인원수만큼 생겨 함수 제한 시간을 넘는다.
+ * 대신 sendSmsBulk(@/lib/smsBulk) 로 한 번에 보낸다.
+ * (현재 호출부 없음. 1:1 발송이 다시 필요해질 때를 위해 남겨 둔다)
+ */
 export async function sendCouponSms(to: string, text: string): Promise<SendOutcome> {
   const digits = to.replace(/\D/g, "");
 

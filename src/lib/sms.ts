@@ -304,6 +304,12 @@ export async function buildEventReminderText(
   });
 }
 
+/**
+ * @deprecated 한 명씩 보낸다. 여러 명에게 보내는 곳에서는 쓰지 말 것 —
+ * 솔라피 왕복이 인원수만큼 생겨 함수 제한 시간을 넘는다.
+ * 대신 sendSmsBulk(@/lib/smsBulk) 로 한 번에 보낸다.
+ * (현재 호출부 없음. 1:1 발송이 다시 필요해질 때를 위해 남겨 둔다)
+ */
 export async function sendEventReminderSms(
   session: Session,
   application: Pick<Application, "confirmation_code">,

@@ -9,9 +9,10 @@ import {
   sendPaymentConfirmedSmsV2,
   sendApplicationCancelledSmsV2,
   sendWaitlistPromotedSmsV2,
-  sendSessionCancelledSmsV2,
+  buildSessionCancelledTextV2,
 } from "@/lib/smsV2";
 import { requireAdminAuth } from "@/lib/adminAuth";
+import { sendSmsBulk, type BulkMessage } from "@/lib/smsBulk";
 import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
 import { isDatingTheme } from "@/lib/theme";
 import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
@@ -434,50 +435,85 @@ export async function deactivateSession(sessionId: string) {
   }
 
   const errors: string[] = [];
-  let successCount = 0;
+  const targets = applications ?? [];
 
   // 회차 정보는 루프 안에서 매번 조회할 이유가 없다.
   // 조회에 실패하면 문자만 건너뛴다 — 취소 처리 자체는 계속해야 한다.
   const sdSession = await getSessionDisplay(session.id);
 
-  for (const application of applications ?? []) {
-    try {
-      const representative = await getRepresentative(supabase, application.id);
-      const attendeeCount = await getAttendeeCount(supabase, application.id);
+  // 대표 신청자와 인원수를 신청 건마다 두 번씩 조회하던 것을 한 번에 모아 읽는다.
+  const { data: attendeeRows } = await supabase
+    .from("admin_attendee_view")
+    .select("application_id, name, phone, is_representative")
+    .in("application_id", targets.map((a) => a.id));
 
-      await supabase
-        .from("applications")
-        .update({ status: "cancelled", payment_status: "cancelled" })
-        .eq("id", application.id);
-
-      if (representative && sdSession) {
-        const amount =
-          (application as { amount_krw?: number | null }).amount_krw ??
-          (session.price_krw ?? 0) * attendeeCount;
-        await sendSessionCancelledSmsV2({
-          session: sdSession,
-          to: representative.phone,
-          name: representative.name,
-          headcount: attendeeCount,
-          refundAmountKrw: amount,
-          // 대기자는 대개 입금 전이다. 환불 문구를 이걸로 가른다.
-          isPaid: application.payment_status === "confirmed",
-        });
-        successCount++;
-      } else if (!sdSession) {
-        errors.push(`신청 ${application.confirmation_code}: 회차 정보 조회 실패로 문자 미발송`);
-      } else {
-        errors.push(`신청 ${application.confirmation_code}: 대표 신청자 연락처 없음`);
-      }
-    } catch (err) {
-      errors.push(`신청 ${application.confirmation_code}: ${err instanceof Error ? err.message : "알 수 없는 오류"}`);
+  const repByApp = new Map<string, { name: string; phone: string }>();
+  const countByApp = new Map<string, number>();
+  for (const row of attendeeRows ?? []) {
+    const appId = row.application_id as string;
+    countByApp.set(appId, (countByApp.get(appId) ?? 0) + 1);
+    if (row.is_representative && row.name && row.phone) {
+      repByApp.set(appId, { name: row.name as string, phone: row.phone as string });
     }
   }
 
-  console.log(`[admin] 회차 비활성화됨: ${sessionId} (신청 ${successCount}건 취소+안내)`);
+  // ⚠️ 취소 처리가 먼저다. 문자가 실패해도 취소는 되어 있어야 한다.
+  //    한 건씩 update 하던 것을 한 번에 묶는다.
+  if (targets.length > 0) {
+    const { error: cancelError } = await supabase
+      .from("applications")
+      .update({ status: "cancelled", payment_status: "cancelled" })
+      .in("id", targets.map((a) => a.id));
+    if (cancelError) {
+      return { error: "신청 일괄 취소 실패: " + cancelError.message };
+    }
+  }
+
+  const messages: BulkMessage[] = [];
+  for (const application of targets) {
+    const representative = repByApp.get(application.id);
+    if (!sdSession) {
+      errors.push(`신청 ${application.confirmation_code}: 회차 정보 조회 실패로 문자 미발송`);
+      continue;
+    }
+    if (!representative) {
+      errors.push(`신청 ${application.confirmation_code}: 대표 신청자 연락처 없음`);
+      continue;
+    }
+    const attendeeCount = countByApp.get(application.id) ?? 1;
+    const amount =
+      (application as { amount_krw?: number | null }).amount_krw ??
+      (session.price_krw ?? 0) * attendeeCount;
+    try {
+      const text = await buildSessionCancelledTextV2({
+        session: sdSession,
+        name: representative.name,
+        headcount: attendeeCount,
+        refundAmountKrw: amount,
+        // 대기자는 대개 입금 전이다. 환불 문구를 이걸로 가른다.
+        isPaid: application.payment_status === "confirmed",
+      });
+      if (!text) {
+        errors.push(`신청 ${application.confirmation_code}: 문자 문구를 찾을 수 없어 미발송`);
+        continue;
+      }
+      messages.push({ key: application.id, to: representative.phone, text });
+    } catch (err) {
+      errors.push(`신청 ${application.confirmation_code}: ${err instanceof Error ? err.message : "문구 생성 실패"}`);
+    }
+  }
+
+  const { sentKeys, failures } = await sendSmsBulk(messages, "회차취소 문자");
+  const codeByApp = new Map(targets.map((a) => [a.id, a.confirmation_code as string]));
+  for (const f of failures) {
+    errors.push(`신청 ${codeByApp.get(f.key) ?? f.key}: ${f.reason}`);
+  }
+  const successCount = sentKeys.length;
+
+  console.log(`[admin] 회차 비활성화됨: ${sessionId} (신청 ${targets.length}건 취소 / 안내 ${successCount}건)`);
 
   revalidateSession(sessionId);
-  return { success: true, count: successCount, total: applications?.length ?? 0, errors: errors.length > 0 ? errors : undefined };
+  return { success: true, count: successCount, total: targets.length, errors: errors.length > 0 ? errors : undefined };
 }
 
 // 문자3(장소안내) — 외부 크론 없이도 운영자가 원하는 시점에 수동으로 발송할 수

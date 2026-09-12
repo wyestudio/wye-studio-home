@@ -279,6 +279,12 @@ export async function sendWaitlistPromotedSmsV2(p: {
  * 대개 입금 전이므로 "입금하신 금액을 전액 환불" 이라고 보내면 받지도 않은
  * 돈을 돌려준다고 약속하는 셈이 된다. 입금 여부로 문장을 갈라 쓴다.
  */
+/**
+ * @deprecated 한 명씩 보낸다. 여러 명에게 보내는 곳에서는 쓰지 말 것 —
+ * 솔라피 왕복이 인원수만큼 생겨 함수 제한 시간을 넘는다.
+ * 대신 sendSmsBulk(@/lib/smsBulk) 로 한 번에 보낸다.
+ * (현재 호출부 없음. 1:1 발송이 다시 필요해질 때를 위해 남겨 둔다)
+ */
 export async function sendSessionCancelledSmsV2(p: {
   session: SessionDisplay;
   to: string;
@@ -298,6 +304,31 @@ export async function sendSessionCancelledSmsV2(p: {
     attendee_count: String(p.headcount),
     refund_notice: refundNotice,
   }, "회차취소 문자");
+}
+
+/**
+ * 문자7 본문만 만든다 — 회차 비활성화는 전원에게 한 번에 보내므로(smsBulk)
+ * 발송과 분리된 문구 생성이 필요하다. 문장 분기는 위 발송기와 같다.
+ */
+export async function buildSessionCancelledTextV2(p: {
+  session: SessionDisplay;
+  name: string;
+  headcount: number;
+  refundAmountKrw: number;
+  isPaid: boolean;
+}): Promise<string> {
+  const body = await getTemplateBody("minimum_not_met_cancellation_v2", "");
+  if (!body) return "";
+  const refundNotice =
+    p.isPaid && p.refundAmountKrw > 0
+      ? `입금하신 금액 ${formatKrw(p.refundAmountKrw)}은 영업일 기준 3일 내에 전액 환불해 드립니다.`
+      : "입금 전 신청이라 환불해 드릴 금액은 없습니다.";
+  return render(body, {
+    ...baseVars(p.session),
+    name: p.name,
+    attendee_count: String(p.headcount),
+    refund_notice: refundNotice,
+  });
 }
 
 /**
@@ -322,6 +353,12 @@ export async function buildEventReminderTextV2(
   });
 }
 
+/**
+ * @deprecated 한 명씩 보낸다. 여러 명에게 보내는 곳에서는 쓰지 말 것 —
+ * 솔라피 왕복이 인원수만큼 생겨 함수 제한 시간을 넘는다.
+ * 대신 sendSmsBulk(@/lib/smsBulk) 로 한 번에 보낸다.
+ * (현재 호출부 없음. 1:1 발송이 다시 필요해질 때를 위해 남겨 둔다)
+ */
 export async function sendEventReminderSmsV2(p: {
   session: SessionDisplay;
   to: string;
