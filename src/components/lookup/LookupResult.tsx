@@ -173,6 +173,18 @@ export function LookupResult() {
   // 취소·참여완료 건은 더 이상 취소할 게 없다.
   const canCancel = result.status !== "cancelled" && result.lifecycleStatus !== "attended";
 
+  // 입금확인일. paid_at 이 없던 시절 신청은 문자 발송 시각으로 대신한다.
+  const paidAt = result.paid_at ?? result.payment_confirmed_sms_sent_at;
+
+  // ⚠️ 환불 금액은 **취소한 시점** 기준으로 계산한다. 지금 시각으로 재면
+  //    행사가 지난 뒤 조회했을 때 환불받은 건도 "0원" 으로 보인다.
+  //    취소 시각이 없는 옛 건(2026-09-13 이전)은 계산 근거가 없으므로
+  //    추측하지 않고 안내를 띄우지 않는다.
+  const refundAmount =
+    result.status === "cancelled" && paidAt && result.cancelled_at
+      ? calculateRefundAmount(result.start_at, result.amount_krw, new Date(result.cancelled_at))
+      : 0;
+
   return (
     <div className="space-y-6">
       {/* ── 접수번호 ── */}
@@ -258,14 +270,13 @@ export function LookupResult() {
         <Row label="일시" value={formatDateTimeFull(result.start_at)} />
         <Row label="위치" value={result.venue_area} />
         <Row label="신청일" value={formatDateTimeFull(result.created_at)} />
-        <Row
-          label="입금확인일"
-          value={
-            result.payment_confirmed_sms_sent_at
-              ? formatDateTimeFull(result.payment_confirmed_sms_sent_at)
-              : "-"
-          }
-        />
+        <Row label="입금확인일" value={paidAt ? formatDateTimeFull(paidAt) : "-"} />
+        {result.status === "cancelled" && (
+          <Row
+            label="취소일"
+            value={result.cancelled_at ? formatDateTimeFull(result.cancelled_at) : "-"}
+          />
+        )}
         <Row
           label="참가비"
           value={
@@ -289,6 +300,22 @@ export function LookupResult() {
             )
           }
         />
+        {/* 돌려받을 돈이 있을 때만. 취소했어도 환불 금액이 0이면 굳이 알리지 않는다. */}
+        {refundAmount > 0 && (
+          <Row
+            label={result.refund_completed_at ? "환불 완료" : "환불 예정"}
+            value={
+              <>
+                {formatKrw(refundAmount)}
+                <span className="ml-1.5 text-xs text-muted">
+                  {result.refund_completed_at
+                    ? `(${formatDateTimeFull(result.refund_completed_at)})`
+                    : "(영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다)"}
+                </span>
+              </>
+            }
+          />
+        )}
 
         <div className="mt-4 space-y-3">
           <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4">

@@ -142,4 +142,10 @@ export type ApplicationLookupResult = {
   notes: string | null;
   waiting_number: number | null;
   attendees: ApplicationAttendee[];
+  /** 입금이 확인된 시각. 문자 발송과 무관하게 찍힌다(어드민 수동 등록 포함) */
+  paid_at: string | null;
+  /** 취소된 시각. 환불 금액을 계산하는 기준 시점이다. 2026-09-13 이전 취소는 null */
+  cancelled_at: string | null;
+  /** 환불이 실제로 끝난 시각. 아직이면 null */
+  refund_completed_at: string | null;
 };
