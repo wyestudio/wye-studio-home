@@ -1,12 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { formatKrw } from "@/lib/format";
+import { useCopyProtectionExemption } from "@/components/layout/CopyProtection";
 import { formatPhoneDigits } from "@/lib/phone";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import type { ApplyResult, AttendeeInput } from "./actions";
 
 type Ok = Extract<ApplyResult, { success: true }>;
+
+/** 흔히 쓰는 두 장 겹친 복사 아이콘. */
+function CopyIcon() {
+  return (
+    <svg
+      width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -42,6 +58,35 @@ export function ApplyComplete({
   attendees: AttendeeInput[];
   accentColor: string;
 }) {
+  // ⚠️ 사이트 전체에 복사 금지가 걸려 있다. 접수번호는 옮겨 적어야 하는 값이라
+  //    이 화면에서만 해제한다.
+  useCopyProtectionExemption();
+
+  const [copied, setCopied] = useState(false);
+
+  /** 복사하고 2초 동안 '복사됨' 을 보여준 뒤 아이콘으로 돌아간다. */
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(result.confirmationCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // 클립보드 권한이 없거나 보안 컨텍스트가 아니면 조용히 넘어간다.
+      // 번호는 화면에 그대로 있으므로 직접 적을 수 있다.
+    }
+  }
+
+  // 화면에 들어오자마자 한 번 복사해둔다. 바로 문자로 보내거나 메모하는 사람이 많다.
+  useEffect(() => {
+    navigator.clipboard
+      ?.writeText(result.confirmationCode)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
+  }, [result.confirmationCode]);
+
   const isWaiting = result.status === "waiting";
   const representativePhone = formatPhoneDigits(attendees[0]?.phone ?? "");
 
@@ -57,9 +102,19 @@ export function ApplyComplete({
       {/* ── 접수번호 ── */}
       <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center">
         <p className="text-xs text-muted">접수번호</p>
-        <p className="mt-1 text-3xl font-extrabold tracking-wider" style={{ color: accentColor }}>
-          {result.confirmationCode}
-        </p>
+        <div className="mt-1 flex items-center justify-center gap-2">
+          <p className="text-3xl font-extrabold tracking-wider" style={{ color: accentColor }}>
+            {result.confirmationCode}
+          </p>
+          <button
+            type="button"
+            onClick={copy}
+            aria-label="접수번호 복사"
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/40 hover:text-foreground"
+          >
+            {copied ? <>복사됨</> : <CopyIcon />}
+          </button>
+        </div>
         <p className="mt-2 text-xs text-muted">참여 내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
 
         {isWaiting && (
@@ -96,7 +151,6 @@ export function ApplyComplete({
           </div>
           <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-xs text-amber-200">
             <p>⚠️ 입금자명이 다르면 처리가 늦어질 수 있습니다.</p>
-            <p>⏱ 입금 확인까지 최대 10분 정도 걸릴 수 있습니다.</p>
             <p>⏱ 시간 내 미입금 시 자동으로 취소될 수 있습니다.</p>
             {/* 계좌가 문자에만 있으므로, 문자가 안 오면 입금할 방법이 없어진다. */}
             <p>💬 문자가 오지 않으면 카카오 채널로 문의해주세요.</p>
@@ -170,12 +224,12 @@ export function ApplyComplete({
       </div>
 
       {/* ── 다음 ── */}
-      <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-sm">
+      <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-center text-sm">
         <p className="font-semibold">참여 내역은 언제든 확인할 수 있어요</p>
         <p className="mt-1 text-muted">
           휴대폰 번호와 접수번호 <strong>{result.confirmationCode}</strong>로 조회하실 수 있습니다.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Link
             href="/lookup"
             className="rounded-lg px-4 py-2.5 text-sm font-bold"
