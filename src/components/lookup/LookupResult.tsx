@@ -9,7 +9,7 @@ import { CompanionPager } from "./CompanionPager";
 import { RefundPolicyBox } from "@/components/ui/RefundPolicyBox";
 import { RefundInfoDialog } from "./RefundInfoDialog";
 import { formatDateTimeFull, formatKrw } from "@/lib/format";
-import { calculateRefundAmount, REFUND_TIERS } from "@/lib/refundPolicy";
+import { calculateRefundAmount } from "@/lib/refundPolicy";
 import { formatPhoneDigits } from "@/lib/phone";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { LIFECYCLE_LABEL, LIFECYCLE_TONE } from "@/lib/lookupStatus";

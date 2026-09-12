@@ -1,12 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
+import { PosterImage, FALLBACK_LOGO } from "@/components/contents/PosterImage";
 import { formatKrw } from "@/lib/format";
-import type { ThemeWithTiers } from "@/types/catalog";
+import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
 const DEFAULT_ACCENT = "#3dffb0";
-/** 테마에 대표 이미지가 없을 때 쓰는 기본 아트웍. */
-const FALLBACK_POSTER = "/bar-o-title.png";
 
 export type HomeThemeCard = ThemeWithTiers & {
   upcomingCount: number;
@@ -19,100 +17,110 @@ function durationLabel(minutes: number): string {
 }
 
 /**
- * 홈 스크롤스테이지의 컨텐츠 씬.
+ * 홈 — Planets to Escape.
  *
- * 기존에는 회차 카드를 나열해 매주 카드가 늘어났다. 테마 단위로 묶어
- * 회차가 쌓여도 홈 구성이 변하지 않게 한다.
- * 포스터는 테마의 hero_image_path 를 쓰고, 없으면 기본 아트웍으로 떨어진다.
+ * 컨텐츠 목록과 같은 '행성'을 쓰되, 여기서는 자전하듯 계속 돌고 있다가
+ * 커서를 올리면 멈추고 **오른쪽에** 지령 패널이 열린다(우주선 계기판에서
+ * 미션 브리핑을 받는 느낌). 컨텐츠 목록처럼 행성이 카드로 펼쳐지지는 않는다.
+ *
+ * ⚠️ 자리는 패널이 열린 크기로 미리 잡아둔다. hover 때 폭이 늘면 옆 행성들이
+ *    밀려 출렁인다 — 컨텐츠 목록에서 같은 실수를 한 적이 있다.
+ *
+ * 터치 기기에는 hover 가 없으므로 패널을 항상 펼쳐 둔다. 눌러야만 보이는
+ * 정보는 모바일에서 영영 안 보인다.
  */
-export function ThemeHomeShowcase({
-  themes,
-  dense = false,
-}: {
-  themes: HomeThemeCard[];
-  dense?: boolean;
-}) {
+export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?: boolean }) {
   if (themes.length === 0) {
     return (
-      <div className="rounded-xl border border-glass-border bg-surface/60 p-8 text-center">
+      <div className="rounded-xl border border-white/15 bg-white/5 p-8 text-center">
         <p className="font-semibold">준비 중인 컨텐츠가 곧 공개됩니다.</p>
       </div>
     );
   }
 
-  // 테마가 하나면 기존 홈 레이아웃(포스터 + 정보)을 그대로 유지한다.
-  const single = themes.length === 1;
-
   return (
-    <div className={single ? "" : `flex flex-col ${dense ? "gap-4" : "gap-8"}`}>
+    <div className="flex flex-col gap-4">
       {themes.map((theme) => {
         const accent = theme.accent_color || DEFAULT_ACCENT;
         const prices = theme.tiers.map((t) => t.unit_price_krw);
         const minPrice = prices.length ? Math.min(...prices) : null;
         const maxPrice = prices.length ? Math.max(...prices) : null;
+        const logo = theme.logo_image_path || FALLBACK_LOGO;
 
         return (
-          <div
+          <Link
             key={theme.id}
-            className={`flex flex-col sm:flex-row sm:items-center sm:gap-8 lg:gap-10 ${
-              dense ? "gap-3" : "gap-6"
-            }`}
+            href={`/themes/${theme.slug}`}
+            className="group flex items-center gap-4 sm:gap-6"
           >
-            {/* 포스터 */}
-            <div
-              className={`mx-auto sm:mx-0 sm:w-64 sm:flex-shrink-0 lg:w-80 ${
-                dense ? "w-36" : "w-56"
-              }`}
-            >
-              <Link href={`/themes/${theme.slug}`} className="block">
-                <div className="relative aspect-[4/5] overflow-hidden border border-glass-border bg-surface">
-                  <Image
-                    src={theme.hero_image_path || FALLBACK_POSTER}
-                    alt={`${theme.name} 테마 아트웍`}
-                    fill
-                    className="object-contain"
-                    sizes="(min-width: 1024px) 320px, (min-width: 640px) 256px, 224px"
-                  />
-                </div>
-              </Link>
+            {/* ── 행성 ── */}
+            <div className="relative h-28 w-28 shrink-0 sm:h-36 sm:w-36">
+              {/*
+                자전은 배경 이미지를 좌우로 흘려 흉내낸다. 이미지 한 장으로
+                구체가 도는 것처럼 보이게 하는 가장 싼 방법이다.
+              */}
+              <div
+                className="animate-planet-spin absolute inset-0 rounded-full"
+                style={{
+                  backgroundImage: `url(${logo})`,
+                  backgroundSize: "200% 100%",
+                  backgroundRepeat: "repeat-x",
+                }}
+              />
+              {/* 구체처럼 보이도록 가장자리를 어둡게 깎는다 */}
+              <div
+                className="pointer-events-none absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    "radial-gradient(circle at 34% 30%, transparent 40%, rgba(0,0,0,0.55) 100%)",
+                }}
+              />
+              {/* 멈춘 순간 '조준됨' 을 알리는 테두리 */}
+              <div
+                className="pointer-events-none absolute inset-0 rounded-full border opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                style={{ borderColor: accent, boxShadow: `0 0 24px -6px ${accent}` }}
+              />
             </div>
 
-            {/* 정보 */}
-            <div className="flex flex-1 flex-col gap-3">
-              <div>
+            {/* ── 지령 패널 ── */}
+            <div
+              className="min-w-0 flex-1 overflow-hidden rounded-xl border border-white/12 bg-white/[0.04] p-4
+                         opacity-100 transition-all duration-500
+                         [@media(hover:hover)]:-translate-x-3 [@media(hover:hover)]:opacity-0
+                         [@media(hover:hover)]:group-hover:translate-x-0
+                         [@media(hover:hover)]:group-hover:opacity-100
+                         [@media(hover:hover)]:group-hover:border-white/25"
+              style={{ borderLeftColor: accent, borderLeftWidth: 2 }}
+            >
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
                 <h3
-                  className={`font-extrabold ${dense ? "text-lg" : "text-xl sm:text-2xl"}`}
+                  className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
                   style={{ color: accent }}
                 >
                   {theme.name}
                 </h3>
-                {theme.tagline && (
-                  <p className={`mt-1 text-muted ${dense ? "text-xs" : "text-sm"}`}>
-                    {theme.tagline}
-                  </p>
-                )}
+                <span className="text-[11px] uppercase tracking-[0.2em] text-muted">
+                  {theme.is_active && theme.upcomingCount > 0 ? "OPEN" : "STANDBY"}
+                </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
                 <DifficultyLocks rating={theme.difficulty} />
                 <span>⏱ {durationLabel(theme.duration_minutes)}</span>
               </div>
 
               {minPrice !== null && maxPrice !== null && (
-                <p className={dense ? "text-sm" : "text-base"}>
+                <p className="mt-1.5 text-sm">
                   <span className="text-muted">1인 </span>
                   <strong>
                     {minPrice === maxPrice
                       ? formatKrw(minPrice)
                       : `${formatKrw(minPrice)}~${formatKrw(maxPrice)}`}
                   </strong>
-                  {minPrice !== maxPrice && (
-                    <span className="ml-1 text-xs text-muted">(인원수에 따라 다름)</span>
-                  )}
                 </p>
               )}
 
-              <p className="text-xs text-muted">
+              <p className="mt-1.5 text-xs text-muted">
                 {!theme.is_active
                   ? "현재 신청을 받지 않습니다"
                   : theme.upcomingCount > 0
@@ -120,17 +128,16 @@ export function ThemeHomeShowcase({
                     : "예정된 회차 준비 중"}
               </p>
 
-              <Link
-                href={`/themes/${theme.slug}`}
-                className={`mt-1 inline-block self-start rounded-lg font-bold transition-opacity hover:opacity-90 ${
-                  dense ? "px-4 py-2 text-sm" : "px-5 py-3 text-sm"
-                }`}
-                style={{ backgroundColor: accent, color: "#0a0a12" }}
-              >
-                {theme.is_active ? "날짜 보고 신청하기" : "자세히 보기"}
-              </Link>
+              {/* 포스터는 패널 안에서 한 번 더 보여준다 — 미션 파일 첨부 느낌 */}
+              <div className="relative mt-3 hidden aspect-[16/7] overflow-hidden rounded-lg border border-white/10 sm:block">
+                <PosterImage
+                  src={theme.hero_image_path}
+                  alt={`${theme.name} 포스터`}
+                  sizes="(min-width: 640px) 420px, 100vw"
+                />
+              </div>
             </div>
-          </div>
+          </Link>
         );
       })}
     </div>

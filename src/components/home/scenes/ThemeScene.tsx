@@ -29,8 +29,10 @@ export function ThemeScene({
       variant="rise"
     >
       <div className="mx-auto w-full max-w-4xl px-5 sm:px-8 lg:px-0">
-        <h2 className="mb-2 text-left text-lg font-extrabold sm:mb-4 sm:text-xl">지금 신청 가능한 컨텐츠</h2>
-        <ThemeHomeShowcase themes={themes} dense />
+        <h2 className="mb-3 text-left text-lg font-extrabold tracking-[0.08em] sm:mb-5 sm:text-2xl">
+          Planets to Escape
+        </h2>
+        <ThemeHomeShowcase themes={themes} />
       </div>
     </SceneShell>
   );

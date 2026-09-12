@@ -238,10 +238,28 @@ html.custom-cursor-active label {
   animation: glow-pulse 4s ease-in-out infinite;
 }
 
+/* 홈 '행성' 자전 — 로고 이미지를 좌우로 흘려 구체가 도는 것처럼 보이게 한다.
+   실제 3D 회전이 아니라 배경 위치만 움직인다(이미지 한 장으로 되는 가장 싼 방법). */
+@keyframes planet-spin {
+  from { background-position: 0% center; }
+  to   { background-position: -200% center; }
+}
+
+.animate-planet-spin {
+  animation: planet-spin 14s linear infinite;
+}
+
+/* 커서를 올리면 멈춘다 — "지령을 받는 동안 행성이 정지" 하는 연출. */
+.group:hover .animate-planet-spin,
+.animate-planet-spin:hover {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-mascot-bob,
   .animate-drift,
-  .animate-glow-pulse {
+  .animate-glow-pulse,
+  .animate-planet-spin {
     animation: none;
   }
 }
