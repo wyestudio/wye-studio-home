@@ -1,0 +1,212 @@
+-- 어드민 '문자 포맷' 목록에서 옛 템플릿 7종 제거 (하나씩만 남긴다)
+--
+-- 적용: 운영 적용 완료 (2026-09-12)
+--
+-- 어드민에 같은 문자가 '문자1 · 신청확인' 과 '문자1 · 신청확인 (신규)' 처럼
+-- 두 개씩 떠서 운영자가 어느 쪽을 고쳐야 하는지 헷갈린다는 요청.
+-- 실제로 발송에 쓰이는 것은 _v2 뿐이므로 옛 것을 지우고, 남은 것에서
+-- '(신규)' 꼬리표를 떼어 이름을 정리한다.
+--
+-- ── 지워도 되는 근거 (2026-09-12 확인) ──────────────────────────
+-- 1. 옛 템플릿을 쓰는 경로는 레거시 회차(theme_id is null)뿐인데
+--    운영에 레거시 회차가 **0건**이다. 예정된 것도 0건.
+--    /sessions/[slug] 는 테마로 308 리다이렉트돼 도달 자체가 안 된다.
+-- 2. 설령 그 경로가 돌더라도 src/lib/sms.ts 의 getTemplateBody() 가
+--    DEFAULT_TEMPLATES 상수로 폴백한다 — DB 행이 없어도 문자는 나간다.
+-- 3. 어드민 액션(문자2·4·6·7)과 크론(문자3)은 전부 smsV2 의 _v2 키를 쓴다.
+--
+-- ⚠️ event_reminder_group 은 이름과 내용이 다르다.
+--    '장소안내(그룹)' 이라는 label 을 달고 있지만 본문은 8/29 종료 후 보낸
+--    '후기 페이백 & 참가자 오픈카톡 안내' 로 바뀌어 있었다(운영자가 어드민에서
+--    덮어쓴 것으로 보인다). 같은 안내를 다시 보내야 할 때를 위해 아래 백업의
+--    해당 항목을 그대로 꺼내 쓰면 된다.
+--
+-- 되돌리기: 아래 백업 본문으로 insert 하면 원상복구된다.
+--
+-- ══════════════════════════════════════════════════════════════
+-- 삭제 직전 운영 본문 백업 (2026-09-12)
+-- ══════════════════════════════════════════════════════════════
+--
+-- === application_cancelled | 문자4 · 미입금취소 ===
+--   placeholders: {name,confirmation_code,reapply_url}
+--   [우주이스케이프] 미입금 신청취소 안내문자입니다.
+--
+--   {{name}}님, 접수번호 {{confirmation_code}} 건은 입금이 확인되지 않아 신청이 취소되었습니다.
+--
+--   다시 신청하시려면 아래에서 진행해 주세요.
+--   {{reapply_url}}
+--
+--   이미 입금하셨다면 카카오톡 채널로 문의 바랍니다.
+--
+--   문의: 카카오톡 채널 우주이스케이프
+--   https://pf.kakao.com/_EGNBX/chat
+--
+-- === application_confirmation | 문자1 · 신청확인 ===
+--   placeholders: {name,theme_name,product_label,event_date,start_time,end_time,duration,attendee_count,confirmation_code,price,bank_name,account_number,account_holder,depositor_name}
+--   [우주이스케이프] 신청 접수 안내문자입니다.
+--
+--   {{name}}님, 신청이 접수되었습니다.
+--   · 접수번호: {{confirmation_code}}
+--   · 테마: {{theme_name}} ({{product_label}})
+--   · 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+--   · 인원: {{attendee_count}}명
+--
+--   · 입금자명: {{depositor_name}}
+--   · 입금액: {{price}}
+--   · 입금계좌: {{bank_name}} {{account_number}} (예금주: {{account_holder}})
+--
+--   계좌이체 시 입금확인 후 참여 확정 문자가 발송됩니다.
+--   참여신청 후 30분 이내에 입금이 확인되지 않을 경우 신청이 취소될 수 있습니다.
+--
+--   문의: 카카오톡 채널 우주이스케이프
+--   https://pf.kakao.com/_EGNBX/chat
+--
+-- === event_reminder_dating | 문자3 · 장소안내(소개팅) ===
+--   placeholders: {name,theme_name,product_label,event_date,start_time,duration,venue_name,venue_address_text}
+--   [우주이스케이프] 참여 하루 전 안내문자입니다.
+--
+--   {{name}}님, 내일 진행되는 테마 안내드립니다.
+--   · 테마: [프리오픈] {{theme_name}} ({{product_label}})
+--   · 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+--   · 장소: 서울 관악구 신림로70길 11 지하1층 뮤트스페이스 더네온 신림점
+--   · 주차: 인근 유료주차장 또는 노상공영주차장을 이용해 주세요.
+--   · 준비물: 신분증 (또는 운전면허증, 모바일 신분증 등), 단정한 옷차림(가슴 부위에 옷핀을 부착하니 참고해 주세요.)
+--
+--   [꼭 확인해 주세요]
+--   · 원활한 진행을 위해 시작 시간 10분 전까지 도착해주세요.
+--   · 만 19세 이상만 참가 가능하며 현장에서 신분증을 확인합니다. 미지참 시 참가가 제한됩니다.
+--   · 음주 시 입장이 불가능하며, 이로 인한 입장제한 시 환불이 불가능합니다.
+--   · 방탈출 특성상 1부 진행 중에는 휴대폰을 보관하며, 1부 콘텐츠가 회수되는 시점에 돌려드립니다.
+--   · 행사 당일 쾌적한 진행을 위해 행사장 내 에어컨을 강하게 가동할 예정입니다. 추위를 많이 타시는 분들은 얇은 겉옷을 준비해 주세요.
+--   · 2부부터는 음주가 가능합니다. 소주·맥주 외에 다른 주류를 원하실 경우 개인 지참(BYOB)도 가능합니다.
+--
+--   [참석이 어려우시다면]
+--   대기하고 계신 분들을 위해 미리 취소해 주시기 바랍니다. 취소 신청 없이 당일 참석하지 않으시면 이후 이용이 제한될 수 있습니다. (진행일 2일 전부터는 환불 불가)
+--   취소: www.wouldyouescape.com/lookup
+--
+--   문의: 카카오톡 채널 우주이스케이프
+--   https://pf.kakao.com/_EGNBX/chat
+--
+-- === event_reminder_group | 문자3 · 장소안내(그룹) ===
+--   ⚠️ label 과 달리 본문은 '후기 페이백 & 오픈카톡 안내' 다.
+--   placeholders: {name,theme_name,product_label,event_date,start_time,duration,venue_name,venue_address_text}
+--   [우주이스케이프] 후기 페이백 & 참가자 오픈카톡 안내 🎁
+--
+--   안녕하세요, 우주이스케이프입니다!
+--   어제 함께해주셔서 정말 감사합니다 🥰
+--
+--   💌 후기 페이백
+--   SNS 후기 작성 후 7일간 유지해주시면 5,000원 페이백을 드립니다!
+--
+--   ① SNS 후기 작성
+--   ② 아래 링크에서 게시물 링크 제출
+--   ③ 게시 7일째 확인 후 당일 입금
+--
+--   👉 후기 가이드 & 페이백 신청
+--   wouldyouescape.com/review.go
+--
+--   ※ 문제/정답 및 캐릭터 카드 등 스포일러가 포함된 사진은 가리거나 블러 처리해주세요.
+--   ※ 다른 페이백 이벤트와 중복 참여는 어렵습니다.
+--
+--   📝 설문조사
+--   아직 참여하지 않으셨다면 잠시만 시간 내어 의견 부탁드립니다 🙏
+--   https://docs.google.com/forms/d/e/1FAIpQLSfOsPuJnV_Ah4b472P8L-bdvcESFBAk6BglzzlrAbiXGAucKw/viewform
+--
+--   🎟️ 프리오픈 전용 쿠폰
+--   정식 오픈 일정 확정 후 쿠폰 사용 방법과 함께 별도 안내드리겠습니다!
+--
+--   👥 참가자 오픈카톡
+--   참가자분들의 요청으로 오픈카톡을 개설했습니다 😊
+--   👉 https://open.kakao.com/o/grxXRgLi
+--   🔑 참여코드: 0829
+--
+--   입장 시 어제 사용하셨던 닉네임 그대로 입장해주세요!
+--   단체 사진도 오픈카톡에서 공유해드릴 예정입니다 📸
+--
+--   참여는 완전히 자율이며,
+--   사진만 받으실 분은 일반 프로필,
+--   참가자분들과 소통/개인 연락을 원하시는 분은 1:1 대화 가능한 프로필로 입장해주세요!
+--
+--   다시 한 번 함께해주셔서 감사합니다 🥰
+--   앞으로 더 재미있는 프로그램으로 찾아뵙겠습니다! 🚀
+--
+--   문의: 카카오톡 채널 '우주이스케이프'
+--   pf.kakao.com/_EGNBX/chat
+--
+-- === minimum_not_met_cancellation | 문자7 · 최소인원미달취소 ===
+--   placeholders: {event_date,name,theme_name,product_label,start_time,duration,refund_amount}
+--   [우주이스케이프] 인원미달 취소 안내문자입니다.
+--
+--   {{name}}님, 신청하신 테마가 최소 진행 인원에 미달하여 부득이하게 취소되었습니다.
+--   · 접수번호: {{confirmation_code}}
+--   · 테마: [프리오픈] {{theme_name}} ({{product_label}})
+--   · 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+--
+--   결제하신 {{refund_amount}}은 전액 환불되며, 영업일 기준 3~5일 이내 입금하신 계좌로 처리됩니다.
+--
+--   일정을 비워두셨을 텐데 불편을 드려 죄송합니다.
+--
+--   문의: 카카오톡 채널 우주이스케이프
+--   https://pf.kakao.com/_EGNBX/chat
+--
+-- === payment_confirmed | 문자2 · 입금확인 ===
+--   placeholders: {name,theme_name,product_label,event_date,start_time,end_time,duration,attendee_count,confirmation_code}
+--   [우주이스케이프] 참여 확정 안내문자입니다.
+--
+--   {{name}}님, 입금이 확인되어 참여가 확정되었습니다.
+--   · 접수번호: {{confirmation_code}}
+--   · 테마: [프리오픈] {{theme_name}} ({{product_label}})
+--   · 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+--   · 인원: {{attendee_count}}명
+--
+--   상세 장소는 체험 전날 다시 안내드립니다.
+--
+--   신청 조회·취소는 아래에서 가능합니다.
+--   www.wouldyouescape.com/lookup
+--
+--   [환불 규정]
+--   · 행사일 4일 전 23:59까지 취소: 전액 환불
+--   · 행사일 3일 전 23:59까지 취소: 50% 환불
+--   · 행사일 2일 전 00:00 이후 취소: 환불 불가
+--
+--   문의: 카카오톡 채널 우주이스케이프
+--   https://pf.kakao.com/_EGNBX/chat
+--
+-- === waitlist_promoted | 문자6 · 공석입금안내 ===
+--   placeholders: {name,theme_name,product_label,event_date,start_time,end_time,duration,attendee_count,confirmation_code,price,bank_name,account_number,account_holder,depositor_name}
+--   [우주이스케이프] 공석신청 입금 안내문자입니다.
+--
+--   {{name}}님, 유선 상 안내드린 대로 아래 테마 참여가 가능합니다.
+--   · 접수번호: {{confirmation_code}}
+--   · 테마: [프리오픈] {{theme_name}} ({{product_label}})
+--   · 일시: {{event_date}} {{start_time}} ({{duration}} 소요)
+--   · 인원: {{attendee_count}}명
+--
+--   · 입금자명: {{depositor_name}}
+--   · 입금액: {{price}}
+--   · 입금계좌: {{bank_name}} {{account_number}} (예금주 {{account_holder}})
+--   · 입금기한: 문자 수신 후 30분 이내
+--
+--   기한 내 입금이 확인되지 않으면 다음 대기자에게 자리가 넘어갑니다.
+--
+--   문의: 카카오톡 채널 우주이스케이프
+--   https://pf.kakao.com/_EGNBX/chat
+--
+-- ══════════════════════════════════════════════════════════════
+
+delete from public.sms_templates
+where key in (
+  'application_confirmation',
+  'payment_confirmed',
+  'event_reminder_group',
+  'event_reminder_dating',
+  'application_cancelled',
+  'waitlist_promoted',
+  'minimum_not_met_cancellation'
+);
+
+-- 이제 하나씩만 남았으므로 '(신규)' 꼬리표는 의미가 없다.
+update public.sms_templates
+set label = btrim(replace(label, '(신규)', '')),
+    updated_at = now()
+where label like '%(신규)%';
