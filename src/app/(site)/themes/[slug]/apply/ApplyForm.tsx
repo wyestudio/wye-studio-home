@@ -124,6 +124,7 @@ export function ApplyForm({
   const [nicknameChecks, setNicknameChecks] = useState<Record<number, NicknameCheckState>>({});
   const [conflictPhones, setConflictPhones] = useState<Set<string>>(new Set());
   const [checkingConflicts, setCheckingConflicts] = useState(false);
+  const [checkingNicknames, setCheckingNicknames] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -348,13 +349,42 @@ export function ApplyForm({
         return;
       }
 
-      const takenIndex = attendees.findIndex((_, i) => nicknameChecks[i] === "taken");
-      if (takenIndex !== -1) {
-        setSubmitAttempted(true);
-        setActiveIndex(takenIndex);
-        setToast("이미 사용 중인 닉네임이 있어요. 다른 닉네임으로 바꿔주세요.");
-        focusField(`attendee-${takenIndex}-nickname`);
-        return;
+      // ⚠️ '중복확인' 버튼을 눌렀는지와 무관하게 여기서 반드시 확인한다.
+      //    예전에는 버튼을 눌러 생긴 'taken' 상태만 봤기 때문에, 버튼을 안 누르면
+      //    중복이어도 다음 단계로 넘어갔다. 그러면 제출 시점에 DB 트리거가
+      //    거부해서(enforce_session_nickname_unique) 사용자는 한참 뒤에야
+      //    같은 오류를 만난다. 판정 기준은 DB 와 같은 함수를 쓴다.
+      const nicknamed = attendees
+        .map((a, i) => ({ i, nickname: a.nickname.trim() }))
+        .filter((x) => x.nickname && isValidNickname(x.nickname));
+
+      if (nicknamed.length > 0) {
+        setCheckingNicknames(true);
+        const results = await Promise.all(
+          nicknamed.map(async (x) => ({
+            ...x,
+            res: await checkNickname(sessionId, x.nickname),
+          }))
+        );
+        setCheckingNicknames(false);
+
+        setNicknameChecks((prev) => {
+          const next = { ...prev };
+          for (const r of results) {
+            next[r.i] = "error" in r.res ? "error" : r.res.available ? "available" : "taken";
+          }
+          return next;
+        });
+
+        const taken = results.find((r) => !("error" in r.res) && !r.res.available);
+        if (taken) {
+          setSubmitAttempted(true);
+          setActiveIndex(taken.i);
+          setToast("이미 사용 중인 닉네임이 있어요. 다른 닉네임으로 바꿔주세요.");
+          focusField(`attendee-${taken.i}-nickname`);
+          return;
+        }
+        // 조회 자체가 실패하면 막지 않고 넘긴다. 최종 판정은 DB 가 한다.
       }
 
       // 같은 테마 중복 신청은 제출 전에 미리 걸러준다.
@@ -443,7 +473,7 @@ export function ApplyForm({
   }
 
   const errOf = (list: FieldError[], f: string) => list.find((e) => e.field === f)?.message;
-  const busy = pending || checkingConflicts;
+  const busy = pending || checkingConflicts || checkingNicknames;
 
   return (
     <>
@@ -722,7 +752,7 @@ export function ApplyForm({
           >
             {pending
               ? "신청 중…"
-              : checkingConflicts
+              : checkingConflicts || checkingNicknames
                 ? "확인 중…"
                 : step === 2
                   ? "제출하기"

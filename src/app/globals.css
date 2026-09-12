@@ -447,3 +447,17 @@ body:has(.admin-shell) header {
   overscroll-behavior-x: contain;
 }
 .planet-track::-webkit-scrollbar { display: none; }
+
+/* 날짜 입력(어드민 필터)의 달력 아이콘.
+   기본 아이콘이 검은색이라 어두운 배경에서 거의 안 보인다.
+   invert 로 흰색으로 뒤집고, hover 시 밝기를 올려 눌리는 곳임을 알린다.
+   ⚠️ Chrome/Safari 전용 의사요소다. Firefox 는 아이콘 자체를 그리지 않아
+      영향이 없다(달력은 키보드·클릭으로 그대로 열린다). */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.7;
+  cursor: pointer;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
