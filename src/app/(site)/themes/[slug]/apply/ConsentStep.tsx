@@ -32,7 +32,8 @@ type Item = {
   required: boolean;
   /** 2인 이상일 때만 보인다 */
   groupOnly?: boolean;
-  label: React.ReactNode;
+  /** 회차 최소 연령처럼 회차마다 달라지는 값이 들어가면 함수로 둔다. */
+  label: React.ReactNode | ((minAge: number) => React.ReactNode);
   /** 펼쳐서 보여줄 요약. 오른쪽 '보기' 로 연다. */
   detail?: React.ReactNode;
   /** 별도 문서로 보낼 때. detail 대신 쓴다. */
@@ -44,7 +45,14 @@ type Item = {
  * 약관 조항 번호와 연결돼 있어 임의로 줄이면 안 된다.
  */
 const ITEMS: Item[] = [
-  { key: "ageSelf", id: "age-self", required: true, label: "만 19세 이상이며 본인이 직접 신청합니다." },
+  {
+    key: "ageSelf",
+    id: "age-self",
+    required: true,
+    // 약관 제9조 1항 — 참가 연령은 회차 종료 시각에 따라 16세/19세로 갈린다.
+    // 문구를 19세로 박아두면 16세 회차에서는 사실이 아닌 항목에 동의하게 된다.
+    label: (minAge: number) => `만 ${minAge}세 이상이며 본인이 직접 신청합니다.`,
+  },
   {
     key: "terms", id: "terms", required: true,
     label: "이용약관에 동의합니다.",
@@ -155,11 +163,14 @@ export function firstMissingConsentId(consents: ConsentState, attendeeCount: num
  */
 export function ConsentStep({
   attendeeCount,
+  minAge,
   consents,
   onChange,
   showError,
 }: {
   attendeeCount: number;
+  /** 이 회차의 최소 연령. 동의 문구에 그대로 들어간다. */
+  minAge: number;
   consents: ConsentState;
   onChange: (next: ConsentState) => void;
   showError: boolean;
@@ -195,7 +206,9 @@ export function ConsentStep({
               checked={consents[it.key]}
               onChange={() => onChange({ ...consents, [it.key]: !consents[it.key] })}
             />
-            <span className="text-sm leading-snug">{it.label}</span>
+            <span className="text-sm leading-snug">
+              {typeof it.label === "function" ? it.label(minAge) : it.label}
+            </span>
           </label>
 
           {it.href ? (

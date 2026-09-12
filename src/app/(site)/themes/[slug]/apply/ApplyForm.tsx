@@ -563,6 +563,7 @@ export function ApplyForm({
         {step === 1 && (
           <ConsentStep
             attendeeCount={headcount}
+            minAge={minAge}
             consents={consents}
             onChange={setConsents}
             showError={submitAttempted}
