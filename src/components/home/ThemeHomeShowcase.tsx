@@ -74,8 +74,8 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
                 className="pointer-events-none absolute inset-0 rounded-full"
                 style={{
                   background:
-                    "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.28) 0%, transparent 42%), " +
-                    "radial-gradient(circle at 50% 50%, transparent 54%, rgba(0,0,0,0.45) 84%, rgba(0,0,0,0.78) 100%)",
+                    "radial-gradient(circle at 32% 28%, rgba(255,255,255,0.26) 0%, transparent 44%), " +
+                    "radial-gradient(circle at 50% 50%, transparent 40%, rgba(0,0,0,0.35) 74%, rgba(0,0,0,0.75) 92%, rgba(0,0,0,0.95) 100%)",
                 }}
               />
 

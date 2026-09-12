@@ -23,13 +23,21 @@ import { useEffect, useRef, useState } from "react";
  */
 
 /**
- * 원반에서 테두리를 뺀 반지름 비율.
+ * 픽셀을 못 읽을 때 쓰는 반지름 비율(짧은 변의 절반 대비).
  *
- * ⚠️ 이 값이 1 에 가까우면 원반 **바깥의 어두운 테두리가 표면 무늬로 딸려
- *    들어와**, 돌다가 검은 덩어리가 지나간다. 로고의 테두리가 두꺼운 편이라
- *    0.94 정도가 적당하다.
+ * ⚠️ 이 값이 크면 원반 **바깥의 어두운 테두리가 표면 무늬로 딸려 들어와**,
+ *    펼친 텍스처 양 끝이 시커멓게 번지고 행성이 지저분해 보인다. 평소에는
+ *    아래 measureDisc() 가 실제 테두리 두께를 재서 쓰고, 이건 최후의 값이다.
  */
-const RIM_TRIM = 0.94;
+const FALLBACK_TRIM = 0.8;
+
+/**
+ * 이음매를 지울 때 사본을 겹치는 범위(폭 대비).
+ *
+ * ⚠️ 넓게 잡으면 안 된다. 겹쳐진 두 벌이 표면 전체에서 이중노출처럼 섞여
+ *    색이 뿌옇게 뜬다 — 행성이 지저분해 보이던 원인. 이음매 근처만 살짝.
+ */
+const SEAM_BAND = 0.06;
 
 /** 한 바퀴 도는 데 걸리는 시간(초). 자전은 눈에 거슬리지 않게 느려야 한다. */
 const PERIOD_SEC = 24;
@@ -41,6 +49,102 @@ const PERIOD_SEC = 24;
  */
 const TEX_W = 1024;
 const TEX_H = 512;
+
+type Disc = { cx: number; cy: number; r: number };
+
+/**
+ * 원반의 중심과 **테두리를 뺀** 반지름을 실제 픽셀에서 잰다.
+ *
+ * 로고마다 테두리 두께가 달라서 비율을 상수로 박아두면 어떤 로고는 테두리가
+ * 묻어 들어오고 어떤 로고는 쓸 수 있는 면을 버리게 된다. 그래서 중심에서
+ * 72 방향으로 바깥부터 훑어 들어오며, 테두리(거의 검고 어두운 띠)를 벗어나
+ * 처음 만나는 지점을 각각 기록하고 그중 짧은 쪽(10 퍼센타일)을 쓴다.
+ *
+ * 픽셀을 못 읽으면(CORS 로 캔버스가 오염된 경우) null 을 준다.
+ */
+function measureDisc(img: HTMLImageElement): Disc | null {
+  const sw = img.naturalWidth;
+  const sh = img.naturalHeight;
+  const scale = Math.min(1, 256 / Math.max(sw, sh));
+  const w = Math.max(1, Math.round(sw * scale));
+  const h = Math.max(1, Math.round(sh * scale));
+
+  const probe = document.createElement("canvas");
+  probe.width = w;
+  probe.height = h;
+  const pc = probe.getContext("2d", { willReadFrequently: true });
+  if (!pc) return null;
+  pc.drawImage(img, 0, 0, w, h);
+
+  let data: Uint8ClampedArray;
+  try {
+    data = pc.getImageData(0, 0, w, h).data;
+  } catch {
+    return null; // 캔버스가 오염됐다 — 비율 상수로 물러난다.
+  }
+
+  const lumAt = (i: number) =>
+    (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]) / 255;
+
+  // 불투명한 부분의 테두리 상자 → 중심과 바깥 반지름
+  let x0 = w, x1 = -1, y0 = h, y1 = -1;
+  const hist = new Array(256).fill(0);
+  let opaque = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] <= 128) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+      hist[Math.round(lumAt(i) * 255)] += 1;
+      opaque += 1;
+    }
+  }
+  if (opaque === 0 || x1 < x0 || y1 < y0) return null;
+
+  let seen = 0;
+  let median = 0;
+  for (let v = 0; v < 256; v++) {
+    seen += hist[v];
+    if (seen >= opaque / 2) {
+      median = v / 255;
+      break;
+    }
+  }
+
+  const cx = (x0 + x1) / 2;
+  const cy = (y0 + y1) / 2;
+  const outer = Math.min(x1 - x0, y1 - y0) / 2;
+  const floorLum = 0.45 * median;
+
+  const hits: number[] = [];
+  const RAYS = 72;
+  for (let k = 0; k < RAYS; k++) {
+    const a = (2 * Math.PI * k) / RAYS;
+    const dx = Math.cos(a);
+    const dy = Math.sin(a);
+    let found = outer * 0.2;
+    for (let d = outer; d > outer * 0.2; d -= 0.5) {
+      const x = Math.round(cx + dx * d);
+      const y = Math.round(cy + dy * d);
+      if (x < 0 || y < 0 || x >= w || y >= h) continue;
+      const i = (y * w + x) * 4;
+      if (data[i + 3] > 200 && lumAt(i) > floorLum) {
+        found = d;
+        break;
+      }
+    }
+    hits.push(found);
+  }
+  hits.sort((a, b) => a - b);
+
+  // 가장 짧은 방향에 맞춰야 테두리가 안 묻는다. 픽셀아트라 가장자리가 톱니라
+  // 최솟값 대신 10 퍼센타일을 쓰고 살짝 더 깎는다.
+  const usable = hits[Math.floor(hits.length * 0.1)] * 0.97;
+  return { cx: cx / scale, cy: cy / scale, r: usable / scale };
+}
 
 /**
  * 원본 행성 그림을 **가로로 감기는(tileable) 표면 텍스처**로 펼친다.
@@ -68,9 +172,12 @@ function buildTileableTexture(img: HTMLImageElement): HTMLCanvasElement | null {
   const sh = img.naturalHeight;
   if (!sw || !sh) return null;
 
-  const cx = sw / 2;
-  const cy = sh / 2;
-  const R = (Math.min(sw, sh) / 2) * RIM_TRIM;
+  const disc = measureDisc(img) ?? {
+    cx: sw / 2,
+    cy: sh / 2,
+    r: (Math.min(sw, sh) / 2) * FALLBACK_TRIM,
+  };
+  const { cx, cy, r: R } = disc;
 
   const make = (w: number, h: number) => {
     const c = document.createElement("canvas");
@@ -111,7 +218,8 @@ function buildTileableTexture(img: HTMLImageElement): HTMLCanvasElement | null {
   sc.drawImage(tile, 0, 0, TEX_W / 2, TEX_H, TEX_W / 2, 0, TEX_W / 2, TEX_H);
   const ramp = sc.createLinearGradient(0, 0, TEX_W, 0);
   ramp.addColorStop(0, "rgba(0,0,0,1)");
-  ramp.addColorStop(0.5, "rgba(0,0,0,0)");
+  ramp.addColorStop(SEAM_BAND, "rgba(0,0,0,0)");
+  ramp.addColorStop(1 - SEAM_BAND, "rgba(0,0,0,0)");
   ramp.addColorStop(1, "rgba(0,0,0,1)");
   sc.globalCompositeOperation = "destination-in";
   sc.fillStyle = ramp;
@@ -149,8 +257,17 @@ export function SpinningPlanet({
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const img = new Image();
-    // ⚠️ crossOrigin 을 지정하지 않는다. 픽셀을 읽어내지 않으므로 캔버스가
-    //    오염돼도 상관없고, 지정했다가 CORS 헤더가 없으면 로드 자체가 실패한다.
+    // 테두리 두께를 재려면 픽셀을 읽어야 하고, 그러려면 CORS 허용이 필요하다.
+    // 헤더가 없는 곳에서 올린 이미지는 로드 자체가 실패하므로, 그때는 지정
+    // 없이 한 번 더 시도한다 — 그림은 뜨고 테두리만 비율 상수로 물러난다.
+    let retried = false;
+    img.crossOrigin = "anonymous";
+    img.onerror = () => {
+      if (retried) return;
+      retried = true;
+      img.removeAttribute("crossorigin");
+      img.src = src;
+    };
     img.src = src;
 
     let raf = 0;
