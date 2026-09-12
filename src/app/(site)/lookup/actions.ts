@@ -5,7 +5,7 @@ import { lookupApplication, cancelApplication } from "@/lib/lookup";
 import { phoneDigits, isValidPhoneDigits } from "@/lib/phone";
 import { deriveLifecycleStatus, type LifecycleStatus } from "@/lib/lookupStatus";
 import { sendCancellationSlackAlert } from "@/lib/slack";
-import { calculateRefundAmount } from "@/lib/format";
+import { calculateRefundAmount } from "@/lib/refundPolicy";
 import type { ApplicationLookupResult } from "@/types/domain";
 
 export type LookupState = {

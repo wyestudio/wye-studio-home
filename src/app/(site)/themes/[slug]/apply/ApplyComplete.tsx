@@ -6,6 +6,7 @@ import { formatKrw } from "@/lib/format";
 import { useCopyProtectionExemption } from "@/components/layout/CopyProtection";
 import { formatPhoneDigits } from "@/lib/phone";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
+import { RefundPolicyBox } from "@/components/ui/RefundPolicyBox";
 import type { ApplyResult, AttendeeInput } from "./actions";
 
 type Ok = Extract<ApplyResult, { success: true }>;
@@ -222,6 +223,9 @@ export function ApplyComplete({
           ))}
         </div>
       </div>
+
+      {/* ── 취소·환불 규정 ── */}
+      <RefundPolicyBox />
 
       {/* ── 다음 ── */}
       <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-center text-sm">

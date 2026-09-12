@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -44,6 +45,20 @@ async function getDepositorName(supabase: ReturnType<typeof createAdminClient>, 
     .eq("id", applicationId)
     .single();
   return (data?.depositor_name as string) ?? "";
+}
+
+
+/**
+ * 이 회차와 관련된 화면을 다시 그리게 한다.
+ *
+ * ⚠️ 이게 없으면 DB 는 바뀌었는데 화면은 그대로다. 입금 확인을 눌러도 '대기중'
+ *    이 남고 '입금 확인 전 인원' 도 줄지 않아, 버튼이 안 먹은 것처럼 보인다
+ *    (실제로 그렇게 보고됐다). 액션 셀만 로컬 상태로 바뀌어 더 헷갈렸다.
+ */
+function revalidateSession(sessionId: string) {
+  revalidatePath(`/admin/sessions/${sessionId}`);
+  revalidatePath("/admin/applications");
+  revalidatePath("/admin");
 }
 
 export async function confirmPayment(applicationId: string, sessionId: string) {
@@ -108,6 +123,7 @@ export async function confirmPayment(applicationId: string, sessionId: string) {
 
   console.log(`[admin] 입금 확인됨: ${applicationId} (${application.confirmation_code})`);
 
+  revalidateSession(sessionId);
   return { success: true };
 }
 
@@ -170,6 +186,7 @@ export async function cancelApplicationAdmin(applicationId: string, sessionId: s
 
   console.log(`[admin] 신청 취소됨(미입금): ${applicationId} (${application.confirmation_code})`);
 
+  revalidateSession(sessionId);
   return { success: true };
 }
 
@@ -208,6 +225,7 @@ export async function silentCancelApplicationAdmin(applicationId: string, sessio
 
   console.log(`[admin] 신청 무통보 취소됨: ${applicationId} (${application.confirmation_code}), 안내 문자 발송 안 함`);
 
+  revalidateSession(sessionId);
   return { success: true };
 }
 
@@ -279,6 +297,7 @@ export async function promoteWaitlistApplicant(applicationId: string, sessionId:
 
   console.log(`[admin] 대기자 확정 전환됨: ${applicationId} (${application.confirmation_code})`);
 
+  revalidateSession(sessionId);
   return { success: true };
 }
 
@@ -316,6 +335,7 @@ export async function markRefundCompleted(applicationId: string, sessionId: stri
 
   console.log(`[admin] 환불 완료 처리됨: ${applicationId} (${application.confirmation_code})`);
 
+  revalidateSession(sessionId);
   return { success: true };
 }
 
@@ -456,6 +476,7 @@ export async function deactivateSession(sessionId: string) {
 
   console.log(`[admin] 회차 비활성화됨: ${sessionId} (신청 ${successCount}건 취소+안내)`);
 
+  revalidateSession(sessionId);
   return { success: true, count: successCount, total: applications?.length ?? 0, errors: errors.length > 0 ? errors : undefined };
 }
 
@@ -614,6 +635,7 @@ export async function adminManualApply(
 
   console.log(`[admin] 수동 등록됨: ${application.id} (${application.confirmation_code}), 안내 문자 발송 안 함`);
 
+  revalidateSession(sessionId);
   return { success: true, confirmationCode: application.confirmation_code, status: application.status };
 }
 
@@ -721,5 +743,6 @@ export async function adminUpdateApplication(
 
   console.log(`[admin] 신청 정보 수정됨: ${applicationId}, 안내 문자 발송 안 함`);
 
+  revalidateSession(sessionId);
   return { success: true };
 }

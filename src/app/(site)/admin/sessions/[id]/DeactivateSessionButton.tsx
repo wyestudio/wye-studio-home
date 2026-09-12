@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { deactivateSession, getDeactivatePreview } from "./actions";
 
 export function DeactivateSessionButton({ sessionId }: { sessionId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
@@ -41,6 +43,7 @@ export function DeactivateSessionButton({ sessionId }: { sessionId: string }) {
       } else {
         setResult({ count: response.count ?? 0, total: response.total ?? 0 });
         setOpen(false);
+        router.refresh();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");

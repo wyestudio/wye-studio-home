@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   confirmPayment,
@@ -87,6 +88,7 @@ export function ApplicationActionMenu({
   notes: string | null;
   attendees: EditableAttendee[];
 }) {
+  const router = useRouter();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
@@ -119,6 +121,9 @@ export function ApplicationActionMenu({
       } else {
         setDone(selected);
         setSelected(null);
+        // 서버 액션이 캐시를 지웠어도 이 화면을 다시 받아와야 목록의 '입금 상태'
+        // 와 상단 집계가 같이 바뀐다.
+        router.refresh();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");

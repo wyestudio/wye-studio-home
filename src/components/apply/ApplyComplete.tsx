@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { formatRefundTierDeadlines, formatSessionDateTime } from "@/lib/format";
+import { formatSessionDateTime } from "@/lib/format";
+import { RefundPolicyBox } from "@/components/ui/RefundPolicyBox";
 import { formatPhoneDigits } from "@/lib/phone";
 import { ThemeTag } from "@/components/ui/ThemeTag";
 import { isDatingTheme } from "@/lib/theme";
@@ -137,20 +138,8 @@ export function ApplyComplete({
           </p>
         ) : null}
 
-        {/* 환불 기한 */}
-        {(() => {
-          const refundDeadlines = formatRefundTierDeadlines(startAt);
-          return (
-            <div className="rounded-lg bg-danger-soft p-4 text-sm text-danger">
-              <p className="font-bold">환불 기한</p>
-              <div className="mt-1 flex flex-col gap-0.5">
-                <p>{refundDeadlines.full}까지 취소 시 <span className="font-semibold">100% 환불</span></p>
-                <p>{refundDeadlines.full} ~ {refundDeadlines.half} 취소 시 <span className="font-semibold">50% 환불</span></p>
-                <p>{refundDeadlines.half} 이후 취소 시 <span className="font-semibold">환불 불가</span></p>
-              </div>
-            </div>
-          );
-        })()}
+        {/* 취소·환불 규정 */}
+        <RefundPolicyBox />
       </div>
 
       {/* 버튼 행 */}

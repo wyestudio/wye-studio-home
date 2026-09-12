@@ -6,13 +6,10 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { CompanionPager } from "./CompanionPager";
+import { RefundPolicyBox } from "@/components/ui/RefundPolicyBox";
 import { RefundInfoDialog } from "./RefundInfoDialog";
-import {
-  formatDateTimeFull,
-  formatRefundTierDeadlines,
-  formatKrw,
-  calculateRefundAmount,
-} from "@/lib/format";
+import { formatDateTimeFull, formatKrw } from "@/lib/format";
+import { calculateRefundAmount, REFUND_TIERS } from "@/lib/refundPolicy";
 import { formatPhoneDigits } from "@/lib/phone";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { LIFECYCLE_LABEL, LIFECYCLE_TONE } from "@/lib/lookupStatus";
@@ -175,7 +172,6 @@ export function LookupResult() {
   const isGroup = result.attendees.length > 1;
   // 취소·참여완료 건은 더 이상 취소할 게 없다.
   const canCancel = result.status !== "cancelled" && result.lifecycleStatus !== "attended";
-  const refundDeadlines = formatRefundTierDeadlines(result.start_at);
 
   return (
     <div className="space-y-6">
@@ -323,25 +319,8 @@ export function LookupResult() {
         )}
       </div>
 
-      {/* ── 환불 기한 ── */}
-      {canCancel && (
-        <div className="rounded-xl border border-white/15 bg-white/5 p-5 text-sm">
-          <p className="font-semibold">환불 기한</p>
-          <div className="mt-2 space-y-1 text-muted">
-            <p>
-              {refundDeadlines.full}까지 취소 시 <strong className="text-foreground">100% 환불</strong>
-            </p>
-            <p>
-              {refundDeadlines.full} ~ {refundDeadlines.half} 취소 시{" "}
-              <strong className="text-foreground">50% 환불</strong>
-            </p>
-            <p>
-              {refundDeadlines.half} 이후 취소 시{" "}
-              <strong className="text-danger">환불 불가</strong>
-            </p>
-          </div>
-        </div>
-      )}
+      {/* ── 취소·환불 규정 ── */}
+      {canCancel && <RefundPolicyBox />}
 
       {/* ── 버튼 ── */}
       <div className="flex flex-wrap gap-2">

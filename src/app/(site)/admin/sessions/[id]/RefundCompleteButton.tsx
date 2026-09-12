@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { markRefundCompleted } from "./actions";
 
 export function RefundCompleteButton({ applicationId, sessionId }: { applicationId: string; sessionId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +22,7 @@ export function RefundCompleteButton({ applicationId, sessionId }: { application
       } else {
         setDone(true);
         setOpen(false);
+        router.refresh(); // 목록의 '환불 여부' 와 대시보드 집계를 같이 갱신한다
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.");
