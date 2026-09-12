@@ -197,7 +197,7 @@ function LockIcon({ shaking, px = 34 }: { shaking: boolean; px?: number }) {
         shapeRendering="crispEdges"
         style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.8))" }}
       >
-        <rect x="5" y="9" width="14" height="14" fill="#fff" />
+        <rect x="4" y="9" width="16" height="14" fill="#fff" />
         <path d="M9 9V4.5h6V9" stroke="#fff" strokeWidth="2.2" strokeLinecap="butt" fill="none" />
         <rect x="11" y="13" width="2" height="5" fill="#0a0a12" />
       </svg>
