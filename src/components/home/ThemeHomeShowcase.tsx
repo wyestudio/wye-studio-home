@@ -36,7 +36,7 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
   const scrollRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const planetRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [paths, setPaths] = useState<string[]>([]);
+  const [lines, setLines] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
 
   /**
    * 이음선은 **행성 중심끼리** 잇는다.
@@ -55,16 +55,7 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
         const b = el.getBoundingClientRect();
         return { x: b.left - hostBox.left + b.width / 2, y: b.top - hostBox.top + b.height / 2 };
       });
-    // 행성에서 가파르게 떠났다가 다음 행성 앞에서 눕는 곡선. 직선으로 그으면
-    // 옆 패널의 한복판을 가로질러 지나간다.
-    setPaths(
-      pts.slice(1).map((p, i) => {
-        const a = pts[i];
-        const dx = p.x - a.x;
-        const dy = p.y - a.y;
-        return `M ${a.x} ${a.y} C ${a.x + dx * 0.22} ${a.y + dy * 0.85}, ${a.x + dx * 0.7} ${p.y}, ${p.x} ${p.y}`;
-      })
-    );
+    setLines(pts.slice(1).map((p, i) => ({ x1: pts[i].x, y1: pts[i].y, x2: p.x, y2: p.y })));
   }, []);
 
   useEffect(() => {
@@ -141,15 +132,17 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
     >
       <div
         ref={contentRef}
-        className="relative flex w-full flex-col gap-10 sm:h-[25rem] sm:w-max sm:min-w-full sm:flex-row sm:items-start sm:gap-12 lg:h-[26rem]"
+        className="relative flex w-full flex-col gap-10 sm:h-[33rem] sm:w-max sm:min-w-full sm:flex-row sm:items-start sm:gap-0 lg:h-[35rem]"
       >
         {/* 행성끼리 잇는 점선 */}
         <svg className="pointer-events-none absolute inset-0 hidden h-full w-full sm:block" aria-hidden>
-          {paths.map((d, i) => (
-            <path
+          {lines.map((l, i) => (
+            <line
               key={i}
-              d={d}
-              fill="none"
+              x1={l.x1}
+              y1={l.y1}
+              x2={l.x2}
+              y2={l.y2}
               stroke="rgba(255,255,255,0.4)"
               strokeWidth="3"
               strokeDasharray="7 12"
@@ -162,7 +155,9 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
           // 지그재그 — 홀수 칸만 아래로 내린다. 좁은 화면에서는 세로로 쌓인다.
           <div
             key={slot.kind === "theme" ? slot.theme.id : "soon"}
-            className={`relative flex shrink-0 items-center sm:h-52 lg:h-56 ${i % 2 === 1 ? "sm:mt-48" : ""}`}
+            className={`relative flex shrink-0 items-center sm:h-56 lg:h-64 ${
+              i > 0 ? "sm:-ml-32" : ""
+            } ${i % 2 === 1 ? "sm:mt-[300px]" : ""}`}
           >
             {slot.kind === "theme" ? (
               <ThemeSlot
@@ -202,9 +197,9 @@ function LockIcon({ shaking, px = 34 }: { shaking: boolean; px?: number }) {
         shapeRendering="crispEdges"
         style={{ filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.8))" }}
       >
-        <rect x="4" y="10" width="16" height="10" fill="#fff" />
-        <path d="M8 10V6h8v4" stroke="#fff" strokeWidth="2.4" strokeLinecap="butt" fill="none" />
-        <rect x="11" y="13" width="2" height="4" fill="#0a0a12" />
+        <rect x="5" y="9" width="14" height="14" fill="#fff" />
+        <path d="M9 9V4.5h6V9" stroke="#fff" strokeWidth="2.2" strokeLinecap="butt" fill="none" />
+        <rect x="11" y="13" width="2" height="5" fill="#0a0a12" />
       </svg>
     </span>
   );
@@ -303,8 +298,8 @@ function ThemeSlot({
           포스터는 '미션 파일' 처럼 패널 왼쪽에 끼워둔다.
           비율은 4:5 그대로 — 원본이 그 비율이라 더 세로로 늘리면 잘린다.
         */}
-        <div className="relative hidden aspect-[4/5] w-28 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-32">
-          <PosterImage src={theme.hero_image_path} alt={`${theme.name} 포스터`} sizes="128px" />
+        <div className="relative hidden aspect-[4/5] w-36 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-44">
+          <PosterImage src={theme.hero_image_path} alt={`${theme.name} 포스터`} sizes="176px" />
         </div>
 
         <div className="min-w-0 flex-1 sm:flex sm:w-44 sm:flex-none sm:flex-col sm:justify-center">
