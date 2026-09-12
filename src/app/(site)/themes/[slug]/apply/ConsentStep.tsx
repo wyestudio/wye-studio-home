@@ -228,7 +228,7 @@ export function ConsentStep({
     );
   }
 
-  function group(title: string, note: string, tone: "required" | "optional", list: Item[]) {
+  function group(title: string, tone: "required" | "optional", list: Item[]) {
     if (list.length === 0) return null;
     return (
       <section className="rounded-lg border border-white/15 p-4">
@@ -243,7 +243,6 @@ export function ConsentStep({
           >
             {tone === "required" ? "필수" : "선택"}
           </span>
-          <span className="text-xs text-muted">{note}</span>
         </div>
         <div className="space-y-3">{list.map(row)}</div>
       </section>
@@ -263,8 +262,8 @@ export function ConsentStep({
         <span className="text-xs text-muted">필수·선택 항목에 모두 동의합니다.</span>
       </label>
 
-      {group("필수 동의", "모두 동의해야 신청할 수 있어요.", "required", items.filter((it) => it.required))}
-      {group("선택 동의", "동의하지 않아도 신청할 수 있어요.", "optional", items.filter((it) => !it.required))}
+      {group("필수 동의", "required", items.filter((it) => it.required))}
+      {group("선택 동의", "optional", items.filter((it) => !it.required))}
 
       {showError && !allRequiredChecked(consents, attendeeCount) && (
         <p className="text-sm text-danger">필수 항목에 모두 동의해주세요.</p>
