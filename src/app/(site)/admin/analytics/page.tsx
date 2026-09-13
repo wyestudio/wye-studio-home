@@ -15,6 +15,7 @@ import {
 import { AdminNav } from "@/components/admin/AdminNav";
 import type { TrafficSource, LandingPage, DailyTraffic, PathFunnel } from "@/lib/ga4";
 import type { ApplicationStats } from "@/lib/adminStats";
+import { sourceLabel, isUnknownSource, pathLabel } from "@/lib/analyticsLabels";
 
 interface GuideItem {
   id: string;
@@ -196,6 +197,13 @@ function FunnelRow({
   );
 }
 
+/** 박스 맨 위 한 줄 요약. 숫자를 읽기 전에 "그래서 뭔데" 를 먼저 알려준다. */
+function Summary({ text }: { text: string }) {
+  return (
+    <p className="mb-3 rounded border border-glow/25 bg-glow/5 px-3 py-2 text-sm">{text}</p>
+  );
+}
+
 export default function AnalyticsDashboard() {
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -225,6 +233,31 @@ export default function AnalyticsDashboard() {
 
   const sessions = data?.funnel.sessions ?? 0;
   const totals = data?.applications.totals;
+
+  // 1위가 '출처 불명' 이면 요약으로 쓸모가 없다 — 뜻이 있는 값 중 1위를 뽑는다.
+  const topSource = (data?.trafficSources ?? []).find((s) => !isUnknownSource(s.source));
+  const sourceTotal = (data?.trafficSources ?? []).reduce((a, s) => a + s.sessions, 0);
+  const unknown = (data?.trafficSources ?? [])
+    .filter((s) => isUnknownSource(s.source))
+    .reduce((a, s) => a + s.sessions, 0);
+  const sourceSummary = topSource
+    ? `가장 많이 들어온 곳은 ${sourceLabel(topSource.source)}입니다 — ${topSource.sessions}회` +
+      `${sourceTotal > 0 ? ` (전체의 ${((topSource.sessions / sourceTotal) * 100).toFixed(0)}%)` : ""}.` +
+      `${unknown > 0 ? ` 출처를 알 수 없는 방문이 ${unknown}회 있습니다.` : ""}`
+    : "출처를 알 수 있는 방문이 아직 없습니다.";
+
+  const topLanding = (data?.landingPages ?? [])[0];
+  const landingTotal = (data?.landingPages ?? []).reduce((a, p) => a + p.sessions, 0);
+  const homeFirst = (data?.landingPages ?? []).find((p) => p.page === "/" || p.page === "직접");
+  const landingSummary = topLanding
+    ? `처음 도착한 화면 1위는 ${pathLabel(topLanding.page)}입니다 — ${topLanding.sessions}회` +
+      `${landingTotal > 0 ? ` (전체의 ${((topLanding.sessions / landingTotal) * 100).toFixed(0)}%)` : ""}.` +
+      `${
+        homeFirst && homeFirst !== topLanding
+          ? ` 홈으로 바로 온 방문은 ${homeFirst.sessions}회입니다.`
+          : ""
+      }`
+    : "아직 데이터가 없습니다.";
 
   // 방문과 신청을 한 차트에 겹쳐 본다. 둘의 크기 차이가 커서 축을 나눈다.
   const chart = (data?.dailyTraffic ?? []).map((t) => {
@@ -383,28 +416,38 @@ export default function AnalyticsDashboard() {
               <div className="rounded-lg border border-border bg-background/50 p-5">
                 <h2 className="mb-1 text-lg font-semibold">어디서 들어오나</h2>
                 <p className="mb-3 text-sm text-muted">
-                  세션이 시작된 소스/매체입니다. 어느 홍보가 사람을 데려오는지 비교할 때 씁니다.
+                  어느 홍보가 사람을 데려오는지 비교할 때 씁니다.
                 </p>
                 {data.trafficSources.length > 0 ? (
-                  <ul className="space-y-2">
-                    {data.trafficSources.slice(0, 8).map((s, i) => {
-                      const top = data.trafficSources[0].sessions || 1;
-                      return (
-                        <li key={i}>
-                          <div className="mb-1 flex justify-between text-sm">
-                            <span className="truncate pr-2">{s.source}</span>
-                            <span className="shrink-0 font-medium">{s.sessions.toLocaleString()}</span>
-                          </div>
-                          <div className="h-1.5 w-full rounded bg-muted/30">
-                            <div
-                              className="h-full rounded bg-glow/70"
-                              style={{ width: `${(s.sessions / top) * 100}%` }}
-                            />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <>
+                    <Summary text={sourceSummary} />
+                    <ul className="space-y-2">
+                      {data.trafficSources.slice(0, 8).map((s, i) => {
+                        const top = data.trafficSources[0].sessions || 1;
+                        return (
+                          <li key={i}>
+                            <div className="mb-1 flex items-baseline justify-between text-sm">
+                              <span className="truncate pr-2">
+                                {sourceLabel(s.source)}
+                                <span className="ml-1.5 font-mono text-[11px] text-muted">
+                                  {s.source}
+                                </span>
+                              </span>
+                              <span className="shrink-0 font-medium">
+                                {s.sessions.toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full rounded bg-muted/30">
+                              <div
+                                className="h-full rounded bg-glow/70"
+                                style={{ width: `${(s.sessions / top) * 100}%` }}
+                              />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
                 ) : (
                   <p className="text-muted">데이터 없음</p>
                 )}
@@ -417,25 +460,35 @@ export default function AnalyticsDashboard() {
                   확인합니다.
                 </p>
                 {data.landingPages.length > 0 ? (
-                  <ul className="space-y-2">
-                    {data.landingPages.slice(0, 8).map((p, i) => {
-                      const top = data.landingPages[0].sessions || 1;
-                      return (
-                        <li key={i}>
-                          <div className="mb-1 flex justify-between text-sm">
-                            <span className="truncate pr-2 font-mono text-xs">{p.page}</span>
-                            <span className="shrink-0 font-medium">{p.sessions.toLocaleString()}</span>
-                          </div>
-                          <div className="h-1.5 w-full rounded bg-muted/30">
-                            <div
-                              className="h-full rounded bg-glow/70"
-                              style={{ width: `${(p.sessions / top) * 100}%` }}
-                            />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <>
+                    <Summary text={landingSummary} />
+                    <ul className="space-y-2">
+                      {data.landingPages.slice(0, 8).map((p, i) => {
+                        const top = data.landingPages[0].sessions || 1;
+                        return (
+                          <li key={i}>
+                            <div className="mb-1 flex items-baseline justify-between text-sm">
+                              <span className="truncate pr-2">
+                                {pathLabel(p.page)}
+                                <span className="ml-1.5 font-mono text-[11px] text-muted">
+                                  {p.page}
+                                </span>
+                              </span>
+                              <span className="shrink-0 font-medium">
+                                {p.sessions.toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full rounded bg-muted/30">
+                              <div
+                                className="h-full rounded bg-glow/70"
+                                style={{ width: `${(p.sessions / top) * 100}%` }}
+                              />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
                 ) : (
                   <p className="text-muted">데이터 없음</p>
                 )}
