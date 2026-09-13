@@ -1,6 +1,22 @@
 # GTM / GA4 애널리틱스 설정
 
-마지막 업데이트: 2026-08-12. 추적 이벤트를 추가/수정할 때는 이 문서만 보고 어디를 고쳐야 하는지 파악할 수 있도록 관리한다.
+마지막 업데이트: **2026-09-13**. 추적 이벤트를 추가/수정할 때는 이 문서만 보고 어디를 고쳐야 하는지 파악할 수 있도록 관리한다.
+
+> ⚠️ **2026-09-13에 고친 큰 구멍 두 개** — 같은 실수를 반복하지 않으려면 먼저 읽을 것.
+>
+> **(1) 테마 구조로 넘어오며 신청 퍼널 추적이 끊겨 있었다.**
+> `apply_start`/`apply_complete` 를 쏘는 코드가 **옛 신청폼**(`src/components/apply/ApplyForm.tsx`)에만
+> 있었고, 신규 폼(`src/app/(site)/themes/[slug]/apply/ApplyForm.tsx`)에는 없었다.
+> GA4 기준 최근 7일 `/themes/baotalchul/apply` 조회 64회에 `apply_start` 는 **1건**이었다.
+> Slack 알림이 레거시 폼에만 붙어 있어 누락됐던 것과 **같은 종류의 구멍**이다 —
+> 화면을 새로 만들 때는 그 화면이 쏘던 이벤트·알림을 반드시 같이 옮겨야 한다.
+>
+> **(2) 어드민 사용이 방문자로 집계되고 있었다.**
+> GTM 스니펫이 호스트를 가리지 않고 실려서, 운영자가 어드민을 쓰는 것도 전부 세션으로
+> 잡혔다(최근 7일 `/applications` 65회, `/themes` 45회, `/sessions` 22회 — 전부 어드민 화면).
+> 방문 수가 부풀면 "방문 대비 신청 전환율" 이 통째로 틀어진다.
+> 이제 `src/app/(site)/layout.tsx` 가 `isProductionHost()` 로 판정해 **운영 도메인에서만** GTM 을 싣는다
+> (admin·test·localhost 는 제외). 판정 기준은 `src/lib/hosts.ts` 화이트리스트다.
 
 ## 식별자
 
@@ -14,12 +30,23 @@
 | dataLayer 이벤트(한글) | GA4 이벤트 이름 | 찍히는 조건 | 같이 보내는 값 |
 |---|---|---|---|
 | (없음, 자동) | `page_view` | 사이트 아무 페이지나 열람할 때(전 페이지 공통, GTM 태그 "Google 태그" · 트리거 `Initialization - All Pages`) | 없음(GA4 기본 페이지뷰) |
-| `신청 시작` | `apply_start` | `src/components/apply/ApplyForm.tsx`가 **마운트될 때** — 즉 `/sessions/[id]/apply` 페이지가 **로드되는 시점**. "신청하기" 버튼을 누르는 동작 자체가 아니라 그 결과로 도달한 페이지가 열릴 때 찍힘. 새로고침/재진입할 때마다 매번 다시 발생 | `session_id`, `theme_label` |
-| `신청 완료` | `apply_complete` | `submit_application()` 서버 호출이 **성공**해서 `state.application`이 채워질 때만 발생. 전화번호 중복·출생년도 범위 밖·정원 마감 등으로 서버가 거부하면 "신청 제출" 버튼을 눌러도 **찍히지 않음** | `session_id`, `theme_label`, `confirmation_code`, `birth_year`, `gender`(아래 참고) |
+| `신청 시작` | `apply_start` | 신청 폼이 **마운트될 때** — 즉 신청 페이지가 **로드되는 시점**. "신청하기" 버튼을 누르는 동작 자체가 아니라 그 결과로 도달한 페이지가 열릴 때 찍힘. 새로고침/재진입할 때마다 매번 다시 발생 | `session_id`, `theme_label` |
+| `신청 완료` | `apply_complete` | 신청 서버 호출이 **성공**했을 때만 발생. 전화번호 중복·출생연도 범위 밖·정원 마감 등으로 서버가 거부하면 "신청 제출" 버튼을 눌러도 **찍히지 않음** | `session_id`, `theme_label`, `confirmation_code`, `birth_year`, `gender`(아래 참고) |
+
+**두 이벤트를 쏘는 곳은 두 군데다** — 신규 폼이 실사용이고, 옛 폼은 옛 회차용으로 남아 있다.
+
+| 폼 | 파일 | 쓰이는 주소 |
+|---|---|---|
+| **신규 (실사용)** | `src/app/(site)/themes/[slug]/apply/ApplyForm.tsx` | `/themes/[slug]/apply` |
+| 옛 (휴면) | `src/components/apply/ApplyForm.tsx` | `/sessions/[slug]/apply` — 지금은 테마 페이지로 308 리다이렉트 |
+
+⚠️ 신규 폼은 **dataLayer 이벤트명·키를 옛 폼과 똑같이** 쓴다(`신청 시작`/`신청 완료`, `sessionId`/`themeLabel`/…).
+GTM 트리거(`CE - 신청 시작`)와 변수(`DLV - sessionId` 등)가 그 이름에 묶여 있어서, 이름을 바꾸면
+**GTM 도 같이 고쳐야** 한다. 신규 폼에서 `themeLabel` 에 넣는 값은 테마명(예: `바-ㅇ탈출`)이다.
 
 `apply_complete`의 `birth_year`/`gender`는 **대표 신청자(그룹의 0번 인덱스, `attendees[0]`)** 값만 보낸다. 비소개팅 그룹 신청은 동행자마다 출생년도가 다를 수 있어 대표자 값을 근사치로 쓰기로 결정함(2026-08-12, 사용자 확인 후 진행). 소개팅은 항상 1인 신청이라 정확히 일치. 비소개팅은 `gender` 자체를 안 받는 상품이라 이 경우 `gender`는 `null`.
 
-코드상 호출부: `pushDataLayerEvent("신청 시작", { sessionId, themeLabel })` / `pushDataLayerEvent("신청 완료", { sessionId, themeLabel, confirmationCode, birthYear, gender })` — 둘 다 `src/components/apply/ApplyForm.tsx`.
+코드상 호출부: `pushDataLayerEvent("신청 시작", { sessionId, themeLabel })` / `pushDataLayerEvent("신청 완료", { sessionId, themeLabel, confirmationCode, birthYear, gender })` — 신규 폼과 옛 폼 양쪽에 있다(위 표 참고).
 
 ## GTM 구성 요소
 
@@ -69,3 +96,39 @@
 - 예전에 실수로 GTM 계정을 두 번 만든 잔재(컨테이너 `GTM-PDDVSVS4`, 빈 컨테이너였음)를 발견해 삭제함(2026-08-12, 휴지통에서 30일간 복구 가능 — 애초에 사이트에 연결된 적 없어 영향 없음).
 - **Vercel Redeploy는 이미 git에 커밋된 코드만 다시 빌드한다** — 로컬에서 코드만 고치고 커밋/푸시를 안 하면 Redeploy를 눌러도 반영 안 됨(GTM 스크립트를 처음 넣었을 때 실제로 겪은 실수).
 - GA4 관리자(Admin) 화면은 해시 기반 라우팅이라 URL을 직접 쳐서 들어가면 (예: `.../admin/custom-definitions`) 홈으로 튕기는 경우가 있음 — 좌측 하단 톱니바퀴(관리) 아이콘을 눌러서 들어가는 게 안전함.
+
+
+## 어드민 분석 화면 (`/admin/analytics`)
+
+2026-09-13에 전면 개편했다. 예약형 사업 대시보드가 공통으로 쓰는 구성을 따랐다 —
+핵심 숫자는 **"방문 대비 신청 전환율"** 하나이고(업계 평균 2~5%), GA4 방문 데이터만으로는
+장사가 되는지 알 수 없으니 **우리 DB 의 신청·입금·매출을 같이 놓는다.**
+
+| 영역 | 데이터 출처 |
+|---|---|
+| 방문(세션)·유입 채널·랜딩 페이지·퍼널 앞 3단계 | GA4 (`src/lib/ga4.ts`) |
+| 신청·입금·매출·취소 | 우리 DB (`src/lib/adminStats.ts`) |
+
+기간은 **오늘 / 최근 7일 / 최근 28일**. 날짜는 전부 KST 기준으로 자른다(GA4 속성 시간대도 서울).
+
+### 설계상 중요한 두 가지
+
+**퍼널 앞 단계를 이벤트가 아니라 페이지 경로로 센다.**
+이벤트는 GTM 설정·태그 게시에 의존해서 조용히 끊기기 쉽다(실제로 그랬다 — 위 경고 참고).
+경로는 페이지가 열리기만 하면 잡히므로 더 튼튼하다. `getPathFunnel()` 참고.
+
+**경로별 세션 수를 더하면 안 된다.**
+한 세션이 테마 두 개를 보면 두 번 세어져서 "테마 상세 조회 = 방문의 100%" 같은 숫자가 나온다
+(처음 만들었을 때 실제로 그랬다). GA4 에 `dimensionFilter` 를 걸어 **"그 경로를 본 세션 수"**
+를 직접 물어야 중복이 제거된다.
+
+**입금·취소는 신청일이 아니라 그 일이 실제로 일어난 날에 센다.**
+9/10 신청이 9/12 입금이면 신청은 10일, 입금은 12일에 잡힌다. 그래야 "그날 무슨 일이
+있었나" 를 읽을 수 있다. 단 `cancelled_at` 은 2026-09-13(p22)부터 쌓여서 그 이전 취소는
+취소 추이에서 빠진다.
+
+### 2026-09-13에 지운 것
+
+`getApplyFunnel()`(이벤트 기반 퍼널)과 `getTopPages()` 를 `src/lib/ga4.ts` 에서 제거했다.
+전자는 이벤트가 끊겨 0만 반환하고 있었고, 후자는 '유입 페이지' 와 겹쳐 화면에서 뺐다.
+되살릴 일이 생기면 git 히스토리에 원본이 있다.
