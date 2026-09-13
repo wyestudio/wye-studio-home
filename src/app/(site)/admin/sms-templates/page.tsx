@@ -1,16 +1,20 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SmsTemplateEditor } from "./SmsTemplateEditor";
+import { loadPreviewThemes } from "@/lib/templatePreview";
+import { TemplateList } from "./TemplateList";
 
 export const dynamic = "force-dynamic";
 
 export default async function SmsTemplatesPage() {
   const supabase = createAdminClient();
 
-  const { data: templates, error } = await supabase
-    .from("sms_templates")
-    .select("key, label, body, placeholders, updated_at")
-    .order("label", { ascending: true });
+  const [{ data: templates, error }, themes] = await Promise.all([
+    supabase
+      .from("sms_templates")
+      .select("key, label, body, placeholders, updated_at")
+      .order("label", { ascending: true }),
+    loadPreviewThemes(),
+  ]);
 
   if (error) {
     return (
@@ -34,22 +38,20 @@ export default async function SmsTemplatesPage() {
           </p>
         </div>
 
-        <div className="space-y-4">
-          {templates && templates.length > 0 ? (
-            templates.map((t) => (
-              <SmsTemplateEditor
-                key={t.key}
-                templateKey={t.key}
-                label={t.label}
-                initialBody={t.body}
-                placeholders={t.placeholders ?? []}
-                updatedAt={new Date(t.updated_at).toLocaleString("ko-KR")}
-              />
-            ))
-          ) : (
-            <div className="text-center py-8 text-muted">등록된 템플릿이 없습니다.</div>
-          )}
-        </div>
+        {templates && templates.length > 0 ? (
+          <TemplateList
+            themes={themes}
+            templates={templates.map((t) => ({
+              key: t.key as string,
+              label: t.label as string,
+              body: t.body as string,
+              placeholders: (t.placeholders as string[]) ?? [],
+              updatedAt: new Date(t.updated_at as string).toLocaleString("ko-KR"),
+            }))}
+          />
+        ) : (
+          <div className="text-center py-8 text-muted">등록된 템플릿이 없습니다.</div>
+        )}
       </div>
     </div>
   );

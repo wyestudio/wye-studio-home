@@ -32,7 +32,14 @@ export const PLACEHOLDER_INFO: Record<string, { label: string; example: string }
   link: { label: "쿠폰이 자동으로 담기는 링크", example: "www.wouldyouescape.com/c/M0EHEVG1" },
 };
 
-export function PlaceholderHints({ placeholders }: { placeholders: string[] }) {
+export function PlaceholderHints({
+  placeholders,
+  examples = {},
+}: {
+  placeholders: string[];
+  /** 고른 테마의 실제 값. 있으면 hover 설명의 '예:' 도 이 값으로 보여준다 */
+  examples?: Record<string, string>;
+}) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
@@ -67,7 +74,7 @@ export function PlaceholderHints({ placeholders }: { placeholders: string[] }) {
                   className="glass-panel pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[220px] -translate-x-1/2 rounded-lg px-3 py-2 text-xs"
                 >
                   <p className="font-semibold text-foreground">{info.label}</p>
-                  <p className="mt-0.5 text-muted">예: {info.example}</p>
+                  <p className="mt-0.5 text-muted">예: {examples[key] || info.example}</p>
                 </motion.div>
               )}
             </AnimatePresence>

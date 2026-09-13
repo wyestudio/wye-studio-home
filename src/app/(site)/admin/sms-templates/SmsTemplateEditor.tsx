@@ -4,8 +4,17 @@ import { useMemo, useState } from "react";
 import { updateSmsTemplate } from "./actions";
 import { PlaceholderHints, PLACEHOLDER_INFO } from "./PlaceholderHints";
 
-function renderPreview(body: string): string {
-  return body.replace(/\{\{(\w+)\}\}/g, (match, key) => PLACEHOLDER_INFO[key]?.example ?? match);
+/**
+ * 미리보기 치환.
+ *
+ * 고른 테마의 실제 값(examples)을 먼저 쓰고, 거기 없는 변수만 PLACEHOLDER_INFO
+ * 의 고정 예시로 떨어진다. 둘 다 없으면 {{변수}} 를 그대로 남겨 — 오타 난
+ * 변수가 조용히 사라지지 않도록 한다.
+ */
+function renderPreview(body: string, examples: Record<string, string>): string {
+  return body.replace(/\{\{(\w+)\}\}/g, (match, key) =>
+    key in examples ? examples[key] : (PLACEHOLDER_INFO[key]?.example ?? match)
+  );
 }
 
 export function SmsTemplateEditor({
@@ -14,12 +23,15 @@ export function SmsTemplateEditor({
   initialBody,
   placeholders,
   updatedAt,
+  examples,
 }: {
   templateKey: string;
   label: string;
   initialBody: string;
   placeholders: string[];
   updatedAt: string;
+  /** 고른 테마의 실제 값. 미리보기 치환에 쓴다 */
+  examples: Record<string, string>;
 }) {
   const [body, setBody] = useState(initialBody);
   const [savedBody, setSavedBody] = useState(initialBody);
@@ -28,7 +40,7 @@ export function SmsTemplateEditor({
   const [saved, setSaved] = useState(false);
 
   const isDirty = body !== savedBody;
-  const preview = useMemo(() => renderPreview(body), [body]);
+  const preview = useMemo(() => renderPreview(body, examples), [body, examples]);
 
   async function handleSave() {
     setIsLoading(true);
@@ -58,7 +70,7 @@ export function SmsTemplateEditor({
 
       <div className="mb-3">
         <p className="text-xs text-muted mb-1.5">사용 가능한 변수 (hover로 설명 확인, 클릭하면 복사돼요)</p>
-        <PlaceholderHints placeholders={placeholders} />
+        <PlaceholderHints placeholders={placeholders} examples={examples} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -88,7 +100,7 @@ export function SmsTemplateEditor({
         </div>
 
         <div>
-          <p className="text-xs text-muted mb-1.5">실제 발송 예시 (샘플 값 기준 미리보기)</p>
+          <p className="text-xs text-muted mb-1.5">실제 발송 예시 (위에서 고른 테마의 실제 값 기준)</p>
           <div className="h-[calc(100%-1.375rem)] min-h-[280px] whitespace-pre-wrap rounded border border-border bg-background p-3 text-sm text-foreground">
             {preview}
           </div>
