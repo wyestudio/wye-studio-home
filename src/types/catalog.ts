@@ -49,6 +49,12 @@ export type ThemeBlock =
   | ({
       type: "list";
       variant?: "card" | "step" | "included";
+      /** included 전용 — 제목 아래 한 줄 */
+      subtitle?: string;
+      /** included 전용 — 카드 아래 강조 띠 */
+      highlight?: string;
+      /** included 전용 — 맨 아래 작은 단서 */
+      footnote?: string;
       items: { emoji: string; title: string; desc: string }[];
     } & BlockCommon)
   /**

@@ -8,7 +8,7 @@ import {
   remainingSeats,
   isBookable,
 } from "@/lib/themes";
-import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
+import { ThemeBlocks, ThemeBlockView } from "@/components/contents/ThemeBlocks";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -84,6 +84,12 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   // 옛 4칸 구조(for_you/steps/timetable/precautions)로 저장된 테마도 읽어준다.
   // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
   const content: ThemeContent = normalizeThemeContent(theme.content);
+  // '참가비에 포함된 것' 은 가격표에 이어 붙여야 한다 — 다른 블록들처럼 한 섹션
+  // 아래로 내려보내면, 가격을 보고 "비싸다" 고 느끼는 순간에 닿지 않는다.
+  const includedBlock = content.blocks.find(
+    (b) => b.type === "list" && b.variant === "included"
+  );
+  const restBlocks = content.blocks.filter((b) => b !== includedBlock);
 
   const hours = Math.floor(theme.duration_minutes / 60);
   const mins = theme.duration_minutes % 60;
@@ -190,11 +196,16 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
             <div className="mt-5 w-full">
               <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
             </div>
+            {includedBlock && (
+              <div className="mt-4 w-full">
+                <ThemeBlockView block={includedBlock} accent={accent} />
+              </div>
+            )}
           </section>
         )}
 
         {/* 어드민에서 쌓은 블록 순서대로 */}
-        <ThemeBlocks blocks={content.blocks} accent={accent} />
+        <ThemeBlocks blocks={restBlocks} accent={accent} />
       </div>
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}

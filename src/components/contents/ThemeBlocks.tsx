@@ -35,7 +35,9 @@ export function ThemeBlocks({ blocks, accent }: { blocks: ThemeBlock[]; accent: 
  */
 export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: string }) {
   // 제목은 전부 가운데. 블록마다 왼쪽/가운데가 섞이면 시선이 계속 튄다.
-  const heading = (block.eyebrow || block.title) && (
+  // included 는 제목이 판 안에 들어가므로 바깥 제목을 그리지 않는다.
+  const isIncluded = block.type === "list" && block.variant === "included";
+  const heading = !isIncluded && (block.eyebrow || block.title) && (
     <SectionHeading
       eyebrow={block.eyebrow ?? ""}
       title={block.title}
@@ -60,31 +62,61 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
       )}
 
       {/*
-        포함 사항 — 카드를 흩뿌리지 않고 한 판에 모은다. 낱장 카드로 만들면
-        "또 다른 소개 문구" 로 읽히는데, 한 판에 줄로 세우면 '받아가는 목록'
-        으로 읽힌다. 액티비티·숙박 예약의 'What's included' 와 같은 꼴이다.
+        참가비 포함 사항.
+
+        ⚠️ 별도 섹션(INCLUDED 라벨 + 큰 제목)으로 빼지 않는다. 가격표에서
+           눈을 떼기 전에 읽혀야 하므로, **가격표에 이어 붙은 한 판**으로 둔다.
+           그래서 제목도 이 판 안에 들어간다 — 바깥 SectionHeading 은 쓰지 않는다.
       */}
       {block.type === "list" && block.variant === "included" && (
-        <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border bg-surface"
-             style={{ borderColor: `${accent}40` }}>
-          {block.items.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-start gap-4 border-b border-border/60 px-5 py-4 last:border-b-0"
-            >
-              {item.emoji && (
-                <span className="mt-0.5 shrink-0 text-xl leading-none" aria-hidden>
-                  {item.emoji}
-                </span>
-              )}
-              <div className="min-w-0">
+        <div
+          className="mx-auto w-full max-w-3xl rounded-2xl border bg-surface p-6 sm:p-8"
+          style={{ borderColor: `${accent}33` }}
+        >
+          {block.title && (
+            <p className="text-lg font-extrabold leading-snug text-foreground sm:text-xl">
+              {block.title}
+            </p>
+          )}
+          {block.subtitle && (
+            <p className="mt-2 text-sm leading-relaxed text-muted">{block.subtitle}</p>
+          )}
+
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {block.items.map((item, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-border/70 bg-background/40 p-5"
+              >
+                {item.emoji && (
+                  <span
+                    className="mb-3 flex h-10 w-10 items-center justify-center rounded-full text-lg"
+                    style={{ backgroundColor: `${accent}1f` }}
+                    aria-hidden
+                  >
+                    {item.emoji}
+                  </span>
+                )}
                 <p className="font-bold text-foreground">{item.title}</p>
                 {item.desc && (
-                  <p className="mt-1 text-xs leading-relaxed text-muted">{item.desc}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted">{item.desc}</p>
                 )}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {block.highlight && (
+            <p
+              className="mt-5 rounded-xl px-5 py-3.5 text-center text-sm font-semibold"
+              style={{ backgroundColor: `${accent}14`, color: accent }}
+            >
+              {block.highlight}
+            </p>
+          )}
+
+          {block.footnote && (
+            <p className="mt-4 text-[11px] leading-relaxed text-muted">{block.footnote}</p>
+          )}
         </div>
       )}
 

@@ -149,6 +149,30 @@ export function ContentBlocksEditor({
                     </label>
                   )}
 
+                  {/* 포함 사항 전용 칸. 다른 모양에는 쓰이지 않아 그때만 보여준다. */}
+                  {b.type === "list" && b.variant === "included" && (
+                    <div className="space-y-2">
+                      <input
+                        className={field}
+                        value={b.subtitle ?? ""}
+                        onChange={(e) => patch(i, { subtitle: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="제목 아래 한 줄 (비우면 안 나옵니다)"
+                      />
+                      <input
+                        className={field}
+                        value={b.highlight ?? ""}
+                        onChange={(e) => patch(i, { highlight: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="카드 아래 강조 띠 (비우면 안 나옵니다)"
+                      />
+                      <input
+                        className={field}
+                        value={b.footnote ?? ""}
+                        onChange={(e) => patch(i, { footnote: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="맨 아래 작은 단서 (* 로 시작하면 자연스럽습니다)"
+                      />
+                    </div>
+                  )}
+
                   {b.type === "text" && (
                     <textarea
                       className={`${field} min-h-28`}
