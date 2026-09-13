@@ -53,6 +53,10 @@ const SAMPLE_VARS: Record<string, string> = {
   refund_holder: "홍길동",
   count: "2",
   total_amount: "186,000원",
+  deadline_minutes: "30",
+  overflow_line: "",
+  overflow_count: "0",
+  admin_url: "https://admin.wouldyouescape.com/applications?status=confirmed&payment=pending",
 };
 
 /**
@@ -71,7 +75,12 @@ export function SlackTemplateList({
 }) {
   const [themeId, setThemeId] = useState(themes[0]?.id ?? "");
   const theme = themes.find((t) => t.id === themeId) ?? themes[0];
-  const blocks = useMemo(() => sampleBlocks(), []);
+
+  // 렌더마다 새 객체를 만들면 편집기의 미리보기 memo 가 매번 깨진다.
+  const blocksByKey = useMemo(
+    () => Object.fromEntries(templates.map((t) => [t.key, sampleBlocks(t.key)])),
+    [templates]
+  );
 
   const examples = useMemo(() => {
     const t = theme?.examples ?? {};
@@ -117,7 +126,7 @@ export function SlackTemplateList({
             updatedAt={t.updatedAt}
             labels={SLACK_PLACEHOLDER_LABELS}
             examples={examples}
-            blockExamples={blocks}
+            blockExamples={blocksByKey[t.key]}
             blockHints={BLOCK_HINTS_BY_KEY[t.key] ?? []}
             onSave={updateSlackTemplate}
           />

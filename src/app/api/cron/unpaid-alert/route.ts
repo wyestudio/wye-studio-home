@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeDotted } from "@/lib/format";
+import { getSlackTemplateBody } from "@/lib/slackV2";
+import { renderTemplate, type TemplateVars } from "@/lib/messageTemplate";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +24,19 @@ export const dynamic = "force-dynamic";
  *    배경: docs/09-implementation-roadmap.md Phase 5
  *
  * ⚠️ 이미 지난 회차는 제외한다. 이제 와서 입금을 받을 일이 없다.
+ *
+ * 문구는 slack_templates('unpaid_alert') 에서 읽는다 — 운영자가 어드민에서
+ * 고칠 수 있어야 한다. 못 읽으면 아래 FALLBACK 으로 보낸다.
  */
+
+const FALLBACK_BODY = `⏰ 입금기한({{deadline_minutes}}분) 넘긴 미입금 신청 {{count}}건
+
+{{#items}}
+• \`{{confirmation_code}}\` {{depositor_name}} — {{theme_name}} {{session_label}} (신청 후 {{minutes_elapsed}}분 경과)
+{{/items}}
+{{overflow_line}}
+자동 취소되지 않습니다. 확인 후 어드민에서 처리해주세요.
+{{admin_url}}`;
 
 /** 입금기한. 신청 완료 화면·문자1 이 안내하는 "30분" 과 같아야 한다. */
 const DEADLINE_MINUTES = 30;
@@ -89,27 +103,34 @@ export async function GET(request: NextRequest) {
     }
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
-    const lines = overdue.slice(0, MAX_LINES).map((a) => {
+
+    const items = overdue.slice(0, MAX_LINES).map((a, i) => {
       const s = sessionById.get(a.session_id as string);
       const mins = Math.floor((now.getTime() - new Date(a.created_at as string).getTime()) / 60000);
-      return `• \`${a.confirmation_code}\` ${a.depositor_name ?? "-"} — ${s?.theme_name ?? "-"} ${
-        s ? formatDateTimeDotted(s.start_at as string) : ""
-      } (신청 후 ${mins}분 경과)`;
+      return {
+        index: String(i + 1),
+        confirmation_code: String(a.confirmation_code),
+        depositor_name: (a.depositor_name as string) ?? "-",
+        theme_name: (s?.theme_name as string) ?? "-",
+        session_label: s ? formatDateTimeDotted(s.start_at as string) : "",
+        minutes_elapsed: String(mins),
+      };
     });
-    if (overdue.length > MAX_LINES) {
-      lines.push(`… 외 ${overdue.length - MAX_LINES}건`);
-    }
 
-    const text = [
-      `⏰ 입금기한(${DEADLINE_MINUTES}분) 넘긴 미입금 신청 ${overdue.length}건`,
-      "",
-      ...lines,
-      "",
-      // ⚠️ 자동 취소는 하지 않는다는 것을 알림에도 적어둔다.
-      //    받는 사람이 "시스템이 알아서 취소했겠지" 라고 오해하면 안 된다.
-      "자동 취소되지 않습니다. 확인 후 어드민에서 처리해주세요.",
-      `${siteUrl.replace("www.", "admin.")}/applications?status=confirmed&payment=pending`,
-    ].join("\n");
+    const overflowCount = Math.max(0, overdue.length - MAX_LINES);
+    const vars: TemplateVars = {
+      deadline_minutes: String(DEADLINE_MINUTES),
+      count: String(overdue.length),
+      overflow_count: String(overflowCount),
+      // 20건을 넘겼을 때만 한 줄 붙는다. 없으면 빈 줄만 남도록 개행을 포함한다.
+      overflow_line: overflowCount > 0 ? `… 외 ${overflowCount}건\n` : "",
+      admin_url: `${siteUrl.replace("www.", "admin.")}/applications?status=confirmed&payment=pending`,
+    };
+
+    // ⚠️ 기본 문구에는 "자동 취소되지 않습니다" 가 들어 있다. 받는 사람이
+    //    "시스템이 알아서 취소했겠지" 라고 오해하면 올 손님을 놓친다.
+    const body = await getSlackTemplateBody("unpaid_alert", FALLBACK_BODY);
+    const text = renderTemplate(body, vars, { items });
 
     const res = await fetch(webhookUrl, {
       method: "POST",

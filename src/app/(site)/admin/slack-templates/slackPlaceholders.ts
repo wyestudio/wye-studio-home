@@ -39,6 +39,11 @@ export const SLACK_PLACEHOLDER_LABELS: Record<string, string> = {
   refund_holder: "환불 예금주",
   count: "환불 대상 건수",
   total_amount: "환불 합계",
+  // 미입금 알림
+  deadline_minutes: "입금기한 (분)",
+  overflow_line: "20건이 넘을 때만 '… 외 N건' 한 줄 (아니면 빈 값)",
+  overflow_count: "목록에 못 담은 건수",
+  admin_url: "어드민 미입금 목록 링크",
 };
 
 /** 참여자 반복 블록 안에서 쓸 수 있는 항목들. */
@@ -70,6 +75,20 @@ export const BLOCK_HINTS_BY_KEY: Record<string, BlockHint[]> = {
       fields: ["index", "confirmation_code", "name", "phone", "amount", "account_suffix"],
     },
   ],
+  unpaid_alert: [
+    {
+      name: "items",
+      label: "기한 넘긴 신청 건들 (최대 20건)",
+      fields: [
+        "index",
+        "confirmation_code",
+        "depositor_name",
+        "theme_name",
+        "session_label",
+        "minutes_elapsed",
+      ],
+    },
+  ],
 };
 
 /**
@@ -85,7 +104,13 @@ const SAMPLE_ATTENDEES = [
   { name: "이철수", nickname: "", phone: "010-3456-7890", birth_year: "1994", gender: "남", experience: "처음이에요" },
 ];
 
-export function sampleBlocks(): TemplateBlocks {
+/**
+ * 미리보기용 블록 샘플.
+ *
+ * ⚠️ `items` 는 알림마다 칸이 다르다(환불 건 vs 미입금 건). 하나로 합치면
+ *    한쪽 미리보기에 엉뚱한 값이 찍히므로 템플릿 키로 갈라준다.
+ */
+export function sampleBlocks(templateKey?: string): TemplateBlocks {
   const rows = SAMPLE_ATTENDEES.map((a, i) => ({
     index: String(i + 1),
     role: i === 0 ? "대표" : "동행",
@@ -97,6 +122,29 @@ export function sampleBlocks(): TemplateBlocks {
     gender: a.gender,
     experience: a.experience,
   }));
+
+  if (templateKey === "unpaid_alert") {
+    return {
+      items: [
+        {
+          index: "1",
+          confirmation_code: "384920",
+          depositor_name: "홍길동",
+          theme_name: "바-ㅇ탈출",
+          session_label: "2026.09.26 19:30",
+          minutes_elapsed: "47",
+        },
+        {
+          index: "2",
+          confirmation_code: "512004",
+          depositor_name: "김영희",
+          theme_name: "바-ㅇ탈출",
+          session_label: "2026.09.27 11:30",
+          minutes_elapsed: "132",
+        },
+      ],
+    };
+  }
 
   return {
     attendees: rows,

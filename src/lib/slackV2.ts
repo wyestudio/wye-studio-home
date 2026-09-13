@@ -43,8 +43,12 @@ async function post(webhookUrl: string | undefined, text: string, label: string)
   }
 }
 
-/** 템플릿 본문. 못 읽으면 폴백으로 떨어진다(알림이 멈추면 안 된다). */
-async function getTemplateBody(key: string, fallback: string): Promise<string> {
+/**
+ * 템플릿 본문. 못 읽으면 폴백으로 떨어진다(알림이 멈추면 안 된다).
+ *
+ * 크론(미입금 알림)도 같은 표를 쓰므로 밖으로 연다.
+ */
+export async function getSlackTemplateBody(key: string, fallback: string): Promise<string> {
   try {
     const supabase = createAdminClient();
     const { data } = await supabase.from("slack_templates").select("body").eq("key", key).single();
@@ -172,7 +176,7 @@ export async function sendApplicationSlackAlertV2(p: {
     companions: p.attendees.slice(1).map((a, i) => attendeeRow(a, i + 1)),
   };
 
-  const body = await getTemplateBody("application_new", FALLBACK_APPLICATION);
+  const body = await getSlackTemplateBody("application_new", FALLBACK_APPLICATION);
   await post(process.env.SLACK_WEBHOOK_URL, renderTemplate(body, vars, blocks), "새신청");
 }
 
@@ -237,7 +241,7 @@ export async function sendRefundNeededSlackAlertV2(p: {
       }
     : {};
 
-  const body = await getTemplateBody("refund_needed", FALLBACK_REFUND);
+  const body = await getSlackTemplateBody("refund_needed", FALLBACK_REFUND);
   await post(process.env.SLACK_REFUND_WEBHOOK_URL, renderTemplate(body, vars, blocks), "환불 필요");
 }
 
@@ -286,7 +290,7 @@ export async function sendBulkRefundNeededSlackAlertV2(p: {
     })),
   };
 
-  const body = await getTemplateBody("bulk_refund_needed", FALLBACK_BULK_REFUND);
+  const body = await getSlackTemplateBody("bulk_refund_needed", FALLBACK_BULK_REFUND);
   await post(
     process.env.SLACK_REFUND_WEBHOOK_URL,
     renderTemplate(body, vars, blocks),
