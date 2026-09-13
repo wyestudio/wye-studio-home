@@ -46,6 +46,7 @@ const ACTION_LABEL: Record<string, string> = {
   "faq.saved": "FAQ 저장",
   "faq.deleted": "FAQ 삭제",
   "sms_template.updated": "문자 포맷 수정",
+  "slack_template.updated": "슬랙 포맷 수정",
 };
 
 /** 되돌리기 어렵거나 고객에게 문자가 나가는 액션은 눈에 띄게 한다. */

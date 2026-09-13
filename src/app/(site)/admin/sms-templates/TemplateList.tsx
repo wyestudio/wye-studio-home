@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { SmsTemplateEditor } from "./SmsTemplateEditor";
+import { MessageTemplateEditor } from "@/components/admin/MessageTemplateEditor";
+import { PLACEHOLDER_INFO } from "./placeholderInfo";
+import { updateSmsTemplate } from "./actions";
 
 export type PreviewThemeOption = {
   id: string;
@@ -19,6 +21,13 @@ export type TemplateRow = {
 };
 
 const field = "rounded border border-border bg-background px-3 py-2 text-sm";
+
+const LABELS = Object.fromEntries(
+  Object.entries(PLACEHOLDER_INFO).map(([k, v]) => [k, v.label])
+);
+const FALLBACK_EXAMPLES = Object.fromEntries(
+  Object.entries(PLACEHOLDER_INFO).map(([k, v]) => [k, v.example])
+);
 
 /**
  * 문자 포맷 목록 + 미리보기 기준 테마 선택.
@@ -61,14 +70,17 @@ export function TemplateList({
 
       <div className="space-y-4">
         {templates.map((t) => (
-          <SmsTemplateEditor
+          <MessageTemplateEditor
             key={t.key}
             templateKey={t.key}
             label={t.label}
             initialBody={t.body}
             placeholders={t.placeholders}
             updatedAt={t.updatedAt}
-            examples={theme?.examples ?? {}}
+            labels={LABELS}
+            // 고른 테마의 실제 값이 먼저다. 테마와 무관한 변수만 고정 예시로 채운다.
+            examples={{ ...FALLBACK_EXAMPLES, ...(theme?.examples ?? {}) }}
+            onSave={updateSmsTemplate}
           />
         ))}
       </div>

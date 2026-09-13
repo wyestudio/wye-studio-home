@@ -259,13 +259,17 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
           amountKrw: r.amount_krw,
           discountKrw: r.discount_krw,
           depositorName: input.depositorName.trim(),
-          representative: {
-            name: input.attendees[0].name.trim(),
-            nickname: input.attendees[0].nickname?.trim() || null,
-            birthYear: input.attendees[0].birth_year,
-            gender: input.attendees[0].gender || null,
-            experienceRange: input.attendees[0].experience_range || null,
-          },
+          notes: input.notes.trim() || null,
+          // ⚠️ 동행자까지 전부 넘긴다. 슬랙 포맷에서 {{#attendees}} 블록으로
+          //    누구를 어떤 항목까지 보여줄지 운영자가 정한다.
+          attendees: input.attendees.map((a) => ({
+            name: a.name.trim(),
+            phone: a.phone.replace(/\D/g, ""),
+            nickname: a.nickname?.trim() || null,
+            birthYear: a.birth_year,
+            gender: a.gender || null,
+            experienceRange: a.experience_range || null,
+          })),
         });
       }
     } else {
