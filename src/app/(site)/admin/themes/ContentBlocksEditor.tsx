@@ -145,15 +145,17 @@ export function ContentBlocksEditor({
 
               {open && (
                 <div className="space-y-2 border-t border-border bg-white/[0.02] p-3">
+                  {/* ⚠️ 두 칸 다 field(w-full) 를 쓰면 안 된다 — 라벨 칸이 폭을 다 먹어
+                      제목 칸이 실처럼 찌그러진다(실제로 그랬다). 위 cell 주석과 같은 문제. */}
                   <div className="flex gap-2">
                     <input
-                      className={`${field} w-32 shrink-0`}
+                      className={`${cell} w-32 shrink-0`}
                       value={b.eyebrow ?? ""}
                       onChange={(e) => patch(i, { eyebrow: e.target.value })}
                       placeholder="라벨 (FOR YOU)"
                     />
                     <input
-                      className={field}
+                      className={`${cell} min-w-0 flex-1`}
                       value={b.title}
                       onChange={(e) => patch(i, { title: e.target.value })}
                       placeholder="블록 제목 (비우면 제목 없이 나갑니다)"
