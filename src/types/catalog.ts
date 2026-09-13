@@ -31,7 +31,17 @@ export type ThemePriceTier = {
  * DB 에는 themes.content(jsonb) 한 칸에 { blocks: [...] } 로 들어간다.
  */
 /** 제목 위에 작게 깔리는 영문 라벨(FOR YOU, SCHEDULE …). 비우면 안 나온다. */
-type BlockCommon = { title: string; eyebrow?: string };
+type BlockCommon = {
+  title: string;
+  eyebrow?: string;
+  /**
+   * 숨김. 고객 화면에만 안 나오고 어드민에는 그대로 남는다.
+   *
+   * 블록을 잠깐 내리고 싶을 때 삭제밖에 방법이 없으면, 되살릴 때 내용을 다시
+   * 타이핑해야 한다. 실제로 '컨텐츠 구성' 을 잠깐 내리려다 그럴 뻔했다.
+   */
+  hidden?: boolean;
+};
 
 export type ThemeBlock =
   /** 제목 + 문단. 대부분의 설명은 이걸로 해결된다. */

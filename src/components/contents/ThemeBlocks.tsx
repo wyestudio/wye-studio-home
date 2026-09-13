@@ -18,7 +18,8 @@ export function ThemeBlocks({ blocks, accent }: { blocks: ThemeBlock[]; accent: 
   return (
     <>
       {/* 블록 사이는 넉넉히 띄운다 — 붙어 있으면 어디서 끊기는지 안 보인다. */}
-      {blocks.map((block, i) => (
+      {/* 숨긴 블록은 고객 화면에서만 빠진다. 어드민에는 그대로 남아 있다. */}
+      {blocks.filter((b) => !b.hidden).map((block, i) => (
         <section key={i} className="mb-24 last:mb-0 sm:mb-32">
           <ThemeBlockView block={block} accent={accent} />
         </section>

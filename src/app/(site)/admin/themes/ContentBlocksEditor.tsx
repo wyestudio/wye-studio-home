@@ -96,6 +96,19 @@ export function ContentBlocksEditor({
                 <span className="flex-1 truncate text-xs text-muted">
                   {b.title || "(제목 없음)"}
                 </span>
+                {b.hidden && (
+                  <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-400">
+                    숨김
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => patch(i, { hidden: !b.hidden } as Partial<ThemeBlock>)}
+                  className="rounded border border-border px-2 py-1 text-xs"
+                  title="고객 화면에서만 감춥니다. 내용은 그대로 남아요."
+                >
+                  {b.hidden ? "다시 보이기" : "숨기기"}
+                </button>
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
                   className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30">위로</button>
                 <button type="button" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}
@@ -108,8 +121,9 @@ export function ContentBlocksEditor({
                   className="rounded border border-red-500/40 px-2 py-1 text-xs text-red-400">삭제</button>
               </div>
 
-              {/* 미리보기 — 고객 화면과 같은 컴포넌트 */}
-              <div className="px-4 py-4">
+              {/* 미리보기 — 고객 화면과 같은 컴포넌트.
+                  숨긴 블록은 흐리게 깔아 '지금 안 나간다' 를 한눈에 보여준다. */}
+              <div className={`px-4 py-4 ${b.hidden ? "opacity-35" : ""}`}>
                 <ThemeBlockView block={b} accent={accent} />
               </div>
 

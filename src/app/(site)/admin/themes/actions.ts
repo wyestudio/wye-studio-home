@@ -59,21 +59,44 @@ function sanitizeContent(raw: unknown): ThemeContent {
     .map((b): ThemeBlock | null => {
       const arr = (v: unknown) => (Array.isArray(v) ? v : []);
       // 모든 블록이 공통으로 갖는 머리말. 비어 있으면 아예 넣지 않는다.
-      const common = { title: str(b.title), ...(str(b.eyebrow) ? { eyebrow: str(b.eyebrow) } : {}) };
+      // ⚠️ hidden 을 빠뜨리면 저장할 때마다 숨김이 풀린다.
+      const common = {
+        title: str(b.title),
+        ...(str(b.eyebrow) ? { eyebrow: str(b.eyebrow) } : {}),
+        ...(b.hidden ? { hidden: true } : {}),
+      };
       switch (b.type) {
         case "text":
           return { ...common, type: "text", body: str(b.body) };
-        case "list":
+        case "list": {
+          /*
+            ⚠️ 여기서 아는 값만 남기므로, 새 variant 를 만들면 **반드시 같이
+               적어야 한다.** 안 그러면 어드민에서 저장하는 순간 조용히 'card'
+               로 바뀐다 — included 를 추가하고 이걸 빠뜨려서 실제로 그랬다.
+          */
+          const variant =
+            b.variant === "step" || b.variant === "included"
+              ? (b.variant as "step" | "included")
+              : ("card" as const);
           return {
             ...common,
             type: "list",
-            variant: b.variant === "step" ? "step" : "card",
+            variant,
+            // included 전용 칸. 다른 모양에서는 넣지 않는다.
+            ...(variant === "included"
+              ? {
+                  ...(str(b.subtitle) ? { subtitle: str(b.subtitle) } : {}),
+                  ...(str(b.highlight) ? { highlight: str(b.highlight) } : {}),
+                  ...(str(b.footnote) ? { footnote: str(b.footnote) } : {}),
+                }
+              : {}),
             items: arr(b.items).map((x) => ({
               emoji: str((x as Record<string, unknown>)?.emoji),
               title: str((x as Record<string, unknown>)?.title),
               desc: str((x as Record<string, unknown>)?.desc),
             })),
           };
+        }
         case "timetable":
           return {
             ...common,
