@@ -9,6 +9,7 @@ import {
   type Recipient,
 } from "./sendActions";
 import { formatCouponCode } from "@/lib/coupon";
+import { SessionPicker, type PickerSession } from "@/components/admin/SessionPicker";
 
 const field = "rounded border border-border bg-background px-3 py-2 text-sm";
 
@@ -24,7 +25,7 @@ export function SendPanel({
   templates,
 }: {
   campaigns: { id: string; name: string }[];
-  sessions: { id: string; label: string }[];
+  sessions: PickerSession[];
   templates: { key: string; label: string }[];
 }) {
   const router = useRouter();
@@ -33,7 +34,10 @@ export function SendPanel({
   const [friendCampaignId, setFriendCampaignId] = useState(
     campaigns[1]?.id ?? campaigns[0]?.id ?? ""
   );
-  const [sessionId, setSessionId] = useState(sessions[0]?.id ?? "");
+  // ⚠️ 기본값을 두지 않는다. 쿠폰은 한 번 나가면 회수할 수 없어서, 운영자가
+  //    테마·날짜·시각을 직접 고르게 해야 한다. 예전에는 가장 최근 회차가 미리
+  //    골라져 있었다.
+  const [sessionId, setSessionId] = useState("");
   const [templateKey, setTemplateKey] = useState(templates[0]?.key ?? "");
   const [paidOnly, setPaidOnly] = useState(true);
 
@@ -129,14 +133,8 @@ export function SendPanel({
             ))}
           </select>
         </div>
-        <div>
-          <label className="mb-1 block text-xs text-muted">받을 사람 (회차 참여자)</label>
-          <select className={field} value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
-            {sessions.map((s) => (
-              <option key={s.id} value={s.id}>{s.label}</option>
-            ))}
-          </select>
-        </div>
+        {/* 받을 사람 = 이 회차 참여자. 테마 → 날짜(달력) → 시각 순으로 좁힌다. */}
+        <SessionPicker sessions={sessions} value={sessionId} onChange={setSessionId} />
         <div>
           <label className="mb-1 block text-xs text-muted">문자 문구</label>
           <select className={field} value={templateKey} onChange={(e) => setTemplateKey(e.target.value)}>

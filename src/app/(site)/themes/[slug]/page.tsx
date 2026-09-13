@@ -40,6 +40,11 @@ export async function generateMetadata({
     description,
     alternates: { canonical: `${SITE_URL}/themes/${theme.slug}` },
     openGraph: { title, description, url: `${SITE_URL}/themes/${theme.slug}` },
+    // 잠긴 테마·목록에서 뺀 테마는 색인하지 않는다. 사이트맵에서 빼는 것만으로는
+    // 부족하다 — 어디선가 링크가 걸리면 크롤러가 그 길로 들어온다.
+    ...(theme.is_locked || !theme.is_listed
+      ? { robots: { index: false, follow: false } }
+      : {}),
   };
 }
 
@@ -50,7 +55,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   if (!theme) notFound();
 
   // is_active 는 '신청 받기' 여부일 뿐이다. 꺼져 있어도 페이지는 보여준다.
-  const acceptingApplications = theme.is_active;
+  // 잠긴 테마는 신청도 받지 않는다 — 목록·홈에서 못 들어오게 막아둔 곳을
+  // 주소로 직접 열고 신청까지 되면 막아둔 의미가 없다.
+  const acceptingApplications = theme.is_active && !theme.is_locked;
 
   const rawSessions = await getUpcomingSessionsForTheme(theme.id);
   const withStats = await attachStats(rawSessions);

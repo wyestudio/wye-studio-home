@@ -135,6 +135,8 @@ export type Theme = {
   content: ThemeContent;
   is_active: boolean;
   is_listed: boolean;
+  /** 잠금. 목록에는 나오되 상세로 못 들어가고(자물쇠) 검색엔진에도 안 올린다 */
+  is_locked: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -173,7 +175,8 @@ export type SessionView = {
  *   22:00 이전 종료 → 만 16세 이상 / 22:00 이후(및 정각) 종료 → 만 19세 이상.
  * 테마에 min_age_floor 가 있으면 그보다 낮출 수 없다.
  *
- * ⚠️ v1.1 까지는 '시작 시각 18시' 기준이었다. 지금 운영 중인 회차
+ * ⚠️ v1.1 까지는 '시작 시각 18시' 기준이었다(어드민 안내 문구에도 그 흔적이
+ *    남아 있어 2026-09-13에 같이 고쳤다). 지금 운영 중인 회차
  *    (11:30·15:30·19:30 / 180분)는 두 규칙의 결과가 같아 데이터는 안 바뀐다.
  * ⚠️ DB 의 default_min_age() 는 옛 규칙 그대로다. 2026-09-10 마이그레이션에서
  *    한 번 쓰였을 뿐 지금은 아무 데서도 호출되지 않는다(함수·뷰·컬럼 기본값

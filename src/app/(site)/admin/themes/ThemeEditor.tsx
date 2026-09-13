@@ -69,6 +69,7 @@ function emptyTheme(venueId: string): ThemeInput {
     content: structuredClone(EMPTY_THEME_CONTENT),
     is_active: true,
     is_listed: true,
+    is_locked: false,
     sort_order: 0,
     tiers: structuredClone(DEFAULT_TIERS),
   };
@@ -100,6 +101,7 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     content: normalizeThemeContent(t.content),
     is_active: t.is_active,
     is_listed: t.is_listed,
+    is_locked: t.is_locked,
     sort_order: t.sort_order,
     tiers: t.tiers
       .map((x) => ({
@@ -513,7 +515,8 @@ export function ThemeEditor({
                   placeholder="비우면 시각 규칙만"
                 />
                 <p className="mt-1 text-[11px] text-muted">
-                  기본은 회차 시각 기준(18시 전 16세 / 후 19세). 여기 값이 더 높으면 그게 적용됩니다.
+                  기본은 <strong>종료 시각</strong> 기준(22:00 이전 종료 만 16세 / 이후 만 19세, 약관
+                  제9조). 여기 값이 더 높으면 그게 적용됩니다.
                 </p>
               </div>
             </div>
@@ -548,6 +551,26 @@ export function ThemeEditor({
                   목록에 노출
                   <span className="mt-0.5 block text-xs text-muted">
                     끄면 컨텐츠 목록·검색엔진에 안 나옵니다. 주소를 아는 사람은 볼 수 있습니다.
+                  </span>
+                </span>
+              </label>
+              {/*
+                잠금은 '아직 공개하지 않은 테마' 를 감질나게 보여주는 장치다.
+                목록에서 빼는 것(is_listed)과는 반대로, 있다는 건 보여주되
+                들어가지는 못하게 한다.
+              */}
+              <label className="flex max-w-xs items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={editing.is_locked}
+                  onChange={(e) => patch({ is_locked: e.target.checked })}
+                />
+                <span>
+                  잠금
+                  <span className="mt-0.5 block text-xs text-muted">
+                    켜면 홈·컨텐츠 목록에 <strong>자물쇠</strong>로 덮이고, 눌러도 상세로 가지
+                    않습니다. 검색엔진에도 올리지 않습니다.
                   </span>
                 </span>
               </label>
@@ -615,8 +638,13 @@ export function ThemeEditor({
                         sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
                       />
 
-                      {(!t.is_active || !t.is_listed) && (
+                      {(!t.is_active || !t.is_listed || t.is_locked) && (
                         <div className="absolute left-2 top-2 flex flex-col gap-1">
+                          {t.is_locked && (
+                            <span className="rounded bg-white/90 px-1.5 py-0.5 text-[10px] text-black">
+                              🔒 잠금
+                            </span>
+                          )}
                           {!t.is_active && (
                             <span className="rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] text-black">
                               신청 중지

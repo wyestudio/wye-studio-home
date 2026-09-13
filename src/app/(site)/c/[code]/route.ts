@@ -30,7 +30,7 @@ export async function GET(
 
   // 어디로 보낼지: 지금 **신청을 받는** 테마. 하나도 없으면 목록으로.
   //
-  // ⚠️ is_active 를 빼면 안 된다. 아직 열지 않은 테마("???")도 목록에는
+  // ⚠️ is_active·is_locked 를 빼면 안 된다. 아직 열지 않은 테마("???")도 목록에는
   //    노출(is_listed)되므로, sort_order 가 같으면 그쪽이 먼저 잡혀 쿠폰 문자를
   //    받은 사람이 잠긴 페이지로 떨어진다 — 실제로 그랬다.
   let destination = "/contents";
@@ -41,6 +41,7 @@ export async function GET(
       .select("slug")
       .eq("is_listed", true)
       .eq("is_active", true)
+      .eq("is_locked", false)
       .order("sort_order")
       .order("created_at")
       .limit(1);

@@ -4,12 +4,13 @@ import { useState } from "react";
 import { CouponPanel, type CouponRow } from "./CouponPanel";
 import { SendPanel } from "./SendPanel";
 import type { CampaignRow } from "./CampaignEditor";
+import type { PickerSession } from "@/components/admin/SessionPicker";
 
 export function CouponTabs(props: {
   campaigns: CampaignRow[];
   coupons: CouponRow[];
   themes: { id: string; name: string }[];
-  sessions: { id: string; label: string }[];
+  sessions: PickerSession[];
   templates: { key: string; label: string }[];
 }) {
   const [tab, setTab] = useState<"manage" | "send">("manage");

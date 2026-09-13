@@ -47,7 +47,8 @@ export default async function ApplyPage({
     );
   }
 
-  if (!theme.is_active) {
+  // 잠긴 테마는 신청 자체를 받지 않는다(테마 상세의 신청 버튼과 같은 기준).
+  if (!theme.is_active || theme.is_locked) {
     return <Fallback slug={slug} accent={accent} message="현재 이 테마는 신청을 받지 않습니다." />;
   }
 

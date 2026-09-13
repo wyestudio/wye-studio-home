@@ -78,7 +78,11 @@ export default async function AdminApplicationsPage({
       p_limit: PAGE_SIZE,
       p_offset: (page - 1) * PAGE_SIZE,
     }),
-    supabase.from("sessions").select("id, start_at, theme_name, legacy_format").order("start_at", { ascending: false }),
+    // 테마명이 붙은 session_display 를 쓴다 — 필터가 테마로 먼저 좁히기 때문이다.
+    supabase
+      .from("session_display")
+      .select("id, start_at, theme_id, theme_name, format_label")
+      .order("start_at", { ascending: false }),
   ]);
 
   if (rowsRes.error) {
@@ -96,14 +100,14 @@ export default async function AdminApplicationsPage({
   const total = rows[0]?.total_count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // 필터가 달력으로 날짜를 먼저 고르고 그날 회차만 보여주므로 start_at 을 같이 넘긴다.
-  // (롤링 오픈으로 회차가 150개 가까이 되어 한 줄 목록으로는 고를 수 없다)
+  // 필터는 테마 → 날짜(달력) → 시각 순으로 좁힌다. 그래서 테마와 시작 시각을
+  // 같이 넘긴다 (롤링 오픈으로 회차가 150개 가까워 한 줄 목록으로는 못 고른다).
   const sessionOptions = (sessionsRes.data ?? []).map((s) => ({
     id: s.id as string,
     start_at: s.start_at as string,
-    label: `${formatDateTimeFull(s.start_at as string)}${
-      s.legacy_format ? ` (${s.legacy_format})` : ""
-    }`,
+    theme_id: (s.theme_id as string | null) ?? null,
+    theme_name: (s.theme_name as string | null) ?? "(테마 없음)",
+    note: (s.format_label as string | null) ?? null,
   }));
 
   return (

@@ -34,6 +34,7 @@ export type ThemeInput = {
   content: ThemeContent;
   is_active: boolean;
   is_listed: boolean;
+  is_locked: boolean;
   sort_order: number;
   tiers: PriceTierInput[];
 };
@@ -177,6 +178,7 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       content: sanitizeContent(input.content),
       is_active: input.is_active,
       is_listed: input.is_listed,
+      is_locked: input.is_locked,
       sort_order: input.sort_order,
       updated_at: new Date().toISOString(),
     };
@@ -213,7 +215,12 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       targetType: "theme",
       targetId: themeId,
       summary: `테마 저장 — ${input.name} (${input.slug})`,
-      detail: { slug: input.slug, is_active: input.is_active, is_listed: input.is_listed },
+      detail: {
+        slug: input.slug,
+        is_active: input.is_active,
+        is_listed: input.is_listed,
+        is_locked: input.is_locked,
+      },
     });
 
     revalidatePath("/admin/themes");

@@ -23,12 +23,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/lookup`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${BASE_URL}/terms`, changeFrequency: "yearly", priority: 0.2 },
     { url: `${BASE_URL}/privacy`, changeFrequency: "yearly", priority: 0.2 },
-    ...themes.map((t) => ({
-      url: `${BASE_URL}/themes/${t.slug}`,
-      lastModified: new Date(t.updated_at),
-      changeFrequency: "daily" as const,
-      priority: 0.9,
-    }))
+    // 잠긴 테마는 싣지 않는다. 아직 안 연 것을 검색 결과로 먼저 만나면
+    // "들어갔더니 자물쇠" 가 된다.
+    ...themes
+      .filter((t) => !t.is_locked)
+      .map((t) => ({
+        url: `${BASE_URL}/themes/${t.slug}`,
+        lastModified: new Date(t.updated_at),
+        changeFrequency: "daily" as const,
+        priority: 0.9,
+      }))
   );
 
   return routes;

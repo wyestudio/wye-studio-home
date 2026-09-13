@@ -1,7 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { CouponTabs } from "./CouponTabs";
-import { formatDateTimeFull } from "@/lib/format";
 import type { CampaignRow } from "./CampaignEditor";
 import type { CouponRow } from "./CouponPanel";
 
@@ -18,7 +17,7 @@ export default async function AdminCouponsPage() {
       .order("code"),
     supabase.from("themes").select("id, name").order("sort_order"),
     // 발송 대상은 "이 회차에 참여한 사람" 으로 고른다.
-    supabase.from("session_display").select("id, theme_name, format_label, start_at")
+    supabase.from("session_display").select("id, theme_id, theme_name, format_label, start_at")
       .order("start_at", { ascending: false }),
     supabase.from("sms_templates").select("key, label").like("key", "coupon%").order("label"),
   ]);
@@ -47,9 +46,10 @@ export default async function AdminCouponsPage() {
             themes={(themesRes.data ?? []) as { id: string; name: string }[]}
             sessions={(sessionsRes.data ?? []).map((s) => ({
               id: s.id as string,
-              label: `${formatDateTimeFull(s.start_at as string)} ${s.theme_name ?? ""}${
-                s.format_label ? ` (${s.format_label})` : ""
-              }`,
+              start_at: s.start_at as string,
+              theme_id: (s.theme_id as string | null) ?? null,
+              theme_name: (s.theme_name as string | null) ?? "(테마 없음)",
+              note: (s.format_label as string | null) ?? null,
             }))}
             templates={(templatesRes.data ?? []) as { key: string; label: string }[]}
           />

@@ -228,7 +228,9 @@ function ThemeSlot({
 }) {
   const accent = theme.accent_color || DEFAULT_ACCENT;
   const logo = theme.logo_image_path || FALLBACK_LOGO;
-  const locked = !theme.is_active;
+  // 잠금은 '신청 받기'(is_active)와 별개 스위치다. 신청만 잠시 닫은 테마까지
+  // 자물쇠가 씌워지던 것을 2026-09-13에 분리했다.
+  const locked = theme.is_locked;
 
   // 잠긴 행성을 눌렀을 때 — 자물쇠가 제자리에서 한 번 튕기고 패널 문구가 잠깐 바뀐다.
   const [knocked, setKnocked] = useState(false);
