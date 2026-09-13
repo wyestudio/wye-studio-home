@@ -30,7 +30,10 @@ export async function generateMetadata(
 
   const pageTitle = `${session.theme_name}(${session.session_type})·${formatShortDate(session.start_at)}`;
   const socialTitle = `우주이스케이프 | ${pageTitle}`;
-  const description = session.description || "방탈출과 로테이션 소개팅을 결합한 우주이스케이프 회차입니다.";
+  // 옛 회차 화면이다. 지금은 /themes/[slug] 로 308 리다이렉트되지만, 검색엔진
+  // 캐시에 남은 설명이 '로테이션 소개팅' 이라 문구만 지금 것으로 맞춰둔다.
+  const description =
+    session.description || "여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출, 우주이스케이프 회차입니다.";
   const url = `${SITE_URL}/sessions/${session.slug}`;
 
   return {

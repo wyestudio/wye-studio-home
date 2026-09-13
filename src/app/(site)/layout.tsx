@@ -35,8 +35,11 @@ const geistMono = Geist_Mono({
 });
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
+// 검색 결과에서 사이트 이름 바로 아래 보이는 한 줄이다. 홈뿐 아니라 설명을
+// 따로 안 정한 페이지(컨텐츠·About·Notice 등) 전부가 이 문장을 쓴다.
+// ⚠️ 소개팅 회차를 더 이상 운영하지 않아 2026-09-13에 그 문구를 뺐다.
 const SITE_DESCRIPTION =
-  "Would You Escape? 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출. 같이 갈 사람이 없어도, 소개팅이 어색해도 — 문만 열고 들어오세요.";
+  "Would You Escape? 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출. 같이 갈 사람이 없어도 — 문만 열고 들어오세요.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -45,12 +48,14 @@ export const metadata: Metadata = {
     template: "우주이스케이프 | %s",
   },
   description: SITE_DESCRIPTION,
+  // Google 은 keywords 메타를 아예 안 본다. 네이버 쪽을 위해 남겨둘 뿐이라
+  // 지금 실제로 파는 것만 적는다(소개팅·커플매칭은 더 이상 운영하지 않는다).
   keywords: [
     "방탈출",
-    "소개팅",
-    "로테이션 소개팅",
-    "그룹 미팅",
-    "커플매칭",
+    "팀대항 방탈출",
+    "파티형 방탈출",
+    "이색 방탈출",
+    "그룹 방탈출",
     "신림 방탈출",
     "우주이스케이프",
     "wouldyouescape",

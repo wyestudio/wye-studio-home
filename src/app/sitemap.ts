@@ -9,20 +9,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 설계 근거: docs/08-architecture-screens-and-admin.md §1-2
   const themes = await getListedThemes();
 
+  // ⚠️ 색인할 페이지만 싣는다 — 홈 · 컨텐츠 목록 · 테마.
+  //    About·Notice·조회·약관·개인정보는 2026-09-13부터 noindex 다. 사이트맵에
+  //    계속 두면 Search Console 에 "제출됐지만 noindex" 경고가 쌓인다.
   const routes: MetadataRoute.Sitemap = [
     { url: BASE_URL, changeFrequency: "daily", priority: 1 },
   ];
 
-  if (process.env.NEXT_PUBLIC_ABOUT_ENABLED === "true") {
-    routes.push({ url: `${BASE_URL}/about`, changeFrequency: "monthly", priority: 0.5 });
-  }
-
   routes.push(
     { url: `${BASE_URL}/contents`, changeFrequency: "daily", priority: 0.8 },
-    { url: `${BASE_URL}/notice`, changeFrequency: "weekly", priority: 0.5 },
-    { url: `${BASE_URL}/lookup`, changeFrequency: "monthly", priority: 0.3 },
-    { url: `${BASE_URL}/terms`, changeFrequency: "yearly", priority: 0.2 },
-    { url: `${BASE_URL}/privacy`, changeFrequency: "yearly", priority: 0.2 },
     // 잠긴 테마는 싣지 않는다. 아직 안 연 것을 검색 결과로 먼저 만나면
     // "들어갔더니 자물쇠" 가 된다.
     ...themes
