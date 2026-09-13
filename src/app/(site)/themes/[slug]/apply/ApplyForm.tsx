@@ -32,6 +32,7 @@ import {
   type ConsentState,
 } from "./ConsentStep";
 import { ApplyComplete } from "./ApplyComplete";
+import { pushDataLayerEvent } from "@/lib/analytics";
 
 const field =
   "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50";
@@ -133,6 +134,23 @@ export function ApplyForm({
 
   const headcount = attendees.length;
   const maxAttendees = maxGroupSize ?? DEFAULT_MAX_ATTENDEES;
+
+  /*
+    GA4 신청 퍼널.
+
+    ⚠️ 옛 폼(components/apply/ApplyForm.tsx)에만 붙어 있어서, 테마 구조로
+       넘어온 뒤로 apply_start/apply_complete 가 사실상 멈춰 있었다
+       (2026-09-13 확인: /themes/[slug]/apply 조회 64회에 이벤트는 1건).
+       Slack 알림이 누락됐던 것과 같은 종류의 구멍이다.
+
+    ⚠️ dataLayer 이벤트명과 키는 **옛 폼과 똑같이** 쓴다. GTM 트리거
+       ('CE - 신청 시작'/'CE - 신청 완료')와 변수(DLV - sessionId 등)가
+       그 이름에 묶여 있어서, 이름을 바꾸면 GTM 을 같이 고쳐야 한다.
+       배경: ANALYTICS.md
+  */
+  useEffect(() => {
+    pushDataLayerEvent("신청 시작", { sessionId, themeLabel: themeName });
+  }, [sessionId, themeName]);
 
   // 출생연도 선택지는 회차의 min_age 로 매번 계산한다.
   // 연도를 상수로 박으면 해가 바뀔 때 사람이 고쳐야 한다.
@@ -453,6 +471,16 @@ export function ApplyForm({
         setError(res.error);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
+        const rep = attendees[0];
+        pushDataLayerEvent("신청 완료", {
+          sessionId,
+          themeLabel: themeName,
+          confirmationCode: res.confirmationCode,
+          // 동행자는 출생연도가 제각각이라 대표 신청자 값을 근사치로 보낸다
+          // (옛 폼과 같은 규칙 — ANALYTICS.md 에 근거가 적혀 있다).
+          birthYear: rep?.birth_year || null,
+          gender: rep?.gender || null,
+        });
         setDone(res);
       }
     });

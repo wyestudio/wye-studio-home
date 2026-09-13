@@ -150,7 +150,7 @@ export function LookupResult() {
   if (cancelled) {
     return (
       <div className="py-10 text-center">
-        <h1 className="text-2xl font-extrabold">취소되었습니다.</h1>
+        <h1 className="text-2xl font-extrabold">신청이 취소되었습니다.</h1>
         <p className="mt-1 text-sm text-muted">다음 기회에 뵙겠습니다. (제발)</p>
         <Link
           href="/contents"

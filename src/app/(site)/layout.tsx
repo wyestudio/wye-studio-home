@@ -10,6 +10,8 @@ import { MascotSelectionProvider } from "@/components/space/MascotSelectionConte
 import TestEnvBanner from "@/components/layout/TestEnvBanner";
 import { CopyProtectionProvider } from "@/components/layout/CopyProtection";
 import "../globals.css";
+import { headers } from "next/headers";
+import { isProductionHost } from "@/lib/hosts";
 
 // SUIT(가변 폰트, SIL OFL) — https://github.com/sun-typeface/SUIT
 const suit = localFont({
@@ -95,13 +97,35 @@ const organizationJsonLd = {
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/**
+ * 어드민·테스트 서브도메인에서는 GTM 을 아예 싣지 않는다.
+ *
+ * ⚠️ 지금까지 운영자가 어드민을 쓰는 것도 전부 방문자로 집계되고 있었다
+ *    (2026-09-13 GA4 확인: 최근 7일 /applications 65회, /themes 45회,
+ *     /sessions 22회 — 전부 어드민 화면이다). 방문 수가 부풀려지니
+ *    "방문 대비 신청 전환율" 같은 지표가 통째로 틀어진다.
+ *
+ * 판단 기준은 hosts.ts 의 화이트리스트다 — 새 서브도메인이 생겨도 추가하지
+ * 않는 한 자동으로 집계에서 빠진다.
+ */
+async function shouldTrack(): Promise<boolean> {
+  if (!GTM_ID) return false;
+  try {
+    const host = (await headers()).get("host") || "";
+    return isProductionHost(host);
+  } catch {
+    return false;
+  }
+}
+
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const track = await shouldTrack();
   return (
     <html
       lang="ko"
       className={`${suit.variable} ${geistMono.variable} ${galmuri.variable} h-full antialiased`}
     >
-      {GTM_ID ? (
+      {track ? (
         <Script id="gtm-base" strategy="afterInteractive">
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -111,7 +135,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </Script>
       ) : null}
       <body className="min-h-full flex flex-col">
-        {GTM_ID ? (
+        {track ? (
           <noscript>
             <iframe
               src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
