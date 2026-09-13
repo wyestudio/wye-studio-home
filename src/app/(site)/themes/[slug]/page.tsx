@@ -31,7 +31,12 @@ export async function generateMetadata({
   const theme = await getThemeBySlug(slug);
   if (!theme) return { title: "테마를 찾을 수 없습니다" };
 
-  const title = `${theme.name} | 우주이스케이프`;
+  // ⚠️ 브랜드는 붙이지 않는다. 루트 레이아웃이 "우주이스케이프 | %s" 템플릿으로
+  //    한 번 감싸므로, 여기서 또 붙이면 "우주이스케이프 | 바-ㅇ탈출 | 우주이스케이프"
+  //    가 된다(브라우저 탭·검색 결과 제목에 그대로 나갔다).
+  const title = theme.name;
+  // 공유 카드 제목은 템플릿을 안 타므로 여기서 직접 브랜드를 붙인다.
+  const socialTitle = `${theme.name} | 우주이스케이프`;
   // 검색 결과와 공유 카드에 같이 쓰인다. 어드민의 '한 줄 소개'(tagline)를
   // 채우면 그게 먼저다 — 지금은 비어 있어 브랜드 문구로 떨어진다.
   const description =
@@ -43,7 +48,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: `${SITE_URL}/themes/${theme.slug}` },
-    openGraph: { title, description, url: `${SITE_URL}/themes/${theme.slug}` },
+    openGraph: { title: socialTitle, description, url: `${SITE_URL}/themes/${theme.slug}` },
     // 잠긴 테마·목록에서 뺀 테마는 색인하지 않는다. 사이트맵에서 빼는 것만으로는
     // 부족하다 — 어디선가 링크가 걸리면 크롤러가 그 길로 들어온다.
     ...(theme.is_locked || !theme.is_listed
