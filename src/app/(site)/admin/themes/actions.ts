@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
-import { normalizeThemeContent, type ThemeBlock, type ThemeContent } from "@/types/catalog";
+import {
+  parseThemeContent,
+  THEME_CONTENT_VERSION,
+  type ThemeBlock,
+  type ThemeContent,
+} from "@/types/catalog";
 
 export type PriceTierInput = {
   min_headcount: number;
@@ -51,7 +56,9 @@ export type ThemeInput = {
  * 상세 페이지가 통째로 깨진다.
  */
 function sanitizeContent(raw: unknown): ThemeContent {
-  const parsed = normalizeThemeContent(raw);
+  // ⚠️ parseThemeContent 다. normalizeThemeContent 를 쓰면 v1 테마에서 운영자가
+  //    방금 지운 가격표 블록이 저장하면서 되살아난다.
+  const parsed = parseThemeContent(raw);
   const str = (v: unknown) => String(v ?? "");
 
   const blocks = parsed.blocks
@@ -68,6 +75,9 @@ function sanitizeContent(raw: unknown): ThemeContent {
       switch (b.type) {
         case "text":
           return { ...common, type: "text", body: str(b.body) };
+        // 가격표는 들고 있는 값이 없다. 숫자는 theme_price_tiers 에서 온다.
+        case "price":
+          return { ...common, type: "price" };
         case "list": {
           /*
             ⚠️ 여기서 아는 값만 남기므로, 새 variant 를 만들면 **반드시 같이
@@ -132,7 +142,8 @@ function sanitizeContent(raw: unknown): ThemeContent {
     })
     .filter((b): b is ThemeBlock => b !== null);
 
-  return { blocks };
+  // 저장하는 순간 최신 구조가 된다 — 읽을 때의 가격표 back-fill 이 더는 끼어들지 않는다.
+  return { v: THEME_CONTENT_VERSION, blocks };
 }
 
 function validate(input: ThemeInput): string | null {

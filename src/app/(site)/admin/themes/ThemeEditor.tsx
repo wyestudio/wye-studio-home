@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Image from "next/image";
 import type { Venue, ThemeWithTiers, ThemeContent, ThemeCategory } from "@/types/catalog";
 import {
-  EMPTY_THEME_CONTENT,
+  DEFAULT_THEME_CONTENT,
   normalizeThemeContent,
   resolveUnitPrice,
   THEME_TITLE_FONTS,
@@ -66,7 +66,7 @@ function emptyTheme(venueId: string): ThemeInput {
     title_font: "",
     opening_date: null,
     category_id: null,
-    content: structuredClone(EMPTY_THEME_CONTENT),
+    content: structuredClone(DEFAULT_THEME_CONTENT),
     is_active: true,
     is_listed: true,
     is_locked: false,
@@ -389,6 +389,8 @@ export function ThemeEditor({
             <ContentBlocksEditor
               blocks={editing.content.blocks}
               accent={accent}
+              tiers={editing.tiers.map((t) => ({ ...t, theme_id: "" }))}
+              maxGroupSize={editing.max_group_size}
               onChange={(blocks) => patchContent({ blocks })}
             />
           </div>

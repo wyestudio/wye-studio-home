@@ -10,8 +10,6 @@ import {
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { PosterImage } from "@/components/contents/PosterImage";
-import { PriceTable } from "@/components/contents/PriceTable";
-import { SectionHeading } from "@/components/ui/SectionHeading";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
@@ -183,18 +181,16 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
 
       {/* ── 상세 정보 ── */}
       <div id="detail" className="mt-24 scroll-mt-28 sm:mt-32">
-        {theme.tiers.length > 0 && (
-          <section className="mb-24 sm:mb-32">
-            <SectionHeading eyebrow="PRICE" title="인원별 참가비" eyebrowColor={accent} />
-            {/* 폭은 아래 블록들과 맞춘다. 좁게 잡았더니 혼자만 쪼그라들어 보였다. */}
-            <div className="mt-5 w-full">
-              <PriceTable tiers={theme.tiers} maxGroupSize={theme.max_group_size} accent={accent} />
-            </div>
-          </section>
-        )}
-
-        {/* 어드민에서 쌓은 블록 순서대로 */}
-        <ThemeBlocks blocks={content.blocks} accent={accent} />
+        {/*
+          어드민에서 쌓은 블록 순서대로. 가격표도 블록 중 하나다 —
+          예전에는 여기 하드코딩돼 있어서 순서를 바꾸거나 감출 수 없었다.
+        */}
+        <ThemeBlocks
+          blocks={content.blocks}
+          accent={accent}
+          tiers={theme.tiers}
+          maxGroupSize={theme.max_group_size}
+        />
       </div>
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}

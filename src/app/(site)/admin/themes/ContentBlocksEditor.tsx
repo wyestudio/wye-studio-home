@@ -6,6 +6,7 @@ import {
   THEME_BLOCK_LABELS,
   type ThemeBlock,
   type ThemeBlockType,
+  type ThemePriceTier,
 } from "@/types/catalog";
 
 const field = "w-full rounded border border-border bg-background px-2 py-1.5 text-sm";
@@ -15,6 +16,8 @@ const cell = "rounded border border-border bg-background px-2 py-1.5 text-sm";
 
 function emptyBlock(type: ThemeBlockType): ThemeBlock {
   switch (type) {
+    case "price":
+      return { type, title: "인원별 참가비", eyebrow: "PRICE" };
     case "text":
       return { type, title: "", body: "" };
     case "list":
@@ -42,10 +45,15 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
 export function ContentBlocksEditor({
   blocks,
   accent,
+  tiers,
+  maxGroupSize,
   onChange,
 }: {
   blocks: ThemeBlock[];
   accent: string;
+  /** 가격표 블록 미리보기용. 아래 '요금 구간' 칸을 고치면 여기도 같이 바뀐다. */
+  tiers: ThemePriceTier[];
+  maxGroupSize: number | null;
   onChange: (blocks: ThemeBlock[]) => void;
 }) {
   /** 폼이 열려 있는 블록. 미리보기만 보고 싶을 때가 대부분이라 기본은 닫힘. */
@@ -124,7 +132,12 @@ export function ContentBlocksEditor({
               {/* 미리보기 — 고객 화면과 같은 컴포넌트.
                   숨긴 블록은 흐리게 깔아 '지금 안 나간다' 를 한눈에 보여준다. */}
               <div className={`px-4 py-4 ${b.hidden ? "opacity-35" : ""}`}>
-                <ThemeBlockView block={b} accent={accent} />
+                <ThemeBlockView
+                  block={b}
+                  accent={accent}
+                  tiers={tiers}
+                  maxGroupSize={maxGroupSize}
+                />
               </div>
 
               {open && (
@@ -143,6 +156,13 @@ export function ContentBlocksEditor({
                       placeholder="블록 제목 (비우면 제목 없이 나갑니다)"
                     />
                   </div>
+
+                  {b.type === "price" && (
+                    <p className="text-[11px] text-muted">
+                      금액은 여기서 고치지 않습니다. 아래 <strong>요금 구간 (인당 가격)</strong> 칸을
+                      고치면 이 표에 그대로 반영돼요.
+                    </p>
+                  )}
 
                   {b.type === "list" && (
                     <label className="flex items-center gap-2 text-xs text-muted">

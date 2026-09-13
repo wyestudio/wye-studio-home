@@ -47,6 +47,14 @@ export type ThemeBlock =
   /** 제목 + 문단. 대부분의 설명은 이걸로 해결된다. */
   | ({ type: "text"; body: string } & BlockCommon)
   /**
+   * 인원별 참가비 표.
+   *
+   * 숫자는 이 블록이 아니라 **테마의 '요금 구간'(theme_price_tiers)** 에서 온다.
+   * 블록이 들고 있는 건 자리·제목·라벨·숨김뿐이다 — 가격을 두 곳에 적어두면
+   * 반드시 한쪽만 고치는 날이 온다.
+   */
+  | ({ type: "price" } & BlockCommon)
+  /**
    * 목록. 이모지는 선택.
    *   "card"     = 이모지 + 제목 + 설명 카드 (2열)
    *   "step"     = STEP 1·2·3 배지가 붙은 카드 (3열)
@@ -84,12 +92,26 @@ export type ThemeBlockType = ThemeBlock["type"];
 
 export type ThemeContent = {
   blocks: ThemeBlock[];
+  /**
+   * 콘텐츠 구조 버전. 없으면 v1(가격표가 상세 페이지에 하드코딩돼 있던 시절).
+   * 저장할 때마다 최신 버전으로 덮인다 — sanitizeContent 참고.
+   */
+  v?: number;
 };
+
+export const THEME_CONTENT_VERSION = 2;
 
 export const EMPTY_THEME_CONTENT: ThemeContent = { blocks: [] };
 
+/** 새 테마의 기본 콘텐츠. 가격표 한 장은 깔고 시작한다. */
+export const DEFAULT_THEME_CONTENT: ThemeContent = {
+  v: THEME_CONTENT_VERSION,
+  blocks: [{ type: "price", title: "인원별 참가비", eyebrow: "PRICE" }],
+};
+
 /** 블록 종류별 표시 이름. 어드민 '블록 추가' 메뉴에 쓴다. */
 export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
+  price: "인원별 참가비",
   text: "제목 + 문단",
   list: "목록",
   timetable: "진행 순서",
@@ -99,19 +121,24 @@ export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
 };
 
 /**
- * 옛 4칸 구조를 블록 배열로 읽어준다.
+ * 저장된 JSON 을 블록 배열로 읽는다. **있는 그대로만** 읽는다.
  *
- * 이미 저장된 테마가 있어 한 번에 갈아엎을 수 없다. 읽을 때 변환하고,
- * 어드민에서 저장하는 순간 새 구조로 덮인다.
+ * 옛 4칸 구조(for_you / steps / timetable / precautions)로 저장된 테마가
+ * 남아 있어 한 번에 갈아엎을 수 없다. 읽을 때 변환하고, 어드민에서 저장하는
+ * 순간 새 구조로 덮인다.
+ *
+ * ⚠️ 저장 직전(sanitizeContent)에는 반드시 이쪽을 쓴다. normalizeThemeContent
+ *    를 쓰면 운영자가 방금 지운 가격표가 저장하면서 되살아난다.
  */
-export function normalizeThemeContent(raw: unknown): ThemeContent {
-  if (!raw || typeof raw !== "object") return EMPTY_THEME_CONTENT;
+export function parseThemeContent(raw: unknown): ThemeContent {
+  if (!raw || typeof raw !== "object") return { ...EMPTY_THEME_CONTENT };
   const o = raw as Record<string, unknown>;
+  const v = typeof o.v === "number" ? o.v : 1;
 
-  if (Array.isArray(o.blocks)) return { blocks: o.blocks as ThemeBlock[] };
+  if (Array.isArray(o.blocks)) return { v, blocks: o.blocks as ThemeBlock[] };
 
   const blocks: ThemeBlock[] = [];
-  const list = (v: unknown) => (Array.isArray(v) ? v : []);
+  const list = (x: unknown) => (Array.isArray(x) ? x : []);
 
   if (list(o.for_you).length)
     blocks.push({ type: "list", title: "이런 분께 추천", items: list(o.for_you) as never });
@@ -122,7 +149,29 @@ export function normalizeThemeContent(raw: unknown): ThemeContent {
   if (list(o.precautions).length)
     blocks.push({ type: "callout", title: "주의사항", items: list(o.precautions) as never });
 
-  return { blocks };
+  return { v, blocks };
+}
+
+/**
+ * 화면·편집기에서 읽을 때. parseThemeContent 에 더해 **v1 콘텐츠에 가격표
+ * 블록을 끼워준다.**
+ *
+ * v1 에는 '가격표 블록' 이라는 게 없었다 — 상세 페이지에 하드코딩돼 있어서
+ * 어드민에서 위치를 바꾸거나 감출 수 없었다. 블록으로 뺀 지금, 기존 테마도
+ * 그대로 가격표가 나와야 하므로 읽을 때 맨 앞에 끼운다.
+ *
+ * 한 번 저장되면 v2 가 되어 다시는 끼우지 않는다 — 그래야 운영자가 가격표를
+ * 지운 것도 지운 대로 남는다.
+ */
+export function normalizeThemeContent(raw: unknown): ThemeContent {
+  const parsed = parseThemeContent(raw);
+  const hasPrice = parsed.blocks.some((b) => b?.type === "price");
+  if ((parsed.v ?? 1) >= THEME_CONTENT_VERSION || hasPrice) return parsed;
+
+  return {
+    ...parsed,
+    blocks: [{ type: "price", title: "인원별 참가비", eyebrow: "PRICE" }, ...parsed.blocks],
+  };
 }
 
 export type ThemeCategory = {
