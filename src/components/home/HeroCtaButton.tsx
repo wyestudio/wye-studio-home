@@ -23,6 +23,13 @@ export function HeroCtaButton() {
       onPointerEnter={handlePointerEnter}
       className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] px-10 text-[1.1rem] font-semibold tracking-wide text-white"
     >
+      {/* 테두리를 도는 빛. 선 한 겹 + 번짐 한 겹. */}
+      <span aria-hidden className="hero-cta-beam is-glow">
+        <span />
+      </span>
+      <span aria-hidden className="hero-cta-beam">
+        <span />
+      </span>
       <span aria-hidden className="hero-cta-fill" />
       <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">
         <span aria-hidden className="hero-cta-arrow" />

@@ -252,48 +252,42 @@ html.custom-cursor-active label {
    "Origin Button" 참고). 각진 네모 유지를 위해 버튼 자체엔 border-radius를
    안 주고 overflow:hidden으로만 안쪽 원을 잘라낸다. */
 /*
-  히어로 CTA.
+  히어로 CTA — 테두리를 도는 빛.
 
-  ⚠️ 문구는 브랜드 자산이라 건드리지 않는다. 문제는 "YES" 가 **눌러야 할 것으로
-     안 보인다**는 것이었다 — 테두리도 배경도 없어 그냥 글자였다.
+  ⚠️ 문구는 브랜드 자산이라 건드리지 않는다. 문제는 "YES" 가 눌러야 할 것으로
+     안 보인다는 것이었다. 그래서 테두리 자리를 빛 한 점이 돈다 — 우주선 패널의
+     런웨이 조명 같은 모양이라 이 사이트 세계관과 붙는다.
 
-  그래서 사각 테두리를 따라 빛이 한 바퀴 돈다. 우주선 계기판·정거장 패널의
-  런웨이 조명에서 온 모양이라 이 사이트 세계관과 붙는다. 가만히 있어도 눈에
-  들어오고, "이건 누르는 것" 이라는 신호가 된다.
+  ⚠️ 처음에는 @property 로 conic-gradient 의 각도를 굴렸는데, **배포 빌드에서
+     각도가 0deg 에 멈춰 빛이 돌지 않았다**(로컬 dev 에서는 돌았다 — CSS 최적화가
+     등록을 건드리는 것으로 보인다). 그래서 각도 대신 **요소 자체를 rotate** 한다.
+     transform 회전은 어느 브라우저에서도 같은 결과라, 빌드 파이프라인을 타지 않는다.
 
-  구현: conic-gradient 를 mask 로 테두리 1px 만 남긴다. 안쪽을 칠하면 별 배경이
-  가려지므로 반드시 비워야 한다(mask-composite: exclude).
+  ⚠️ 테두리 선은 두지 않는다("빛만 돌았으면 좋겠다"). 대신 빛이 한 바퀴를 도는
+     동안 네 변을 모두 지나므로 버튼 윤곽은 계속 읽힌다.
+
+  구조: .hero-cta-beam 이 mask 로 **테두리 두께만** 남기고, 그 안에서 정사각형
+  conic-gradient 가 돈다. 안쪽을 칠하면 별 배경이 막히므로 반드시 도려내야 한다.
 */
-@property --hero-beam-angle {
-  syntax: "<angle>";
-  initial-value: 0deg;
-  inherits: false;
-}
-
 .hero-cta-button {
   overflow: hidden;
   isolation: isolate;
   background: transparent;
-  /* 빛이 꺼지는 환경(@property 미지원)에서도 버튼으로 보이도록 깔아두는 테두리 */
-  border: 1px solid rgba(255, 255, 255, 0.22);
   transition: transform 0.12s ease;
 }
 
-/* 테두리를 도는 빛. 밝은 구간을 좁게 잡아야 '한 점이 달린다' 로 읽힌다 —
-   넓게 잡으면 그냥 그라데이션 테두리로 보인다. */
-.hero-cta-button::before,
-.hero-cta-button::after {
-  content: "";
+.hero-cta-button:active {
+  transform: scale(0.97);
+}
+
+.hero-cta-beam {
   position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
   pointer-events: none;
-  background: conic-gradient(
-    from var(--hero-beam-angle),
-    transparent 0deg 296deg,
-    rgba(255, 255, 255, 0.18) 322deg,
-    #ffffff 346deg,
-    rgba(255, 255, 255, 0.18) 354deg,
-    transparent 360deg
-  );
+  /* 선 두께 */
+  padding: 1.5px;
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
@@ -302,36 +296,46 @@ html.custom-cursor-active label {
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   mask-composite: exclude;
-  animation: hero-cta-beam 3.2s linear infinite;
 }
 
-/* 선 자체 */
-.hero-cta-button::before {
-  inset: -1px;
-  padding: 1.5px;
-  z-index: 1;
-}
-
-/* 바깥으로 번지는 잔광 — 우주선 패널 조명처럼 보이게 하는 건 이 층이다. */
-.hero-cta-button::after {
-  inset: -4px;
-  padding: 4px;
-  z-index: 0;
+/* 바깥으로 번지는 잔광. 선보다 두껍게 깔고 흐린다. */
+.hero-cta-beam.is-glow {
+  padding: 5px;
   filter: blur(5px);
-  opacity: 0.75;
+  opacity: 0.7;
+}
+
+.hero-cta-beam > span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* 네모를 벗어나지 않게 대각선보다 크게 잡는다 */
+  width: 220%;
+  aspect-ratio: 1;
+  background: conic-gradient(
+    transparent 0deg 296deg,
+    rgba(255, 255, 255, 0.2) 324deg,
+    #ffffff 348deg,
+    rgba(255, 255, 255, 0.2) 355deg,
+    transparent 360deg
+  );
+  animation: hero-cta-beam-spin 3.2s linear infinite;
+}
+
+@keyframes hero-cta-beam-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 /* 호버하면 흰 원이 퍼지며 배경이 뒤집히므로, 도는 빛은 비켜준다. */
-.hero-cta-button:hover::before,
-.hero-cta-button:hover::after,
-.hero-cta-button:focus-visible::before,
-.hero-cta-button:focus-visible::after {
+.hero-cta-button:hover .hero-cta-beam,
+.hero-cta-button:focus-visible .hero-cta-beam {
   opacity: 0;
   transition: opacity 0.25s ease;
-}
-
-.hero-cta-button:active {
-  transform: scale(0.97);
 }
 
 /* ">" 모양 — 글꼴에 기대지 않도록 정사각형을 45도 돌려서 위/오른쪽 변만 남긴다. */
@@ -389,13 +393,9 @@ html.custom-cursor-active label {
   .hero-cta-label-hover {
     transition: none;
   }
-  /* 도는 빛은 끄되 테두리는 남긴다 — 버튼으로 보이는 것 자체는 접근성 문제가 아니다. */
-  .hero-cta-button::before,
-  .hero-cta-button::after {
+  /* 빛은 멈추되 사라지지는 않게 — 멈춘 자리에 그대로 둔다. */
+  .hero-cta-beam > span {
     animation: none;
-  }
-  .hero-cta-button {
-    border-color: rgba(255, 255, 255, 0.5);
   }
 }
 

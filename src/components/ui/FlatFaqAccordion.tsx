@@ -8,7 +8,7 @@ function FaqRow({ item }: { item: FaqItem }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-border bg-surface">
+    <div className="rounded-xl border border-white/12 bg-white/[0.03]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
