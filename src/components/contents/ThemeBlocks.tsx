@@ -85,12 +85,17 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
             {block.items.map((item, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-panel-border bg-panel-raised p-5"
+                className="rounded-xl border border-panel-border bg-panel-raised p-5 sm:px-6 sm:py-7"
               >
                 {/* 이모지는 배경 없이 그대로 둔다 — 원형 바탕을 깔면 아이콘처럼
                     보이려다 색만 튀어서, 카드가 산만해진다. */}
+                {/* 이모지마다 글자 높이가 달라 제목 줄이 어긋난다. 데스크톱에서는
+                    높이를 고정해 세 카드의 제목이 한 줄에 맞게 한다. */}
                 {item.emoji && (
-                  <span className="mb-3 block text-2xl leading-none" aria-hidden>
+                  <span
+                    className="mb-3 flex items-center text-2xl leading-none sm:mb-4 sm:h-8"
+                    aria-hidden
+                  >
                     {item.emoji}
                   </span>
                 )}

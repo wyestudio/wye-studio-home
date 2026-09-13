@@ -23,7 +23,7 @@ function handlePointerEnter(e: React.PointerEvent<HTMLAnchorElement>) {
 const W = 170;
 const H = 52;
 /** 빛번짐이 버튼 바깥으로 나갈 여백. SVG 를 이만큼 키워서 그 안에서 번지게 한다. */
-const PAD = 16;
+const PAD = 22;
 
 /**
  * 버튼 둘레를 도는 빛.
@@ -53,11 +53,11 @@ function BeamBorder() {
       focusable="false"
     >
       {/* 멀리 번지는 빛무리 */}
-      <rect {...rect} className="hero-cta-beam-run hero-cta-beam-haze" stroke="#ffffff" strokeWidth={7} />
+      <rect {...rect} className="hero-cta-beam-run hero-cta-beam-haze" stroke="#ffffff" strokeWidth={13} />
       {/* 가까운 번짐 */}
-      <rect {...rect} className="hero-cta-beam-run hero-cta-beam-glow" stroke="#ffffff" strokeWidth={3} />
+      <rect {...rect} className="hero-cta-beam-run hero-cta-beam-glow" stroke="#ffffff" strokeWidth={5} />
       {/* 심지 */}
-      <rect {...rect} className="hero-cta-beam-run" stroke="#ffffff" strokeWidth={1.4} />
+      <rect {...rect} className="hero-cta-beam-run" stroke="#ffffff" strokeWidth={2} />
     </svg>
   );
 }

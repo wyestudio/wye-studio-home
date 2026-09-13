@@ -312,20 +312,26 @@ html.custom-cursor-active label {
   overflow: visible;
 }
 
-/* 밝은 구간 8.4%, 나머지는 비운다 — 선이 아니라 '빛 한 점' 으로 읽히는 길이. */
+/*
+  둘레의 2% 만 켠다. 여기서 길이를 더 주면 곧바로 '선분이 기어간다' 로 읽힌다
+  (8% 로 뒀더니 지렁이처럼 보였다). 빛처럼 보이게 하는 건 길이가 아니라
+  **번짐의 층수**다 — 심지 하나에 흐린 층을 두 겹 덧대 빛무리를 만든다.
+*/
 .hero-cta-beam-run {
-  stroke-dasharray: 8.4 91.6;
+  stroke-dasharray: 2 98;
   animation: hero-cta-beam-run 5s linear infinite;
 }
 
+/* 심지 바로 바깥 */
 .hero-cta-beam-glow {
-  filter: blur(4px);
-  opacity: 0.7;
+  filter: blur(5px);
+  opacity: 0.8;
 }
 
+/* 멀리 퍼지는 빛무리 */
 .hero-cta-beam-haze {
-  filter: blur(9px);
-  opacity: 0.45;
+  filter: blur(13px);
+  opacity: 0.42;
 }
 
 @keyframes hero-cta-beam-run {
