@@ -263,91 +263,10 @@ html.custom-cursor-active label {
    클리핑 영역이 자연스럽게 완전한 네모로 채워지는 연출(21st.dev
    "Origin Button" 참고). 각진 네모 유지를 위해 버튼 자체엔 border-radius를
    안 주고 overflow:hidden으로만 안쪽 원을 잘라낸다. */
-/*
-  히어로 CTA — 선을 도는 빛.
-
-  ⚠️ 문구는 브랜드 자산이라 건드리지 않는다. 문제는 "YES" 가 눌러야 할 것으로
-     안 보인다는 것이었다. 그래서 단일 선을 깔고, 그 선 위를 빛 한 점이 돈다.
-
-  여기까지 오는 데 두 번 갈아엎었다. 남겨둘 이유가 있다.
-
-  1) conic-gradient 각도를 @property 로 굴렸더니 **배포 빌드에서 멈췄다**
-     (로컬 dev 에서만 돌았다 — CSS 최적화가 등록을 건드리는 것으로 보인다).
-  2) 그래서 요소를 transform 으로 회전시켰더니 이번엔 **속도가 일정하지 않았다.**
-     각속도가 일정하면 중심에서 먼 모서리 쪽이 선 위에서는 더 빨리 지나간다.
-     테두리를 mask 로 남기는 방식이라 선도 '액자' 처럼 두꺼워 보였다.
-  3) 지금은 SVG 사각형의 **선 길이**를 기준으로 dash 를 흘린다. 길이 기준이라
-     어느 변에서든 속도가 같고, 선은 1px 그대로다.
-
-  ⚠️ 그래서 버튼 크기가 고정이어야 한다(컴포넌트의 W/H). 크기가 글자에 따라
-     변하면 SVG 가 늘어나면서 가로·세로 속도가 다시 어긋난다.
-*/
 .hero-cta-button {
-  /* ⚠️ overflow 를 열어둬야 빛번짐이 버튼 바깥으로 나간다.
-     호버 시 퍼지는 흰 원은 .hero-cta-clip 이 따로 잘라준다. */
+  overflow: hidden;
   isolation: isolate;
   background: transparent;
-  transition: transform 0.12s ease;
-}
-
-.hero-cta-clip {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.hero-cta-button:active {
-  transform: scale(0.97);
-}
-
-/* 버튼보다 큰 판이라 가운데로 맞춰 얹는다(넘치는 만큼이 빛번짐 자리). */
-.hero-cta-beam {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1;
-  pointer-events: none;
-  overflow: visible;
-}
-
-/*
-  둘레의 2% 만 켠다. 여기서 길이를 더 주면 곧바로 '선분이 기어간다' 로 읽힌다
-  (8% 로 뒀더니 지렁이처럼 보였다). 빛처럼 보이게 하는 건 길이가 아니라
-  **번짐의 층수**다 — 심지 하나에 흐린 층을 두 겹 덧대 빛무리를 만든다.
-*/
-.hero-cta-beam-run {
-  stroke-dasharray: 2 98;
-  animation: hero-cta-beam-run 5s linear infinite;
-}
-
-/* 심지 바로 바깥 */
-.hero-cta-beam-glow {
-  filter: blur(5px);
-  opacity: 0.8;
-}
-
-/* 멀리 퍼지는 빛무리 */
-.hero-cta-beam-haze {
-  filter: blur(13px);
-  opacity: 0.42;
-}
-
-@keyframes hero-cta-beam-run {
-  from {
-    stroke-dashoffset: 100;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* 호버하면 흰 원이 퍼지며 배경이 뒤집히므로, 도는 빛은 비켜준다. */
-.hero-cta-button:hover .hero-cta-beam,
-.hero-cta-button:focus-visible .hero-cta-beam {
-  opacity: 0;
-  transition: opacity 0.25s ease;
 }
 
 /* ">" 모양 — 글꼴에 기대지 않도록 정사각형을 45도 돌려서 위/오른쪽 변만 남긴다. */
@@ -404,10 +323,6 @@ html.custom-cursor-active label {
   .hero-cta-label-default,
   .hero-cta-label-hover {
     transition: none;
-  }
-  /* 빛은 멈추되 선은 남는다. */
-  .hero-cta-beam-run {
-    animation: none;
   }
 }
 
