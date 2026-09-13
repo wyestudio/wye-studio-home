@@ -32,8 +32,12 @@ export async function generateMetadata({
   if (!theme) return { title: "테마를 찾을 수 없습니다" };
 
   const title = `${theme.name} | 우주이스케이프`;
+  // 검색 결과와 공유 카드에 같이 쓰인다. 어드민의 '한 줄 소개'(tagline)를
+  // 채우면 그게 먼저다 — 지금은 비어 있어 브랜드 문구로 떨어진다.
   const description =
-    theme.tagline ?? theme.description ?? `${theme.name} — 우주이스케이프의 파티형 방탈출`;
+    theme.tagline?.trim() ||
+    theme.description?.trim() ||
+    `${theme.name} — 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출`;
 
   return {
     title,
