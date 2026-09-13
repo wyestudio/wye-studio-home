@@ -95,6 +95,7 @@ function sanitizeContent(raw: unknown): ThemeContent {
             // included 전용 칸. 다른 모양에서는 넣지 않는다.
             ...(variant === "included"
               ? {
+                  ...(str(b.headline) ? { headline: str(b.headline) } : {}),
                   ...(str(b.subtitle) ? { subtitle: str(b.subtitle) } : {}),
                   ...(str(b.highlight) ? { highlight: str(b.highlight) } : {}),
                   ...(str(b.footnote) ? { footnote: str(b.footnote) } : {}),

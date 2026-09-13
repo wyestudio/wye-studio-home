@@ -66,9 +66,9 @@ export function ThemeBlockView({
   maxGroupSize?: number | null;
 }) {
   // 제목은 전부 가운데. 블록마다 왼쪽/가운데가 섞이면 시선이 계속 튄다.
-  // included 는 제목이 판 안에 들어가므로 바깥 제목을 그리지 않는다.
-  const isIncluded = block.type === "list" && block.variant === "included";
-  const heading = !isIncluded && (block.eyebrow || block.title) && (
+  // included 도 라벨·제목을 달 수 있다. 다만 기본은 비워 두는 쪽이다 —
+  // 아래 '참가비 포함 사항' 주석 참고.
+  const heading = (block.eyebrow || block.title) && (
     <SectionHeading
       eyebrow={block.eyebrow ?? ""}
       title={block.title}
@@ -105,17 +105,18 @@ export function ThemeBlockView({
       {/*
         참가비 포함 사항.
 
-        ⚠️ 별도 섹션(INCLUDED 라벨 + 큰 제목)으로 빼지 않는다. 가격표에서
-           눈을 떼기 전에 읽혀야 하므로, **가격표에 이어 붙은 한 판**으로 둔다.
-           그래서 제목도 이 판 안에 들어간다 — 바깥 SectionHeading 은 쓰지 않는다.
+        ⚠️ 라벨·제목(바깥 SectionHeading)은 **비워 두는 것이 기본이다.** 가격표에서
+           눈을 떼기 전에 읽혀야 하므로 **가격표에 이어 붙은 한 판**으로 보여야 하는데,
+           위에 큰 제목이 붙으면 별개의 섹션으로 끊겨 보인다. 그래서 큰 문구(headline)는
+           판 안에 둔다. 필요하면 어드민에서 라벨·제목을 채울 수 있다.
       */}
       {block.type === "list" && block.variant === "included" && (
         <div
           className="w-full overflow-hidden rounded-xl border border-panel-border bg-panel p-6 sm:p-8"
         >
-          {block.title && (
+          {block.headline && (
             <p className="text-lg font-extrabold leading-snug text-foreground sm:text-xl">
-              {block.title}
+              {block.headline}
             </p>
           )}
           {block.subtitle && (

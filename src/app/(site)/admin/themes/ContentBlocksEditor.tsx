@@ -102,7 +102,10 @@ export function ContentBlocksEditor({
                   {THEME_BLOCK_LABELS[b.type]}
                 </span>
                 <span className="flex-1 truncate text-xs text-muted">
-                  {b.title || "(제목 없음)"}
+                  {/* included 는 제목을 비워두는 게 기본이라 판 안 문구로 알아본다. */}
+                  {b.title ||
+                    (b.type === "list" && b.variant === "included" ? b.headline : "") ||
+                    "(제목 없음)"}
                 </span>
                 {b.hidden && (
                   <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-400">
@@ -186,6 +189,17 @@ export function ContentBlocksEditor({
                   {/* 포함 사항 전용 칸. 다른 모양에는 쓰이지 않아 그때만 보여준다. */}
                   {b.type === "list" && b.variant === "included" && (
                     <div className="space-y-2">
+                      <p className="text-[11px] text-muted">
+                        위의 <strong>라벨·블록 제목</strong>은 비워 두는 것을 권합니다 — 가격표에
+                        이어 붙은 한 판으로 보여야 해서, 큰 제목이 붙으면 따로 떨어진 섹션처럼
+                        보입니다.
+                      </p>
+                      <input
+                        className={field}
+                        value={b.headline ?? ""}
+                        onChange={(e) => patch(i, { headline: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="판 안 큰 문구 (참가비 하나로, 플레이부터 리워드까지.)"
+                      />
                       <input
                         className={field}
                         value={b.subtitle ?? ""}

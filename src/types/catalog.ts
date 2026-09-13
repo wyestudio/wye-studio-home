@@ -67,6 +67,14 @@ export type ThemeBlock =
   | ({
       type: "list";
       variant?: "card" | "step" | "included";
+      /**
+       * included 전용 — 판 안의 큰 문구.
+       *
+       * ⚠️ 바깥 제목(title)과 다른 자리다. v2 까지는 이 문구를 title 에 담았는데,
+       *    그래서 included 블록만 라벨·제목을 달 수 없었다(제목 칸이 이미 쓰였으므로).
+       *    v3 에서 분리했다 — normalizeThemeContent 가 읽을 때 옮겨준다.
+       */
+      headline?: string;
       /** included 전용 — 제목 아래 한 줄 */
       subtitle?: string;
       /** included 전용 — 카드 아래 강조 띠 */
@@ -99,7 +107,7 @@ export type ThemeContent = {
   v?: number;
 };
 
-export const THEME_CONTENT_VERSION = 2;
+export const THEME_CONTENT_VERSION = 3;
 
 export const EMPTY_THEME_CONTENT: ThemeContent = { blocks: [] };
 
@@ -153,25 +161,35 @@ export function parseThemeContent(raw: unknown): ThemeContent {
 }
 
 /**
- * 화면·편집기에서 읽을 때. parseThemeContent 에 더해 **v1 콘텐츠에 가격표
- * 블록을 끼워준다.**
+ * 화면·편집기에서 읽을 때. parseThemeContent 에 더해 **옛 버전 콘텐츠를 지금
+ * 구조로 옮겨준다.** 한 번 저장되면 최신 버전이 되어 다시는 손대지 않는다 —
+ * 그래야 운영자가 지운 것은 지운 대로, 비운 것은 비운 대로 남는다.
  *
- * v1 에는 '가격표 블록' 이라는 게 없었다 — 상세 페이지에 하드코딩돼 있어서
- * 어드민에서 위치를 바꾸거나 감출 수 없었다. 블록으로 뺀 지금, 기존 테마도
- * 그대로 가격표가 나와야 하므로 읽을 때 맨 앞에 끼운다.
- *
- * 한 번 저장되면 v2 가 되어 다시는 끼우지 않는다 — 그래야 운영자가 가격표를
- * 지운 것도 지운 대로 남는다.
+ *   v1 → v2 : 가격표 블록을 맨 앞에 끼운다.
+ *             v1 에는 '가격표 블록' 이라는 게 없었다(상세 페이지에 하드코딩).
+ *   v2 → v3 : included 블록의 title 을 headline 으로 옮긴다.
+ *             제목 칸이 판 안의 문구에 쓰이고 있어 라벨·제목을 달 수 없었다.
  */
 export function normalizeThemeContent(raw: unknown): ThemeContent {
   const parsed = parseThemeContent(raw);
-  const hasPrice = parsed.blocks.some((b) => b?.type === "price");
-  if ((parsed.v ?? 1) >= THEME_CONTENT_VERSION || hasPrice) return parsed;
+  const v = parsed.v ?? 1;
+  if (v >= THEME_CONTENT_VERSION) return parsed;
 
-  return {
-    ...parsed,
-    blocks: [{ type: "price", title: "인원별 참가비", eyebrow: "PRICE" }, ...parsed.blocks],
-  };
+  let blocks = parsed.blocks;
+
+  if (v < 2 && !blocks.some((b) => b?.type === "price")) {
+    blocks = [{ type: "price", title: "인원별 참가비", eyebrow: "PRICE" }, ...blocks];
+  }
+
+  if (v < 3) {
+    blocks = blocks.map((b) =>
+      b?.type === "list" && b.variant === "included" && b.headline === undefined
+        ? { ...b, headline: b.title, title: "" }
+        : b
+    );
+  }
+
+  return { ...parsed, blocks };
 }
 
 export type ThemeCategory = {
