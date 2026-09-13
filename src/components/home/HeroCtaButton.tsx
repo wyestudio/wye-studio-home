@@ -13,6 +13,59 @@ function handlePointerEnter(e: React.PointerEvent<HTMLAnchorElement>) {
   el.style.setProperty("--origin-y", `${e.clientY - rect.top}px`);
 }
 
+/**
+ * 버튼 크기를 숫자로 고정한다.
+ *
+ * ⚠️ 테두리를 도는 빛이 **일정한 속도**로 움직이려면, 선을 그리는 SVG 의 좌표계가
+ *    실제 픽셀 크기와 같아야 한다. 크기가 글자에 따라 달라지면 SVG 가 늘어나면서
+ *    가로변과 세로변의 속도가 달라진다.
+ */
+const W = 170;
+const H = 52;
+
+/** 선을 도는 빛. 같은 사각형을 세 번 그린다 — 바탕선 / 잔광 / 빛. */
+function BeamBorder() {
+  const rect = {
+    x: 0.5,
+    y: 0.5,
+    width: W - 1,
+    height: H - 1,
+    fill: "none",
+    // 길이를 100 으로 정규화해두면 dash 값을 % 처럼 쓸 수 있다.
+    pathLength: 100,
+  };
+
+  return (
+    <svg
+      className="hero-cta-beam"
+      viewBox={`0 0 ${W} ${H}`}
+      width={W}
+      height={H}
+      aria-hidden
+      focusable="false"
+    >
+      {/* 항상 보이는 단일 선 */}
+      <rect {...rect} stroke="rgba(255,255,255,0.22)" strokeWidth={1} />
+      {/* 잔광 — 같은 선 위를 같은 속도로 돈다 */}
+      <rect
+        {...rect}
+        className="hero-cta-beam-run hero-cta-beam-glow"
+        stroke="#ffffff"
+        strokeWidth={3}
+        strokeLinecap="round"
+      />
+      {/* 빛 */}
+      <rect
+        {...rect}
+        className="hero-cta-beam-run"
+        stroke="#ffffff"
+        strokeWidth={1.4}
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function HeroCtaButton() {
   const ref = useRef<HTMLAnchorElement>(null);
 
@@ -21,15 +74,10 @@ export function HeroCtaButton() {
       ref={ref}
       href="/contents"
       onPointerEnter={handlePointerEnter}
-      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] px-10 text-[1.1rem] font-semibold tracking-wide text-white"
+      style={{ width: W, height: H }}
+      className="hero-cta-button pointer-events-auto relative inline-flex items-center justify-center text-[1.1rem] font-semibold tracking-wide text-white"
     >
-      {/* 테두리를 도는 빛. 선 한 겹 + 번짐 한 겹. */}
-      <span aria-hidden className="hero-cta-beam is-glow">
-        <span />
-      </span>
-      <span aria-hidden className="hero-cta-beam">
-        <span />
-      </span>
+      <BeamBorder />
       <span aria-hidden className="hero-cta-fill" />
       <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">
         <span aria-hidden className="hero-cta-arrow" />

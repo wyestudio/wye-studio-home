@@ -70,7 +70,7 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
       */}
       {block.type === "list" && block.variant === "included" && (
         <div
-          className="w-full overflow-hidden rounded-xl border border-white/15 bg-white/[0.03] p-6 sm:p-8"
+          className="w-full overflow-hidden rounded-xl border border-panel-border bg-panel p-6 sm:p-8"
         >
           {block.title && (
             <p className="text-lg font-extrabold leading-snug text-foreground sm:text-xl">
@@ -85,7 +85,7 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
             {block.items.map((item, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-5"
+                className="rounded-xl border border-panel-border bg-panel-raised p-5"
               >
                 {item.emoji && (
                   <span
@@ -126,7 +126,7 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
             {block.items.map((step, i) => (
               <div
                 key={i}
-                className="relative rounded-xl border border-white/12 bg-white/[0.03] p-5 pt-6"
+                className="relative rounded-xl border border-panel-border bg-panel p-5 pt-6"
               >
                 <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold text-brand-foreground">
                   STEP {i + 1}
@@ -141,7 +141,7 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {block.items.map((card, i) => (
-              <div key={i} className="flex gap-3 rounded-xl border border-white/12 bg-white/[0.03] p-5">
+              <div key={i} className="flex gap-3 rounded-xl border border-panel-border bg-panel p-5">
                 {card.emoji && (
                   <span className="text-2xl" aria-hidden>
                     {card.emoji}
@@ -179,7 +179,7 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
       {block.type === "callout" && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {block.items.map((p, i) => (
-            <div key={i} className="flex gap-4 rounded-xl border border-white/12 bg-white/[0.03] p-5">
+            <div key={i} className="flex gap-4 rounded-xl border border-panel-border bg-panel p-5">
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-xs font-bold text-danger">
                 {i + 1}
               </span>
