@@ -21,15 +21,15 @@ export function HeroCtaButton() {
       ref={ref}
       href="/contents"
       onPointerEnter={handlePointerEnter}
-      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] pl-10 pr-[55px] text-[1.1rem] font-semibold tracking-wide text-white"
+      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] px-9 text-[1.1rem] font-semibold tracking-wide text-white"
     >
       <span aria-hidden className="hero-cta-fill" />
       <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">
         <span aria-hidden className="hero-cta-arrow" />
         YES
       </span>
-      {/* 호버 라벨은 왼쪽 정렬된 기본 라벨과 별개로 버튼 전체 폭 기준 정중앙에 오게
-          absolute + inset-0으로 독립시킨다(기본 라벨의 비대칭 패딩에 안 끌려가게). */}
+      {/* 호버 라벨은 버튼 전체 폭 기준 정중앙에 오게 absolute + inset-0 으로 독립시킨다.
+          기본 라벨(화살표 + YES)보다 글자가 길어서, 흐름에 두면 폭이 출렁인다. */}
       <span
         aria-hidden
         className="hero-cta-label-hover absolute inset-0 z-10 flex items-center justify-center"

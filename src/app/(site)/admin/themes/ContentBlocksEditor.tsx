@@ -137,11 +137,14 @@ export function ContentBlocksEditor({
                         className={`${field} w-44`}
                         value={b.variant ?? "card"}
                         onChange={(e) =>
-                          patch(i, { variant: e.target.value as "card" | "step" } as Partial<ThemeBlock>)
+                          patch(i, {
+                            variant: e.target.value as "card" | "step" | "included",
+                          } as Partial<ThemeBlock>)
                         }
                       >
                         <option value="card">카드 (이모지 + 설명)</option>
                         <option value="step">STEP 1·2·3</option>
+                        <option value="included">포함 사항 (가격표 아래용)</option>
                       </select>
                     </label>
                   )}

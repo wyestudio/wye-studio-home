@@ -59,7 +59,37 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
         </div>
       )}
 
+      {/*
+        포함 사항 — 카드를 흩뿌리지 않고 한 판에 모은다. 낱장 카드로 만들면
+        "또 다른 소개 문구" 로 읽히는데, 한 판에 줄로 세우면 '받아가는 목록'
+        으로 읽힌다. 액티비티·숙박 예약의 'What's included' 와 같은 꼴이다.
+      */}
+      {block.type === "list" && block.variant === "included" && (
+        <div className="mx-auto w-full max-w-xl overflow-hidden rounded-xl border bg-surface"
+             style={{ borderColor: `${accent}40` }}>
+          {block.items.map((item, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-4 border-b border-border/60 px-5 py-4 last:border-b-0"
+            >
+              {item.emoji && (
+                <span className="mt-0.5 shrink-0 text-xl leading-none" aria-hidden>
+                  {item.emoji}
+                </span>
+              )}
+              <div className="min-w-0">
+                <p className="font-bold text-foreground">{item.title}</p>
+                {item.desc && (
+                  <p className="mt-1 text-xs leading-relaxed text-muted">{item.desc}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {block.type === "list" &&
+        block.variant !== "included" &&
         (block.variant === "step" ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
             {block.items.map((step, i) => (

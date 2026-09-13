@@ -251,10 +251,52 @@ html.custom-cursor-active label {
    클리핑 영역이 자연스럽게 완전한 네모로 채워지는 연출(21st.dev
    "Origin Button" 참고). 각진 네모 유지를 위해 버튼 자체엔 border-radius를
    안 주고 overflow:hidden으로만 안쪽 원을 잘라낸다. */
+/*
+  히어로 CTA.
+
+  ⚠️ 문구는 브랜드 자산이라 건드리지 않는다. 문제는 "YES" 가 **눌러야 할 것으로
+     안 보인다**는 것이었다 — 테두리도 배경도 없어 그냥 글자였고, 버튼이라는
+     신호가 hover 에만 있어서 터치 기기에서는 아예 드러나지 않았다.
+
+  그래서 가만히 있을 때도 버튼으로 읽히게 세 가지만 더한다.
+    1) 캡슐 테두리 — 가장 확실한 "누를 수 있음" 신호
+    2) 아주 느린 숨쉬기 — 시선을 끌되 산만하지 않게 (4초 주기)
+    3) 눌렀을 때 살짝 들어감 — 터치에서 반응이 느껴지도록
+  호버 시 흰 원이 퍼지는 기존 연출은 그대로다.
+*/
 .hero-cta-button {
   overflow: hidden;
   isolation: isolate;
   background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  /* 캡슐이어야 퍼지는 흰 원도 이 모양 안에서 잘린다 */
+  border-radius: 999px;
+  animation: hero-cta-breathe 4s ease-in-out infinite;
+  transition:
+    border-color 0.3s ease,
+    transform 0.12s ease;
+}
+
+@keyframes hero-cta-breathe {
+  0%,
+  100% {
+    border-color: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 24px 1px rgba(255, 255, 255, 0.09);
+  }
+}
+
+.hero-cta-button:hover,
+.hero-cta-button:focus-visible {
+  border-color: rgba(255, 255, 255, 0.85);
+  animation-play-state: paused;
+}
+
+.hero-cta-button:active {
+  transform: scale(0.97);
 }
 
 /* ">" 모양 — 글꼴에 기대지 않도록 정사각형을 45도 돌려서 위/오른쪽 변만 남긴다. */
@@ -311,6 +353,11 @@ html.custom-cursor-active label {
   .hero-cta-label-default,
   .hero-cta-label-hover {
     transition: none;
+  }
+  /* 숨쉬기는 끄되 테두리는 남긴다 — 버튼으로 보이는 것 자체는 접근성 문제가 아니다. */
+  .hero-cta-button {
+    animation: none;
+    border-color: rgba(255, 255, 255, 0.5);
   }
 }
 

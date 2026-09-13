@@ -38,11 +38,17 @@ export type ThemeBlock =
   | ({ type: "text"; body: string } & BlockCommon)
   /**
    * 목록. 이모지는 선택.
-   * variant "card" = 이모지 + 제목 + 설명 카드 / "step" = STEP 1·2·3 배지가 붙은 카드.
+   *   "card"     = 이모지 + 제목 + 설명 카드 (2열)
+   *   "step"     = STEP 1·2·3 배지가 붙은 카드 (3열)
+   *   "included" = 참가비에 포함된 것. 한 판에 줄줄이 — 영수증처럼 읽힌다.
+   *
+   * ⚠️ included 는 **가격표 바로 아래**에 두라고 만든 모양이다. 가격을 보고
+   *    "비싸다" 고 느끼는 순간에 받아가는 것을 세어줘야 한다. 세 섹션 뒤에
+   *    있으면 닿지 않는다.
    */
   | ({
       type: "list";
-      variant?: "card" | "step";
+      variant?: "card" | "step" | "included";
       items: { emoji: string; title: string; desc: string }[];
     } & BlockCommon)
   /**
