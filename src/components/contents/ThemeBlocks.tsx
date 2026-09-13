@@ -87,12 +87,10 @@ export function ThemeBlockView({ block, accent }: { block: ThemeBlock; accent: s
                 key={i}
                 className="rounded-xl border border-panel-border bg-panel-raised p-5"
               >
+                {/* 이모지는 배경 없이 그대로 둔다 — 원형 바탕을 깔면 아이콘처럼
+                    보이려다 색만 튀어서, 카드가 산만해진다. */}
                 {item.emoji && (
-                  <span
-                    className="mb-3 flex h-10 w-10 items-center justify-center rounded-full text-lg"
-                    style={{ backgroundColor: `${accent}1f` }}
-                    aria-hidden
-                  >
+                  <span className="mb-3 block text-2xl leading-none" aria-hidden>
                     {item.emoji}
                   </span>
                 )}

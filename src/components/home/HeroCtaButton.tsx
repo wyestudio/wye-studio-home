@@ -22,15 +22,23 @@ function handlePointerEnter(e: React.PointerEvent<HTMLAnchorElement>) {
  */
 const W = 170;
 const H = 52;
+/** 빛번짐이 버튼 바깥으로 나갈 여백. SVG 를 이만큼 키워서 그 안에서 번지게 한다. */
+const PAD = 16;
 
-/** 선을 도는 빛. 같은 사각형을 세 번 그린다 — 바탕선 / 잔광 / 빛. */
+/**
+ * 버튼 둘레를 도는 빛.
+ *
+ * 선은 그리지 않는다 — 빛 한 점만 공중에서 도는 것처럼 보여야 한다.
+ * 같은 사각형 경로를 세 겹으로 겹쳐 번짐을 만든다(멀리 → 가까이 → 심지).
+ */
 function BeamBorder() {
   const rect = {
-    x: 0.5,
-    y: 0.5,
+    x: PAD + 0.5,
+    y: PAD + 0.5,
     width: W - 1,
     height: H - 1,
     fill: "none",
+    strokeLinecap: "round" as const,
     // 길이를 100 으로 정규화해두면 dash 값을 % 처럼 쓸 수 있다.
     pathLength: 100,
   };
@@ -38,30 +46,18 @@ function BeamBorder() {
   return (
     <svg
       className="hero-cta-beam"
-      viewBox={`0 0 ${W} ${H}`}
-      width={W}
-      height={H}
+      viewBox={`0 0 ${W + PAD * 2} ${H + PAD * 2}`}
+      width={W + PAD * 2}
+      height={H + PAD * 2}
       aria-hidden
       focusable="false"
     >
-      {/* 항상 보이는 단일 선 */}
-      <rect {...rect} stroke="rgba(255,255,255,0.22)" strokeWidth={1} />
-      {/* 잔광 — 같은 선 위를 같은 속도로 돈다 */}
-      <rect
-        {...rect}
-        className="hero-cta-beam-run hero-cta-beam-glow"
-        stroke="#ffffff"
-        strokeWidth={3}
-        strokeLinecap="round"
-      />
-      {/* 빛 */}
-      <rect
-        {...rect}
-        className="hero-cta-beam-run"
-        stroke="#ffffff"
-        strokeWidth={1.4}
-        strokeLinecap="round"
-      />
+      {/* 멀리 번지는 빛무리 */}
+      <rect {...rect} className="hero-cta-beam-run hero-cta-beam-haze" stroke="#ffffff" strokeWidth={7} />
+      {/* 가까운 번짐 */}
+      <rect {...rect} className="hero-cta-beam-run hero-cta-beam-glow" stroke="#ffffff" strokeWidth={3} />
+      {/* 심지 */}
+      <rect {...rect} className="hero-cta-beam-run" stroke="#ffffff" strokeWidth={1.4} />
     </svg>
   );
 }
@@ -78,7 +74,11 @@ export function HeroCtaButton() {
       className="hero-cta-button pointer-events-auto relative inline-flex items-center justify-center text-[1.1rem] font-semibold tracking-wide text-white"
     >
       <BeamBorder />
-      <span aria-hidden className="hero-cta-fill" />
+      {/* 호버 시 퍼지는 흰 원은 버튼 안에서만 보여야 하므로 따로 잘라둔다.
+          버튼 자체는 overflow 를 열어둬야 빛번짐이 바깥으로 나간다. */}
+      <span aria-hidden className="hero-cta-clip">
+        <span className="hero-cta-fill" />
+      </span>
       <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">
         <span aria-hidden className="hero-cta-arrow" />
         YES

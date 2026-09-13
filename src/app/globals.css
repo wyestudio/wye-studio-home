@@ -283,32 +283,49 @@ html.custom-cursor-active label {
      변하면 SVG 가 늘어나면서 가로·세로 속도가 다시 어긋난다.
 */
 .hero-cta-button {
-  overflow: hidden;
+  /* ⚠️ overflow 를 열어둬야 빛번짐이 버튼 바깥으로 나간다.
+     호버 시 퍼지는 흰 원은 .hero-cta-clip 이 따로 잘라준다. */
   isolation: isolate;
   background: transparent;
   transition: transform 0.12s ease;
+}
+
+.hero-cta-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .hero-cta-button:active {
   transform: scale(0.97);
 }
 
+/* 버튼보다 큰 판이라 가운데로 맞춰 얹는다(넘치는 만큼이 빛번짐 자리). */
 .hero-cta-beam {
   position: absolute;
-  inset: 0;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1;
   pointer-events: none;
+  overflow: visible;
 }
 
-/* 밝은 구간 12%, 나머지 88% 는 비운다. 점 하나가 달리는 것처럼 보이는 길이. */
+/* 밝은 구간 8.4%, 나머지는 비운다 — 선이 아니라 '빛 한 점' 으로 읽히는 길이. */
 .hero-cta-beam-run {
-  stroke-dasharray: 12 88;
-  animation: hero-cta-beam-run 3.2s linear infinite;
+  stroke-dasharray: 8.4 91.6;
+  animation: hero-cta-beam-run 5s linear infinite;
 }
 
 .hero-cta-beam-glow {
-  filter: blur(3px);
-  opacity: 0.75;
+  filter: blur(4px);
+  opacity: 0.7;
+}
+
+.hero-cta-beam-haze {
+  filter: blur(9px);
+  opacity: 0.45;
 }
 
 @keyframes hero-cta-beam-run {
