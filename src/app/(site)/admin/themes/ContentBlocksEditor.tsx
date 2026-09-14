@@ -269,24 +269,20 @@ export function ContentBlocksEditor({
 
                       <MiniRows
                         label="크리에이터 후기 게시물 (옆으로 밀어서 봅니다)"
-                        hint="채널은 instagram 또는 naver. 인스타는 주소만 넣으면 게시물 원본이 그대로 붙습니다(제목·요약·이미지 불필요). 네이버 블로그는 임베드가 안 돼서 제목·요약·썸네일을 채워야 카드가 그려집니다."
+                        hint={
+                          "인스타그램은 주소만 넣으면 게시물이 그대로 붙습니다 — 제목·요약·썸네일 칸은 비워두세요. " +
+                          "네이버 블로그는 임베드가 안 되므로 네 칸을 채워야 카드가 그려집니다. " +
+                          "순서는 여기 적은 순서 그대로 나갑니다."
+                        }
+                        wrap
                         cols={[
-                          { key: "channel", label: "instagram / naver", width: "w-36" },
-                          { key: "url", label: "게시물 주소" },
-                          { key: "author", label: "작성자", width: "w-28" },
+                          { key: "channel", label: "채널", width: "w-32", options: ["naver", "instagram"] },
+                          { key: "url", label: "게시물 주소", width: "w-[22rem]" },
+                          { key: "author", label: "작성자 (네이버만)", width: "w-36" },
                           { key: "date", label: "게시일", width: "w-28" },
-                        ]}
-                        rows={b.links}
-                        onChange={(links) => patch(i, { links } as Partial<ThemeBlock>)}
-                      />
-
-                      <MiniRows
-                        label="네이버 블로그 카드 내용"
-                        hint="위 목록에서 naver 인 줄과 같은 순서로 채워주세요. 인스타 줄은 비워두면 됩니다."
-                        cols={[
-                          { key: "title", label: "글 제목" },
-                          { key: "excerpt", label: "요약" },
-                          { key: "image", label: "썸네일 주소" },
+                          { key: "title", label: "글 제목 (네이버만)", width: "w-[22rem]" },
+                          { key: "excerpt", label: "요약 (네이버만)", width: "w-[22rem]" },
+                          { key: "image", label: "썸네일 주소 (네이버만)", width: "w-[22rem]" },
                         ]}
                         rows={b.links}
                         onChange={(links) => patch(i, { links } as Partial<ThemeBlock>)}
@@ -475,13 +471,16 @@ function RowsEditor({
 function MiniRows({
   label,
   hint,
+  wrap = false,
   cols,
   rows,
   onChange,
 }: {
   label: string;
   hint?: string;
-  cols: { key: string; label: string; width?: string }[];
+  /** 칸이 많을 때 줄바꿈해서 쌓는다. 안 그러면 칸마다 실처럼 찌그러진다. */
+  wrap?: boolean;
+  cols: { key: string; label: string; width?: string; options?: string[] }[];
   rows: Record<string, unknown>[];
   onChange: (rows: Record<string, unknown>[]) => void;
 }) {
@@ -493,18 +492,38 @@ function MiniRows({
       {hint && <p className="text-[11px] leading-relaxed text-muted">{hint}</p>}
 
       {rows.map((row, r) => (
-        <div key={r} className="flex items-start gap-2">
-          {cols.map((c) => (
-            <input
-              key={c.key}
-              className={`${cell} ${c.width ?? "min-w-0 flex-1"}`}
-              value={String(row?.[c.key] ?? "")}
-              placeholder={c.label}
-              onChange={(e) =>
-                onChange(rows.map((x, k) => (k === r ? { ...x, [c.key]: e.target.value } : x)))
-              }
-            />
-          ))}
+        <div
+          key={r}
+          className={`flex items-start gap-2 ${wrap ? "flex-wrap rounded border border-border/50 p-2" : ""}`}
+        >
+          {cols.map((c) =>
+            c.options ? (
+              <select
+                key={c.key}
+                className={`${cell} ${c.width ?? "min-w-0 flex-1"}`}
+                value={String(row?.[c.key] ?? c.options[0])}
+                onChange={(e) =>
+                  onChange(rows.map((x, k) => (k === r ? { ...x, [c.key]: e.target.value } : x)))
+                }
+              >
+                {c.options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                key={c.key}
+                className={`${cell} ${c.width ?? "min-w-0 flex-1"}`}
+                value={String(row?.[c.key] ?? "")}
+                placeholder={c.label}
+                onChange={(e) =>
+                  onChange(rows.map((x, k) => (k === r ? { ...x, [c.key]: e.target.value } : x)))
+                }
+              />
+            )
+          )}
           <button
             type="button"
             onClick={() => onChange(rows.filter((_, k) => k !== r))}

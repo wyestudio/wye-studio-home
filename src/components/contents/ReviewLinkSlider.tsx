@@ -26,10 +26,17 @@ export type ReviewLink = {
   date?: string;
 };
 
-/** 인스타 게시물 주소에서 임베드 주소를 만든다. /p/ 와 /reel/ 둘 다 받는다. */
+/**
+ * 인스타 게시물 주소에서 임베드 주소를 만든다. /p/ 와 /reel/ 둘 다 받는다.
+ *
+ * ⚠️ `/embed/captioned/` 를 쓰지 않는다. 캡션까지 넣으면 게시물에 따라
+ *    650~1200px 까지 늘어나 카드가 지나치게 길어진다(2026-09-14 제보).
+ *    캡션 없는 기본 임베드는 머리말 + 사진 + 아이콘 줄로 끝나 한눈에 들어오고,
+ *    본문은 카드를 눌러 인스타에서 읽으면 된다 — 네이버 카드와 같은 방식이다.
+ */
 function toEmbedUrl(url: string): string | null {
   const m = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  return m ? `https://www.instagram.com/p/${m[1]}/embed/captioned/` : null;
+  return m ? `https://www.instagram.com/p/${m[1]}/embed/` : null;
 }
 
 export function ReviewLinkSlider({ links, accent }: { links: ReviewLink[]; accent: string }) {
@@ -82,7 +89,7 @@ export function ReviewLinkSlider({ links, accent }: { links: ReviewLink[]; accen
           높이를 하나로 못 박지 않고도 아랫줄이 들쭉날쭉해 보이지 않게 한다.
         */}
         {links.map((link, i) => (
-          <div key={i} className="flex w-[300px] shrink-0 snap-start sm:w-[320px]">
+          <div key={i} className="flex w-[280px] shrink-0 snap-start sm:w-[300px]">
             {link.channel === "instagram" ? (
               <div className="w-full self-start">
                 <InstagramCard link={link} />
@@ -173,7 +180,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex min-h-[560px] w-full flex-col overflow-hidden rounded-xl border border-panel-border bg-panel"
+      className="group flex min-h-[520px] w-full flex-col overflow-hidden rounded-xl border border-panel-border bg-panel"
     >
       <div className="flex items-center gap-2.5 border-b border-panel-border px-4 py-3">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#03C75A] text-[13px] font-black text-white">
@@ -204,7 +211,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
           </p>
         )}
         {link.excerpt && (
-          <p className="mt-2 line-clamp-5 text-xs leading-relaxed text-muted">{link.excerpt}</p>
+          <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">{link.excerpt}</p>
         )}
         <span className="mt-auto pt-3 text-xs font-semibold" style={{ color: accent }}>
           네이버 블로그에서 읽기 →

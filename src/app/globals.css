@@ -487,11 +487,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   width: 1px;
   height: 34px;
   overflow: hidden;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--glow) 45%, transparent),
-    transparent
-  );
+  background: linear-gradient(to bottom, rgb(255 255 255 / 0.5), transparent);
 }
 
 .scroll-cue-rail::after {
@@ -503,10 +499,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   height: 9px;
   margin-left: -1.5px;
   border-radius: 2px;
-  background: var(--glow);
+  background: #fff;
   box-shadow:
-    0 0 6px 1px color-mix(in srgb, var(--glow) 70%, transparent),
-    0 0 14px 3px color-mix(in srgb, var(--glow) 35%, transparent);
+    0 0 6px 1px rgb(255 255 255 / 0.75),
+    0 0 14px 3px rgb(255 255 255 / 0.35);
   animation: scroll-cue-fall 1.9s cubic-bezier(0.5, 0, 0.6, 1) infinite;
 }
 

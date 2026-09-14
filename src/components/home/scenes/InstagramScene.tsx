@@ -25,6 +25,9 @@ import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
  */
 const HANDLE = "wouldyouescape";
 
+/** 캡션 없는 임베드의 대략적인 높이. 실제 값은 임베드가 알려주지만 축소 비율은 먼저 정해야 한다. */
+const CARD_HEIGHT = 580;
+
 const POSTS = [
   "https://www.instagram.com/p/DdOQX1TE9Ht/",
   "https://www.instagram.com/reel/DcN-6Zzzhvg/",
@@ -84,6 +87,25 @@ export function InstagramScene({
     return () => window.removeEventListener("scroll", check);
   }, [reduceMotion]);
 
+  /*
+    카드 축소 비율.
+
+    ⚠️ 인스타 임베드는 폭을 좁혀도 높이가 그만큼 줄지 않는다(머리말·아이콘 줄은
+       높이가 고정이다). 그래서 폭이 아니라 **통째로 축소**한다.
+       모바일에서 카드가 화면보다 높아 위쪽 제목이 잘린다는 제보를 받아 넣었다
+       (2026-09-14). 제목·링크가 차지하는 몫(약 190px)을 빼고 남는 높이에 맞춘다.
+  */
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    const fit = () => {
+      const room = window.innerHeight - 200;
+      setScale(Math.max(0.55, Math.min(1, room / CARD_HEIGHT)));
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+
   return (
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -100,14 +122,14 @@ export function InstagramScene({
           </a>
         </div>
 
-        <PostRail mounted={mounted} />
+        <PostRail mounted={mounted} scale={scale} />
       </div>
     </SceneShell>
   );
 }
 
 /** 옆으로 미는 게시물 줄. 스크롤 막대는 감춘다 — 우주 화면에 막대가 뜨면 튄다. */
-function PostRail({ mounted }: { mounted: boolean }) {
+function PostRail({ mounted, scale }: { mounted: boolean; scale: number }) {
   return (
     <div
       /* ⚠️ pointer-events-auto 를 주면 안 된다. 씬들은 한 자리에 겹쳐 쌓이고
@@ -118,23 +140,34 @@ function PostRail({ mounted }: { mounted: boolean }) {
                  [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {POSTS.map((url) => (
-        <EmbedCard key={url} url={url} mounted={mounted} />
+        <EmbedCard key={url} url={url} mounted={mounted} scale={scale} />
       ))}
     </div>
   );
 }
 
 /** 씬이 등장한 뒤에야 iframe 을 붙인다. 다섯 개를 처음부터 띄우면 홈이 무거워진다. */
-function EmbedCard({ url, mounted }: { url: string; mounted: boolean }) {
+function EmbedCard({
+  url,
+  mounted,
+  scale,
+}: {
+  url: string;
+  mounted: boolean;
+  scale: number;
+}) {
   const { ref, height } = useInstagramEmbedHeight();
   const embed = toEmbedUrl(url);
   if (!embed) return null;
 
+  // 바깥 상자는 '축소된 크기'를, 안쪽 iframe 은 '원래 크기'를 갖는다.
+  // iframe 을 직접 작게 만들면 임베드가 그 폭에 맞춰 레이아웃을 다시 잡아버린다.
+  const baseWidth = 320;
+
   return (
     <div
-      className="w-[280px] shrink-0 snap-start self-start overflow-hidden rounded-xl
-                 border border-panel-border bg-white sm:w-[320px]"
-      style={{ height }}
+      className="shrink-0 snap-start self-start overflow-hidden rounded-xl border border-panel-border bg-white"
+      style={{ width: baseWidth * scale, height: height * scale }}
     >
       {mounted ? (
         <iframe
@@ -143,8 +176,13 @@ function EmbedCard({ url, mounted }: { url: string; mounted: boolean }) {
           title="인스타그램 게시물"
           loading="lazy"
           scrolling="no"
-          className="w-full"
-          style={{ border: 0, height }}
+          style={{
+            border: 0,
+            width: baseWidth,
+            height,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
           allow="encrypted-media; picture-in-picture"
         />
       ) : (

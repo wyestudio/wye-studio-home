@@ -45,15 +45,31 @@ export function MascotCursor() {
       el.style.opacity = isInteractive ? DIMMED_OPACITY : "1";
     }
 
+    /*
+      iframe 위로 들어가면 마스코트를 감춘다.
+
+      ⚠️ 크로스 오리진 iframe(인스타 임베드) 안에서는 부모 창에 pointermove 가
+         오지 않는다. 그대로 두면 마스코트가 마지막 위치에 굳어버려서
+         "커서와 캐릭터가 분리된" 것처럼 보인다(2026-09-14 제보).
+         iframe 안에서는 그 문서의 기본 커서가 보이므로, 우리 마스코트만
+         조용히 빼는 것이 맞다. 밖으로 나오면 pointermove 가 다시 켜준다.
+    */
+    function handleOver(e: PointerEvent) {
+      if (!el) return;
+      if ((e.target as HTMLElement | null)?.tagName === "IFRAME") el.style.opacity = "0";
+    }
+
     function handleLeave() {
       if (!el) return;
       el.style.opacity = "0";
     }
 
     window.addEventListener("pointermove", handleMove);
+    document.addEventListener("pointerover", handleOver);
     document.addEventListener("pointerleave", handleLeave);
     return () => {
       window.removeEventListener("pointermove", handleMove);
+      document.removeEventListener("pointerover", handleOver);
       document.removeEventListener("pointerleave", handleLeave);
       document.body.style.cursor = "";
       document.documentElement.classList.remove("custom-cursor-active");

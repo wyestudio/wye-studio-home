@@ -70,12 +70,17 @@ export function HeroScene({
           <HeroCtaButton />
         </div>
 
-        {/*
-          스크롤 안내. 히어로가 빠져나갈 때 같이 사라져야 하므로 SceneShell 안에 둔다
-          (SceneShell 이 씬 전체 투명도를 관리한다 — 따로 계산하지 않는다).
-        */}
-        <ScrollCue />
+
       </div>
+
+      {/*
+        스크롤 안내.
+        ⚠️ absolute 로 띄운다. 흐름에 두면 로고·문구·YES 묶음의 세로 가운데가
+           이것 때문에 위로 밀린다. 정중앙은 그대로 두고 안내만 아래에 둔다.
+        히어로가 빠져나갈 때 같이 사라져야 하므로 SceneShell 안에 둔다
+        (SceneShell 이 씬 전체 투명도를 관리한다 — 따로 계산하지 않는다).
+      */}
+      <ScrollCue />
     </SceneShell>
   );
 }
@@ -91,9 +96,9 @@ function ScrollCue() {
   return (
     <div
       aria-hidden
-      className="mt-10 flex flex-col items-center gap-2 sm:mt-14"
+      className="absolute bottom-8 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 sm:bottom-10"
     >
-      <span className="font-mono text-[10px] tracking-[0.42em] text-muted">SCROLL</span>
+      <span className="font-mono text-[10px] tracking-[0.42em] text-white/85">SCROLL</span>
       <span className="scroll-cue-rail" />
     </div>
   );
