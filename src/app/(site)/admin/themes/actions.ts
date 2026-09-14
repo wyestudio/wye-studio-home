@@ -137,6 +137,35 @@ function sanitizeContent(raw: unknown): ThemeContent {
           };
         case "image":
           return { ...common, type: "image", src: str(b.src), alt: str(b.alt) };
+        case "reviews":
+          return {
+            ...common,
+            type: "reviews",
+            ...(str(b.subtitle) ? { subtitle: str(b.subtitle) } : {}),
+            ...(str(b.instagramHandle)
+              ? { instagramHandle: str(b.instagramHandle).replace(/^@/, "").trim() }
+              : {}),
+            stats: arr(b.stats).map((x) => {
+              const o = x as Record<string, unknown>;
+              return {
+                value: str(o?.value),
+                label: str(o?.label),
+                ...(str(o?.note) ? { note: str(o?.note) } : {}),
+              };
+            }),
+            quotes: arr(b.quotes).map((x) => {
+              const o = x as Record<string, unknown>;
+              return { text: str(o?.text), ...(str(o?.meta) ? { meta: str(o?.meta) } : {}) };
+            }),
+            posts: arr(b.posts).map((x) => {
+              const o = x as Record<string, unknown>;
+              return {
+                image: str(o?.image),
+                url: str(o?.url),
+                ...(str(o?.caption) ? { caption: str(o?.caption) } : {}),
+              };
+            }),
+          };
         default:
           return null;
       }

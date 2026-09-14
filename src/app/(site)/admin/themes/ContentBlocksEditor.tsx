@@ -30,6 +30,16 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
       return { type, title: "자주 묻는 질문", eyebrow: "FAQ", items: [{ q: "", a: "" }] };
     case "image":
       return { type, title: "", src: "", alt: "" };
+    case "reviews":
+      return {
+        type,
+        title: "참여자 후기",
+        eyebrow: "REVIEWS",
+        stats: [{ value: "", label: "", note: "" }],
+        quotes: [{ text: "", meta: "" }],
+        instagramHandle: "",
+        posts: [{ image: "", url: "", caption: "" }],
+      };
   }
 }
 
@@ -223,6 +233,67 @@ export function ContentBlocksEditor({
                     </div>
                   )}
 
+                  {/*
+                    후기 전용 칸. 배열이 셋(수치·후기·게시물)이라 공용 RowsEditor
+                    하나로는 안 되고, 배열마다 표를 따로 둔다.
+                  */}
+                  {b.type === "reviews" && (
+                    <div className="space-y-3">
+                      <input
+                        className={field}
+                        value={b.subtitle ?? ""}
+                        onChange={(e) => patch(i, { subtitle: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="제목 아래 한 줄 (비우면 안 나옵니다)"
+                      />
+
+                      <MiniRows
+                        label="요약 수치 (2개 권장)"
+                        hint="설문에서 나온 값을 손으로 적습니다. '근거' 칸에 어느 설문·몇 명인지 남겨주세요."
+                        cols={[
+                          { key: "value", label: "숫자 (4.6 / 5)", width: "w-32" },
+                          { key: "label", label: "이름 (만족도)", width: "w-40" },
+                          { key: "note", label: "근거 (응답 49명)" },
+                        ]}
+                        rows={b.stats}
+                        onChange={(stats) => patch(i, { stats } as Partial<ThemeBlock>)}
+                      />
+
+                      <MiniRows
+                        label="한 줄 후기"
+                        cols={[
+                          { key: "text", label: "후기 내용" },
+                          { key: "meta", label: "출처 (2026.08.29 · 그룹 회차)", width: "w-56" },
+                        ]}
+                        rows={b.quotes}
+                        onChange={(quotes) => patch(i, { quotes } as Partial<ThemeBlock>)}
+                      />
+
+                      <label className="block text-xs text-muted">
+                        인스타그램 계정 (@ 없이)
+                        <input
+                          className={`${field} mt-1`}
+                          value={b.instagramHandle ?? ""}
+                          onChange={(e) =>
+                            patch(i, { instagramHandle: e.target.value } as Partial<ThemeBlock>)
+                          }
+                          placeholder="wouldyouescape — 비우면 인스타 영역이 통째로 빠집니다"
+                        />
+                      </label>
+
+                      <MiniRows
+                        label="인스타그램 게시물"
+                        hint="이미지는 인스타에서 자동으로 못 가져옵니다(주소가 곧 만료돼요). 위 포스터 업로드처럼 우리 저장소 주소를 넣어주세요."
+                        cols={[
+                          { key: "image", label: "이미지 주소" },
+                          { key: "url", label: "게시물 주소 (instagram.com/p/...)" },
+                          { key: "caption", label: "한 줄 설명" },
+                        ]}
+                        rows={b.posts}
+                        onChange={(posts) => patch(i, { posts } as Partial<ThemeBlock>)}
+                      />
+                    </div>
+                  )}
+
                   {b.type === "text" && (
                     <textarea
                       className={`${field} min-h-28`}
@@ -390,6 +461,66 @@ function RowsEditor({
         className="rounded border border-dashed border-border px-3 py-1.5 text-xs text-muted"
       >
         + 항목 추가
+      </button>
+    </div>
+  );
+}
+
+/**
+ * 배열 한 벌을 표로 편집한다.
+ *
+ * RowsEditor 는 블록의 `items` 한 배열만 다루도록 만들어져 있다. 후기 블록은
+ * 배열이 셋이라 그걸 쓸 수 없어서, 어떤 배열이든 받는 작은 표를 따로 둔다.
+ */
+function MiniRows({
+  label,
+  hint,
+  cols,
+  rows,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  cols: { key: string; label: string; width?: string }[];
+  rows: Record<string, unknown>[];
+  onChange: (rows: Record<string, unknown>[]) => void;
+}) {
+  const blank = Object.fromEntries(cols.map((c) => [c.key, ""]));
+
+  return (
+    <div className="space-y-1.5 rounded border border-border/70 p-2.5">
+      <p className="text-xs font-semibold text-foreground">{label}</p>
+      {hint && <p className="text-[11px] leading-relaxed text-muted">{hint}</p>}
+
+      {rows.map((row, r) => (
+        <div key={r} className="flex items-start gap-2">
+          {cols.map((c) => (
+            <input
+              key={c.key}
+              className={`${cell} ${c.width ?? "min-w-0 flex-1"}`}
+              value={String(row?.[c.key] ?? "")}
+              placeholder={c.label}
+              onChange={(e) =>
+                onChange(rows.map((x, k) => (k === r ? { ...x, [c.key]: e.target.value } : x)))
+              }
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => onChange(rows.filter((_, k) => k !== r))}
+            className="shrink-0 rounded border border-border px-2 py-1.5 text-xs text-muted"
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={() => onChange([...rows, blank])}
+        className="rounded border border-dashed border-border px-3 py-1.5 text-xs text-muted"
+      >
+        + 줄 추가
       </button>
     </div>
   );

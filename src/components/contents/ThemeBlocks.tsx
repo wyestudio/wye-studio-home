@@ -238,6 +238,159 @@ export function ThemeBlockView({
       )}
 
       {block.type === "faq" && <FlatFaqAccordion items={block.items} />}
+
+      {block.type === "reviews" && (
+        <ReviewsBlock block={block} accent={accent} />
+      )}
     </>
+  );
+}
+
+/** 후기 블록 전체. 수치 → 한 줄 후기 → 인스타 순으로 좁혀 읽힌다. */
+function ReviewsBlock({
+  block,
+  accent,
+}: {
+  block: Extract<ThemeBlock, { type: "reviews" }>;
+  accent: string;
+}) {
+  const handle = block.instagramHandle?.replace(/^@/, "").trim();
+  const posts = block.posts.filter((p) => p.image && p.url);
+
+  return (
+    <div className="flex flex-col gap-10 sm:gap-12">
+      {/* 제목 아래 한 줄. 제목들과 같이 가운데. */}
+      {block.subtitle && (
+        <p className="-mt-2 text-center text-sm leading-relaxed text-muted sm:text-base">
+          {block.subtitle}
+        </p>
+      )}
+
+      {/*
+        요약 수치.
+        ⚠️ 큰 숫자만 덩그러니 두지 않는다. 어디서 나온 숫자인지(note)를 같이
+           보여줘야 "우리가 지어낸 값" 으로 읽히지 않는다.
+      */}
+      {block.stats.length > 0 && (
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          {block.stats.map((s, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-panel-border bg-panel px-5 py-6 text-center sm:px-6 sm:py-7"
+            >
+              <p
+                className="text-[2rem] font-extrabold leading-none tabular-nums sm:text-[2.4rem]"
+                style={{ color: accent }}
+              >
+                {s.value}
+              </p>
+              <p className="mt-2.5 text-sm font-bold text-foreground">{s.label}</p>
+              {s.note && <p className="mt-1 text-[11px] leading-relaxed text-muted">{s.note}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 한 줄 후기. 인용부호는 CSS 로 깔아 글자 수를 늘리지 않는다. */}
+      {block.quotes.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          {block.quotes.map((q, i) => (
+            <figure
+              key={i}
+              className="relative rounded-xl border border-panel-border bg-panel p-5 sm:p-6"
+            >
+              <span
+                aria-hidden
+                className="absolute left-4 top-2 select-none text-3xl leading-none opacity-25 sm:left-5"
+                style={{ color: accent }}
+              >
+                &ldquo;
+              </span>
+              <blockquote className="relative pt-3 text-sm leading-relaxed text-foreground">
+                {q.text}
+              </blockquote>
+              {q.meta && (
+                <figcaption className="mt-3 text-[11px] text-muted">{q.meta}</figcaption>
+              )}
+            </figure>
+          ))}
+        </div>
+      )}
+
+      {/* 인스타 게시물. 카드가 게시물처럼 보이고, 누르면 인스타로 넘어간다. */}
+      {handle && posts.length > 0 && (
+        <div>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <a
+              href={`https://www.instagram.com/${handle}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2.5"
+            >
+              <InstagramGlyph className="h-5 w-5 text-foreground" />
+              <span className="text-sm font-bold text-foreground group-hover:underline">
+                @{handle}
+              </span>
+            </a>
+            <a
+              href={`https://www.instagram.com/${handle}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold hover:underline"
+              style={{ color: accent }}
+            >
+              더 보기 →
+            </a>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+            {posts.map((p, i) => (
+              <a
+                key={i}
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group relative block overflow-hidden rounded-xl border border-panel-border bg-panel"
+              >
+                <div className="relative aspect-square overflow-hidden">
+                  <Image
+                    src={p.image}
+                    alt={p.caption || `@${handle} 게시물`}
+                    fill
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                  />
+                  {/* 덮개는 hover 기기에서만. 터치에서는 캡션이 아래에 늘 보인다. */}
+                  <div
+                    className="pointer-events-none absolute inset-0 hidden items-end bg-gradient-to-t
+                               from-black/75 via-black/10 to-transparent p-3 opacity-0
+                               transition-opacity duration-300 group-hover:opacity-100
+                               sm:[@media(hover:hover)]:flex"
+                  >
+                    <InstagramGlyph className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+                {p.caption && (
+                  <p className="line-clamp-2 px-3 py-2.5 text-[11px] leading-relaxed text-muted">
+                    {p.caption}
+                  </p>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 인스타그램 글리프. 아이콘 하나 때문에 아이콘 패키지를 넣지 않는다. */
+function InstagramGlyph({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor" />
+    </svg>
   );
 }

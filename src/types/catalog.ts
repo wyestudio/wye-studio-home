@@ -94,7 +94,32 @@ export type ThemeBlock =
   /** 자주 묻는 질문. 눌러서 펼치는 아코디언으로 나간다. */
   | ({ type: "faq"; items: { q: string; a: string }[] } & BlockCommon)
   /** 상세 컷. public/ 경로 또는 외부 URL. */
-  | ({ type: "image"; src: string; alt: string } & BlockCommon);
+  | ({ type: "image"; src: string; alt: string } & BlockCommon)
+  /**
+   * 후기. 설문 요약 수치 + 한 줄 후기 + 인스타 게시물 세 덩어리다.
+   *
+   * ⚠️ 수치는 **자동 집계가 아니라 운영자가 적는 값**이다. 설문이 구글 폼·
+   *    네이버 폼에 흩어져 있고 회차마다 폼이 달라서, 코드가 계산하려면 폼마다
+   *    연동을 붙여야 한다. 대신 어디서 나온 숫자인지 note 에 남겨 둘 것.
+   *
+   * ⚠️ 인스타 게시물도 자동으로 끌어오지 않는다. 게시물을 가져오려면 Graph API
+   *    (비즈니스 계정 + 페이지 연결 + 토큰 갱신)가 필요하고, CDN 이미지 주소는
+   *    서명이 붙어 곧 만료된다. 그래서 **이미지는 우리 저장소에 올려 쓰고**
+   *    카드에 게시물 주소만 연결한다.
+   */
+  | ({
+      type: "reviews";
+      /** 제목 아래 가운데 한 줄 */
+      subtitle?: string;
+      /** 요약 수치. 2개가 보기 좋다. */
+      stats: { value: string; label: string; note?: string }[];
+      /** 한 줄 후기. meta 는 '2026.08.29 · 그룹 회차' 처럼 출처 한 줄. */
+      quotes: { text: string; meta?: string }[];
+      /** 인스타 핸들(@ 제외). 비우면 인스타 영역이 통째로 빠진다. */
+      instagramHandle?: string;
+      /** 인스타 게시물 카드. image 는 우리 저장소 URL, url 은 게시물 주소. */
+      posts: { image: string; url: string; caption?: string }[];
+    } & BlockCommon);
 
 export type ThemeBlockType = ThemeBlock["type"];
 
@@ -120,6 +145,7 @@ export const DEFAULT_THEME_CONTENT: ThemeContent = {
 /** 블록 종류별 표시 이름. 어드민 '블록 추가' 메뉴에 쓴다. */
 export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
   price: "인원별 참가비",
+  reviews: "후기",
   text: "제목 + 문단",
   list: "목록",
   timetable: "진행 순서",
