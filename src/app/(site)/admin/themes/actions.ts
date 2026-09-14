@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
+import { THEMES_TAG } from "@/lib/themes";
 import {
   parseThemeContent,
   THEME_CONTENT_VERSION,
@@ -295,6 +296,13 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
     });
 
     revalidatePath("/admin/themes");
+    // 공개 화면은 테마 데이터를 캐시해 둔다(src/lib/themes.ts).
+    // 털어주지 않으면 고친 내용이 최대 5분간 안 보여 "저장이 안 됐나" 싶어진다.
+    // ⚠️ revalidateTag 가 아니라 updateTag 다. Next 16 에서 revalidateTag 는
+    //    "다음 요청부터" 만 보장하고, 서버 액션 안에서 즉시 반영하려면
+    //    updateTag 를 쓰라고 문서가 명시한다. 저장하고 새로고침했는데 옛 내용이
+    //    보이면 운영자는 저장이 안 됐다고 생각한다.
+    updateTag(THEMES_TAG);
     return { success: true as const };
   } catch (err) {
     return toActionError(err, "테마 저장 실패");

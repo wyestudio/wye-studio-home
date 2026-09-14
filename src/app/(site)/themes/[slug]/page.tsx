@@ -17,6 +17,14 @@ import { normalizeThemeContent, type ThemeContent } from "@/types/catalog";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 
+/*
+  이 페이지는 동적으로 그린다. 대신 **데이터에 캐시가 걸려 있다**
+  (src/lib/themes.ts — 테마 5분 / 회차·집계 30초).
+
+  ⚠️ 페이지에 revalidate 를 걸어봤지만 무시됐다. Supabase 서버 클라이언트가
+     쿠키를 읽고, Next 는 쿠키를 건드리는 페이지를 무조건 동적으로 확정한다.
+     그래서 캐시는 데이터 단위로 둔다.
+*/
 export const dynamic = "force-dynamic";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";

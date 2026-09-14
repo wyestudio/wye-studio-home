@@ -1,5 +1,6 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
+import { createPublicClient } from "@/lib/supabase/public";
 import type {
   Theme,
   ThemePriceTier,
@@ -9,12 +10,37 @@ import type {
 import type { SessionStats } from "@/types/domain";
 
 /**
+ * 캐시 태그. 어드민에서 테마를 저장하면 revalidateTag 로 한 번에 털어낸다.
+ */
+export const THEMES_TAG = "themes";
+
+/*
+  왜 캐시가 필요한가 (2026-09-14)
+    테마 상세를 한 번 열 때 DB 를 14번 쳤다 — 테마 1 + 회차 목록 1 +
+    **회차마다 집계 RPC 1번씩**(그때 12개, 회차가 늘면 같이 는다).
+    동시 30명으로 재보니 중앙값 1.6초. 회차 오픈 0시처럼 몰리는 순간엔 더 나빠진다.
+
+    페이지 단위 revalidate 는 쓸 수 없다 — 쿠키를 읽는 순간 Next 가 그 페이지를
+    동적으로 확정해버리기 때문이다. 그래서 **데이터 단위로** 캐시한다.
+
+  잔여석이 잠깐 옛것이어도 되나
+    된다. 정원 판정은 화면이 아니라 submit_application() 이 한다. 화면이 조금
+    늦어도 초과 예약은 생기지 않고, 기껏해야 신청 버튼에서 '정원마감' 을 보게 될 뿐이다.
+*/
+
+/**
  * 목록(/contents)에 노출할 테마들.
  * 판단 기준은 is_listed 하나뿐이다 — is_active(신청 받기)는 신청 버튼만
  * 좌우하므로, 신청을 잠시 닫아둔 테마도 목록에는 계속 보인다.
  */
-export async function getListedThemes(): Promise<ThemeWithTiers[]> {
-  const supabase = await createClient();
+export const getListedThemes = unstable_cache(
+  _getListedThemes,
+  ["listed-themes"],
+  { revalidate: 60, tags: [THEMES_TAG] }
+);
+
+async function _getListedThemes(): Promise<ThemeWithTiers[]> {
+  const supabase = createPublicClient();
 
   const [themesRes, tiersRes] = await Promise.all([
     supabase
@@ -48,8 +74,14 @@ export type PublicVenue = {
 
 export type ThemeDetail = ThemeWithTiers & { venue: PublicVenue | null };
 
-export async function getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
-  const supabase = await createClient();
+export const getThemeBySlug = unstable_cache(
+  _getThemeBySlug,
+  ["theme-by-slug"],
+  { revalidate: 300, tags: [THEMES_TAG] }
+);
+
+async function _getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
+  const supabase = createPublicClient();
 
   // 카테고리 이름을 함께 가져온다. 상세 화면에서 테마명 아래에 보인다.
   const { data, error } = await supabase
@@ -89,8 +121,15 @@ export async function getThemeBySlug(slug: string): Promise<ThemeDetail | null> 
  * ⚠️ opens_at 이 아직 안 온 회차는 뺀다. 롤링 오픈이라 회차는 몇 달 치가 미리
  *    만들어져 있고, 공개 시각이 지나야 고객 화면에 나온다.
  */
-export async function getUpcomingSessionsForTheme(themeId: string): Promise<SessionView[]> {
-  const supabase = await createClient();
+// 회차 목록은 '지금 열려 있는지'(opens_at <= now) 로 걸러지므로 오래 들고 있으면 안 된다.
+export const getUpcomingSessionsForTheme = unstable_cache(
+  _getUpcomingSessionsForTheme,
+  ["upcoming-sessions"],
+  { revalidate: 30 }
+);
+
+async function _getUpcomingSessionsForTheme(themeId: string): Promise<SessionView[]> {
+  const supabase = createPublicClient();
   const now = new Date().toISOString();
 
   const { data, error } = await supabase
@@ -107,10 +146,17 @@ export async function getUpcomingSessionsForTheme(themeId: string): Promise<Sess
 }
 
 /** 회차별 공개 집계를 한 번에 붙인다. 개별 실패는 카드 표시를 막지 않는다. */
-export async function attachStats(
+// 여기가 제일 비싸다 — 회차 수만큼 RPC 를 친다. 30초만 들고 있어도 효과가 크다.
+export const attachStats = unstable_cache(
+  _attachStats,
+  ["session-stats"],
+  { revalidate: 30 }
+);
+
+async function _attachStats(
   sessions: SessionView[]
 ): Promise<(SessionView & { stats: SessionStats | null })[]> {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
   return Promise.all(
     sessions.map(async (s) => {
       const { data, error } = await supabase

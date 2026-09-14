@@ -3,6 +3,7 @@ import { ThemeShowcase, type ThemeCardData } from "@/components/contents/ThemeSh
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { getListedThemes, getUpcomingSessionsForTheme } from "@/lib/themes";
 
+// 캐시는 데이터 쪽에 있다(src/lib/themes.ts). 아래 주석은 page.tsx 와 같은 이유.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
