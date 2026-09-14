@@ -41,10 +41,12 @@ export function SceneShell({
     // 절대 스크롤 거리로는 이 비율보다 훨씬 길게 느껴진다):
     // 0~p1 진입(슬라이드 업) → p1~p2 줌인(제자리, 확대) → p2~p3 순수 hold(제자리, 그대로 고정)
     // → p3~p4 줌아웃(제자리, 축소, 줌인과 같은 폭=같은 속도) → p4~1 이탈(슬라이드 업, 진입과 같은 폭=같은 속도)
-    const p1 = 0.15;
-    const p2 = 0.3;
-    const p3 = 0.7;
-    const p4 = 0.85;
+    // ⚠️ hold(p2~p3)를 짧게 줄였다. 같은 이유 — 멈춰 있는 시간이 길수록
+    //    전환이 갑작스럽게 느껴진다(2026-09-14).
+    const p1 = 0.2;
+    const p2 = 0.34;
+    const p3 = 0.62;
+    const p4 = 0.8;
 
     const enterT = isFirst ? 1 : clamp01(local / p1);
     const zoomInT = clamp01((local - p1) / (p2 - p1));
@@ -62,9 +64,12 @@ export function SceneShell({
       transition: `transform ${MOTION_DURATION} ${MOTION_EASE}`,
     };
   } else {
-    // fade: 0~0.3 리빌, 0.3~0.7 hold, 0.7~1 이탈.
-    const enter = isFirst ? 1 : clamp01(local / 0.3);
-    const exit = isLast ? 0 : clamp01((local - 0.7) / 0.3);
+    // fade: 0~0.4 리빌, 0.4~0.6 hold, 0.6~1 이탈.
+    // ⚠️ 예전엔 0.3/0.7 이었다. 가만히 멈춰 있는 구간이 길고 전환은 짧아서
+    //    "한참 멈췄다가 갑자기 와르르 넘어간다"고 느껴졌다(2026-09-14 제보).
+    //    hold 를 줄이고 전환에 구간을 더 줘서 스크롤을 따라 꾸준히 움직이게 한다.
+    const enter = isFirst ? 1 : clamp01(local / 0.4);
+    const exit = isLast ? 0 : clamp01((local - 0.6) / 0.4);
     visibility = enter * (1 - exit);
     const clipInset = (1 - enter) * 22 + exit * 22;
     style = {

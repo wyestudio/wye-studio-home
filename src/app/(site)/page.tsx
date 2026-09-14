@@ -22,7 +22,7 @@ export default async function Home() {
   return (
     <ScrollStage>
       <HeroScene />
-      <ThemeScene weight={2.5} themes={cards} />
+      <ThemeScene weight={1.8} themes={cards} />
       <InstagramScene />
       <NoticeScene />
     </ScrollStage>

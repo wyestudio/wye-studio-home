@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { useInstagramEmbedHeight } from "@/lib/useInstagramEmbedHeight";
+
 import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
 
@@ -31,9 +33,17 @@ const POSTS = [
   "https://www.instagram.com/p/DcNDCV_zCEO/",
 ];
 
+/*
+  ⚠️ 여기서는 `/embed/captioned/` 를 쓰지 않는다.
+     캡션까지 넣으면 임베드가 알려주는 높이가 게시물에 따라 650~1200px 까지
+     벌어진다. 홈은 한 화면에 고정된 씬이라 그 높이가 들어가지 않는다
+     (고정 높이로 잘랐더니 아래가 잘린다는 제보를 받았다 — 2026-09-14).
+     캡션 없는 기본 임베드는 머리말 + 사진 + 아이콘 줄로 끝나 훨씬 납작하다.
+     여기는 "인스타에 소식이 있다"를 보여주는 자리지 글을 읽는 자리가 아니다.
+*/
 function toEmbedUrl(url: string): string | null {
   const m = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
-  return m ? `https://www.instagram.com/p/${m[1]}/embed/captioned/` : null;
+  return m ? `https://www.instagram.com/p/${m[1]}/embed/` : null;
 }
 
 export function InstagramScene({
@@ -49,15 +59,30 @@ export function InstagramScene({
 
   /*
     임베드를 언제 붙일지.
-    ⚠️ IntersectionObserver 로는 안 된다 — 스크롤 스테이지는 씬을 한 자리에
-       겹쳐 쌓고 진행도로 보여주는 구조라, 모든 씬이 늘 '화면 안' 이다.
-       그래서 이 씬이 실제로 등장했는지(local)로 판단하고, 한 번 붙으면
-       스크롤을 되돌려도 떼지 않는다(다시 로드하면 깜빡인다).
+
+    ⚠️ IntersectionObserver 도, 씬 진행도(local)도 쓰지 않는다.
+       · IO : 스크롤 스테이지는 씬을 한 자리에 겹쳐 쌓으므로 모든 씬이 늘 '화면 안'이다.
+       · local : 컨텍스트 갱신 타이밍에 따라 안 붙는 경우가 있었다(2026-09-14).
+       가장 단순하고 확실한 신호인 **문서 스크롤 위치**를 쓴다. 한 화면쯤
+       내려왔으면 곧 이 섹션이 나온다는 뜻이므로 그때 붙인다.
+       한 번 붙으면 떼지 않는다 — 되감을 때마다 다시 불러오면 깜빡인다.
   */
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    if (!mounted && (reduceMotion || local > 0.02)) setMounted(true);
-  }, [mounted, local, reduceMotion]);
+    if (reduceMotion) {
+      setMounted(true);
+      return;
+    }
+    const check = () => {
+      if (window.scrollY > window.innerHeight * 0.6) {
+        setMounted(true);
+        window.removeEventListener("scroll", check);
+      }
+    };
+    check();
+    window.addEventListener("scroll", check, { passive: true });
+    return () => window.removeEventListener("scroll", check);
+  }, [reduceMotion]);
 
   return (
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
@@ -85,7 +110,11 @@ export function InstagramScene({
 function PostRail({ mounted }: { mounted: boolean }) {
   return (
     <div
-      className="pointer-events-auto flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pb-2
+      /* ⚠️ pointer-events-auto 를 주면 안 된다. 씬들은 한 자리에 겹쳐 쌓이고
+         SceneShell 이 '보이는 씬만' 클릭을 받도록 pointer-events 를 꺼 두는데,
+         자식이 auto 로 되살리면 안 보이는 씬이 위 레이어에서 클릭을 가로챈다.
+         실제로 이것 때문에 히어로의 YES 가 안 눌렸다(2026-09-14). */
+      className="flex snap-x snap-mandatory items-start gap-4 overflow-x-auto px-1 pb-2
                  [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {POSTS.map((url) => (
@@ -97,22 +126,25 @@ function PostRail({ mounted }: { mounted: boolean }) {
 
 /** 씬이 등장한 뒤에야 iframe 을 붙인다. 다섯 개를 처음부터 띄우면 홈이 무거워진다. */
 function EmbedCard({ url, mounted }: { url: string; mounted: boolean }) {
+  const { ref, height } = useInstagramEmbedHeight();
   const embed = toEmbedUrl(url);
   if (!embed) return null;
 
   return (
     <div
-      className="h-[520px] w-[280px] shrink-0 snap-start overflow-hidden rounded-xl
+      className="w-[280px] shrink-0 snap-start self-start overflow-hidden rounded-xl
                  border border-panel-border bg-white sm:w-[320px]"
+      style={{ height }}
     >
       {mounted ? (
         <iframe
+          ref={ref}
           src={embed}
           title="인스타그램 게시물"
           loading="lazy"
           scrolling="no"
-          className="h-full w-full"
-          style={{ border: 0 }}
+          className="w-full"
+          style={{ border: 0, height }}
           allow="encrypted-media; picture-in-picture"
         />
       ) : (

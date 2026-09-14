@@ -4,8 +4,13 @@ import { Children, cloneElement, isValidElement, type ReactElement, type ReactNo
 import { useScrollStageProgress } from "@/components/space/useScrollStageProgress";
 import { ScrollStageContext } from "./ScrollStageContext";
 
-// 씬 하나당 기본 스크롤 여유(vh, weight=1 기준) — 씬 사이 전환이 급하지 않게 충분한 스크롤 거리를 준다.
-const VH_PER_SCENE = 140;
+// 씬 하나당 기본 스크롤 여유(vh, weight=1 기준).
+//
+// ⚠️ 140 이었는데 모바일에서 "한 섹션 넘기는 데 너무 오래 밀어야 하고, 넘어갈 땐
+//    와르르 지나간다"는 제보를 받아 110 으로 줄였다(2026-09-14). 한 화면 남짓만
+//    밀면 다음 섹션으로 넘어가는, 흔한 세로 스크롤 느낌에 가깝다.
+//    더 줄이면 전환이 순간이동처럼 보이므로 100 아래로는 내리지 말 것.
+const VH_PER_SCENE = 110;
 
 type SceneCloneProps = {
   index?: number;

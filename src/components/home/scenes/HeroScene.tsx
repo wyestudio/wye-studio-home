@@ -69,7 +69,32 @@ export function HeroScene({
           </h1>
           <HeroCtaButton />
         </div>
+
+        {/*
+          스크롤 안내. 히어로가 빠져나갈 때 같이 사라져야 하므로 SceneShell 안에 둔다
+          (SceneShell 이 씬 전체 투명도를 관리한다 — 따로 계산하지 않는다).
+        */}
+        <ScrollCue />
       </div>
     </SceneShell>
+  );
+}
+
+/**
+ * "아래로 더 있다"는 표시.
+ *
+ * 첫 화면만 보고 나가는 사람이 있어 넣었다. 장식 요소라 클릭은 받지 않는다
+ * (히어로 래퍼가 pointer-events-none 이고 여기서 되살리지 않는다 — 되살리면
+ *  겹쳐 쌓인 다른 씬의 클릭까지 가로챈다).
+ */
+function ScrollCue() {
+  return (
+    <div
+      aria-hidden
+      className="mt-10 flex flex-col items-center gap-2 sm:mt-14"
+    >
+      <span className="font-mono text-[10px] tracking-[0.42em] text-muted">SCROLL</span>
+      <span className="scroll-cue-rail" />
+    </div>
   );
 }

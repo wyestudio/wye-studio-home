@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+import { useInstagramEmbedHeight } from "@/lib/useInstagramEmbedHeight";
+
 /**
  * 크리에이터 후기 게시물 슬라이더.
  *
@@ -71,13 +73,20 @@ export function ReviewLinkSlider({ links, accent }: { links: ReviewLink[]; accen
 
       <div
         ref={scrollRef}
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2
+        className="flex snap-x snap-mandatory items-start gap-4 overflow-x-auto pb-2
                    [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
+        {/*
+          카드 높이는 채널마다 다르다(인스타는 캡션 길이에 따라 제각각).
+          줄 전체를 items-stretch 로 두고 네이버 카드는 늘어나게 해서,
+          높이를 하나로 못 박지 않고도 아랫줄이 들쭉날쭉해 보이지 않게 한다.
+        */}
         {links.map((link, i) => (
-          <div key={i} className="w-[300px] shrink-0 snap-start sm:w-[320px]">
+          <div key={i} className="flex w-[300px] shrink-0 snap-start sm:w-[320px]">
             {link.channel === "instagram" ? (
-              <InstagramCard link={link} />
+              <div className="w-full self-start">
+                <InstagramCard link={link} />
+              </div>
             ) : (
               <NaverCard link={link} accent={accent} />
             )}
@@ -115,6 +124,7 @@ function SliderButton({
 function InstagramCard({ link }: { link: ReviewLink }) {
   const holderRef = useRef<HTMLDivElement>(null);
   const [show, setShow] = useState(false);
+  const { ref: iframeRef, height } = useInstagramEmbedHeight();
   const embed = toEmbedUrl(link.url);
 
   useEffect(() => {
@@ -133,16 +143,18 @@ function InstagramCard({ link }: { link: ReviewLink }) {
   return (
     <div
       ref={holderRef}
-      className="h-[560px] overflow-hidden rounded-xl border border-panel-border bg-white"
+      className="overflow-hidden rounded-xl border border-panel-border bg-white"
+      style={{ height }}
     >
       {show ? (
         <iframe
+          ref={iframeRef}
           src={embed}
           title={`인스타그램 후기${link.author ? ` · ${link.author}` : ""}`}
           loading="lazy"
           scrolling="no"
-          className="h-full w-full"
-          style={{ border: 0 }}
+          className="w-full"
+          style={{ border: 0, height }}
           allow="encrypted-media; picture-in-picture"
         />
       ) : (
@@ -161,7 +173,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex h-[560px] flex-col overflow-hidden rounded-xl border border-panel-border bg-panel"
+      className="group flex min-h-[560px] w-full flex-col overflow-hidden rounded-xl border border-panel-border bg-panel"
     >
       <div className="flex items-center gap-2.5 border-b border-panel-border px-4 py-3">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#03C75A] text-[13px] font-black text-white">

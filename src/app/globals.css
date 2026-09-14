@@ -473,3 +473,66 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* ── 히어로 스크롤 안내 ──────────────────────────────────────────────
+   "여기서 더 내려갈 수 있다"를 알려주는 표시.
+   첫 화면에서 스크롤이 되는 줄 모르겠다는 제보를 받아 추가했다(2026-09-14).
+
+   모양은 우주선 계기판의 **신호 전송 표시**로 잡았다. 가는 세로 레일을 따라
+   빛 알갱이가 아래로 떨어지고, 레일 끝에서 옅게 흩어진다.
+   ⚠️ 장식이 앞서면 무슨 뜻인지 모르게 된다. 그래서 위에 'SCROLL' 을 또박또박
+      적어 두고, 빛은 그 뜻을 거드는 정도로만 쓴다. */
+.scroll-cue-rail {
+  position: relative;
+  width: 1px;
+  height: 34px;
+  overflow: hidden;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--glow) 45%, transparent),
+    transparent
+  );
+}
+
+.scroll-cue-rail::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 3px;
+  height: 9px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--glow);
+  box-shadow:
+    0 0 6px 1px color-mix(in srgb, var(--glow) 70%, transparent),
+    0 0 14px 3px color-mix(in srgb, var(--glow) 35%, transparent);
+  animation: scroll-cue-fall 1.9s cubic-bezier(0.5, 0, 0.6, 1) infinite;
+}
+
+@keyframes scroll-cue-fall {
+  0% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(34px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 움직임을 끄면 빛 알갱이는 레일 가운데에 가만히 둔다 — 사라지면 안 된다.
+     스크롤이 된다는 사실 자체는 여전히 알려줘야 하기 때문이다. */
+  .scroll-cue-rail::after {
+    animation: none;
+    transform: translateY(12px);
+    opacity: 0.8;
+  }
+}
