@@ -19,12 +19,24 @@ DB 스키마 관리 디렉터리. **여기가 스키마의 단일 기준(source 
 
 ## 드리프트 탐지
 
-`.github/workflows/schema-drift-check.yml` 이 매일(KST 04:40) 운영 DB 를 떠서
-이 `schema.sql` 과 대조하고, 다르면 Slack 으로 알린다.
+`.github/workflows/schema-drift-check.yml` 이 운영 DB 를 떠서 이 `schema.sql` 과
+대조한다. **자동으로 돌지 않는다** — 도는 때는 둘뿐이다.
 
-**알림이 오면** = 마이그레이션을 거치지 않은 변경이 운영 DB 에 들어갔다는 뜻이다.
-Actions 실행 로그의 diff 를 확인하고, 정당한 변경이면 마이그레이션으로 기록한 뒤
-`schema.sql` 을 갱신한다(artifact `schema-snapshot` 을 받아 교체).
+- `supabase/schema.sql` 또는 `supabase/migrations/**` 를 건드리는 PR
+- Actions 탭에서 직접 실행 (Schema Drift Check > Run workflow)
+
+2026-09-14 까지는 매일 돌며 Slack 으로 알렸으나, 울리는 대부분이 "우리가 한
+변경인데 스냅샷만 안 갱신한 것" 이라 잡음이 더 컸다. 알림과 cron 을 뺐다.
+
+**⚠️ 그래서 이제 사람이 챙겨야 한다.** 운영 DB 를 SQL Editor 에서 직접 고쳤다면
+(분류기가 막아서 손으로 실행하는 경우가 실제로 있다) **그 직후에** 이 워크플로를
+한 번 수동 실행할 것. 검사가 실패하면 artifact `schema-snapshot` 을 받아
+`supabase/schema.sql` 을 교체하고 커밋한다.
+
+**검사가 실패했을 때 읽는 법** — 로그에 `--- 차이 (앞 200줄) ---` 이 찍혔는지 먼저 본다.
+안 찍혔으면 검사 자체가 깨진 것(접속 실패·pg_dump 버전 등)이고 드리프트가 아니다.
+찍혔으면 diff 의 객체 이름을 `migrations/` 에서 grep 해, 근거 파일이 없으면
+**마이그레이션을 거치지 않은 변경**이다 — 2026-08-14 장애와 같은 유형이니 그냥 덮지 말 것.
 
 ## 왜 이렇게 바꿨나
 
