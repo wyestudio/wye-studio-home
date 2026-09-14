@@ -29,8 +29,12 @@ type Slot = { kind: "theme"; theme: HomeThemeCard } | { kind: "soon" };
  *
  * 넓은 화면에서는 행성-패널 묶음을 **지그재그로 가로로 늘어놓고**, 넘치면
  * 잡아서 옆으로 민다. 스크롤 막대는 감춘다 — 우주를 훑는 느낌이라 막대가
- * 보이면 '목록' 처럼 읽힌다. 좁은 화면에서는 hover 가 없으므로 세로로 쌓고
- * 패널을 늘 펼쳐 둔다.
+ * 보이면 '목록' 처럼 읽힌다. 좁은 화면에서는 세로로 쌓고 패널을 늘 펼쳐 둔다.
+ *
+ * ⚠️ '좁은 화면 = 패널 항상 열림' 의 판정은 **폭(sm)** 으로만 한다.
+ *    hover 지원 여부로 판정하면 안 된다 — 네이버 인앱 브라우저가 모바일에서도
+ *    `hover: hover` 로 보고해서, 패널이 숨은 채 탭할 때만 잠깐 떴다가 사라졌다
+ *    (2026-09-14 제보). 인앱 웹뷰들은 이 값을 믿을 수 없다.
  */
 export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?: boolean }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -289,10 +293,10 @@ function ThemeSlot({
       className="relative flex min-h-28 min-w-0 flex-1 items-center overflow-hidden rounded-xl
                  border border-white/12 bg-background p-4 opacity-100 transition-all duration-500
                  sm:min-h-0 sm:flex-none
-                 [@media(hover:hover)]:-translate-x-3 [@media(hover:hover)]:opacity-0
-                 [@media(hover:hover)]:peer-hover:translate-x-0
-                 [@media(hover:hover)]:peer-hover:opacity-100
-                 [@media(hover:hover)]:peer-hover:border-white/25"
+                 sm:[@media(hover:hover)]:-translate-x-3 sm:[@media(hover:hover)]:opacity-0
+                 sm:[@media(hover:hover)]:peer-hover:translate-x-0
+                 sm:[@media(hover:hover)]:peer-hover:opacity-100
+                 sm:[@media(hover:hover)]:peer-hover:border-white/25"
       style={{ borderLeftColor: accent, borderLeftWidth: 2 }}
     >
       <div className="flex w-full gap-4 sm:gap-5">
