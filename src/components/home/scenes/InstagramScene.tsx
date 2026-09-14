@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useInstagramEmbedHeight } from "@/lib/useInstagramEmbedHeight";
 
@@ -25,8 +25,17 @@ import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
  */
 const HANDLE = "wouldyouescape";
 
-/** 캡션 없는 임베드의 대략적인 높이. 실제 값은 임베드가 알려주지만 축소 비율은 먼저 정해야 한다. */
-const CARD_HEIGHT = 580;
+/** 임베드를 그릴 기준 폭. 이보다 좁히면 임베드가 레이아웃을 다시 잡아 오히려 키가 커진다. */
+const BASE_WIDTH = 320;
+
+/**
+ * 카드 아래에서 잘라낼 높이.
+ *
+ * 임베드 맨 아래에는 '댓글 달기…' 줄이 붙는다. 우리 사이트에서는 댓글을 달 수
+ * 없으므로(눌러도 인스타로 갈 뿐) 헛된 입력칸이다. 지우라는 요청을 받았는데
+ * 크로스 오리진 iframe 이라 안을 건드릴 수 없어, 그 높이만큼 아래를 덮어 가린다.
+ */
+const COMMENT_BAR = 50;
 
 const POSTS = [
   "https://www.instagram.com/p/DdOQX1TE9Ht/",
@@ -90,26 +99,40 @@ export function InstagramScene({
   /*
     카드 축소 비율.
 
-    ⚠️ 인스타 임베드는 폭을 좁혀도 높이가 그만큼 줄지 않는다(머리말·아이콘 줄은
+    ⚠️ 인스타 임베드는 폭을 좁혀도 키가 그만큼 줄지 않는다(머리말·아이콘 줄은
        높이가 고정이다). 그래서 폭이 아니라 **통째로 축소**한다.
-       모바일에서 카드가 화면보다 높아 위쪽 제목이 잘린다는 제보를 받아 넣었다
-       (2026-09-14). 제목·링크가 차지하는 몫(약 190px)을 빼고 남는 높이에 맞춘다.
+
+    ⚠️ 예전에는 "화면 높이 - 200px" 같은 어림수로 계산했는데, 기기마다
+       제목 줄 높이도 브라우저 UI 높이도 달라서 여전히 위가 잘렸다
+       (2026-09-14 제보). 어림수를 버리고 **실제로 남는 높이를 재서** 맞춘다.
   */
+  const areaRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [naturalHeight, setNaturalHeight] = useState(0);
   const [scale, setScale] = useState(1);
+
   useEffect(() => {
+    const area = areaRef.current;
+    const header = headerRef.current;
+    if (!area || !header || naturalHeight <= 0) return;
+
     const fit = () => {
-      const room = window.innerHeight - 200;
-      setScale(Math.max(0.55, Math.min(1, room / CARD_HEIGHT)));
+      // 가로 스크롤 막대와 카드 아래 여백 몫으로 조금 남긴다.
+      const room = area.clientHeight - header.offsetHeight - 40;
+      setScale(Math.max(0.45, Math.min(1, room / naturalHeight)));
     };
     fit();
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
-  }, []);
+
+    const ro = new ResizeObserver(fit);
+    ro.observe(area);
+    ro.observe(header);
+    return () => ro.disconnect();
+  }, [naturalHeight]);
 
   return (
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div className="text-center">
+      <div ref={areaRef} className="mx-auto flex h-full w-full max-w-6xl flex-col justify-center gap-5">
+        <div ref={headerRef} className="shrink-0 text-center">
           <p className="text-xs font-bold uppercase tracking-[0.3em] text-glow">INSTAGRAM</p>
           <h2 className="mt-2 text-xl font-extrabold sm:text-2xl">소식은 인스타에 먼저 올라와요</h2>
           <a
@@ -122,14 +145,26 @@ export function InstagramScene({
           </a>
         </div>
 
-        <PostRail mounted={mounted} scale={scale} />
+        <PostRail
+          mounted={mounted}
+          scale={scale}
+          onNaturalHeight={(h) => setNaturalHeight((prev) => Math.max(prev, h))}
+        />
       </div>
     </SceneShell>
   );
 }
 
 /** 옆으로 미는 게시물 줄. 스크롤 막대는 감춘다 — 우주 화면에 막대가 뜨면 튄다. */
-function PostRail({ mounted, scale }: { mounted: boolean; scale: number }) {
+function PostRail({
+  mounted,
+  scale,
+  onNaturalHeight,
+}: {
+  mounted: boolean;
+  scale: number;
+  onNaturalHeight: (h: number) => void;
+}) {
   return (
     <div
       /* ⚠️ pointer-events-auto 를 주면 안 된다. 씬들은 한 자리에 겹쳐 쌓이고
@@ -140,7 +175,13 @@ function PostRail({ mounted, scale }: { mounted: boolean; scale: number }) {
                  [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {POSTS.map((url) => (
-        <EmbedCard key={url} url={url} mounted={mounted} scale={scale} />
+        <EmbedCard
+          key={url}
+          url={url}
+          mounted={mounted}
+          scale={scale}
+          onNaturalHeight={onNaturalHeight}
+        />
       ))}
     </div>
   );
@@ -151,23 +192,29 @@ function EmbedCard({
   url,
   mounted,
   scale,
+  onNaturalHeight,
 }: {
   url: string;
   mounted: boolean;
   scale: number;
+  onNaturalHeight: (h: number) => void;
 }) {
   const { ref, height } = useInstagramEmbedHeight();
   const embed = toEmbedUrl(url);
-  if (!embed) return null;
 
-  // 바깥 상자는 '축소된 크기'를, 안쪽 iframe 은 '원래 크기'를 갖는다.
-  // iframe 을 직접 작게 만들면 임베드가 그 폭에 맞춰 레이아웃을 다시 잡아버린다.
-  const baseWidth = 320;
+  // '댓글 달기…' 줄을 잘라낸 뒤의 높이가 이 카드가 실제로 차지하는 키다.
+  const visibleHeight = Math.max(200, height - COMMENT_BAR);
+
+  useEffect(() => {
+    onNaturalHeight(visibleHeight);
+  }, [visibleHeight, onNaturalHeight]);
+
+  if (!embed) return null;
 
   return (
     <div
-      className="shrink-0 snap-start self-start overflow-hidden rounded-xl border border-panel-border bg-white"
-      style={{ width: baseWidth * scale, height: height * scale }}
+      className="shrink-0 snap-start self-center overflow-hidden rounded-xl border border-panel-border bg-white"
+      style={{ width: BASE_WIDTH * scale, height: visibleHeight * scale }}
     >
       {mounted ? (
         <iframe
@@ -178,7 +225,7 @@ function EmbedCard({
           scrolling="no"
           style={{
             border: 0,
-            width: baseWidth,
+            width: BASE_WIDTH,
             height,
             transform: `scale(${scale})`,
             transformOrigin: "top left",

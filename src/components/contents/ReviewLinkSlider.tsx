@@ -16,6 +16,19 @@ import { useInstagramEmbedHeight } from "@/lib/useInstagramEmbedHeight";
  * 비로소 로드**한다(IntersectionObserver). 안 그러면 상세 페이지 첫 로딩이
  * 눈에 띄게 느려진다.
  */
+/**
+ * 카드 한 장의 높이.
+ *
+ * 채널마다, 같은 인스타끼리도 키가 다르다 — 사진이 정사각이냐 세로냐,
+ * 좋아요 수가 붙었냐에 따라 임베드가 알려주는 높이가 달라진다.
+ * 한 줄에 늘어놓으니 들쭉날쭉해서 "맞춰달라"는 요청을 받았다(2026-09-14).
+ *
+ * 그래서 **높이를 하나로 못 박고 넘치는 아래를 덮어 가린다.**
+ * 잘리는 건 '좋아요 N개 / 댓글 달기…' 줄이라 후기를 읽는 데 지장이 없고,
+ * 인스타 그리드도 세로 사진을 잘라 보여주므로 낯설지 않다.
+ */
+const CARD_HEIGHT = 520;
+
 export type ReviewLink = {
   channel: "instagram" | "naver";
   url: string;
@@ -80,7 +93,7 @@ export function ReviewLinkSlider({ links, accent }: { links: ReviewLink[]; accen
 
       <div
         ref={scrollRef}
-        className="flex snap-x snap-mandatory items-start gap-4 overflow-x-auto pb-2
+        className="flex snap-x snap-mandatory items-stretch gap-4 overflow-x-auto pb-2
                    [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {/*
@@ -91,9 +104,7 @@ export function ReviewLinkSlider({ links, accent }: { links: ReviewLink[]; accen
         {links.map((link, i) => (
           <div key={i} className="flex w-[280px] shrink-0 snap-start sm:w-[300px]">
             {link.channel === "instagram" ? (
-              <div className="w-full self-start">
-                <InstagramCard link={link} />
-              </div>
+              <InstagramCard link={link} />
             ) : (
               <NaverCard link={link} accent={accent} />
             )}
@@ -150,8 +161,8 @@ function InstagramCard({ link }: { link: ReviewLink }) {
   return (
     <div
       ref={holderRef}
-      className="overflow-hidden rounded-xl border border-panel-border bg-white"
-      style={{ height }}
+      className="w-full overflow-hidden rounded-xl border border-panel-border bg-white"
+      style={{ height: CARD_HEIGHT }}
     >
       {show ? (
         <iframe
@@ -161,7 +172,7 @@ function InstagramCard({ link }: { link: ReviewLink }) {
           loading="lazy"
           scrolling="no"
           className="w-full"
-          style={{ border: 0, height }}
+          style={{ border: 0, height: Math.max(height, CARD_HEIGHT) }}
           allow="encrypted-media; picture-in-picture"
         />
       ) : (
@@ -180,7 +191,8 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
       href={link.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex min-h-[520px] w-full flex-col overflow-hidden rounded-xl border border-panel-border bg-panel"
+      className="group flex w-full flex-col overflow-hidden rounded-xl border border-panel-border bg-panel"
+      style={{ height: CARD_HEIGHT }}
     >
       <div className="flex items-center gap-2.5 border-b border-panel-border px-4 py-3">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#03C75A] text-[13px] font-black text-white">
@@ -204,7 +216,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col p-4">
+      <div className="flex shrink-0 flex-col p-4">
         {link.title && (
           <p className="line-clamp-3 text-sm font-bold leading-relaxed text-foreground">
             {link.title}
@@ -213,7 +225,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
         {link.excerpt && (
           <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">{link.excerpt}</p>
         )}
-        <span className="mt-auto pt-3 text-xs font-semibold" style={{ color: accent }}>
+        <span className="pt-3 text-xs font-semibold" style={{ color: accent }}>
           네이버 블로그에서 읽기 →
         </span>
       </div>
