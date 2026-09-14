@@ -4,6 +4,7 @@ import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import { PriceTable } from "@/components/contents/PriceTable";
+import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import type { ThemeBlock, ThemePriceTier } from "@/types/catalog";
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
@@ -254,8 +255,7 @@ function ReviewsBlock({
   block: Extract<ThemeBlock, { type: "reviews" }>;
   accent: string;
 }) {
-  const handle = block.instagramHandle?.replace(/^@/, "").trim();
-  const posts = block.posts.filter((p) => p.image && p.url);
+  const links = block.links.filter((l) => l.url);
 
   return (
     <div className="flex flex-col gap-10 sm:gap-12">
@@ -317,80 +317,11 @@ function ReviewsBlock({
         </div>
       )}
 
-      {/* 인스타 게시물. 카드가 게시물처럼 보이고, 누르면 인스타로 넘어간다. */}
-      {handle && posts.length > 0 && (
-        <div>
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <a
-              href={`https://www.instagram.com/${handle}/`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group inline-flex items-center gap-2.5"
-            >
-              <InstagramGlyph className="h-5 w-5 text-foreground" />
-              <span className="text-sm font-bold text-foreground group-hover:underline">
-                @{handle}
-              </span>
-            </a>
-            <a
-              href={`https://www.instagram.com/${handle}/`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-semibold hover:underline"
-              style={{ color: accent }}
-            >
-              더 보기 →
-            </a>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-            {posts.map((p, i) => (
-              <a
-                key={i}
-                href={p.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group relative block overflow-hidden rounded-xl border border-panel-border bg-panel"
-              >
-                <div className="relative aspect-square overflow-hidden">
-                  <Image
-                    src={p.image}
-                    alt={p.caption || `@${handle} 게시물`}
-                    fill
-                    sizes="(max-width: 640px) 50vw, 25vw"
-                    className="object-cover transition-transform duration-500 group-hover:scale-[1.06]"
-                  />
-                  {/* 덮개는 hover 기기에서만. 터치에서는 캡션이 아래에 늘 보인다. */}
-                  <div
-                    className="pointer-events-none absolute inset-0 hidden items-end bg-gradient-to-t
-                               from-black/75 via-black/10 to-transparent p-3 opacity-0
-                               transition-opacity duration-300 group-hover:opacity-100
-                               sm:[@media(hover:hover)]:flex"
-                  >
-                    <InstagramGlyph className="h-5 w-5 text-white" />
-                  </div>
-                </div>
-                {p.caption && (
-                  <p className="line-clamp-2 px-3 py-2.5 text-[11px] leading-relaxed text-muted">
-                    {p.caption}
-                  </p>
-                )}
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      {/*
+        크리에이터 후기. 채널이 섞여 있어 슬라이더 안에서 폭을 맞춘다.
+        인스타는 공식 임베드라 클라이언트에서만 뜨므로 별도 컴포넌트로 뺐다.
+      */}
+      {links.length > 0 && <ReviewLinkSlider links={links} accent={accent} />}
     </div>
-  );
-}
-
-/** 인스타그램 글리프. 아이콘 하나 때문에 아이콘 패키지를 넣지 않는다. */
-function InstagramGlyph({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <rect x="2.5" y="2.5" width="19" height="19" rx="5.5" stroke="currentColor" strokeWidth="1.7" />
-      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.7" />
-      <circle cx="17.4" cy="6.6" r="1.2" fill="currentColor" />
-    </svg>
   );
 }

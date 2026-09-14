@@ -1,6 +1,7 @@
 import { ScrollStage } from "@/components/home/scroll-stage/ScrollStage";
 import { HeroScene } from "@/components/home/scenes/HeroScene";
 import { ThemeScene } from "@/components/home/scenes/ThemeScene";
+import { InstagramScene } from "@/components/home/scenes/InstagramScene";
 import { NoticeScene } from "@/components/home/scenes/NoticeScene";
 import { getListedThemes, getUpcomingSessionsForTheme } from "@/lib/themes";
 import type { HomeThemeCard } from "@/components/home/ThemeHomeShowcase";
@@ -22,6 +23,7 @@ export default async function Home() {
     <ScrollStage>
       <HeroScene />
       <ThemeScene weight={2.5} themes={cards} />
+      <InstagramScene />
       <NoticeScene />
     </ScrollStage>
   );

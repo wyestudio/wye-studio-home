@@ -102,10 +102,8 @@ export type ThemeBlock =
    *    네이버 폼에 흩어져 있고 회차마다 폼이 달라서, 코드가 계산하려면 폼마다
    *    연동을 붙여야 한다. 대신 어디서 나온 숫자인지 note 에 남겨 둘 것.
    *
-   * ⚠️ 인스타 게시물도 자동으로 끌어오지 않는다. 게시물을 가져오려면 Graph API
-   *    (비즈니스 계정 + 페이지 연결 + 토큰 갱신)가 필요하고, CDN 이미지 주소는
-   *    서명이 붙어 곧 만료된다. 그래서 **이미지는 우리 저장소에 올려 쓰고**
-   *    카드에 게시물 주소만 연결한다.
+   * ⚠️ 여기 싣는 후기는 **협찬으로 활용 동의를 받은 게시물만** 넣는다.
+   *    우리 계정 게시물은 후기가 아니므로 홈의 인스타 섹션으로 간다.
    */
   | ({
       type: "reviews";
@@ -115,10 +113,28 @@ export type ThemeBlock =
       stats: { value: string; label: string; note?: string }[];
       /** 한 줄 후기. meta 는 '2026.08.29 · 그룹 회차' 처럼 출처 한 줄. */
       quotes: { text: string; meta?: string }[];
-      /** 인스타 핸들(@ 제외). 비우면 인스타 영역이 통째로 빠진다. */
-      instagramHandle?: string;
-      /** 인스타 게시물 카드. image 는 우리 저장소 URL, url 은 게시물 주소. */
-      posts: { image: string; url: string; caption?: string }[];
+      /**
+       * 크리에이터 후기 게시물. 옆으로 밀어서 본다.
+       *
+       * instagram : 인스타 공식 임베드로 **게시물 원본 그대로** 보여준다.
+       *             API 키가 필요 없고 이미지도 우리가 들고 있지 않아도 된다.
+       *             ⚠️ 영상은 인라인 재생이 안 된다(썸네일 + 재생 버튼 → 인스타로 이동).
+       * naver     : 네이버 블로그는 임베드 수단이 없다. og 태그에서 뽑은
+       *             제목·요약·썸네일로 **우리 카드**를 만들고 링크만 건다.
+       *             썸네일 주소는 만료될 수 있어 우리 저장소에 올려 쓴다.
+       */
+      links: {
+        channel: "instagram" | "naver";
+        url: string;
+        /** 작성자 표시명. 네이버는 블로그 닉네임, 인스타는 임베드가 직접 보여준다. */
+        author?: string;
+        /** naver 전용 */
+        title?: string;
+        excerpt?: string;
+        image?: string;
+        /** '2026.08.30' */
+        date?: string;
+      }[];
     } & BlockCommon);
 
 export type ThemeBlockType = ThemeBlock["type"];

@@ -142,9 +142,6 @@ function sanitizeContent(raw: unknown): ThemeContent {
             ...common,
             type: "reviews",
             ...(str(b.subtitle) ? { subtitle: str(b.subtitle) } : {}),
-            ...(str(b.instagramHandle)
-              ? { instagramHandle: str(b.instagramHandle).replace(/^@/, "").trim() }
-              : {}),
             stats: arr(b.stats).map((x) => {
               const o = x as Record<string, unknown>;
               return {
@@ -157,12 +154,22 @@ function sanitizeContent(raw: unknown): ThemeContent {
               const o = x as Record<string, unknown>;
               return { text: str(o?.text), ...(str(o?.meta) ? { meta: str(o?.meta) } : {}) };
             }),
-            posts: arr(b.posts).map((x) => {
+            links: arr(b.links).map((x) => {
               const o = x as Record<string, unknown>;
+              const channel = o?.channel === "naver" ? ("naver" as const) : ("instagram" as const);
               return {
-                image: str(o?.image),
+                channel,
                 url: str(o?.url),
-                ...(str(o?.caption) ? { caption: str(o?.caption) } : {}),
+                ...(str(o?.author) ? { author: str(o?.author) } : {}),
+                ...(str(o?.date) ? { date: str(o?.date) } : {}),
+                // 아래 셋은 네이버 카드를 그릴 때만 쓴다. 인스타는 임베드가 다 그린다.
+                ...(channel === "naver"
+                  ? {
+                      ...(str(o?.title) ? { title: str(o?.title) } : {}),
+                      ...(str(o?.excerpt) ? { excerpt: str(o?.excerpt) } : {}),
+                      ...(str(o?.image) ? { image: str(o?.image) } : {}),
+                    }
+                  : {}),
               };
             }),
           };

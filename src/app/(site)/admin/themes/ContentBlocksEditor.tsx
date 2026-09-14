@@ -37,8 +37,7 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
         eyebrow: "REVIEWS",
         stats: [{ value: "", label: "", note: "" }],
         quotes: [{ text: "", meta: "" }],
-        instagramHandle: "",
-        posts: [{ image: "", url: "", caption: "" }],
+        links: [{ channel: "instagram", url: "", author: "", date: "" }],
       };
   }
 }
@@ -268,28 +267,29 @@ export function ContentBlocksEditor({
                         onChange={(quotes) => patch(i, { quotes } as Partial<ThemeBlock>)}
                       />
 
-                      <label className="block text-xs text-muted">
-                        인스타그램 계정 (@ 없이)
-                        <input
-                          className={`${field} mt-1`}
-                          value={b.instagramHandle ?? ""}
-                          onChange={(e) =>
-                            patch(i, { instagramHandle: e.target.value } as Partial<ThemeBlock>)
-                          }
-                          placeholder="wouldyouescape — 비우면 인스타 영역이 통째로 빠집니다"
-                        />
-                      </label>
+                      <MiniRows
+                        label="크리에이터 후기 게시물 (옆으로 밀어서 봅니다)"
+                        hint="채널은 instagram 또는 naver. 인스타는 주소만 넣으면 게시물 원본이 그대로 붙습니다(제목·요약·이미지 불필요). 네이버 블로그는 임베드가 안 돼서 제목·요약·썸네일을 채워야 카드가 그려집니다."
+                        cols={[
+                          { key: "channel", label: "instagram / naver", width: "w-36" },
+                          { key: "url", label: "게시물 주소" },
+                          { key: "author", label: "작성자", width: "w-28" },
+                          { key: "date", label: "게시일", width: "w-28" },
+                        ]}
+                        rows={b.links}
+                        onChange={(links) => patch(i, { links } as Partial<ThemeBlock>)}
+                      />
 
                       <MiniRows
-                        label="인스타그램 게시물"
-                        hint="이미지는 인스타에서 자동으로 못 가져옵니다(주소가 곧 만료돼요). 위 포스터 업로드처럼 우리 저장소 주소를 넣어주세요."
+                        label="네이버 블로그 카드 내용"
+                        hint="위 목록에서 naver 인 줄과 같은 순서로 채워주세요. 인스타 줄은 비워두면 됩니다."
                         cols={[
-                          { key: "image", label: "이미지 주소" },
-                          { key: "url", label: "게시물 주소 (instagram.com/p/...)" },
-                          { key: "caption", label: "한 줄 설명" },
+                          { key: "title", label: "글 제목" },
+                          { key: "excerpt", label: "요약" },
+                          { key: "image", label: "썸네일 주소" },
                         ]}
-                        rows={b.posts}
-                        onChange={(posts) => patch(i, { posts } as Partial<ThemeBlock>)}
+                        rows={b.links}
+                        onChange={(links) => patch(i, { links } as Partial<ThemeBlock>)}
                       />
                     </div>
                   )}
