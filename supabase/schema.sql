@@ -601,6 +601,97 @@ $$;
 COMMENT ON FUNCTION public.lookup_application_v3(p_phone_digits text, p_confirmation_code text) IS '전화번호 + 접수번호로 참여내역 조회. v2 에 쿠폰 할인·테마 슬러그/강조색/카테고리를 더했다.';
 
 --
+-- Name: lookup_application_v4(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.lookup_application_v4(p_phone_digits text, p_confirmation_code text) RETURNS TABLE(theme_name text, theme_slug text, category_name text, accent_color text, format_label text, venue_area text, start_at timestamp with time zone, end_at timestamp with time zone, min_age integer, headcount integer, unit_price_krw integer, base_amount_krw integer, discount_krw integer, amount_krw integer, status text, payment_status text, confirmation_code text, created_at timestamp with time zone, payment_confirmed_sms_sent_at timestamp with time zone, notes text, waiting_number integer, attendees jsonb, paid_at timestamp with time zone, cancelled_at timestamp with time zone, refund_completed_at timestamp with time zone)
+    LANGUAGE plpgsql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+declare
+  v_phone_hash text := hash_phone(p_phone_digits);
+  v_app_id uuid;
+  v_session_id uuid;
+  v_status text;
+  v_created timestamptz;
+  v_waiting int;
+begin
+  select ap.id, ap.session_id, ap.status, ap.created_at
+    into v_app_id, v_session_id, v_status, v_created
+  from applications ap
+  join application_attendees aa on aa.application_id = ap.id
+  where ap.confirmation_code = p_confirmation_code
+    and aa.phone_hash = v_phone_hash
+  limit 1;
+
+  if v_app_id is null then return; end if;
+
+  -- 대기 순번: 성별 분기 없이 같은 회차의 대기 건 중 순서.
+  -- 저장하지 않고 조회 시점에 계산하므로 앞선 취소가 있으면 당겨진다.
+  if v_status = 'waiting' then
+    select count(*) into v_waiting
+    from applications ap2
+    where ap2.session_id = v_session_id
+      and ap2.status = 'waiting'
+      and ap2.created_at <= v_created;
+  end if;
+
+  return query
+  select
+    coalesce(t.name, s.theme_name)                                as theme_name,
+    t.slug                                                        as theme_slug,
+    tc.name                                                       as category_name,
+    t.accent_color,
+    coalesce(s.legacy_format, s.session_type)                     as format_label,
+    coalesce(v.area_label, s.venue_area)                          as venue_area,
+    s.start_at,
+    s.end_at,
+    s.min_age,
+    coalesce(ap.headcount, (select count(*)::int from application_attendees x
+                            where x.application_id = ap.id))      as headcount,
+    coalesce(ap.unit_price_krw, s.price_krw)                      as unit_price_krw,
+    -- 할인 전 금액. 옛 신청은 discount 가 없으므로 amount 와 같다.
+    coalesce(ap.amount_krw, 0) + coalesce(ap.discount_krw, 0)     as base_amount_krw,
+    coalesce(ap.discount_krw, 0)                                  as discount_krw,
+    coalesce(ap.amount_krw,
+             s.price_krw * (select count(*)::int from application_attendees x
+                            where x.application_id = ap.id))      as amount_krw,
+    ap.status,
+    ap.payment_status,
+    ap.confirmation_code,
+    ap.created_at,
+    ap.payment_confirmed_sms_sent_at,
+    ap.notes,
+    v_waiting,
+    (select jsonb_agg(jsonb_build_object(
+        'name', decrypt_pii(aa2.name_enc),
+        'phone', decrypt_pii(aa2.phone_enc),
+        'birth_year', aa2.birth_year,
+        'nickname', aa2.nickname,
+        'gender', aa2.gender,
+        'experience_range', aa2.experience_range,
+        'is_representative', aa2.is_representative)
+      order by aa2.is_representative desc)
+     from application_attendees aa2 where aa2.application_id = ap.id),
+    ap.paid_at,
+    ap.cancelled_at,
+    ap.refund_completed_at
+  from applications ap
+  join sessions s on s.id = ap.session_id
+  left join themes t on t.id = s.theme_id
+  left join theme_categories tc on tc.id = t.category_id
+  left join venues v on v.id = coalesce(s.venue_id_override, t.venue_id)
+  where ap.id = v_app_id;
+end;
+$$;
+
+--
+-- Name: FUNCTION lookup_application_v4(p_phone_digits text, p_confirmation_code text); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.lookup_application_v4(p_phone_digits text, p_confirmation_code text) IS '전화번호 + 접수번호로 참여내역 조회. v3 에 입금확인일(paid_at)·취소일·환불완료일을 더했다.';
+
+--
 -- Name: lookup_attendee_by_phone_hash(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -616,6 +707,30 @@ CREATE FUNCTION public.lookup_attendee_by_phone_hash(p_phone_hash text) RETURNS 
   order by aa.created_at desc
   limit 1;
 $$;
+
+--
+-- Name: mark_attendee_reminder_sent(uuid[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.mark_attendee_reminder_sent(p_attendee_ids uuid[]) RETURNS integer
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+  with upd as (
+    update application_attendees
+       set reminder_sms_sent_at = now()
+     where id = any(p_attendee_ids)
+       and reminder_sms_sent_at is null
+    returning 1
+  )
+  select coalesce(count(*), 0)::int from upd;
+$$;
+
+--
+-- Name: FUNCTION mark_attendee_reminder_sent(p_attendee_ids uuid[]); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.mark_attendee_reminder_sent(p_attendee_ids uuid[]) IS '장소안내 문자를 실제로 받은 참여자에게 발송 시각을 남긴다. 어드민 서버 액션·크론 전용.';
 
 --
 -- Name: normalize_coupon_code(text); Type: FUNCTION; Schema: public; Owner: -
@@ -734,6 +849,34 @@ end;
 $$;
 
 --
+-- Name: release_coupon_on_cancel(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.release_coupon_on_cancel() RETURNS trigger
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+begin
+  if new.status = 'cancelled'
+     and coalesce(old.status, '') <> 'cancelled'
+     and new.coupon_id is not null then
+    update coupons
+       set used_at = null,
+           used_application_id = null
+     where id = new.coupon_id
+       and used_application_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+
+--
+-- Name: FUNCTION release_coupon_on_cancel(); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.release_coupon_on_cancel() IS '신청이 취소되면 사용된 쿠폰을 미사용 상태로 되돌린다. 취소 경로가 여러 개라 트리거로 둔다.';
+
+--
 -- Name: resolve_unit_price(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -806,6 +949,27 @@ begin
   return new;
 end;
 $$;
+
+--
+-- Name: set_cancelled_at(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.set_cancelled_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  if new.status = 'cancelled' and coalesce(old.status, '') <> 'cancelled' then
+    new.cancelled_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+--
+-- Name: FUNCTION set_cancelled_at(); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.set_cancelled_at() IS '신청이 취소로 바뀌는 순간 cancelled_at 을 찍는다. 취소 경로가 여러 개라 트리거로 둔다.';
 
 --
 -- Name: submit_application(uuid, text, boolean, boolean, jsonb, text, boolean, boolean); Type: FUNCTION; Schema: public; Owner: -
@@ -1088,6 +1252,139 @@ end;
 $$;
 
 --
+-- Name: submit_application_v2(uuid, text, boolean, boolean, jsonb, text, boolean, boolean, uuid, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.submit_application_v2(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text DEFAULT NULL::text, p_consent_photo boolean DEFAULT false, p_consent_marketing boolean DEFAULT false, p_user_id uuid DEFAULT NULL::uuid, p_coupon_code text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+declare
+  v_session record; v_group_size int; v_current_total int; v_status text;
+  v_code text; v_app applications%rowtype; v_unit_price int;
+  v_base_amount int; v_amount int; v_dup_phones text; v_self_dup text;
+  v_waiting_number int; v_coupon coupons%rowtype; v_preview jsonb;
+  v_discount int := 0; v_coupon_id uuid := null; v_rep_phone text;
+begin
+  if not p_consent_required then raise exception '필수 약관에 동의해야 신청할 수 있습니다.'; end if;
+  perform 1 from sessions where id = p_session_id for update;
+
+  select sv.*, t.max_group_size, t.is_active as theme_active into v_session
+  from session_view sv join themes t on t.id = sv.theme_id where sv.id = p_session_id;
+
+  if not found then raise exception '존재하지 않는 회차입니다.'; end if;
+  if not v_session.theme_active then raise exception '현재 신청을 받지 않는 테마입니다.'; end if;
+  if v_session.status <> 'open' then raise exception '이미 마감된 회차입니다.'; end if;
+
+  v_group_size := jsonb_array_length(p_attendees);
+  if v_group_size is null or v_group_size < 1 then raise exception '참여 인원을 입력해주세요.'; end if;
+  if v_session.max_group_size is not null and v_group_size > v_session.max_group_size then
+    raise exception '한 번에 최대 %명까지 신청할 수 있습니다.', v_session.max_group_size; end if;
+
+  if exists (select 1 from jsonb_array_elements(p_attendees) a
+             where not is_eligible_birth_year((a->>'birth_year')::int, v_session.min_age)) then
+    raise exception '이 회차는 만 %세 이상만 참여할 수 있습니다.', v_session.min_age; end if;
+
+  select string_agg(distinct phone, ',') into v_self_dup from (
+    select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone
+    from jsonb_array_elements(p_attendees) a group by 1 having count(*) > 1) t;
+  if v_self_dup is not null then
+    raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 번호를 입력해주세요.' using detail = v_self_dup; end if;
+
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',') into v_dup_phones
+  from jsonb_array_elements(p_attendees) a
+  where exists (select 1 from application_attendees aa
+                join applications ap on ap.id = aa.application_id
+                join sessions s on s.id = ap.session_id
+                where ap.status <> 'cancelled' and aa.phone_hash = hash_phone(a->>'phone')
+                  and s.theme_id = v_session.theme_id);
+  if v_dup_phones is not null then
+    raise exception '이미 이 테마에 신청하신 분이 포함되어 있어요. 같은 테마는 한 번만 참여할 수 있습니다.' using detail = v_dup_phones; end if;
+
+  select coalesce(sum(cnt), 0) into v_current_total from (
+    select ap.id, count(*) as cnt from applications ap
+    join application_attendees aa on aa.application_id = ap.id
+    where ap.session_id = p_session_id and ap.status in ('confirmed','waiting') group by ap.id) t;
+
+  if v_current_total + v_group_size > v_session.capacity_max then
+    raise exception '정원마감: 남은 자리가 부족합니다.'; end if;
+
+  v_status := case when v_current_total + v_group_size <= v_session.capacity_confirm_line
+                   then 'confirmed' else 'waiting' end;
+
+  v_unit_price := coalesce(v_session.price_krw_override, resolve_unit_price(v_session.theme_id, v_group_size));
+  if v_unit_price is null then raise exception '이 테마의 요금이 설정되지 않았습니다. 운영자에게 문의해주세요.'; end if;
+  v_base_amount := v_unit_price * v_group_size;
+  v_amount := v_base_amount;
+
+  if normalize_coupon_code(p_coupon_code) is not null
+     and normalize_coupon_code(p_coupon_code) <> '' then
+    -- 먼저 잠근다. preview 검사만 믿으면 동시 신청에 같은 코드가 두 번 먹는다.
+    select * into v_coupon from coupons
+     where code = normalize_coupon_code(p_coupon_code) for update;
+    if not found then raise exception '존재하지 않는 쿠폰 코드예요.'; end if;
+    if v_coupon.used_at is not null then raise exception '이미 사용된 쿠폰이에요.'; end if;
+
+    v_rep_phone := regexp_replace(p_attendees->0->>'phone', '[^0-9]', '', 'g');
+    v_preview := preview_coupon(p_coupon_code, v_session.theme_id, v_group_size, v_base_amount, v_rep_phone);
+    if not (v_preview->>'ok')::boolean then raise exception '%', v_preview->>'reason'; end if;
+
+    v_discount := (v_preview->>'discount_krw')::int;
+    v_amount := (v_preview->>'final_amount_krw')::int;
+    v_coupon_id := v_coupon.id;
+  end if;
+
+  for i in 1..20 loop
+    v_code := (100000 + floor(random() * 900000))::int::text;
+    exit when not exists (select 1 from applications where confirmation_code = v_code);
+  end loop;
+
+  insert into applications (
+    session_id, user_id, depositor_name_enc, depositor_name_hash,
+    consent_required, consent_optional, consent_photo, consent_marketing,
+    confirmation_code, status, notes, headcount, unit_price_krw, amount_krw,
+    coupon_id, discount_krw
+  ) values (
+    p_session_id, p_user_id, encrypt_pii(p_depositor_name),
+    hash_phone(normalize_depositor_name(p_depositor_name)),
+    p_consent_required, p_consent_optional, p_consent_photo, p_consent_marketing,
+    v_code, v_status, p_notes, v_group_size, v_unit_price, v_amount,
+    v_coupon_id, v_discount
+  ) returning * into v_app;
+
+  if v_coupon_id is not null then
+    update coupons set used_at = now(), used_application_id = v_app.id where id = v_coupon_id;
+  end if;
+
+  insert into application_attendees (
+    application_id, session_id, is_representative,
+    name_enc, phone_enc, phone_hash, birth_year, nickname, gender, experience_range)
+  select v_app.id, p_session_id, (ord = 1),
+         encrypt_pii(a->>'name'), encrypt_pii(a->>'phone'), hash_phone(a->>'phone'),
+         (a->>'birth_year')::int, nullif(a->>'nickname',''),
+         nullif(a->>'gender',''), nullif(a->>'experience_range','')
+  from jsonb_array_elements(p_attendees) with ordinality as t(a, ord);
+
+  if v_current_total + v_group_size >= v_session.capacity_max then
+    update sessions set status = 'closed', updated_at = now() where id = p_session_id; end if;
+
+  if v_app.status = 'waiting' then
+    select count(*) + 1 into v_waiting_number from applications
+     where session_id = p_session_id and status = 'waiting' and id <> v_app.id; end if;
+
+  return jsonb_build_object(
+    'id', v_app.id, 'confirmation_code', v_app.confirmation_code,
+    'status', v_app.status, 'payment_status', v_app.payment_status,
+    'headcount', v_group_size, 'unit_price_krw', v_unit_price,
+    'base_amount_krw', v_base_amount, 'discount_krw', v_discount,
+    'amount_krw', v_amount, 'waiting_number', v_waiting_number,
+    'created_at', v_app.created_at);
+exception
+  when unique_violation then
+    raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end; $$;
+
+--
 -- Name: submit_review_payback_application(text, text, text, text, text, text, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1244,10 +1541,10 @@ end;
 $$;
 
 --
--- Name: _backup_20260912_application_attendees; Type: TABLE; Schema: public; Owner: -
+-- Name: _backup_application_attendees_20260913; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public._backup_20260912_application_attendees (
+CREATE TABLE public._backup_application_attendees_20260913 (
     id uuid,
     application_id uuid,
     session_id uuid,
@@ -1259,14 +1556,15 @@ CREATE TABLE public._backup_20260912_application_attendees (
     nickname text,
     gender text,
     experience_range text,
-    created_at timestamp with time zone
+    created_at timestamp with time zone,
+    reminder_sms_sent_at timestamp with time zone
 );
 
 --
--- Name: _backup_20260912_applications; Type: TABLE; Schema: public; Owner: -
+-- Name: _backup_applications_20260913; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public._backup_20260912_applications (
+CREATE TABLE public._backup_applications_20260913 (
     id uuid,
     session_id uuid,
     depositor_name_enc bytea,
@@ -1296,101 +1594,29 @@ CREATE TABLE public._backup_20260912_applications (
     unit_price_krw integer,
     amount_krw integer,
     depositor_name_hash text,
-    updated_at timestamp with time zone
+    updated_at timestamp with time zone,
+    coupon_id uuid,
+    discount_krw integer,
+    paid_at timestamp with time zone,
+    cancelled_at timestamp with time zone
 );
 
 --
--- Name: _backup_20260912_session_venues; Type: TABLE; Schema: public; Owner: -
+-- Name: TABLE _backup_applications_20260913; Type: COMMENT; Schema: public; Owner: -
 --
 
-CREATE TABLE public._backup_20260912_session_venues (
-    session_id uuid,
-    venue_name text,
-    created_at timestamp with time zone,
-    venue_address text
-);
+COMMENT ON TABLE public._backup_applications_20260913 IS '2026-09-13 삭제한 팀 테스트 신청 8건의 백업. 분석 숫자 확인 후 drop 할 것.';
 
 --
--- Name: _backup_20260912_sessions; Type: TABLE; Schema: public; Owner: -
+-- Name: _backup_theme_content_20260913b; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public._backup_20260912_sessions (
+CREATE TABLE public._backup_theme_content_20260913b (
     id uuid,
     slug text,
-    event_date date,
-    slot text,
-    title text,
-    theme_label text,
-    start_at timestamp with time zone,
-    end_at timestamp with time zone,
-    venue_area text,
-    price_krw integer,
-    original_price_krw integer,
-    capacity_min integer,
-    capacity_confirm_line integer,
-    capacity_max integer,
-    capacity_confirm_line_male integer,
-    capacity_confirm_line_female integer,
-    capacity_max_male integer,
-    capacity_max_female integer,
-    male_closed boolean,
-    female_closed boolean,
-    status text,
-    description text,
-    created_at timestamp with time zone,
-    content_group text,
-    theme_name text,
-    session_type text,
-    difficulty smallint,
-    theme_id uuid,
-    min_age integer,
-    price_krw_override integer,
-    capacity_confirm_line_override integer,
-    capacity_max_override integer,
-    venue_id_override uuid,
-    legacy_format text,
-    legacy_slug text,
-    admin_note text,
-    updated_at timestamp with time zone
-);
-
---
--- Name: _backup_20260912_sms_templates; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public._backup_20260912_sms_templates (
-    key text,
-    label text,
-    body text,
-    placeholders text[],
-    updated_at timestamp with time zone
-);
-
---
--- Name: _backup_applications_20260815; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public._backup_applications_20260815 (
-    id uuid,
-    session_id uuid,
-    agreed_terms boolean,
-    confirmation_code text,
-    status text,
-    payment_status text,
-    created_at timestamp with time zone,
-    depositor_name_enc bytea,
-    notes text,
-    confirmation_sms_sent_at timestamp with time zone,
-    payment_confirmed_sms_sent_at timestamp with time zone,
-    reminder_sms_sent_at timestamp with time zone,
-    consent_no_rebooking boolean,
-    consent_phone_collection boolean,
-    consent_proxy_for_group boolean,
-    consent_photo boolean,
-    consent_marketing boolean,
-    refund_bank_name text,
-    refund_account_number_enc bytea,
-    refund_account_holder_enc bytea
+    content jsonb,
+    updated_at timestamp with time zone,
+    backed_up_at timestamp with time zone
 );
 
 --
@@ -1428,6 +1654,10 @@ CREATE TABLE public.applications (
     amount_krw integer,
     depositor_name_hash text,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    coupon_id uuid,
+    discount_krw integer DEFAULT 0 NOT NULL,
+    paid_at timestamp with time zone,
+    cancelled_at timestamp with time zone,
     CONSTRAINT applications_notes_check CHECK (((notes IS NULL) OR (char_length(notes) <= 200))),
     CONSTRAINT applications_payment_status_check CHECK ((payment_status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'cancelled'::text]))),
     CONSTRAINT applications_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'confirmed'::text, 'cancelled'::text])))
@@ -1452,6 +1682,30 @@ COMMENT ON COLUMN public.applications.amount_krw IS 'headcount * unit_price_krw.
 COMMENT ON COLUMN public.applications.depositor_name_hash IS '입금자명 정규화 후 HMAC. 복호화 없이 입금 매칭하기 위함.';
 
 --
+-- Name: COLUMN applications.coupon_id; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.coupon_id IS '이 신청에 사용된 쿠폰. 쿠폰이 지워져도 신청은 남는다(on delete set null).';
+
+--
+-- Name: COLUMN applications.discount_krw; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.discount_krw IS '쿠폰으로 깎인 금액. amount_krw 는 이미 할인이 반영된 값이다.';
+
+--
+-- Name: COLUMN applications.paid_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.paid_at IS '입금이 확인된 시각. 취소되어 payment_status 가 cancelled 로 덮여도 남는다 — 환불 대상 판별용.';
+
+--
+-- Name: COLUMN applications.cancelled_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.cancelled_at IS '신청이 취소된 시각. 환불 비율 계산의 기준 시점이기도 하다. 2026-09-13 이전 취소 건은 null.';
+
+--
 -- Name: admin_application_view; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -1473,7 +1727,8 @@ CREATE VIEW public.admin_application_view AS
     consent_marketing,
     payment_confirmed_sms_sent_at,
     refund_completed_at,
-    promoted_from_waiting_at
+    promoted_from_waiting_at,
+    paid_at
    FROM public.applications ap;
 
 --
@@ -1493,10 +1748,17 @@ CREATE TABLE public.application_attendees (
     gender text,
     experience_range text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    reminder_sms_sent_at timestamp with time zone,
     CONSTRAINT application_attendees_birth_year_check CHECK (((birth_year >= 1900) AND (birth_year <= 2100))),
     CONSTRAINT application_attendees_experience_range_check CHECK (((experience_range IS NULL) OR (experience_range = ANY (ARRAY['0'::text, '1-50'::text, '50-100'::text, '100-200'::text, '200-500'::text, '500+'::text, '200+'::text])))),
     CONSTRAINT application_attendees_gender_check CHECK ((gender = ANY (ARRAY['M'::text, 'F'::text])))
 );
+
+--
+-- Name: COLUMN application_attendees.reminder_sms_sent_at; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.application_attendees.reminder_sms_sent_at IS '장소안내(문자3)를 이 참여자에게 보낸 시각. null 이면 아직 안 보냄.';
 
 --
 -- Name: admin_attendee_view; Type: VIEW; Schema: public; Owner: -
@@ -1513,7 +1775,8 @@ CREATE VIEW public.admin_attendee_view AS
     nickname,
     gender,
     experience_range,
-    created_at
+    created_at,
+    reminder_sms_sent_at
    FROM public.application_attendees aa;
 
 --
@@ -1958,6 +2221,7 @@ CREATE TABLE public.themes (
     logo_image_path text,
     title_font text,
     opening_date date,
+    is_locked boolean DEFAULT false NOT NULL,
     CONSTRAINT themes_capacity_confirm_line_check CHECK ((capacity_confirm_line > 0)),
     CONSTRAINT themes_capacity_max_check CHECK ((capacity_max > 0)),
     CONSTRAINT themes_capacity_min_check CHECK (((capacity_min IS NULL) OR (capacity_min > 0))),
@@ -1990,7 +2254,7 @@ COMMENT ON COLUMN public.themes.duration_minutes IS '소요시간(분). 0 은 �
 -- Name: COLUMN themes.min_age_floor; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.themes.min_age_floor IS '테마 자체의 최소 연령 하한. 시각 규칙(18시)보다 우선해 하한으로 작용한다.';
+COMMENT ON COLUMN public.themes.min_age_floor IS '테마 자체의 최소 연령 하한. 종료 시각 규칙(22:00 이전 종료 만 16세 / 이후 만 19세)보다 높으면 이 값이 적용된다.';
 
 --
 -- Name: COLUMN themes.content; Type: COMMENT; Schema: public; Owner: -
@@ -2033,6 +2297,12 @@ COMMENT ON COLUMN public.themes.title_font IS '컨텐츠 목록 테마명 글꼴
 --
 
 COMMENT ON COLUMN public.themes.opening_date IS '예약 달력에 ''오픈'' 으로 표시할 날짜. 비우면 표시 안 함.';
+
+--
+-- Name: COLUMN themes.is_locked; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.themes.is_locked IS '잠금. 목록에는 나오지만 상세로 들어갈 수 없고(자물쇠) 검색엔진 색인에서도 빠진다. 신청 여부(is_active)와는 별개다.';
 
 --
 -- Name: venues; Type: TABLE; Schema: public; Owner: -
@@ -2191,6 +2461,24 @@ CREATE TABLE public.site_settings (
 --
 
 COMMENT ON TABLE public.site_settings IS '입금 계좌·미입금 취소 시간 등 운영자가 바꾸는 값. 현재 코드 하드코딩(bankAccount.ts)을 대체.';
+
+--
+-- Name: slack_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slack_templates (
+    key text NOT NULL,
+    label text NOT NULL,
+    body text NOT NULL,
+    placeholders text[] DEFAULT '{}'::text[] NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+--
+-- Name: TABLE slack_templates; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.slack_templates IS '슬랙 알림 본문. 어드민 › 설정 › 슬랙 템플릿에서 고친다. 반복 블록({{#attendees}})을 지원한다.';
 
 --
 -- Name: sms_templates; Type: TABLE; Schema: public; Owner: -
@@ -2436,6 +2724,13 @@ ALTER TABLE ONLY public.site_settings
     ADD CONSTRAINT site_settings_pkey PRIMARY KEY (key);
 
 --
+-- Name: slack_templates slack_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slack_templates
+    ADD CONSTRAINT slack_templates_pkey PRIMARY KEY (key);
+
+--
 -- Name: sms_templates sms_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2602,6 +2897,18 @@ CREATE INDEX themes_listed_idx ON public.themes USING btree (is_listed, sort_ord
 CREATE TRIGGER application_attendees_nickname_unique BEFORE INSERT OR UPDATE OF nickname ON public.application_attendees FOR EACH ROW EXECUTE FUNCTION public.enforce_session_nickname_unique();
 
 --
+-- Name: applications applications_release_coupon_on_cancel; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER applications_release_coupon_on_cancel AFTER UPDATE OF status ON public.applications FOR EACH ROW EXECUTE FUNCTION public.release_coupon_on_cancel();
+
+--
+-- Name: applications applications_set_cancelled_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER applications_set_cancelled_at BEFORE UPDATE OF status ON public.applications FOR EACH ROW EXECUTE FUNCTION public.set_cancelled_at();
+
+--
 -- Name: sessions trg_sessions_generate_labels; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -2627,6 +2934,13 @@ ALTER TABLE ONLY public.application_attendees
 
 ALTER TABLE ONLY public.application_attendees
     ADD CONSTRAINT application_attendees_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE CASCADE;
+
+--
+-- Name: applications applications_coupon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.applications
+    ADD CONSTRAINT applications_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(id) ON DELETE SET NULL;
 
 --
 -- Name: applications applications_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2762,40 +3076,22 @@ ALTER TABLE ONLY public.themes
     ADD CONSTRAINT themes_venue_id_fkey FOREIGN KEY (venue_id) REFERENCES public.venues(id);
 
 --
--- Name: _backup_20260912_application_attendees; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: _backup_application_attendees_20260913; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
-ALTER TABLE public._backup_20260912_application_attendees ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public._backup_application_attendees_20260913 ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: _backup_20260912_applications; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: _backup_applications_20260913; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
-ALTER TABLE public._backup_20260912_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public._backup_applications_20260913 ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: _backup_20260912_session_venues; Type: ROW SECURITY; Schema: public; Owner: -
+-- Name: _backup_theme_content_20260913b; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
-ALTER TABLE public._backup_20260912_session_venues ENABLE ROW LEVEL SECURITY;
-
---
--- Name: _backup_20260912_sessions; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public._backup_20260912_sessions ENABLE ROW LEVEL SECURITY;
-
---
--- Name: _backup_20260912_sms_templates; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public._backup_20260912_sms_templates ENABLE ROW LEVEL SECURITY;
-
---
--- Name: _backup_applications_20260815; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public._backup_applications_20260815 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public._backup_theme_content_20260913b ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: admin_users; Type: ROW SECURITY; Schema: public; Owner: -
@@ -2952,6 +3248,12 @@ CREATE POLICY sessions_select_public ON public.sessions FOR SELECT USING (true);
 --
 
 ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: slack_templates; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.slack_templates ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: sms_templates; Type: ROW SECURITY; Schema: public; Owner: -
@@ -3168,11 +3470,27 @@ GRANT ALL ON FUNCTION public.lookup_application_v3(p_phone_digits text, p_confir
 GRANT ALL ON FUNCTION public.lookup_application_v3(p_phone_digits text, p_confirmation_code text) TO service_role;
 
 --
+-- Name: FUNCTION lookup_application_v4(p_phone_digits text, p_confirmation_code text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.lookup_application_v4(p_phone_digits text, p_confirmation_code text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.lookup_application_v4(p_phone_digits text, p_confirmation_code text) TO anon;
+GRANT ALL ON FUNCTION public.lookup_application_v4(p_phone_digits text, p_confirmation_code text) TO authenticated;
+GRANT ALL ON FUNCTION public.lookup_application_v4(p_phone_digits text, p_confirmation_code text) TO service_role;
+
+--
 -- Name: FUNCTION lookup_attendee_by_phone_hash(p_phone_hash text); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.lookup_attendee_by_phone_hash(p_phone_hash text) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.lookup_attendee_by_phone_hash(p_phone_hash text) TO service_role;
+
+--
+-- Name: FUNCTION mark_attendee_reminder_sent(p_attendee_ids uuid[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.mark_attendee_reminder_sent(p_attendee_ids uuid[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.mark_attendee_reminder_sent(p_attendee_ids uuid[]) TO service_role;
 
 --
 -- Name: FUNCTION normalize_coupon_code(p_raw text); Type: ACL; Schema: public; Owner: -
@@ -3198,6 +3516,12 @@ REVOKE ALL ON FUNCTION public.preview_coupon(p_code text, p_theme_id uuid, p_hea
 GRANT ALL ON FUNCTION public.preview_coupon(p_code text, p_theme_id uuid, p_headcount integer, p_base_amount integer, p_phone text) TO anon;
 GRANT ALL ON FUNCTION public.preview_coupon(p_code text, p_theme_id uuid, p_headcount integer, p_base_amount integer, p_phone text) TO authenticated;
 GRANT ALL ON FUNCTION public.preview_coupon(p_code text, p_theme_id uuid, p_headcount integer, p_base_amount integer, p_phone text) TO service_role;
+
+--
+-- Name: FUNCTION release_coupon_on_cancel(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.release_coupon_on_cancel() FROM PUBLIC;
 
 --
 -- Name: FUNCTION resolve_unit_price(p_theme_id uuid, p_headcount integer); Type: ACL; Schema: public; Owner: -
@@ -3247,6 +3571,30 @@ GRANT ALL ON FUNCTION public.submit_sponsorship_dating_application(p_name text, 
 REVOKE ALL ON FUNCTION public.submit_sponsorship_group_application(p_name text, p_birth_year integer, p_gender text, p_phone text, p_handle text, p_platform text, p_profile_url text, p_followers integer, p_reach integer, p_portfolio_url text, p_companions integer, p_note text, p_deliverable text, p_agreements jsonb) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.submit_sponsorship_group_application(p_name text, p_birth_year integer, p_gender text, p_phone text, p_handle text, p_platform text, p_profile_url text, p_followers integer, p_reach integer, p_portfolio_url text, p_companions integer, p_note text, p_deliverable text, p_agreements jsonb) TO anon;
 GRANT ALL ON FUNCTION public.submit_sponsorship_group_application(p_name text, p_birth_year integer, p_gender text, p_phone text, p_handle text, p_platform text, p_profile_url text, p_followers integer, p_reach integer, p_portfolio_url text, p_companions integer, p_note text, p_deliverable text, p_agreements jsonb) TO authenticated;
+
+--
+-- Name: TABLE _backup_application_attendees_20260913; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_application_attendees_20260913 TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_application_attendees_20260913 TO authenticated;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_application_attendees_20260913 TO service_role;
+
+--
+-- Name: TABLE _backup_applications_20260913; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_applications_20260913 TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_applications_20260913 TO authenticated;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_applications_20260913 TO service_role;
+
+--
+-- Name: TABLE _backup_theme_content_20260913b; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260913b TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260913b TO authenticated;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260913b TO service_role;
 
 --
 -- Name: TABLE applications; Type: ACL; Schema: public; Owner: -
@@ -3343,6 +3691,12 @@ GRANT ALL ON TABLE public.admin_users TO service_role;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.audit_logs TO anon;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.audit_logs TO authenticated;
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.audit_logs TO service_role;
+
+--
+-- Name: SEQUENCE audit_logs_id_seq; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,USAGE ON SEQUENCE public.audit_logs_id_seq TO service_role;
 
 --
 -- Name: TABLE bank_transactions; Type: ACL; Schema: public; Owner: -
@@ -3475,6 +3829,12 @@ GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_view T
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.site_settings TO anon;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.site_settings TO authenticated;
 GRANT ALL ON TABLE public.site_settings TO service_role;
+
+--
+-- Name: TABLE slack_templates; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE public.slack_templates TO service_role;
 
 --
 -- Name: TABLE sms_templates; Type: ACL; Schema: public; Owner: -
