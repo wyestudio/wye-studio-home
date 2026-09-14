@@ -161,9 +161,19 @@ function InstagramCard({ link }: { link: ReviewLink }) {
   return (
     <div
       ref={holderRef}
-      className="w-full overflow-hidden rounded-xl border border-panel-border bg-white"
+      className="relative w-full overflow-hidden rounded-xl border border-panel-border bg-white"
       style={{ height: CARD_HEIGHT }}
     >
+      {/*
+        아래를 잘라 높이를 맞추다 보니 게시물마다 잘리는 지점이 다르다
+        (정사각이냐 세로냐, 좋아요 줄이 있냐에 따라). 흰 배경으로 부드럽게
+        흐려 두면 '잘렸다' 가 아니라 '아래 더 있다' 로 읽힌다.
+      */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-12 bg-gradient-to-t from-white via-white/85 to-transparent"
+      />
+
       {show ? (
         <iframe
           ref={iframeRef}

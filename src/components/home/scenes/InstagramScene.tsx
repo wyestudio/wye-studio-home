@@ -117,9 +117,18 @@ export function InstagramScene({
     if (!area || !header || naturalHeight <= 0) return;
 
     const fit = () => {
-      // 가로 스크롤 막대와 카드 아래 여백 몫으로 조금 남긴다.
+      // 세로: 제목 줄을 뺀 나머지에 카드가 들어가야 한다.
       const room = area.clientHeight - header.offsetHeight - 40;
-      setScale(Math.max(0.45, Math.min(1, room / naturalHeight)));
+      const byHeight = room / naturalHeight;
+
+      /*
+        가로: 카드가 화면 폭을 다 먹으면 **옆에 더 있다는 걸 알 수 없다.**
+        다음 카드가 살짝 걸쳐 보이도록 한 장이 폭의 72% 를 넘지 않게 한다.
+        넓은 화면에서는 어차피 320px 이 72% 보다 작아 이 제한이 걸리지 않는다.
+      */
+      const byWidth = Math.min(BASE_WIDTH, area.clientWidth * 0.78) / BASE_WIDTH;
+
+      setScale(Math.max(0.45, Math.min(1, byHeight, byWidth)));
     };
     fit();
 
