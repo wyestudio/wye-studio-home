@@ -7,7 +7,7 @@ import type { SettlementResult, SettlementRow } from "@/lib/settlement";
 
 const CSV_HEADERS = [
   "예약번호", "프로그램", "회차", "예약인원", "쿠폰코드",
-  "할인액", "실입금액", "취소여부", "환불률", "보유액", "수수료(5%)", "유입경로",
+  "할인액", "실입금액", "취소여부", "환불률", "보유액", "수수료(5%)", "잼핏쿠폰부담(50%)", "유입경로",
 ];
 
 function csvRow(r: SettlementRow) {
@@ -16,7 +16,7 @@ function csvRow(r: SettlementRow) {
     r.discountKrw, r.paidKrw,
     r.cancelled ? "취소" : "정상",
     r.refundRatio === null ? "" : `${Math.round(r.refundRatio * 100)}%`,
-    r.retainedKrw, r.commissionKrw, r.utmSource ?? "",
+    r.retainedKrw, r.commissionKrw, r.partnerCouponShareKrw, r.utmSource ?? "",
   ];
 }
 
@@ -45,6 +45,7 @@ function Table({ rows, 제목 }: { rows: SettlementRow[]; 제목: string }) {
               <th className="px-3 py-2">상태</th>
               <th className="px-3 py-2 text-right">보유액</th>
               <th className="px-3 py-2 text-right">수수료</th>
+              <th className="px-3 py-2 text-right">잼핏 쿠폰부담</th>
               <th className="px-3 py-2">유입경로</th>
             </tr>
           </thead>
@@ -64,6 +65,9 @@ function Table({ rows, 제목 }: { rows: SettlementRow[]; 제목: string }) {
                   </td>
                   <td className="px-3 py-2 text-right">{formatKrw(r.retainedKrw)}</td>
                   <td className="px-3 py-2 text-right font-bold text-glow">{formatKrw(r.commissionKrw)}</td>
+                  <td className="px-3 py-2 text-right text-amber-400">
+                    {r.partnerCouponShareKrw > 0 ? `−${formatKrw(r.partnerCouponShareKrw)}` : "-"}
+                  </td>
                   <td className="px-3 py-2 text-muted">{r.utmSource ?? "-"}</td>
                 </tr>
               );
@@ -81,7 +85,10 @@ export function SettlementPanel({ data, months }: { data: SettlementResult; mont
 
   const 차감합계 = deductions.reduce((a, r) => a + r.commissionKrw, 0);
   const 정산전 = totals.commissionKrw;
-  const 실지급액 = 정산전 - 차감합계;
+  // 제6조 4항 — 잼핏의 쿠폰 부담분은 "양 당사자의 동의 하에" 상계할 수 있다.
+  // 합의 전에는 상계하지 않은 금액을 지급해야 하므로 두 경우를 같이 보여준다.
+  const 상계전 = 정산전 - 차감합계;
+  const 상계후 = 상계전 - totals.partnerCouponShareKrw;
   const needsReview = [...rows, ...deductions].filter((r) => r.needsReview).length;
 
   function 내려받기() {
@@ -138,12 +145,43 @@ export function SettlementPanel({ data, months }: { data: SettlementResult; mont
         </div>
         <div className="rounded-lg border border-glow/40 bg-glow/5 p-4">
           <p className="text-xs text-muted">지급할 금액</p>
-          <p className="mt-1 text-2xl font-bold text-glow">{formatKrw(실지급액)}</p>
-          {차감합계 > 0 && (
-            <p className="mt-1 text-xs text-amber-400">차감 −{formatKrw(차감합계)}</p>
-          )}
+          <p className="mt-1 text-2xl font-bold text-glow">{formatKrw(상계전)}</p>
+          <p className="mt-1 text-xs text-muted">
+            {차감합계 > 0 ? `차감 −${formatKrw(차감합계)} 반영` : "상계 없이"}
+          </p>
         </div>
       </div>
+
+      {totals.partnerCouponShareKrw > 0 && (
+        <div className="mb-6 rounded-lg border border-border bg-background/50 p-4">
+          <p className="mb-2 text-sm font-semibold">쿠폰 비용 상계 (제6조 3·4항)</p>
+          <p className="mb-3 text-sm text-muted">
+            쿠폰 할인비용은 <strong className="text-foreground">잼핏 50% · 우리 50%</strong> 부담입니다.
+            아래 금액은 <strong className="text-foreground">우리가 잼핏에게 받을 돈</strong>이고,
+            계약은 이를 수수료와 상계할 수 있다고 정합니다 —
+            다만 <strong className="text-foreground">&ldquo;양 당사자의 동의 하에&rdquo;</strong>이므로
+            합의 전에는 상계하지 말고 수수료 전액을 지급한 뒤 따로 청구해야 합니다.
+          </p>
+          <dl className="grid gap-2 text-sm sm:grid-cols-3">
+            <div className="rounded border border-border px-3 py-2">
+              <dt className="text-xs text-muted">할인액 합계</dt>
+              <dd className="mt-0.5 font-bold">
+                {formatKrw(rows.reduce((a, r) => a + (r.retainedKrw > 0 ? r.discountKrw : 0), 0))}
+              </dd>
+            </div>
+            <div className="rounded border border-border px-3 py-2">
+              <dt className="text-xs text-muted">잼핏 부담 (50%)</dt>
+              <dd className="mt-0.5 font-bold text-amber-400">
+                {formatKrw(totals.partnerCouponShareKrw)}
+              </dd>
+            </div>
+            <div className="rounded border border-glow/30 bg-glow/5 px-3 py-2">
+              <dt className="text-xs text-muted">상계하면 지급액</dt>
+              <dd className="mt-0.5 font-bold text-glow">{formatKrw(상계후)}</dd>
+            </div>
+          </dl>
+        </div>
+      )}
 
       {needsReview > 0 && (
         <p className="mb-6 rounded border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-sm text-amber-300">

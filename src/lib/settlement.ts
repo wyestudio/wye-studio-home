@@ -35,6 +35,16 @@ import { refundRate } from "@/lib/refundPolicy";
 /** 수수료율. 제7조 1항 — 실입금액의 5% (부가세 포함). 변경은 서면 합의 사항이다. */
 export const COMMISSION_RATE = 0.05;
 
+/**
+ * 쿠폰 할인비용 중 **잼핏이 부담하는 비율**. 제6조 3항 — 갑 50% / 을 50%.
+ *
+ * ⚠️ 이 금액만큼 우리가 잼핏에게 받을 돈이 있다. 제6조 4항은 이를 수수료
+ *    정산금액과 **상계할 수 있다**고 정한다("양 당사자의 동의 하에").
+ *    합의 전이라면 상계하지 말고 수수료 전액을 지급한 뒤 따로 청구해야 한다 —
+ *    화면에서 두 금액을 나눠 보여주는 이유다.
+ */
+export const PARTNER_COUPON_SHARE = 0.5;
+
 /** 정산 대상 캠페인을 고르는 기준. 이름 앞이 '잼핏' 인 캠페인. */
 export const PARTNER_CAMPAIGN_PREFIX = "잼핏";
 
@@ -64,6 +74,8 @@ export type SettlementRow = {
   /** 우리가 최종 보유하는 금액 — 수수료의 기준 (제7조 8항) */
   retainedKrw: number;
   commissionKrw: number;
+  /** 이 건의 할인액 중 잼핏이 부담하는 몫 (제6조 3항). 우리가 받을 돈이다. */
+  partnerCouponShareKrw: number;
   utmSource: string | null;
   /** 사람이 한 번 봐야 하는 건 (규정과 다르게 환불했을 수 있음) */
   needsReview: boolean;
@@ -72,12 +84,19 @@ export type SettlementRow = {
 export type SettlementResult = {
   month: string;
   rows: SettlementRow[];
-  totals: { count: number; headcount: number; retainedKrw: number; commissionKrw: number };
+  totals: {
+    count: number;
+    headcount: number;
+    retainedKrw: number;
+    commissionKrw: number;
+    /** 잼핏이 부담할 쿠폰 비용 합계 (제6조 3항) */
+    partnerCouponShareKrw: number;
+  };
   /** 이전 달 정산분인데 이번 달에 취소돼 차감이 필요한 건 (제7조 9항) */
   deductions: SettlementRow[];
 };
 
-const EMPTY_TOTALS = { count: 0, headcount: 0, retainedKrw: 0, commissionKrw: 0 };
+const EMPTY_TOTALS = { count: 0, headcount: 0, retainedKrw: 0, commissionKrw: 0, partnerCouponShareKrw: 0 };
 
 type Raw = {
   confirmation_code: string;
@@ -135,6 +154,9 @@ function settleOne(r: Raw, themeNames: Map<string, string>): SettlementRow {
     refundRatio: ratio,
     retainedKrw: retained,
     commissionKrw: Math.round(retained * COMMISSION_RATE),
+    // 전액 환불된 건은 고객이 할인을 누린 것이 없으므로 비용 분담도 없다.
+    partnerCouponShareKrw:
+      retained > 0 ? Math.round((r.discount_krw ?? 0) * PARTNER_COUPON_SHARE) : 0,
     utmSource: r.utm_source,
     // 환불 처리는 했는데 규정상 100% 환불이 아닌 건 = 금액을 손으로 정했을 수 있다
     needsReview: cancelled && (ratio === null || (r.refund_completed_at !== null && ratio !== 1)),
@@ -209,6 +231,7 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
       headcount: a.headcount + (r.retainedKrw > 0 ? r.headcount : 0),
       retainedKrw: a.retainedKrw + r.retainedKrw,
       commissionKrw: a.commissionKrw + r.commissionKrw,
+      partnerCouponShareKrw: a.partnerCouponShareKrw + r.partnerCouponShareKrw,
     }),
     { ...EMPTY_TOTALS }
   );
