@@ -9,7 +9,7 @@ import {
   isBookable,
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
-import { ThemeSpecs } from "@/components/contents/ThemeSpecs";
+import { ThemeSpecTiles, ThemeGenreTile } from "@/components/contents/ThemeSpecs";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ShareButton } from "@/components/ui/ShareButton";
@@ -17,6 +17,7 @@ import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/catalog";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
+import { PosterFit } from "./PosterFit";
 
 /*
   이 페이지는 동적으로 그린다. 대신 **데이터에 캐시가 걸려 있다**
@@ -107,41 +108,36 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         정작 테마 정보가 작은 글씨 한 줄로 밀려나 있었다.
 
         같은 요소를 화면 폭에 따라 다르게 배치한다(grid-template-areas):
-          모바일   제목 / [포스터 | 난이도·시간·장르] / 시놉시스
-          데스크톱 [포스터 | 제목 · 난이도·시간·장르 · 시놉시스]
+          모바일   제목 / [포스터 | 난이도·시간] / 장르 / 시놉시스
+          데스크톱 [포스터 | 제목 · 난이도·시간 · 장르 · 시놉시스]
         요소를 두 번 그리지 않으려고 순서 대신 영역 이름으로 자리를 정한다.
+
+        포스터는 **어느 화면에서도 4:5 그대로**다(잘리지 않게). 높이 맞추기는 이렇게:
+          모바일   포스터 옆 난이도·시간 두 칸이 포스터 높이만큼 늘어난다.
+                   장르까지 옆에 두면 포스터보다 훨씬 길어져서 장르만 아래로 내렸다.
+          데스크톱 PosterFit 이 오른쪽 높이를 재서 포스터 칸 폭(--poster-w)을 정한다.
+                   오른쪽 요소는 전부 md:self-start — 늘어나 있으면 잰 높이가 틀어진다.
       */}
       <section
         id="intro"
-        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-5 pt-6
-                   [grid-template-areas:'title_title'_'poster_specs'_'synopsis_synopsis']
-                   md:grid-cols-[18rem_minmax(0,1fr)] md:grid-rows-[auto_auto_1fr] md:gap-x-10 md:gap-y-6 md:pt-10
-                   md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_synopsis']
-                   lg:grid-cols-[20rem_minmax(0,1fr)]"
+        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-3 pt-6
+                   [grid-template-areas:'title_title'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
+                   md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-10 md:pt-10
+                   md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_genres'_'poster_synopsis']
+                   lg:grid-cols-[var(--poster-w,20rem)_minmax(0,1fr)]"
       >
-        {/*
-          포스터는 옆 칸 높이에 맞춰 늘어난다(그리드 기본 stretch). 포스터 아래끝과
-          오른쪽 정보의 아래끝이 어긋나 보인다는 의견을 받았다(2026-09-15).
-          늘어난 만큼은 object-cover 로 양옆이 조금 잘린다.
+        <PosterFit sectionId="intro" />
 
-          ⚠️ 바닥 높이: 데스크톱은 4:5 를 깔아 둔다. 오른쪽 내용이 짧아도 포스터가
-             가로로 넓적하게 찌그러지지 않게. 모바일은 포스터 옆이 난이도·시간·장르뿐이라
-             그 높이에 정확히 맞추고, 아무것도 없는 테마를 위해 최소 높이만 둔다.
-          ⚠️ 그림은 absolute 로 깐다. 흐름 안에 있으면 그림 높이가 칸을 도로 밀어 올린다.
-        */}
-        <div className="relative min-h-40 overflow-hidden rounded-xl border border-white/15 bg-surface [grid-area:poster]">
-          <div className="hidden aspect-[4/5] md:block" aria-hidden />
-          <div className="absolute inset-0">
-            <PosterImage
-              src={theme.hero_image_path}
-              alt={`${theme.name} 포스터`}
-              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 50vw"
-              priority
-            />
-          </div>
+        <div className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-white/15 bg-surface [grid-area:poster]">
+          <PosterImage
+            src={theme.hero_image_path}
+            alt={`${theme.name} 포스터`}
+            sizes="(min-width: 768px) 460px, 50vw"
+            priority
+          />
         </div>
 
-        <div className="min-w-0 [grid-area:title]">
+        <div data-fit-top className="mb-2 min-w-0 self-start [grid-area:title] md:mb-3">
           {/*
             제목 줄: 테마명 + 카테고리 배지 / 오른쪽 끝에 공유.
             카테고리를 아래 줄에 크게 두면 부제처럼 읽혀서 분류라는 게 안 보인다.
@@ -170,17 +166,21 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           {/* 장소는 여기서 뺐다. 상세 정보의 '진행 장소' 블록(ThemeBlocks)이 보여준다. */}
         </div>
 
-        <div className="min-w-0 [grid-area:specs]">
-          <ThemeSpecs
+        {/* 모바일은 포스터 높이만큼 늘어나야 해서 self-start 를 데스크톱에만 준다. */}
+        <div data-fit-bottom className="min-w-0 [grid-area:specs] md:self-start">
+          <ThemeSpecTiles
             difficulty={theme.difficulty}
             durationMinutes={theme.duration_minutes}
-            genres={genres}
             accent={accent}
           />
         </div>
 
+        <div data-fit-bottom className="min-w-0 self-start [grid-area:genres]">
+          <ThemeGenreTile genres={genres} accent={accent} />
+        </div>
+
         {synopsis && (
-          <div className="min-w-0 [grid-area:synopsis]">
+          <div data-fit-bottom className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3">
             <p
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em]"
               style={{ color: accent }}

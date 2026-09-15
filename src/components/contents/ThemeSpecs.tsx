@@ -9,6 +9,10 @@
  * 가로가 넉넉한 데스크톱(lg)에서만 옆에 작게 붙인다 — 모바일은 포스터 옆 칸이
  * 좁아 두 줄로 밀리고, 같은 정보를 두 번 읽게 된다.
  *
+ * 상세 페이지는 난이도·소요시간(ThemeSpecTiles)과 장르(ThemeGenreTile)를 **따로**
+ * 배치한다. 모바일에서 장르만 포스터 아래로 내려가기 때문이다. 어드민 미리보기는
+ * 둘을 붙인 ThemeSpecs 를 쓴다.
+ *
  * 0 은 '미정'(아직 만들지 않은 테마)이다. 해당 칸을 통째로 감춘다 —
  * "난이도 0/5 · 0분" 은 고장으로 읽힌다.
  */
@@ -23,12 +27,35 @@ export function ThemeSpecs({
   genres: string[];
   accent: string;
 }) {
+  return (
+    <div className="space-y-2 sm:space-y-3">
+      <ThemeSpecTiles difficulty={difficulty} durationMinutes={durationMinutes} accent={accent} />
+      <ThemeGenreTile genres={genres} accent={accent} />
+    </div>
+  );
+}
+
+/**
+ * 난이도 · 소요시간 두 칸.
+ *
+ * 모바일은 포스터 옆에 위아래로 쌓이고, **포스터 높이만큼 늘어난다**(부모가 stretch
+ * 해 주면 h-full + auto-rows-fr 로 두 칸이 반씩 나눠 가진다). 데스크톱은 나란히 두 칸.
+ */
+export function ThemeSpecTiles({
+  difficulty,
+  durationMinutes,
+  accent,
+}: {
+  difficulty: number;
+  durationMinutes: number;
+  accent: string;
+}) {
   const showDifficulty = difficulty > 0;
   const showDuration = durationMinutes > 0;
-  if (!showDifficulty && !showDuration && genres.length === 0) return null;
+  if (!showDifficulty && !showDuration) return null;
 
   return (
-    <dl className="grid gap-2 sm:gap-3 md:grid-cols-2">
+    <dl className="grid h-full auto-rows-fr gap-2 sm:gap-3 md:h-auto md:auto-rows-auto md:grid-cols-2">
       {showDifficulty && (
         <SpecTile label="난이도">
           <SpecValue>
@@ -52,41 +79,36 @@ export function ThemeSpecs({
           </SpecValue>
         </SpecTile>
       )}
-
-      {/* 장르도 같은 칸 모양에 소제목을 단다. 태그 개수가 들쭉날쭉해 높이는 고정하지 않는다. */}
-      {genres.length > 0 && (
-        <SpecTile label="장르" className="md:col-span-2">
-          <ul className="flex flex-wrap gap-1.5 sm:gap-2">
-            {genres.map((g) => (
-              <li
-                key={g}
-                className="rounded-full border px-2.5 py-1 text-xs font-bold sm:px-3.5 sm:py-1.5 sm:text-base"
-                style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
-              >
-                #{g}
-              </li>
-            ))}
-          </ul>
-        </SpecTile>
-      )}
     </dl>
   );
 }
 
-/** 칸 하나. 소제목(dt) + 내용(dd). */
-function SpecTile({
-  label,
-  className = "",
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
+/** 장르 칸. 난이도·소요시간과 같은 모양에 소제목을 단다. 태그 수가 들쭉날쭉해 높이는 고정하지 않는다. */
+export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: string }) {
+  if (genres.length === 0) return null;
   return (
-    <div
-      className={`rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-4 ${className}`}
-    >
+    <dl>
+      <SpecTile label="장르">
+        <ul className="flex flex-wrap gap-1.5 sm:gap-2">
+          {genres.map((g) => (
+            <li
+              key={g}
+              className="rounded-full border px-2.5 py-1 text-xs font-bold sm:px-3.5 sm:py-1.5 sm:text-base"
+              style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
+            >
+              #{g}
+            </li>
+          ))}
+        </ul>
+      </SpecTile>
+    </dl>
+  );
+}
+
+/** 칸 하나. 소제목(dt) + 내용(dd). 칸이 늘어나면 내용은 세로 가운데에 선다. */
+function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-4">
       <dt className="mb-1.5 text-xs font-bold text-muted sm:mb-2 sm:text-sm">{label}</dt>
       <dd>{children}</dd>
     </div>
