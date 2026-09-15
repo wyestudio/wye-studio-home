@@ -62,10 +62,9 @@ export function HeroScene({
             width={138}
             height={96}
             priority
-            // 넓은 화면(lg)에서 한 단계 더 — 헤더·테마 상세를 키운 뒤 히어로만 작아 보였다(2026-09-15).
-            className="h-[4.6rem] w-auto sm:h-[6.6rem] lg:h-[8rem]"
+            className="h-[4.6rem] w-auto sm:h-[6.6rem]"
           />
-          <h1 className="text-[2rem] font-semibold tracking-tight text-foreground sm:text-[3rem] lg:text-[3.75rem]">
+          <h1 className="text-[2rem] font-semibold tracking-tight text-foreground sm:text-[3rem]">
             would you escape?
           </h1>
           <HeroCtaButton />

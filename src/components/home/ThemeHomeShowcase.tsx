@@ -250,7 +250,7 @@ function ThemeSlot({
   const planet = (
     <div
       ref={planetRef}
-      className="group peer relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24 lg:h-32 lg:w-32"
+      className="group peer relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24"
     >
       <SpinningPlanet
         src={logo}
@@ -304,14 +304,13 @@ function ThemeSlot({
           포스터는 '미션 파일' 처럼 패널 왼쪽에 끼워둔다.
           비율은 4:5 그대로 — 원본이 그 비율이라 더 세로로 늘리면 잘린다.
         */}
-        {/* ⚠️ 포스터를 lg:w-44 보다 키우면 패널이 행성 칸(lg:h-64)보다 높아져 줄 위쪽에서 잘린다. */}
         <div className="relative hidden aspect-[4/5] w-36 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-44">
           <PosterImage src={theme.hero_image_path} alt={`${theme.name} 포스터`} sizes="176px" />
         </div>
 
-        <div className="min-w-0 flex-1 sm:flex sm:w-44 sm:flex-none sm:flex-col sm:justify-center lg:w-56">
+        <div className="min-w-0 flex-1 sm:flex sm:w-44 sm:flex-none sm:flex-col sm:justify-center">
           <h3
-            className={`text-lg font-extrabold lg:text-2xl ${themeTitleFontClass(theme.title_font)}`}
+            className={`text-lg font-extrabold ${themeTitleFontClass(theme.title_font)}`}
             style={{ color: accent }}
           >
             {theme.name}
@@ -322,7 +321,7 @@ function ThemeSlot({
             0 은 '미정' 이라 줄 자체를 감춘다 — "난이도 0/5 · 0분" 은 고장으로 읽힌다.
           */}
           {(theme.difficulty > 0 || theme.duration_minutes > 0) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted sm:mt-2 sm:flex-col sm:items-start sm:gap-y-1.5 lg:mt-3 lg:gap-y-2 lg:text-sm">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted sm:mt-2 sm:flex-col sm:items-start sm:gap-y-1.5">
               {theme.difficulty > 0 && <DifficultyLocks rating={theme.difficulty} />}
               {theme.duration_minutes > 0 && <span>⏱ {durationLabel(theme.duration_minutes)}</span>}
             </div>
@@ -335,7 +334,7 @@ function ThemeSlot({
       {locked && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/55">
           <LockIcon shaking={knocked} px={30} />
-          <p className="px-3 text-center text-xs font-medium text-white lg:text-sm">
+          <p className="px-3 text-center text-xs font-medium text-white">
             아직 탈출할 수 없는 행성입니다.
           </p>
         </div>
@@ -390,7 +389,7 @@ function ComingSoonSlot({ planetRef }: { planetRef: (el: HTMLDivElement | null) 
     >
       <div
         ref={planetRef}
-        className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24 lg:h-32 lg:w-32"
+        className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24"
       >
         <div
           className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10"
@@ -400,7 +399,7 @@ function ComingSoonSlot({ planetRef }: { planetRef: (el: HTMLDivElement | null) 
               "radial-gradient(circle at 50% 50%, #5b5b66 0%, #3a3a44 62%, #26262e 100%)",
           }}
         />
-        <span className="absolute inset-0 flex items-center justify-center text-2xl font-extrabold text-white/70 sm:text-3xl lg:text-4xl">
+        <span className="absolute inset-0 flex items-center justify-center text-2xl font-extrabold text-white/70 sm:text-3xl">
           ?
         </span>
       </div>

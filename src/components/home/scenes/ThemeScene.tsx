@@ -35,7 +35,7 @@ export function ThemeScene({
       */}
       <div className="w-full">
         <div className="mx-auto w-full max-w-4xl px-5 sm:px-8 lg:px-0">
-          <h2 className="mb-10 text-left text-2xl font-extrabold tracking-[0.12em] sm:mb-16 sm:text-4xl lg:text-5xl">
+          <h2 className="mb-10 text-left text-2xl font-extrabold tracking-[0.12em] sm:mb-16 sm:text-4xl">
             Planets to Escape
           </h2>
         </div>

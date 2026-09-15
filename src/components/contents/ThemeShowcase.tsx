@@ -1,5 +1,4 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { SCREEN_SECTION } from "@/components/contents/screenSection";
 import { ThemeCard } from "@/components/contents/ThemeCard";
 import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
@@ -24,10 +23,10 @@ export type ThemeCardData = ThemeWithTiers & {
 export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
   return (
     /*
-      테마가 몇 개 안 돼 위에 몰려 있으면 아래가 휑하다. 테마 상세 블록처럼
-      화면 높이를 채우고 가운데보다 살짝 위에 둔다(SCREEN_SECTION, 2026-09-15).
+      ⚠️ 화면 가운데 배치(SCREEN_SECTION)는 쓰지 않는다. 한 번 적용했더니 'CONTENTS'
+         위 여백이 너무 커져서 원래 위쪽 여백으로 되돌렸다(2026-09-15). 크기만 키운 상태.
     */
-    <section className={`mx-auto max-w-5xl px-5 ${SCREEN_SECTION}`}>
+    <section className="mx-auto max-w-5xl px-5 py-14">
       <SectionHeading eyebrow="CONTENTS" size="lg" />
 
       {themes.length === 0 ? (
