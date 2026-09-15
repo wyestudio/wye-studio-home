@@ -9,8 +9,9 @@ import {
   isBookable,
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
+import { ThemeSpecs } from "@/components/contents/ThemeSpecs";
 import { PosterImage } from "@/components/contents/PosterImage";
-import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
+import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { normalizeThemeContent, type ThemeContent } from "@/types/catalog";
@@ -43,8 +44,8 @@ export async function generateMetadata({
   const title = theme.name;
   // 공유 카드 제목은 템플릿을 안 타므로 여기서 직접 브랜드를 붙인다.
   const socialTitle = `${theme.name} | 우주이스케이프`;
-  // 검색 결과와 공유 카드에 같이 쓰인다. 어드민의 '한 줄 소개'(tagline)를
-  // 채우면 그게 먼저다 — 지금은 비어 있어 브랜드 문구로 떨어진다.
+  // 검색 결과와 공유 카드에 같이 쓰인다. 어드민의 '한 줄 소개'(tagline)가
+  // 먼저고, 없으면 시놉시스(description)로 떨어진다.
   const description =
     theme.tagline?.trim() ||
     theme.description?.trim() ||
@@ -90,102 +91,125 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   // 옛 4칸 구조(for_you/steps/timetable/precautions)로 저장된 테마도 읽어준다.
   // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
   const content: ThemeContent = normalizeThemeContent(theme.content);
-
-  const hours = Math.floor(theme.duration_minutes / 60);
-  const mins = theme.duration_minutes % 60;
-  const durationLabel = mins === 0 ? `${hours}시간` : `${hours}시간 ${mins}분`;
+  // 컬럼(p30)이 아직 없는 DB 에서 읽어도 깨지지 않게.
+  const genres = theme.genres ?? [];
+  const synopsis = theme.description?.trim() ?? "";
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20">
-      {/* 모바일에서만 — 회차 선택 / 상세 정보 사이를 오가는 탭 */}
+      {/* 모바일에서만 — 소개 / 회차 선택 / 상세 정보 사이를 오가는 탭 */}
       <DetailTabs accent={accent} />
 
       {/*
-        ── 상단: 좌 포스터 / 우 정보 + 예약 ──
-        예약을 아래 별도 섹션으로 내리면 첫 화면에서 "언제 갈 수 있는지"가
-        안 보인다. 포스터 옆 빈 공간이 그 자리다.
+        ── 상단: 테마 소개 ──
+        방탈출 손님이 고르는 기준(난이도 · 시간 · 장르 · 시놉시스)을 첫 화면에 크게 둔다.
+        날짜 선택은 아래 별도 섹션으로 내렸다 — 포스터 옆을 달력이 차지하고 있어
+        정작 테마 정보가 작은 글씨 한 줄로 밀려나 있었다.
+
+        같은 요소를 화면 폭에 따라 다르게 배치한다(grid-template-areas):
+          모바일   제목 / [포스터 | 난이도·시간·장르] / 시놉시스
+          데스크톱 [포스터 | 제목 · 난이도·시간·장르 · 시놉시스]
+        요소를 두 번 그리지 않으려고 순서 대신 영역 이름으로 자리를 정한다.
       */}
-      <div className="grid gap-6 pt-6 md:grid-cols-[18rem_minmax(0,1fr)] md:gap-8 md:pt-10 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        {/*
-          넓은 화면에서는 포스터를 오른쪽 칸 높이에 맞춰 늘린다. 그래야
-          포스터 아래끝 = 달력 아래끝 = 신청 버튼 아래끝이 한 선에 놓인다.
-          칸 너비(20rem)를 4:5 에 가깝게 잡아 잘려나가는 부분은 거의 없다.
-        */}
-        <div className="mx-auto w-44 shrink-0 sm:w-52 md:mx-0 md:w-full lg:h-full">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface lg:aspect-auto lg:h-full">
+      <section
+        id="intro"
+        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-5 pt-6
+                   [grid-template-areas:'title_title'_'poster_specs'_'synopsis_synopsis']
+                   md:grid-cols-[18rem_minmax(0,1fr)] md:grid-rows-[auto_auto_1fr] md:gap-x-10 md:gap-y-6 md:pt-10
+                   md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_synopsis']
+                   lg:grid-cols-[20rem_minmax(0,1fr)]"
+      >
+        <div className="self-start [grid-area:poster]">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface">
             <PosterImage
               src={theme.hero_image_path}
               alt={`${theme.name} 포스터`}
-              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 208px"
+              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 45vw"
               priority
             />
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col">
-          <div>
-            {/*
-              제목 줄: 테마명 + 카테고리 배지 / 오른쪽 끝에 공유.
-              카테고리를 아래 줄에 크게 두면 부제처럼 읽혀서 분류라는 게 안 보인다.
-            */}
-            <div className="flex items-start gap-3">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
-                <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
-                {categoryName && (
-                  <span
-                    className="rounded-full border px-2.5 py-1 text-xs font-bold"
-                    style={{
-                      color: accent,
-                      borderColor: `${accent}59`,
-                      backgroundColor: `${accent}1f`,
-                    }}
-                  >
-                    {categoryName}
-                  </span>
-                )}
-              </div>
-              <div className="shrink-0">
-                <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
-              </div>
+        <div className="min-w-0 [grid-area:title]">
+          {/*
+            제목 줄: 테마명 + 카테고리 배지 / 오른쪽 끝에 공유.
+            카테고리를 아래 줄에 크게 두면 부제처럼 읽혀서 분류라는 게 안 보인다.
+          */}
+          <div className="flex items-start gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+              <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
+              {categoryName && (
+                <span
+                  className="rounded-full border px-2.5 py-1 text-xs font-bold"
+                  style={{
+                    color: accent,
+                    borderColor: `${accent}59`,
+                    backgroundColor: `${accent}1f`,
+                  }}
+                >
+                  {categoryName}
+                </span>
+              )}
             </div>
-
-            {/* 0 은 '미정'(아직 만들지 않은 테마) — 줄 자체를 감춘다. */}
-            {(theme.difficulty > 0 || theme.duration_minutes > 0) && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-                {theme.difficulty > 0 && <DifficultyLocks rating={theme.difficulty} />}
-                {theme.duration_minutes > 0 && <span>⏱ {durationLabel}</span>}
-              </div>
-            )}
-
-            {/*
-              장소는 대략 위치만 내보낸다. 정확한 주소는 진행 이틀 전 문자로만
-              간다 — 매번 파티룸을 대관하는 구조라 미리 공개할 수 없다.
-            */}
-            {theme.venue && (
-              <p className="mt-2 text-sm text-muted">
-                📍 {theme.venue.area_label}
-                <span className="text-xs"> · 정확한 주소는 진행 이틀 전 문자로 안내드려요</span>
-              </p>
-            )}
-
-            {theme.description && (
-              <p className="mt-4 whitespace-pre-line leading-relaxed">{theme.description}</p>
-            )}
+            <div className="shrink-0">
+              <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
+            </div>
           </div>
 
-          <section id="booking" className="mt-6 flex flex-1 scroll-mt-28 flex-col">
-            <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
-              <SessionPicker
-                themeSlug={theme.slug}
-                sessions={sessions}
-                accentColor={accent}
-                accepting={acceptingApplications}
-                openingDate={theme.opening_date}
-              />
-            </Suspense>
-          </section>
+          {/*
+            장소는 대략 위치만 내보낸다. 정확한 주소는 진행 이틀 전 문자로만
+            간다 — 매번 파티룸을 대관하는 구조라 미리 공개할 수 없다.
+          */}
+          {theme.venue && (
+            <p className="mt-2 text-sm text-muted">
+              📍 {theme.venue.area_label}
+              <span className="text-xs"> · 정확한 주소는 진행 이틀 전 문자로 안내드려요</span>
+            </p>
+          )}
         </div>
-      </div>
+
+        <div className="min-w-0 self-start [grid-area:specs]">
+          <ThemeSpecs
+            difficulty={theme.difficulty}
+            durationMinutes={theme.duration_minutes}
+            genres={genres}
+            accent={accent}
+          />
+        </div>
+
+        {synopsis && (
+          <div className="min-w-0 [grid-area:synopsis]">
+            <p
+              className="mb-3 text-xs font-bold uppercase tracking-[0.3em]"
+              style={{ color: accent }}
+            >
+              Synopsis
+            </p>
+            <p
+              className="whitespace-pre-line border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
+              style={{ borderColor: `${accent}80` }}
+            >
+              {synopsis}
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* ── 날짜 선택 ── 상세 설명 블록과 같은 모양의 섹션으로 */}
+      <section id="booking" className="mt-20 scroll-mt-28 sm:mt-28">
+        <SectionHeading eyebrow="BOOKING" title="날짜 선택" className="mb-6" eyebrowColor={accent} />
+        <div className="mx-auto max-w-3xl">
+          <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
+            <SessionPicker
+              themeSlug={theme.slug}
+              sessions={sessions}
+              accentColor={accent}
+              accepting={acceptingApplications}
+              openingDate={theme.opening_date}
+            />
+          </Suspense>
+        </div>
+      </section>
 
       {/* ── 상세 정보 ── */}
       <div id="detail" className="mt-24 scroll-mt-28 sm:mt-32">

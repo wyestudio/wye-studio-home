@@ -53,6 +53,7 @@
 - 2026-09-15: 본문 글꼴(SUIT)에 없는 글자 때문에 일부 기기에서 화살표가 `E`/`e`로 보이던 문제 수정 — UI 화살표는 SVG(`components/ui/Chevron.tsx`)로 대체, 한글 대체 글꼴 스택 추가, SUIT에 없는 기호만 담은 6KB 보조 글꼴 신설(`fonts/WyeSymbols-*`)
 - 2026-09-15: 구글 이미지에 옛 소개팅 큐피드 아트웍이 계속 뜨던 문제 — `public/bar-o-title.png` 를 같은 이름으로 교체(08-11→08-13)해 구글이 옛 그림을 그 URL 에 캐시하고 있었음. 파일과 죽은 코드(SessionShowcase·SessionScene·ContentsSessionShowcase) 삭제해 404 처리
 - 2026-09-15: 신청 건에 유입경로(utm) 저장 — 잼핏 등 외부 플랫폼 입점이 **방문이 아니라 실제 신청**으로 이어지는지 보려고 추가. `applications` 에 `utm_*`·`referrer`·`landing_path` 7개 컬럼(p29), 어드민 분석에 경로별 신청·입금·매출 표. 자세한 규칙은 아래 「유입경로(utm)를 건드릴 때」
+- 2026-09-15: 테마 상세 상단을 방탈출 사이트식으로 재배치 — 포스터 옆에 난이도·소요시간(큰 숫자)·장르 해시태그·시놉시스, 날짜 선택은 아래 `#booking` 섹션으로 내림. `themes.genres text[]` 신설(p30), 시놉시스는 비어 있던 `description` 칸을 그대로 씀. 어드민에 장르 태그 입력 추가
 
 ---
 

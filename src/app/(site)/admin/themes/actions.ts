@@ -7,6 +7,8 @@ import { THEMES_TAG } from "@/lib/themes";
 import {
   parseThemeContent,
   THEME_CONTENT_VERSION,
+  GENRE_MAX_COUNT,
+  GENRE_MAX_LENGTH,
   type ThemeBlock,
   type ThemeContent,
 } from "@/types/catalog";
@@ -23,6 +25,7 @@ export type ThemeInput = {
   name: string;
   tagline: string;
   description: string;
+  genres: string[];
   difficulty: number;
   duration_minutes: number;
   min_age_floor: number | null;
@@ -184,11 +187,29 @@ function sanitizeContent(raw: unknown): ThemeContent {
   return { v: THEME_CONTENT_VERSION, blocks };
 }
 
+/**
+ * 장르 정리. 운영자가 '#로맨스' 로 적든 '로맨스' 로 적든 같게 저장한다.
+ * 화면이 # 를 붙여 그리므로 여기서는 뗀다 — 안 떼면 '##로맨스' 가 된다.
+ */
+function sanitizeGenres(raw: unknown): string[] {
+  const list = Array.isArray(raw) ? raw : [];
+  const out: string[] = [];
+  for (const g of list) {
+    const tag = String(g ?? "").replace(/^#+/, "").replace(/\s+/g, "").trim();
+    if (tag && !out.includes(tag)) out.push(tag);
+  }
+  return out;
+}
+
 function validate(input: ThemeInput): string | null {
   if (!input.slug.trim()) return "slug 를 입력해주세요.";
   if (!/^[a-z0-9-]+$/.test(input.slug.trim())) return "slug 는 영문 소문자·숫자·하이픈만 쓸 수 있습니다.";
   if (!input.name.trim()) return "테마 이름을 입력해주세요.";
   if (!input.venue_id) return "장소를 선택해주세요.";
+  const genres = sanitizeGenres(input.genres);
+  if (genres.length > GENRE_MAX_COUNT) return `장르는 ${GENRE_MAX_COUNT}개까지 넣을 수 있습니다.`;
+  if (genres.some((g) => g.length > GENRE_MAX_LENGTH))
+    return `장르 하나는 ${GENRE_MAX_LENGTH}자 이내로 적어주세요.`;
   // ⚠️ 숫자 칸을 비우면 <input type="number"> 가 "" 를 주고 Number("") 은 0 이다.
   //    여기서 안 걸러내면 DB CHECK 제약에 막혀 "테마 저장 실패: new row for
   //    relation ... violates check constraint" 같은 원문이 그대로 뜬다.
@@ -233,6 +254,7 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       name: input.name.trim(),
       tagline: input.tagline.trim() || null,
       description: input.description.trim() || null,
+      genres: sanitizeGenres(input.genres),
       difficulty: input.difficulty,
       duration_minutes: input.duration_minutes,
       min_age_floor: input.min_age_floor,

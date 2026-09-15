@@ -245,7 +245,10 @@ export type Theme = {
   slug: string;
   name: string;
   tagline: string | null;
+  /** 시놉시스. 상세 화면 상단에 크게 보인다. (칸 이름은 옛 '설명' 그대로) */
   description: string | null;
+  /** 장르 해시태그. # 없이 저장한다 — 화면이 붙여 그린다. */
+  genres: string[];
   difficulty: number;
   duration_minutes: number;
   min_age_floor: number | null;
@@ -274,6 +277,13 @@ export type Theme = {
 };
 
 export type ThemeWithTiers = Theme & { tiers: ThemePriceTier[] };
+
+/**
+ * 장르 태그 최대 개수·글자 수. 넘치면 상세 상단의 태그 줄이 서너 줄로 불어나
+ * 난이도·시간보다 커 보인다. 어드민 입력칸과 저장 검증이 같이 쓴다.
+ */
+export const GENRE_MAX_COUNT = 8;
+export const GENRE_MAX_LENGTH = 12;
 
 /** session_view — 회차 실효값. 앱은 sessions 테이블을 직접 읽지 않고 이 뷰를 쓴다. */
 export type SessionView = {

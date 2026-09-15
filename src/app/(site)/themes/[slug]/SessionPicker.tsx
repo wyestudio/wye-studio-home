@@ -39,7 +39,10 @@ const kstTime = (iso: string) =>
  * SEO 점수가 누적된다. 특정 날짜 딥링크는 ?d=YYYY-MM-DD 로 처리한다.
  *
  * 배치는 넓은 화면에서 달력 | 시간 2열, 좁은 화면에서는 위아래로 쌓인다.
- * 신청 버튼은 mt-auto 로 밀어 포스터 아래 끝선에 맞춘다.
+ * 신청 버튼은 mt-auto 로 밀어 달력 아래 끝선에 맞춘다.
+ *
+ * 예전에는 포스터 옆 칸에 있었는데(2026-09-15 까지), 그 자리를 난이도·시간·
+ * 장르·시놉시스에 내주고 상세 설명 블록처럼 아래 섹션으로 내려왔다.
  */
 export function SessionPicker({
   themeSlug,
@@ -112,7 +115,7 @@ export function SessionPicker({
     next.set("d", d);
     router.replace(`/themes/${themeSlug}?${next.toString()}`, { scroll: false });
     // 좁은 화면에서는 시간 목록이 달력 아래라 화면 밖에 있다. 눈에 보이게 옮겨준다.
-    if (window.matchMedia("(max-width: 1023px)").matches) {
+    if (window.matchMedia("(max-width: 767px)").matches) {
       requestAnimationFrame(() =>
         timeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" })
       );
@@ -120,8 +123,8 @@ export function SessionPicker({
   }
 
   return (
-    <div className="flex flex-col gap-5 lg:flex-row lg:items-stretch">
-      <div className="lg:w-[17.5rem] lg:shrink-0">
+    <div className="flex flex-col gap-5 md:flex-row md:items-stretch md:gap-8">
+      <div className="md:w-[19rem] md:shrink-0">
         <p className="mb-2 text-xs font-bold text-muted">날짜 선택</p>
         <BookingCalendar
           dateStatus={dateStatus}
@@ -151,7 +154,7 @@ export function SessionPicker({
         ) : (
           /* 시각만 크게. 고를 수 없는 회차에만 '마감' 을 덧붙인다 —
              모두 예약 가능한 날에 '예약 가능' 이 반복되면 읽을 게 없다. */
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {daySessions.map((s) => {
               const isActive = s.id === selectedId;
               return (
@@ -260,12 +263,17 @@ function BookingCta({
               {label}
             </a>
           ) : (
-            <button
-              disabled
-              className="w-full cursor-not-allowed rounded-lg border border-white/15 px-6 py-3.5 text-center text-base font-bold text-muted"
+            /*
+              아직 회차를 안 골랐다. 달력이 테마 소개 아래로 내려가면서 첫 화면에서는
+              달력이 안 보이므로, 눌리지 않는 회색 버튼 대신 달력으로 데려간다.
+            */
+            <a
+              href="#booking"
+              className="block rounded-lg border px-6 py-3.5 text-center text-base font-bold"
+              style={{ borderColor: accentColor, color: accentColor }}
             >
-              {label}
-            </button>
+              날짜 선택하기
+            </a>
           )}
         </div>
       )}

@@ -11,9 +11,11 @@ import {
   themeTitleFontClass,
 } from "@/types/catalog";
 import { DifficultyLocks } from "@/components/ui/DifficultyLocks";
+import { ThemeSpecs } from "@/components/contents/ThemeSpecs";
 import { saveTheme, deleteTheme, type ThemeInput, type PriceTierInput } from "./actions";
 import { ContentBlocksEditor } from "./ContentBlocksEditor";
 import { ImageUploadField } from "./ImageUploadField";
+import { GenreInput } from "./GenreInput";
 
 const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
 const label = "block text-xs font-medium text-muted mb-1";
@@ -52,6 +54,7 @@ function emptyTheme(venueId: string): ThemeInput {
     name: "",
     tagline: "",
     description: "",
+    genres: [],
     difficulty: 3,
     duration_minutes: 180,
     min_age_floor: null,
@@ -83,6 +86,7 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     // 폼에서 뺀 값이지만 저장할 때 날려버리지 않도록 그대로 들고 다닌다.
     tagline: t.tagline ?? "",
     description: t.description ?? "",
+    genres: t.genres ?? [],
     difficulty: t.difficulty,
     duration_minutes: t.duration_minutes,
     min_age_floor: t.min_age_floor,
@@ -299,6 +303,22 @@ export function ThemeEditor({
                 </div>
 
                 <div>
+                  <label className={label}>장르 (해시태그)</label>
+                  <GenreInput value={editing.genres} onChange={(genres) => patch({ genres })} />
+                </div>
+
+                {/* 고객 상세 화면 상단과 같은 컴포넌트다. 입력한 값이 어떻게 보이는지 바로 확인한다. */}
+                <div className="rounded-lg border border-border bg-black/20 p-3">
+                  <p className="mb-2 text-[11px] text-muted">상세 화면 미리보기</p>
+                  <ThemeSpecs
+                    difficulty={editing.difficulty}
+                    durationMinutes={editing.duration_minutes}
+                    genres={editing.genres}
+                    accent={accent}
+                  />
+                </div>
+
+                <div>
                   <label className={label}>장소 *</label>
                   <select className={field} value={editing.venue_id} onChange={(e) => patch({ venue_id: e.target.value })}>
                     {activeVenues.map((v) => (
@@ -332,16 +352,21 @@ export function ThemeEditor({
             </div>
           </div>
 
-          {/* ── 설명 · 강조색 ── */}
+          {/* ── 시놉시스 · 강조색 ── */}
           <div className={section}>
             <div>
-              <label className={label}>설명</label>
+              {/* DB 칸 이름은 옛 '설명'(description) 그대로다. 비어 있던 칸이라 자리만 물려받았다. */}
+              <label className={label}>시놉시스</label>
               <textarea
-                className={`${field} min-h-24`}
+                className={`${field} min-h-28 leading-relaxed`}
                 value={editing.description}
                 onChange={(e) => patch({ description: e.target.value })}
-                placeholder="상세 페이지 상단, 테마 정보 아래에 그대로 보입니다."
+                placeholder="테마의 배경 이야기. 3문장 안팎이 읽기 좋습니다."
               />
+              <p className="mt-1 text-[11px] text-muted">
+                상세 페이지 상단, 난이도·시간·장르 아래에 큰 글씨로 보입니다. 줄바꿈도 그대로 반영돼요.
+                한 줄 소개가 비어 있으면 검색 결과 설명으로도 쓰입니다.
+              </p>
             </div>
 
             <div>
