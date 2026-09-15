@@ -46,7 +46,12 @@ export type ThemeInput = {
   is_locked: boolean;
   sort_order: number;
   tiers: PriceTierInput[];
+  /** 편집 화면을 열 때의 themes.updated_at. 저장 시 옛 화면인지 가려내는 데 쓴다. 새 테마는 null. */
+  loaded_updated_at?: string | null;
 };
+
+const STALE_FORM_ERROR =
+  "이 화면을 연 뒤에 테마가 다른 곳에서 수정됐어요. 그대로 저장하면 그 내용을 덮어쓰게 돼서 저장하지 않았어요. 새로고침한 뒤 다시 수정해주세요.";
 
 /**
  * content(jsonb)는 DB 가 구조를 검증해주지 않으므로 저장 전에 앱에서 검증한다.
@@ -254,7 +259,12 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       name: input.name.trim(),
       tagline: input.tagline.trim() || null,
       description: input.description.trim() || null,
-      genres: sanitizeGenres(input.genres),
+      /*
+        장르 값이 아예 안 왔으면 건드리지 않는다. 장르 칸이 생기기 전 화면(옛 코드)이
+        보낸 저장이라는 뜻이다 — 빈 배열로 덮으면 다른 사람이 넣어둔 장르가 사라진다.
+        2026-09-15 테스트 서버에서 실제로 그렇게 지워졌다.
+      */
+      ...(Array.isArray(input.genres) ? { genres: sanitizeGenres(input.genres) } : {}),
       difficulty: input.difficulty,
       duration_minutes: input.duration_minutes,
       min_age_floor: input.min_age_floor,
@@ -279,8 +289,32 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
 
     let themeId = input.id;
     if (themeId) {
-      const { error } = await supabase.from("themes").update(row).eq("id", themeId);
+      /*
+        옛 화면으로 덮어쓰기 방지.
+
+        편집 화면은 열 때 받은 테마 전체를 들고 있다가 저장할 때 통째로 보낸다.
+        화면을 열어둔 사이 누가(다른 탭·다른 사람·마이그레이션) 테마를 고쳤다면,
+        그 화면으로 저장하는 순간 새 내용이 옛 내용으로 되돌아간다. 2026-09-15 에
+        배포 전부터 열려 있던 어드민 탭에서 포인트 컬러만 바꿨는데 시놉시스·장르가
+        통째로 지워졌다.
+
+        그래서 **화면을 열 때의 updated_at 과 지금 DB 값이 같을 때만** 저장한다.
+        조건을 UPDATE 의 WHERE 에 넣어 확인과 저장 사이에 끼어들 틈을 없앤다.
+
+        ⚠️ loaded_updated_at 은 DB 가 준 문자열 그대로 비교한다. Date 로 바꾸면
+           마이크로초가 잘려 멀쩡한 저장이 전부 '충돌' 로 막힌다.
+        ⚠️ 이 값을 안 보내는 화면(이 코드 이전 화면)도 막는다 — 옛 화면이기 때문이다.
+      */
+      if (!input.loaded_updated_at) return { error: STALE_FORM_ERROR };
+
+      const { data: updated, error } = await supabase
+        .from("themes")
+        .update(row)
+        .eq("id", themeId)
+        .eq("updated_at", input.loaded_updated_at)
+        .select("id");
       if (error) throw error;
+      if (!updated || updated.length === 0) return { error: STALE_FORM_ERROR };
     } else {
       const { data, error } = await supabase.from("themes").insert(row).select("id").single();
       if (error) throw error;

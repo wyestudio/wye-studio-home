@@ -75,6 +75,7 @@ function emptyTheme(venueId: string): ThemeInput {
     is_locked: false,
     sort_order: 0,
     tiers: structuredClone(DEFAULT_TIERS),
+    loaded_updated_at: null,
   };
 }
 
@@ -114,6 +115,8 @@ function toInput(t: ThemeWithTiers): ThemeInput {
         original_unit_price_krw: x.original_unit_price_krw,
       }))
       .sort((a, b) => a.min_headcount - b.min_headcount),
+    // 저장할 때 이 화면이 옛 화면인지 서버가 확인한다(saveTheme 참고). DB 문자열 그대로 둘 것.
+    loaded_updated_at: t.updated_at,
   };
 }
 
