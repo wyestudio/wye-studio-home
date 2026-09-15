@@ -59,23 +59,20 @@ export function ThemeSpecTiles({
       {showDifficulty && (
         <SpecTile label="난이도">
           <SpecValue>
+            {/* 옆 칸의 '180' 과 같은 크기의 보이지 않는 글자. 이 줄의 글자 기준선을 옆 칸과
+                똑같이 만들어 '4 / 5' 가 '분' 과 같은 선에 앉게 한다. */}
+            <BaselineStrut />
             <LockRow rating={difficulty} accent={accent} />
-            <span className="hidden text-sm font-bold text-muted lg:inline">{difficulty} / 5</span>
+            <SmallNote>{difficulty} / 5</SmallNote>
           </SpecValue>
         </SpecTile>
       )}
       {showDuration && (
         <SpecTile label="소요시간">
           <SpecValue>
-            <span className="flex items-baseline gap-0.5">
-              <span className="text-[1.75rem] font-extrabold leading-none sm:text-4xl">
-                {durationMinutes}
-              </span>
-              <span className="text-sm font-bold text-muted sm:text-base">분</span>
-            </span>
-            <span className="hidden text-sm font-bold text-muted lg:inline">
-              {hoursLabel(durationMinutes)}
-            </span>
+            <span className={BIG_NUMBER}>{durationMinutes}</span>
+            <span className="-ml-2.5 text-sm font-bold text-muted sm:text-base">분</span>
+            <SmallNote>({hoursLabel(durationMinutes)})</SmallNote>
           </SpecValue>
         </SpecTile>
       )}
@@ -115,9 +112,36 @@ function SpecTile({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-/** 난이도·소요시간 값 줄. 높이를 고정해 두 칸(자물쇠 / 숫자)의 아래끝이 한 선에 선다. */
+/** 소요시간 큰 숫자. 난이도 칸의 BaselineStrut 도 같은 글자 크기를 써야 기준선이 맞는다. */
+const BIG_NUMBER = "text-[1.75rem] font-extrabold leading-none sm:text-4xl";
+
+/**
+ * 난이도·소요시간 값 줄.
+ *
+ * 줄 안의 요소를 **글자 기준선(baseline)** 으로 맞춘다. 가운데 정렬(items-center)이었을 땐
+ * 작은 글씨 '3시간' 이 큰 숫자의 세로 가운데에 떠서 '분' 보다 위로 붕 떠 보였다.
+ * 줄 높이는 고정하고 아래로 붙여(items-end) 두 칸의 기준선 높이가 같게 한다.
+ */
 function SpecValue({ children }: { children: React.ReactNode }) {
-  return <div className="flex h-8 items-center gap-3 sm:h-10">{children}</div>;
+  return (
+    <div className="flex h-8 items-end sm:h-10">
+      <div className="flex items-baseline gap-3">{children}</div>
+    </div>
+  );
+}
+
+/** 폭 0 의 보이지 않는 큰 글자. 난이도 줄에 숫자가 없어도 옆 칸과 같은 기준선을 만든다. */
+function BaselineStrut() {
+  return (
+    <span aria-hidden className={`${BIG_NUMBER} invisible -mr-3 inline-block w-0 overflow-hidden`}>
+      0
+    </span>
+  );
+}
+
+/** 데스크톱(lg)에서만 보이는 보조 표기. 모바일은 칸이 좁아 뺀다. */
+function SmallNote({ children }: { children: React.ReactNode }) {
+  return <span className="hidden text-sm font-bold text-muted lg:inline">{children}</span>;
 }
 
 function hoursLabel(minutes: number) {

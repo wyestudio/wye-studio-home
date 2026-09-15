@@ -18,6 +18,7 @@ import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { PosterFit } from "./PosterFit";
+import { posterFitInlineScript } from "./posterFitScript";
 
 /*
   이 페이지는 동적으로 그린다. 대신 **데이터에 캐시가 걸려 있다**
@@ -118,17 +119,37 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           데스크톱 PosterFit 이 오른쪽 높이를 재서 포스터 칸 폭(--poster-w)을 정한다.
                    오른쪽 요소는 전부 md:self-start — 늘어나 있으면 잰 높이가 틀어진다.
       */}
+      {/*
+        첫 화면에는 소개 블록만 — 화면 가운데보다 살짝 위에 띄우고, 아래 날짜 선택이
+        같이 보이지 않게 한다. 한 화면에 정보가 몰리면 피로하다는 의견(2026-09-15).
+        pb 를 pt 보다 크게 줘서 가운데보다 위로 올린다.
+
+        ⚠️ 높이 계산에 --header-height 를 쓰지 않는다. 그 값은 React 가 뜬 뒤에
+           들어와서, 들어오는 순간 블록이 위아래로 한 번 움직인다. 헤더 높이
+           (모바일은 헤더 + 탭 줄)를 대략의 고정값으로 뺀다.
+      */}
+      <div className="flex min-h-[calc(100svh-7.5rem)] flex-col justify-center pb-[8svh] pt-6 md:min-h-[calc(100svh-5.25rem)] md:pb-[10svh] md:pt-8">
       <section
         id="intro"
-        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-3 pt-6
+        suppressHydrationWarning
+        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-3
                    [grid-template-areas:'title_title'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
-                   md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-10 md:pt-10
+                   md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-10
                    md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_genres'_'poster_synopsis']
                    lg:grid-cols-[var(--poster-w,20rem)_minmax(0,1fr)]"
       >
         <PosterFit sectionId="intro" />
 
-        <div className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-white/15 bg-surface [grid-area:poster]">
+        {/*
+          데스크톱은 크기를 맞추기 전까지 투명하게 둔다(data-poster-fit=done 이 붙으면 보임).
+          맞추기는 바로 아래 인라인 스크립트가 화면이 그려지기 전에 끝내므로 기다림은 없다.
+          맞추기 전 크기(기본 20rem)로 한 번 그려졌다가 커지는 모습을 보이지 않으려는 것이다.
+        */}
+        <div
+          data-poster
+          className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-white/15 bg-surface [grid-area:poster]
+                     md:opacity-0 md:[[data-poster-fit=done]_&]:opacity-100"
+        >
           <PosterImage
             src={theme.hero_image_path}
             alt={`${theme.name} 포스터`}
@@ -201,9 +222,20 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           </div>
         )}
       </section>
+      {/*
+        첫 로드 때 포스터 크기를 화면이 그려지기 전에 맞춘다(posterFitScript.ts).
+        다른 화면에서 넘어올 때는 이 스크립트가 돌지 않아 PosterFit 이 맡는다.
+      */}
+      <script dangerouslySetInnerHTML={{ __html: posterFitInlineScript("intro") }} />
+      {/* 스크립트가 꺼진 브라우저에서 포스터가 영영 투명하게 남지 않게 */}
+      <noscript>
+        <style>{`#intro [data-poster]{opacity:1!important}`}</style>
+      </noscript>
+      </div>
 
       {/* ── 날짜 선택 ── 상세 설명 블록과 같은 모양의 섹션으로 */}
-      <section id="booking" className="mt-20 scroll-mt-28 sm:mt-28">
+      {/* 소개 블록이 첫 화면 높이를 채우므로 위 여백은 작게 둔다. */}
+      <section id="booking" className="mt-8 scroll-mt-28 sm:mt-12">
         <SectionHeading eyebrow="BOOKING" title="날짜 선택" className="mb-6" eyebrowColor={accent} />
         <div className="mx-auto max-w-3xl">
           <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
