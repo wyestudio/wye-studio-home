@@ -3,11 +3,14 @@
 
 export type Venue = {
   id: string;
-  name: string;          // 상호명 (비공개 — 고객 화면에 노출하지 않음)
-  address: string;       // 정확 주소 (비공개, 장소안내 SMS용)
-  area_label: string;    // 공개용 대략 위치
+  name: string;          // 상호명 (테마 상세 진행 장소 블록에 공개)
+  address: string;       // 정확 주소 (테마 상세 공개 + 장소안내 SMS)
+  area_label: string;    // 대략 위치 (목록·카드용 짧은 표기)
   parking_note: string | null;
   map_url: string | null;
+  /** 위도·경도. 둘 다 있을 때만 테마 상세에 지도가 뜬다 (p35). */
+  lat: number | null;
+  lng: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -58,8 +61,9 @@ export type ThemeBlock =
    * 진행 장소 안내.
    *
    * 가격표처럼 **값은 블록이 아니라 테마에 연결된 장소(venues)** 에서 온다.
-   * 공개해도 되는 칸(대략 위치·주차 안내)만 보여준다 — 정확한 주소는 진행 이틀 전
-   * 문자로만 나간다. 지도 링크(map_url)도 정확한 위치가 드러나므로 싣지 않는다.
+   * 상호명·주소·주차 안내와 네이버 지도/카카오맵 링크를 보여준다.
+   * 2026-09-15 까지는 대략 위치만 공개하고 주소는 이틀 전 문자로만 보냈는데,
+   * 네이버 플레이스 등록에 홈페이지의 상세 장소가 필요해 공개로 바꿨다(p34).
    *
    * 예전에는 제목 아래 📍 한 줄이었는데(2026-09-15 까지), 난이도·시간·장르 자리를
    * 비우려고 블록으로 내렸다.
@@ -246,11 +250,18 @@ export function normalizeThemeContent(raw: unknown): ThemeContent {
   return { ...parsed, blocks };
 }
 
-/** 고객 화면에 내보내도 되는 장소 정보. 상호명·정확 주소는 들어 있지 않다. */
+/**
+ * 고객 화면에 내보내는 장소 정보 (theme_public_venue 뷰).
+ * 2026-09-15(p34)부터 상호명·주소도 공개한다 — 네이버 플레이스 등록 요건.
+ */
 export type PublicVenue = {
   area_label: string;
   parking_note: string | null;
   map_url: string | null;
+  name: string;
+  address: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 export type ThemeCategory = {

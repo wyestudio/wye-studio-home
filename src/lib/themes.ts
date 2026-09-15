@@ -95,11 +95,11 @@ async function _getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
     .eq("theme_id", (data as Theme).id)
     .order("min_headcount");
 
-  // 장소는 venues 를 직접 못 읽는다(정확 주소가 같이 딸려 나오므로 anon 에
-  // grant 가 없다). 공개해도 되는 칸만 추린 theme_public_venue 뷰를 쓴다.
+  // 장소는 venues 를 직접 못 읽는다(anon 에 grant 가 없다).
+  // 고객 화면에 필요한 칸만 추린 theme_public_venue 뷰를 쓴다.
   const { data: venue } = await supabase
     .from("theme_public_venue")
-    .select("area_label, parking_note, map_url")
+    .select("area_label, parking_note, map_url, name, address, lat, lng")
     .eq("theme_id", (data as Theme).id)
     .maybeSingle();
 

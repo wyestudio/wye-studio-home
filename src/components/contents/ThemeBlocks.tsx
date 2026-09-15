@@ -5,6 +5,7 @@ import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
+import { VenueCard } from "@/components/contents/VenueCard";
 import type { ThemeBlock, ThemePriceTier, PublicVenue } from "@/types/catalog";
 import { SCREEN_SECTION } from "@/components/contents/screenSection";
 
@@ -301,37 +302,6 @@ export function ThemeBlockView({
         <ReviewsBlock block={block} accent={accent} />
       )}
     </>
-  );
-}
-
-/**
- * 진행 장소 카드. 대략 위치를 크게, 그 아래 주소 안내·주차 안내.
- *
- * ⚠️ 지도 링크(map_url)는 싣지 않는다. 링크를 열면 정확한 위치가 드러나는데,
- *    정확한 주소는 참여 확정자에게 진행 이틀 전 문자로만 보낸다.
- */
-function VenueCard({ venue, accent }: { venue: PublicVenue; accent: string }) {
-  return (
-    <div className="mx-auto w-full max-w-xl rounded-2xl border border-panel-border bg-panel p-6 text-center sm:max-w-2xl sm:p-12 lg:max-w-3xl lg:p-14">
-      <span
-        className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full sm:mb-5 sm:h-14 sm:w-14"
-        style={{ backgroundColor: `${accent}1f`, color: accent }}
-        aria-hidden
-      >
-        <svg viewBox="0 0 24 24" className="h-5 w-5 sm:h-7 sm:w-7" fill="currentColor">
-          <path d="M12 2.25a7.25 7.25 0 0 0-7.25 7.25c0 5.1 6.1 11.4 6.36 11.66a1.25 1.25 0 0 0 1.78 0c.26-.26 6.36-6.56 6.36-11.66A7.25 7.25 0 0 0 12 2.25Zm0 10a2.75 2.75 0 1 1 0-5.5 2.75 2.75 0 0 1 0 5.5Z" />
-        </svg>
-      </span>
-      <p className="text-lg font-extrabold text-foreground sm:text-2xl lg:text-3xl">{venue.area_label}</p>
-      <p className="mt-2 text-sm leading-relaxed text-muted sm:mt-3 sm:text-base lg:text-lg">
-        정확한 주소는 참여 확정 후 진행 이틀 전 문자로 안내드려요.
-      </p>
-      {venue.parking_note && (
-        <p className="mt-4 inline-block rounded-full border border-panel-border px-3.5 py-1.5 text-xs text-muted sm:mt-6 sm:px-5 sm:py-2 sm:text-sm">
-          주차 · {venue.parking_note}
-        </p>
-      )}
-    </div>
   );
 }
 

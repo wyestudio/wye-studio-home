@@ -10,6 +10,7 @@ const EMPTY: VenueInput = {
   area_label: "",
   parking_note: "",
   map_url: "",
+  coords: "",
   is_active: true,
 };
 
@@ -21,6 +22,7 @@ function toInput(v: Venue): VenueInput {
     area_label: v.area_label,
     parking_note: v.parking_note ?? "",
     map_url: v.map_url ?? "",
+    coords: v.lat != null && v.lng != null ? `${v.lat}, ${v.lng}` : "",
     is_active: v.is_active,
   };
 }
@@ -86,7 +88,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <label className={label}>상호명 * (고객에게 노출되지 않음)</label>
+              <label className={label}>상호명 * (테마 상세에 공개)</label>
               <input
                 className={field}
                 value={editing.name}
@@ -95,7 +97,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
               />
             </div>
             <div>
-              <label className={label}>공개용 위치 * (고객에게 보이는 대략 위치)</label>
+              <label className={label}>대략 위치 * (상호명 위 작은 글씨)</label>
               <input
                 className={field}
                 value={editing.area_label}
@@ -106,7 +108,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
           </div>
 
           <div>
-            <label className={label}>정확 주소 * (비공개 — 장소안내 문자에만 사용)</label>
+            <label className={label}>정확 주소 * (테마 상세에 공개 + 장소안내 문자)</label>
             <input
               className={field}
               value={editing.address}
@@ -126,14 +128,27 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
               />
             </div>
             <div>
-              <label className={label}>지도 링크</label>
+              <label className={label}>네이버 지도 링크 (비우면 주소 검색으로 열림)</label>
               <input
                 className={field}
                 value={editing.map_url}
                 onChange={(e) => setEditing({ ...editing, map_url: e.target.value })}
-                placeholder="https://…"
+                placeholder="https://naver.me/…"
               />
             </div>
+          </div>
+
+          <div>
+            <label className={label}>지도 좌표 (위도, 경도) — 비우면 테마 상세에 지도 없이 주소만 보임</label>
+            <input
+              className={field}
+              value={editing.coords}
+              onChange={(e) => setEditing({ ...editing, coords: e.target.value })}
+              placeholder="예: 37.5403064, 127.0851419"
+            />
+            <p className="mt-1 text-[11px] text-muted">
+              구글 지도에서 장소를 마우스 오른쪽 버튼으로 누르면 맨 위에 좌표가 나와요. 눌러서 복사한 뒤 그대로 붙여 넣으면 됩니다.
+            </p>
           </div>
 
           <label className="flex items-center gap-2 text-sm">

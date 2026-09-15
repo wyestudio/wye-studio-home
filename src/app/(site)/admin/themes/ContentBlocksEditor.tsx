@@ -188,8 +188,7 @@ export function ContentBlocksEditor({
                   {b.type === "venue" && (
                     <p className="text-[11px] text-muted">
                       장소는 여기서 고치지 않습니다. 위쪽 <strong>장소</strong> 선택과 <strong>장소</strong>{" "}
-                      메뉴의 &lsquo;공개용 위치·주차 안내&rsquo; 가 그대로 보여요. 정확한 주소·지도 링크는
-                      고객 화면에 나가지 않습니다.
+                      메뉴의 상호명·주소·주차 안내·지도 링크가 그대로 보여요.
                     </p>
                   )}
 
