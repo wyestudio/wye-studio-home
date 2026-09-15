@@ -151,7 +151,10 @@ function settleOne(r: Raw): SettlementRow {
 const SELECT =
   "confirmation_code, headcount, amount_krw, discount_krw, paid_at, cancelled_at, " +
   "refund_completed_at, status, utm_source, created_at, " +
-  "coupons(code, coupon_campaigns(name)), " +
+  // ⚠️ 관계를 FK 이름으로 못박는다. applications 와 coupons 사이에는 관계가 둘이다
+  //    (applications.coupon_id → coupons, coupons.used_application_id → applications).
+  //    그냥 "coupons(...)" 라고 쓰면 PostgREST 가 어느 쪽인지 몰라 조회가 통째로 실패한다.
+  "coupons!applications_coupon_id_fkey(code, coupon_campaigns(name)), " +
   "sessions(start_at, themes(name))";
 
 /** 잼핏 캠페인의 쿠폰을 쓴 건만 남긴다. */
