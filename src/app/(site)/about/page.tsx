@@ -13,36 +13,42 @@ const PRINCIPLES = [
   { title: "소개팅 회차는 성비를 관리해요", desc: "남/여 정원을 따로 두고, 정원이 안 찼을 때 자동으로 채우지 않아요." },
 ];
 
+const WRAP = "mx-auto max-w-3xl px-5 sm:max-w-4xl lg:max-w-5xl";
+const SECTION = "mb-8 sm:mb-14 lg:mb-20";
+
 export default function AboutPage() {
   if (process.env.NEXT_PUBLIC_ABOUT_ENABLED !== "true") {
     notFound();
   }
   return (
-    <div className="pt-10">
-      <div className="mx-auto max-w-3xl px-5">
-        <Reveal className="mb-10 text-center">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em] text-muted">Identity</p>
-          <h1 className="text-2xl font-extrabold">About</h1>
+    // 폭·글자·여백은 테마 상세의 새 비율에 맞춰 키웠다(2026-09-15).
+    <div className="pt-10 sm:pt-16 lg:pt-20">
+      <div className={WRAP}>
+        <Reveal className="mb-10 text-center sm:mb-16">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em] text-muted sm:mb-3 sm:text-sm">
+            Identity
+          </p>
+          <h1 className="text-2xl font-extrabold sm:text-4xl lg:text-5xl">About</h1>
         </Reveal>
 
-        <section className="mb-8">
-          <Reveal className="mb-4">
-            <SectionHeading eyebrow="Story" title="브랜드 스토리" align="left" />
+        <section className={SECTION}>
+          <Reveal className="mb-4 sm:mb-6">
+            <SectionHeading eyebrow="Story" title="브랜드 스토리" align="left" size="lg" />
           </Reveal>
           <Reveal>
             <HudPlaceholder label="회사 소개 준비 중" />
           </Reveal>
         </section>
 
-        <section className="mb-8">
+        <section className={SECTION}>
           <Reveal>
-            <HudCard className="flex items-center gap-4 p-5">
-              <span className="animate-mascot-bob text-3xl" aria-hidden>
+            <HudCard className="flex items-center gap-4 p-5 sm:gap-6 sm:p-7 lg:p-8">
+              <span className="animate-mascot-bob text-3xl sm:text-4xl lg:text-5xl" aria-hidden>
                 🧢
               </span>
               <div>
-                <p className="font-bold">케이프를 소개합니다</p>
-                <p className="text-sm text-muted">
+                <p className="font-bold sm:text-lg lg:text-xl">케이프를 소개합니다</p>
+                <p className="text-sm text-muted sm:mt-1 sm:text-base lg:text-lg">
                   우주이스케이프의 마스코트예요. 새 행성을 찾아다니느라 늘 바빠요.
                 </p>
               </div>
@@ -53,27 +59,27 @@ export default function AboutPage() {
 
       <ConceptCards />
 
-      <div className="mx-auto max-w-3xl px-5">
-        <section className="mb-8">
-          <Reveal className="mb-8">
-            <SectionHeading eyebrow="Principle" title="운영 원칙" />
+      <div className={WRAP}>
+        <section className={SECTION}>
+          <Reveal className="mb-8 sm:mb-10">
+            <SectionHeading eyebrow="Principle" title="운영 원칙" size="lg" />
           </Reveal>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
             {PRINCIPLES.map((p, i) => (
               <Reveal key={p.title} delay={i * 0.08}>
-                <HudCard className="flex h-full flex-col gap-2 p-5 text-center">
-                  <p className="font-bold">{p.title}</p>
-                  <p className="text-sm text-muted">{p.desc}</p>
+                <HudCard className="flex h-full flex-col gap-2 p-5 text-center sm:gap-3 sm:p-7 lg:p-8">
+                  <p className="font-bold sm:text-lg lg:text-xl">{p.title}</p>
+                  <p className="text-sm text-muted sm:text-base lg:text-lg">{p.desc}</p>
                 </HudCard>
               </Reveal>
             ))}
           </div>
         </section>
 
-        <section className="mb-10">
+        <section className="mb-10 sm:mb-20 lg:mb-24">
           <Reveal>
-            <HudCard className="space-y-2 p-5 text-sm">
-              <p className="font-semibold">사업자 정보</p>
+            <HudCard className="space-y-2 p-5 text-sm sm:space-y-3 sm:p-7 sm:text-base lg:p-8">
+              <p className="font-semibold sm:text-lg">사업자 정보</p>
               <div className="space-y-1 text-muted">
                 <p>우주이스케이프 (wouldyouescape) · 사업자등록번호 820-04-03772</p>
                 <p>서울특별시 관악구 낙성대로 2 4층 · wouldyouescape@gmail.com</p>

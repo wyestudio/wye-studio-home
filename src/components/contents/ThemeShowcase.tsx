@@ -1,4 +1,5 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { SCREEN_SECTION } from "@/components/contents/screenSection";
 import { ThemeCard } from "@/components/contents/ThemeCard";
 import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
@@ -22,20 +23,24 @@ export type ThemeCardData = ThemeWithTiers & {
  */
 export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
   return (
-    <section className="mx-auto max-w-5xl px-5 py-14">
-      <SectionHeading eyebrow="CONTENTS" />
+    /*
+      테마가 몇 개 안 돼 위에 몰려 있으면 아래가 휑하다. 테마 상세 블록처럼
+      화면 높이를 채우고 가운데보다 살짝 위에 둔다(SCREEN_SECTION, 2026-09-15).
+    */
+    <section className={`mx-auto max-w-5xl px-5 ${SCREEN_SECTION}`}>
+      <SectionHeading eyebrow="CONTENTS" size="lg" />
 
       {themes.length === 0 ? (
-        <div className="mt-10 rounded-xl border border-white/15 bg-white/5 p-10 text-center">
-          <p className="font-semibold">현재 공개된 컨텐츠가 없습니다.</p>
-          <p className="mt-2 text-sm text-muted">새 컨텐츠가 준비되면 안내드릴게요.</p>
+        <div className="mt-10 rounded-xl border border-white/15 bg-white/5 p-10 text-center sm:mt-12 sm:p-14">
+          <p className="font-semibold sm:text-lg lg:text-xl">현재 공개된 컨텐츠가 없습니다.</p>
+          <p className="mt-2 text-sm text-muted sm:text-base">새 컨텐츠가 준비되면 안내드릴게요.</p>
         </div>
       ) : (
         /*
           격자 대신 flex — 테마가 열 수보다 적을 때 왼쪽에 붙지 않고 가운데로
           모인다. 폭은 gap(1.25rem)을 뺀 뒤 열 수로 나눠 격자와 똑같이 맞춘다.
         */
-        <div className="mt-10 flex flex-wrap justify-center gap-5">
+        <div className="mt-10 flex flex-wrap justify-center gap-5 sm:mt-12">
           {themes.map((theme) => (
             <ThemeCard
               key={theme.id}

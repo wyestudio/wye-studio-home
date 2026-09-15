@@ -27,9 +27,9 @@ function CopyIcon() {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0">
-      <span className="shrink-0 text-xs text-muted">{label}</span>
-      <span className="text-right text-sm">{value}</span>
+    <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0 sm:py-2.5">
+      <span className="shrink-0 text-xs text-muted sm:text-sm">{label}</span>
+      <span className="text-right text-sm sm:text-base lg:text-lg">{value}</span>
     </div>
   );
 }
@@ -92,36 +92,36 @@ export function ApplyComplete({
   const representativePhone = formatPhoneDigits(attendees[0]?.phone ?? "");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:space-y-8">
       <div className="pt-2 text-center">
-        <h1 className="text-2xl font-extrabold">
+        <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">
           {isWaiting ? "대기 신청이 접수되었습니다." : "신청이 완료되었습니다."}
         </h1>
-        <p className="mt-1 text-sm text-muted">신청해주셔서 감사합니다 (__)</p>
+        <p className="mt-1 text-sm text-muted sm:mt-2 sm:text-base lg:text-lg">신청해주셔서 감사합니다 (__)</p>
       </div>
 
       {/* ── 접수번호 ── */}
-      <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center">
-        <p className="text-xs text-muted">접수번호</p>
-        <div className="mt-1 flex items-center justify-center gap-2">
-          <p className="text-3xl font-extrabold tracking-wider" style={{ color: accentColor }}>
+      <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center sm:p-8 lg:p-10">
+        <p className="text-xs text-muted sm:text-sm">접수번호</p>
+        <div className="mt-1 flex items-center justify-center gap-2 sm:mt-2 sm:gap-3">
+          <p className="text-3xl font-extrabold tracking-wider sm:text-4xl lg:text-5xl" style={{ color: accentColor }}>
             {result.confirmationCode}
           </p>
           <button
             type="button"
             onClick={copy}
             aria-label="접수번호 복사"
-            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/40 hover:text-foreground"
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/40 hover:text-foreground sm:px-3 sm:py-2 sm:text-sm"
           >
             {copied ? <>복사됨</> : <CopyIcon />}
           </button>
         </div>
-        <p className="mt-2 text-xs text-muted">참여 내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
+        <p className="mt-2 text-xs text-muted sm:mt-3 sm:text-sm lg:text-base">참여 내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
 
         {isWaiting && (
-          <p className="mt-4 text-sm text-amber-300">
+          <p className="mt-4 text-sm text-amber-300 sm:text-base lg:text-lg">
             현재 대기 {result.waitingNumber ?? "-"}번입니다. 자리가 나면 개별 연락드립니다.
-            <span className="mt-1 block text-xs text-muted">
+            <span className="mt-1 block text-xs text-muted sm:text-sm">
               앞선 신청이 취소되면 순번은 앞당겨질 수 있습니다.
             </span>
           </p>
@@ -130,27 +130,27 @@ export function ApplyComplete({
 
       {/* ── 입금 안내: 계좌는 문자로만 ── */}
       {!isWaiting && (
-        <div className="rounded-xl border-2 p-5" style={{ borderColor: accentColor }}>
-          <h2 className="text-center font-bold">입금 안내를 문자로 보내드렸어요</h2>
-          <p className="mt-2 text-center text-sm text-muted">
+        <div className="rounded-xl border-2 p-5 sm:p-7 lg:p-8" style={{ borderColor: accentColor }}>
+          <h2 className="text-center font-bold sm:text-lg lg:text-xl">입금 안내를 문자로 보내드렸어요</h2>
+          <p className="mt-2 text-center text-sm text-muted sm:text-base lg:text-lg">
             <strong className="text-foreground">{representativePhone}</strong> 으로 입금하실 계좌와
             금액을 보냈습니다.
           </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg bg-white/5 p-4 text-center">
-              <p className="text-xs text-muted">입금액</p>
-              <p className="mt-1 text-2xl font-extrabold" style={{ color: accentColor }}>
+          <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 sm:gap-4">
+            <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
+              <p className="text-xs text-muted sm:text-sm">입금액</p>
+              <p className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
                 {formatKrw(result.amountKrw)}
               </p>
             </div>
-            <div className="rounded-lg bg-white/5 p-4 text-center">
-              <p className="text-xs text-muted">입금자명</p>
-              <p className="mt-1 text-2xl font-extrabold" style={{ color: accentColor }}>
+            <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
+              <p className="text-xs text-muted sm:text-sm">입금자명</p>
+              <p className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
                 {depositorName}
               </p>
             </div>
           </div>
-          <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-xs text-amber-200">
+          <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-xs text-amber-200 sm:mt-5 sm:p-5 sm:text-sm lg:text-base">
             <p>⚠️ 입금자명이 다르면 처리가 늦어질 수 있습니다.</p>
             <p>⏱ 시간 내 미입금 시 자동으로 취소될 수 있습니다.</p>
             {/* 계좌가 문자에만 있으므로, 문자가 안 오면 입금할 방법이 없어진다. */}
@@ -160,8 +160,8 @@ export function ApplyComplete({
       )}
 
       {/* ── 제출한 내용 ── */}
-      <div className="rounded-xl border border-white/15 p-5">
-        <h2 className="mb-2 font-bold">신청 정보</h2>
+      <div className="rounded-xl border border-white/15 p-5 sm:p-7 lg:p-8">
+        <h2 className="mb-2 font-bold sm:mb-3 sm:text-lg lg:text-xl">신청 정보</h2>
 
         <Row label="테마" value={themeName} />
         <Row label="일시" value={sessionLabel} />
@@ -192,10 +192,10 @@ export function ApplyComplete({
           }
         />
 
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
           {attendees.map((a, i) => (
-            <div key={i} className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
-              <p className="mb-1 text-xs font-bold text-muted">
+            <div key={i} className="rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:p-5">
+              <p className="mb-1 text-xs font-bold text-muted sm:text-sm">
                 {i === 0 ? (attendees.length > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${i}`}
               </p>
               <Row
@@ -228,20 +228,20 @@ export function ApplyComplete({
       <RefundPolicyBox />
 
       {/* ── 다음 ── */}
-      <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-center text-sm">
+      <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-center text-sm sm:p-7 sm:text-base lg:p-8 lg:text-lg">
         <p className="font-semibold">참여 내역은 언제든 확인할 수 있어요</p>
-        <p className="mt-1 text-muted">
+        <p className="mt-1 text-muted sm:mt-2">
           휴대폰 번호와 접수번호 <strong>{result.confirmationCode}</strong>로 조회하실 수 있습니다.
         </p>
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <div className="mt-4 flex flex-wrap justify-center gap-2 sm:mt-6 sm:gap-3">
           <Link
             href="/lookup"
-            className="rounded-lg px-4 py-2.5 text-sm font-bold"
+            className="rounded-lg px-4 py-2.5 text-sm font-bold sm:px-6 sm:py-3.5 sm:text-base"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
             참여 내역 조회
           </Link>
-          <Link href="/contents" className="rounded-lg border border-white/25 px-4 py-2.5 text-sm">
+          <Link href="/contents" className="rounded-lg border border-white/25 px-4 py-2.5 text-sm sm:px-6 sm:py-3.5 sm:text-base">
             다른 컨텐츠 보기
           </Link>
         </div>

@@ -4,14 +4,17 @@ import { Select } from "@/components/ui/Select";
 import { EXPERIENCE_RANGES, EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import type { AttendeeForm } from "./ApplyForm";
 
-/** 반투명 카드 위에 올리는 입력칸. 카드는 비치고 칸만 불투명하다. */
+/**
+ * 반투명 카드 위에 올리는 입력칸. 카드는 비치고 칸만 불투명하다.
+ * 넓은 화면에서 칸·글자를 키운다(테마 상세 비율) — ApplyForm 의 칸과 같은 크기여야 한다.
+ */
 const field =
-  "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50";
+  "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50 sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
 const fieldInvalid =
-  "w-full rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger outline-none";
-const label = "block text-xs font-medium text-muted mb-1.5";
-const hint = "mt-1 text-[11px] text-muted";
-const errorText = "mt-1 text-[11px] text-danger";
+  "w-full rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger outline-none sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
+const label = "block text-xs font-medium text-muted mb-1.5 sm:text-sm lg:mb-2 lg:text-base";
+const hint = "mt-1 text-[11px] text-muted sm:mt-1.5 sm:text-xs lg:text-sm";
+const errorText = "mt-1 text-[11px] text-danger sm:mt-1.5 sm:text-xs lg:text-sm";
 
 export type NicknameCheckState = "idle" | "checking" | "available" | "taken" | "error";
 
@@ -77,15 +80,15 @@ export function AttendeeFields({
 
   return (
     <div
-      className={`rounded-lg border p-4 ${
+      className={`rounded-lg border p-4 sm:p-6 ${
         isConflict ? "border-danger bg-danger-soft" : "border-white/15"
       }`}
     >
-      <p className="mb-3 text-sm font-semibold">
+      <p className="mb-3 text-sm font-semibold sm:mb-4 sm:text-base lg:text-lg">
         {index === 0 ? (attendeeCount > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${index}`}
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:gap-5">
         {/* ── 이름 / 닉네임 ── */}
         <div>
           <label className={label} htmlFor={`attendee-${index}-name`}>이름 *</label>
@@ -114,7 +117,7 @@ export function AttendeeFields({
                 type="button"
                 onClick={onNicknameCheck}
                 disabled={nicknameCheckState === "checking"}
-                className="shrink-0 rounded-lg border border-white/25 px-3 text-xs font-semibold disabled:opacity-50"
+                className="shrink-0 rounded-lg border border-white/25 px-3 text-xs font-semibold disabled:opacity-50 sm:px-4 sm:text-sm"
               >
                 {nicknameCheckState === "checking" ? "확인 중…" : "중복확인"}
               </button>
@@ -123,7 +126,7 @@ export function AttendeeFields({
           {errors.nickname ? (
             <p className={errorText}>{errors.nickname}</p>
           ) : nicknameCheckState === "available" ? (
-            <p className="mt-1 text-[11px] text-glow">사용 가능한 닉네임이에요.</p>
+            <p className="mt-1 text-[11px] text-glow sm:mt-1.5 sm:text-xs lg:text-sm">사용 가능한 닉네임이에요.</p>
           ) : nicknameCheckState === "taken" ? (
             <p className={errorText}>이미 사용 중인 닉네임이에요.</p>
           ) : nicknameCheckState === "error" ? (
@@ -195,6 +198,7 @@ export function AttendeeFields({
           <Select
             id={`attendee-${index}-birthYear`}
             variant="glass"
+            size="lg"
             value={attendee.birth_year ? String(attendee.birth_year) : ""}
             onChange={(v) => onChange({ birth_year: Number(v) })}
             options={birthYears.map((y) => ({ value: String(y), label: `${y}년생` }))}
@@ -214,6 +218,7 @@ export function AttendeeFields({
           <Select
             id={`attendee-${index}-experienceRange`}
             variant="glass"
+            size="lg"
             value={attendee.experience_range}
             onChange={(v) => onChange({ experience_range: v })}
             options={EXPERIENCE_RANGES.map((r) => ({ value: r, label: EXPERIENCE_RANGE_LABELS[r] }))}
@@ -232,6 +237,7 @@ export function AttendeeFields({
           <Select
             id={`attendee-${index}-gender`}
             variant="glass"
+            size="lg"
             value={attendee.gender}
             onChange={(v) => onChange({ gender: v })}
             options={[

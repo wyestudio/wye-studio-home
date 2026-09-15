@@ -203,11 +203,11 @@ export function ConsentStep({
             <input
               id={it.id}
               type="checkbox"
-              className="mt-0.5 shrink-0 accent-[var(--glow)]"
+              className="mt-0.5 shrink-0 accent-[var(--glow)] sm:mt-1 sm:h-[18px] sm:w-[18px] lg:mt-1.5"
               checked={consents[it.key]}
               onChange={() => onChange({ ...consents, [it.key]: !consents[it.key] })}
             />
-            <span className="text-sm leading-snug">
+            <span className="text-sm leading-snug sm:text-base lg:text-lg">
               {typeof it.label === "function" ? it.label(minAge) : it.label}
             </span>
           </label>
@@ -217,7 +217,7 @@ export function ConsentStep({
               href={it.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline"
+              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline sm:text-sm"
             >
               보기 <Chevron dir="right" className="ml-0.5 inline h-3 w-3 align-middle" />
             </a>
@@ -226,7 +226,7 @@ export function ConsentStep({
               type="button"
               onClick={() => toggleExpand(it.id)}
               aria-expanded={expanded.has(it.id)}
-              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline"
+              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline sm:text-sm"
             >
               {expanded.has(it.id) ? (
                 <>닫기 <Chevron dir="up" className="ml-0.5 inline h-3 w-3 align-middle" /></>
@@ -238,7 +238,7 @@ export function ConsentStep({
         </div>
 
         {it.detail && expanded.has(it.id) && (
-          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-muted">
+          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-muted sm:max-h-44 sm:p-4 sm:text-sm">
             {it.detail}
           </div>
         )}
@@ -249,11 +249,11 @@ export function ConsentStep({
   function group(title: string, tone: "required" | "optional", list: Item[]) {
     if (list.length === 0) return null;
     return (
-      <section className="rounded-lg border border-white/15 p-4">
-        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-white/10 pb-2.5">
-          <span className="text-sm font-bold">{title}</span>
+      <section className="rounded-lg border border-white/15 p-4 sm:p-6">
+        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-white/10 pb-2.5 sm:mb-4 sm:pb-3">
+          <span className="text-sm font-bold sm:text-base lg:text-lg">{title}</span>
           <span
-            className={`rounded px-1.5 py-0.5 text-[11px] font-bold ${
+            className={`rounded px-1.5 py-0.5 text-[11px] font-bold sm:px-2 sm:text-xs ${
               tone === "required"
                 ? "bg-[var(--glow)]/15 text-glow"
                 : "bg-white/10 text-muted"
@@ -262,29 +262,29 @@ export function ConsentStep({
             {tone === "required" ? "필수" : "선택"}
           </span>
         </div>
-        <div className="space-y-3">{list.map(row)}</div>
+        <div className="space-y-3 sm:space-y-4">{list.map(row)}</div>
       </section>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3.5">
+    <div className="space-y-3 sm:space-y-4">
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3.5 sm:px-6 sm:py-5">
         <input
           type="checkbox"
           checked={allChecked}
           onChange={toggleAll}
-          className="h-5 w-5 shrink-0 accent-[var(--glow)]"
+          className="h-5 w-5 shrink-0 accent-[var(--glow)] lg:h-6 lg:w-6"
         />
-        <span className="text-sm font-bold">전체 동의합니다</span>
-        <span className="text-xs text-muted">필수·선택 항목에 모두 동의합니다.</span>
+        <span className="text-sm font-bold sm:text-base lg:text-lg">전체 동의합니다</span>
+        <span className="text-xs text-muted sm:text-sm">필수·선택 항목에 모두 동의합니다.</span>
       </label>
 
       {group("필수 동의", "required", items.filter((it) => it.required))}
       {group("선택 동의", "optional", items.filter((it) => !it.required))}
 
       {showError && !allRequiredChecked(consents, attendeeCount) && (
-        <p className="text-sm text-danger">필수 항목에 모두 동의해주세요.</p>
+        <p className="text-sm text-danger sm:text-base">필수 항목에 모두 동의해주세요.</p>
       )}
     </div>
   );

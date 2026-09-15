@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LookupForm } from "@/components/lookup/LookupForm";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
+import { SCREEN_SECTION } from "@/components/contents/screenSection";
 
 export const metadata: Metadata = {
   title: "신청내역 조회",
@@ -15,8 +16,12 @@ export const metadata: Metadata = {
 
 export default function LookupPage() {
   return (
-    <div className="mx-auto max-w-md px-5 py-10">
-      <h1 className="mb-6 text-2xl font-extrabold">신청내역 조회</h1>
+    /*
+      입력칸 두 개뿐이라 위에 붙여 두면 아래가 텅 빈다. 테마 상세 첫 화면처럼 화면 높이를
+      채우고 가운데보다 살짝 위에 둔다(SCREEN_SECTION). 폭·글자도 같은 비율로 키웠다.
+    */
+    <div className={`mx-auto w-full max-w-md px-5 sm:max-w-lg lg:max-w-xl ${SCREEN_SECTION}`}>
+      <h1 className="mb-6 text-2xl font-extrabold sm:mb-8 sm:text-3xl lg:text-4xl">신청내역 조회</h1>
       <LookupForm />
       <KakaoChannelButton />
     </div>

@@ -10,6 +10,9 @@ import { lookupAction, type LookupState } from "@/app/(site)/lookup/actions";
 
 const initialState: LookupState = {};
 
+/** 입력칸 크기. 공용 Input 기본값(작은 글씨) 위에 큰 화면에서만 덧씌운다. */
+const INPUT_SIZE = "sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
+
 export function LookupForm() {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(lookupAction, initialState);
@@ -68,9 +71,9 @@ export function LookupForm() {
   }
 
   return (
-    <form action={formAction} onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
-      <div className="rounded-xl border border-border bg-surface p-4">
-        <div className="flex flex-col gap-4">
+    <form action={formAction} onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 sm:gap-5">
+      <div className="rounded-xl border border-border bg-surface p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col gap-4 sm:gap-6">
           <Field label="접수번호" htmlFor="confirmationCode" error={confirmationCodeError}>
             <Input
               id="confirmationCode"
@@ -80,6 +83,7 @@ export function LookupForm() {
               maxLength={6}
               required
               placeholder="123456"
+              className={INPUT_SIZE}
               invalid={!!confirmationCodeError}
               value={confirmationCode}
               onChange={(e) => {
@@ -97,6 +101,7 @@ export function LookupForm() {
               maxLength={13}
               required
               placeholder="010-0000-0000"
+              className={INPUT_SIZE}
               invalid={!!phoneError}
               value={phone}
               onChange={(e) => {
@@ -105,7 +110,7 @@ export function LookupForm() {
             />
           </Field>
 
-          {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+          {state.error ? <p className="text-sm text-danger sm:text-base">{state.error}</p> : null}
         </div>
       </div>
 
@@ -113,7 +118,7 @@ export function LookupForm() {
         type="submit"
         disabled={pending}
         onPointerEnter={handleSubmitPointerEnter}
-        className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50"
+        className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50 sm:py-4 sm:text-base lg:text-lg"
       >
         <span aria-hidden className="apply-submit-fill" />
         <span className="apply-submit-label">{pending ? "조회 중..." : "조회하기"}</span>

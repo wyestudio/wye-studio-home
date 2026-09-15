@@ -35,11 +35,12 @@ import {
 import { ApplyComplete } from "./ApplyComplete";
 import { pushDataLayerEvent } from "@/lib/analytics";
 
+// 넓은 화면에서 칸·글자를 키운다(테마 상세 비율). 모바일 크기는 그대로.
 const field =
-  "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50";
+  "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50 sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
 const fieldInvalid =
-  "w-full rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger outline-none";
-const label = "block text-xs font-medium text-muted mb-1.5";
+  "w-full rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger outline-none sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
+const label = "block text-xs font-medium text-muted mb-1.5 sm:text-sm lg:mb-2 lg:text-base";
 
 /** 인원 선택 상한. 테마에 max_group_size 가 있으면 그쪽이 우선이다. */
 const DEFAULT_MAX_ATTENDEES = 8;
@@ -511,12 +512,12 @@ export function ApplyForm({
     <>
       <ValidationToast message={toast} onClose={() => setToast(null)} />
 
-      <div className="mb-4">
-        <a href={backHref} className="text-sm text-muted underline">
+      <div className="mb-4 sm:mb-5">
+        <a href={backHref} className="text-sm text-muted underline sm:text-base">
           ← 날짜 다시 선택
         </a>
       </div>
-      <h1 className="mb-4 text-2xl font-extrabold">참여 신청</h1>
+      <h1 className="mb-4 text-2xl font-extrabold sm:mb-6 sm:text-3xl lg:text-4xl">참여 신청</h1>
 
       <ApplyStepper
         accentColor={accentColor}
@@ -529,20 +530,20 @@ export function ApplyForm({
         }}
       />
 
-      <div className="space-y-6 py-8 pb-28">
+      <div className="space-y-6 py-8 pb-28 sm:space-y-8 sm:py-10 sm:pb-32">
         {error && (
-          <div className="rounded-lg border border-red-500 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="rounded-lg border border-red-500 bg-red-500/10 px-4 py-3 text-sm text-red-300 sm:px-5 sm:py-4 sm:text-base">
             {error}
           </div>
         )}
 
         {/* ── 회차 요약 ── */}
-        <div className="rounded-lg border border-white/15 bg-white/5 p-4">
+        <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <p className="font-semibold">{themeName}</p>
+            <p className="font-semibold sm:text-lg lg:text-xl">{themeName}</p>
             {categoryName && (
               <span
-                className="rounded-full border px-2 py-0.5 text-[11px] font-bold"
+                className="rounded-full border px-2 py-0.5 text-[11px] font-bold sm:px-2.5 sm:text-xs"
                 style={{
                   color: accentColor,
                   borderColor: `${accentColor}59`,
@@ -553,13 +554,13 @@ export function ApplyForm({
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-muted">{sessionLabel}</p>
+          <p className="mt-1 text-sm text-muted sm:mt-1.5 sm:text-base lg:text-lg">{sessionLabel}</p>
         </div>
 
         {/* ══ 1. 정보입력 ══ */}
         {step === 0 && (
-          <div className="space-y-4">
-            <div className="flex gap-2 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm font-bold text-danger">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="flex gap-2 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm font-bold text-danger sm:px-5 sm:py-4 sm:text-base">
               <span className="shrink-0" aria-hidden>⚠️</span>
               <span>참여 시 신분증 검사가 진행됩니다. 정확한 정보를 입력해주세요.</span>
             </div>
@@ -569,6 +570,7 @@ export function ApplyForm({
               <Select
                 id="attendeeCount"
                 variant="glass"
+                size="lg"
                 value={String(headcount)}
                 onChange={(v) => setCount(Number(v))}
                 options={Array.from({ length: maxAttendees }, (_, i) => i + 1).map((n) => ({
@@ -576,7 +578,7 @@ export function ApplyForm({
                   label: `${n}명`,
                 }))}
               />
-              <p className="mt-1.5 text-xs text-muted">
+              <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
                 ※ 10인 이상 단체 문의는{" "}
                 <a
                   href="http://pf.kakao.com/_EGNBX"
@@ -634,16 +636,20 @@ export function ApplyForm({
 
         {/* ══ 3. 제출 ══ */}
         {step === 2 && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-white/15 bg-white/5 p-4">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
               {unitPrice !== null && total !== null && payable !== null ? (
                 <>
                   <div className="flex items-baseline justify-between">
-                    <span className="text-sm text-muted">
+                    <span className="text-sm text-muted sm:text-base lg:text-lg">
                       {headcount}명 × {formatKrw(unitPrice)}
                     </span>
                     <span
-                      className={appliedDiscount > 0 ? "text-sm text-muted line-through" : "text-2xl font-extrabold"}
+                      className={
+                        appliedDiscount > 0
+                          ? "text-sm text-muted line-through sm:text-base"
+                          : "text-2xl font-extrabold sm:text-3xl lg:text-4xl"
+                      }
                       style={appliedDiscount > 0 ? undefined : { color: accentColor }}
                     >
                       {formatKrw(total)}
@@ -652,13 +658,13 @@ export function ApplyForm({
 
                   {appliedDiscount > 0 && (
                     <>
-                      <div className="mt-1.5 flex items-baseline justify-between text-sm">
+                      <div className="mt-1.5 flex items-baseline justify-between text-sm sm:mt-2 sm:text-base lg:text-lg">
                         <span className="text-muted">쿠폰 할인</span>
                         <span className="text-glow">- {formatKrw(appliedDiscount)}</span>
                       </div>
-                      <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2">
-                        <span className="text-sm font-semibold">입금하실 금액</span>
-                        <span className="text-2xl font-extrabold" style={{ color: accentColor }}>
+                      <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2 sm:mt-3 sm:pt-3">
+                        <span className="text-sm font-semibold sm:text-base lg:text-lg">입금하실 금액</span>
+                        <span className="text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
                           {formatKrw(payable)}
                         </span>
                       </div>
@@ -666,12 +672,12 @@ export function ApplyForm({
                   )}
                 </>
               ) : (
-                <p className="text-sm text-muted">요금 정보를 불러올 수 없습니다.</p>
+                <p className="text-sm text-muted sm:text-base">요금 정보를 불러올 수 없습니다.</p>
               )}
             </div>
 
             {/* 입력란은 하나의 카드로 묶는다 */}
-            <div className="space-y-4 rounded-lg border border-white/15 p-4">
+            <div className="space-y-4 rounded-lg border border-white/15 p-4 sm:space-y-6 sm:p-6">
               <div>
                 <label className={label} htmlFor="couponCode">쿠폰 코드</label>
                 <div className="flex items-center gap-2">
@@ -714,7 +720,7 @@ export function ApplyForm({
                     <button
                       type="button"
                       onClick={() => { setCoupon(null); setCouponParts(["", ""]); }}
-                      className="shrink-0 self-stretch rounded-lg border border-white/20 px-4 py-2.5 text-sm text-muted"
+                      className="shrink-0 self-stretch rounded-lg border border-white/20 px-4 py-2.5 text-sm text-muted sm:px-5 sm:text-base"
                     >
                       해제
                     </button>
@@ -723,20 +729,20 @@ export function ApplyForm({
                       type="button"
                       onClick={verifyCoupon}
                       disabled={couponChecking || !couponCode || total === null}
-                      className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-40"
+                      className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-40 sm:px-5 sm:text-base"
                     >
                       {couponChecking ? "확인 중…" : "적용"}
                     </button>
                   )}
                 </div>
                 {coupon?.ok ? (
-                  <p className="mt-1.5 text-xs text-glow">
+                  <p className="mt-1.5 text-xs text-glow sm:mt-2 sm:text-sm">
                     ✓ {coupon.campaignName} 적용됨 — {formatKrw(coupon.discountKrw)} 할인
                   </p>
                 ) : coupon ? (
-                  <p className="mt-1.5 text-xs text-amber-400">{coupon.reason}</p>
+                  <p className="mt-1.5 text-xs text-amber-400 sm:mt-2 sm:text-sm">{coupon.reason}</p>
                 ) : (
-                  <p className="mt-1.5 text-xs text-muted">
+                  <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
                     쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요. 신청 1건에 1장 사용할 수 있어요.
                   </p>
                 )}
@@ -753,16 +759,16 @@ export function ApplyForm({
                   placeholder="실제로 입금하실 분의 성함"
                 />
                 {errOf(step3Errors, "depositorName") && (
-                  <p className="mt-1 text-[11px] text-danger">{errOf(step3Errors, "depositorName")}</p>
+                  <p className="mt-1 text-[11px] text-danger sm:text-xs lg:text-sm">{errOf(step3Errors, "depositorName")}</p>
                 )}
-                <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200">
+                <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 sm:mt-3 sm:px-4 sm:py-3 sm:text-sm">
                   <p className="font-semibold">⚠️ 실제로 입금하실 분의 성함과 정확히 일치해야 합니다.</p>
                   <p className="mt-1 opacity-90">이름이 다르면 처리가 늦어질 수 있어요.</p>
                 </div>
                 {depositorName.trim() &&
                   attendees[0]?.name.trim() &&
                   depositorName.trim() !== attendees[0].name.trim() && (
-                    <p className="mt-2 text-xs text-amber-300">
+                    <p className="mt-2 text-xs text-amber-300 sm:text-sm">
                       신청자({attendees[0].name})와 입금자명({depositorName})이 다릅니다. 맞나요?
                     </p>
                   )}
@@ -774,12 +780,13 @@ export function ApplyForm({
 
       {/* 고정 하단 버튼 */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/95 p-4 backdrop-blur">
-        <div className="mx-auto max-w-2xl px-1">
+        {/* 폭은 page.tsx 의 main 과 같게(lg:max-w-3xl) 맞춘다 — 다르면 버튼만 폼보다 좁거나 넓어 보인다. */}
+        <div className="mx-auto max-w-2xl px-1 lg:max-w-3xl">
           <button
             type="button"
             onClick={goNext}
             disabled={busy}
-            className="w-full rounded-lg px-6 py-4 text-base font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full rounded-lg px-6 py-4 text-base font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:py-[18px] lg:text-lg"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
             {pending

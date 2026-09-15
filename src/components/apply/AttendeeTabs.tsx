@@ -4,7 +4,9 @@ import React from "react";
 import { Chevron } from "@/components/ui/Chevron";
 
 function attendeeTabClassName(isActive: boolean, hasError: boolean) {
-  const base = "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-all";
+  // 넓은 화면에서 한 단계씩 키운다(테마 상세 비율).
+  const base =
+    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-all sm:h-10 sm:w-10 sm:text-sm lg:h-11 lg:w-11 lg:text-base";
   if (hasError) {
     return `${base} ${isActive ? "border-danger bg-danger text-foreground" : "border-danger bg-danger-soft text-danger"}`;
   }
@@ -12,7 +14,7 @@ function attendeeTabClassName(isActive: boolean, hasError: boolean) {
 }
 
 function arrowButtonClassName(disabled: boolean) {
-  return `flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm transition-all ${
+  return `flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm transition-all sm:h-10 sm:w-10 lg:h-11 lg:w-11 ${
     disabled
       ? "pointer-events-none border-border bg-surface text-muted opacity-30"
       : "border-border bg-surface text-foreground hover:border-brand hover:text-brand"

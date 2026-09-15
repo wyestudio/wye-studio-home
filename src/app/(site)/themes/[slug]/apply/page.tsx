@@ -57,7 +57,8 @@ export default async function ApplyPage({
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pb-12 pt-8">
+    // 폭·위 여백은 넓은 화면에서 키운다(테마 상세 비율). 하단 고정 버튼 폭도 ApplyForm 에서 같이 맞춘다.
+    <main className="mx-auto max-w-2xl px-5 pb-12 pt-8 sm:pt-12 lg:max-w-3xl">
       <ApplyForm
         themeId={theme.id}
         initialCouponCode={couponCode}
@@ -79,11 +80,11 @@ export default async function ApplyPage({
 
 function Fallback({ slug, accent, message }: { slug: string; accent: string; message: string }) {
   return (
-    <main className="mx-auto max-w-lg px-5 py-24 text-center">
-      <p className="font-semibold">{message}</p>
+    <main className="mx-auto max-w-lg px-5 py-24 text-center sm:max-w-xl sm:py-32">
+      <p className="font-semibold sm:text-lg lg:text-xl">{message}</p>
       <Link
         href={`/themes/${slug}`}
-        className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-bold"
+        className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-bold sm:mt-8 sm:px-7 sm:py-4 sm:text-base lg:text-lg"
         style={{ backgroundColor: accent, color: "#0a0a12" }}
       >
         날짜 선택하러 가기

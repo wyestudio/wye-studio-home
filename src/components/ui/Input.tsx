@@ -13,11 +13,11 @@ export function Field({
 } & LabelHTMLAttributes<HTMLLabelElement>) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={htmlFor} className="text-sm font-semibold text-foreground">
+      <label htmlFor={htmlFor} className="text-sm font-semibold text-foreground lg:text-base">
         {label}
       </label>
       {children}
-      {error ? <p className="text-xs text-danger">{error}</p> : null}
+      {error ? <p className="text-xs text-danger sm:text-sm">{error}</p> : null}
     </div>
   );
 }

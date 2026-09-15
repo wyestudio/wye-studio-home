@@ -8,12 +8,13 @@ export function Footer() {
   const isSessionDetailPage = pathname ? /^\/sessions\/[^/]+(?:\/apply)?\/?$/.test(pathname) : false;
 
   return (
-    <footer className="border-t border-border py-6 text-xs text-muted sm:py-8 sm:text-sm">
+    // 글자·여백은 테마 상세의 새 비율에 맞춰 한 단계 키웠다(2026-09-15).
+    <footer className="border-t border-border py-6 text-xs text-muted sm:py-10 sm:text-sm lg:py-14 lg:text-base">
       <div className="mx-auto max-w-5xl px-5">
         {/* 정보 + 링크 — 항상 좌/우 2열 */}
         <div className="flex justify-between items-start gap-6 sm:gap-8">
           {/* 왼쪽 컬럼 — 회사 정보 (1열로 세로 나열) */}
-          <div className="flex flex-col gap-1 sm:gap-1.5">
+          <div className="flex flex-col gap-1 sm:gap-1.5 lg:gap-2">
             <p>상호: 우주이스케이프 (wouldyouescape)</p>
             <p>사업자등록번호: 820-04-03772</p>
             <p>주소: 서울특별시 관악구 낙성대로 2 4층</p>
@@ -21,7 +22,7 @@ export function Footer() {
           </div>
 
           {/* 오른쪽 컬럼 — 약관 링크 */}
-          <div className="flex flex-col items-end gap-1 sm:gap-1.5 shrink-0">
+          <div className="flex flex-col items-end gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
             <Link href="/terms" className="hover:text-glow transition-colors">
               이용약관
             </Link>
@@ -35,7 +36,7 @@ export function Footer() {
         </div>
 
         {/* 카피라이트 — 정보+링크 그룹 아래 */}
-        <p className="mt-3 sm:mt-4">© 2026 WOULDYOUESCAPE. All rights reserved.</p>
+        <p className="mt-3 sm:mt-5 lg:mt-7">© 2026 WOULDYOUESCAPE. All rights reserved.</p>
 
         {/* 상품 상세 페이지에서만 고정 CTA 바 위로 푸터 노출을 위한 여백 */}
         {isSessionDetailPage ? <div className="h-24" aria-hidden /> : null}

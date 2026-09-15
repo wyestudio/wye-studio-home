@@ -32,7 +32,7 @@ export function ApplyStepper({
   accentColor: string;
 }) {
   return (
-    <div className="sticky top-[var(--header-height,0px)] z-20 -mx-5 border-b border-border bg-background px-5 py-4">
+    <div className="sticky top-[var(--header-height,0px)] z-20 -mx-5 border-b border-border bg-background px-5 py-4 sm:py-5">
       <ol className="flex items-center gap-2">
         {STEPS.map((label, index) => {
           const done = index < currentStep;
@@ -49,19 +49,19 @@ export function ApplyStepper({
                 onClick={() => done && onStepChange(index)}
                 aria-current={current ? "step" : undefined}
                 aria-label={done ? `${label} 단계로 돌아가기` : label}
-                className={`group flex w-full flex-col gap-2 text-left transition-transform ${
+                className={`group flex w-full flex-col gap-2 text-left transition-transform sm:gap-2.5 ${
                   done ? "cursor-pointer hover:-translate-y-0.5" : "cursor-default"
                 }`}
               >
                 <span
-                  className={`h-1 rounded-full transition-opacity ${reached ? "" : "bg-border"} ${
+                  className={`h-1 rounded-full transition-opacity sm:h-1.5 ${reached ? "" : "bg-border"} ${
                     done ? "group-hover:opacity-80" : ""
                   }`}
                   style={reached ? { background: `linear-gradient(90deg, ${from}, ${to})` } : undefined}
                 />
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 sm:gap-2">
                   <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none ${
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none sm:h-5 sm:w-5 sm:text-xs lg:h-6 lg:w-6 ${
                       reached ? "text-[#0a0a12]" : "border border-border text-muted"
                     }`}
                     style={reached ? { backgroundColor: to } : undefined}
@@ -77,7 +77,7 @@ export function ApplyStepper({
                     )}
                   </span>
                   <span
-                    className={`text-xs font-semibold transition-colors ${
+                    className={`text-xs font-semibold transition-colors sm:text-sm lg:text-base ${
                       done
                         ? "underline decoration-dotted underline-offset-4 group-hover:decoration-solid group-hover:text-foreground"
                         : current

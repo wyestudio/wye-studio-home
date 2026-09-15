@@ -12,7 +12,11 @@ import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { ThemeSpecTiles, ThemeGenreTile } from "@/components/contents/ThemeSpecs";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { SCREEN_SECTION, SCREEN_SCROLL_MARGIN } from "@/components/contents/screenSection";
+import {
+  INTRO_SCREEN_SECTION,
+  SCREEN_SECTION,
+  SCREEN_SCROLL_MARGIN,
+} from "@/components/contents/screenSection";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/catalog";
@@ -129,7 +133,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         같이 보이지 않게 한다. 한 화면에 정보가 몰리면 피로하다는 의견(2026-09-15).
         상세 블록·날짜 선택도 같은 규칙이다(SCREEN_SECTION 참고).
       */}
-      <div data-screen className={SCREEN_SECTION}>
+      <div data-screen className={INTRO_SCREEN_SECTION}>
       <section
         id="intro"
         suppressHydrationWarning
@@ -228,7 +232,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <section id="booking" data-screen className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}>
         <SectionHeading
           eyebrow="BOOKING"
-          title="날짜 선택"
+          // 달력 위에 이미 '날짜 선택' 이 있어 겹친다. 블록 제목은 '회차 선택'.
+          title="회차 선택"
           className="mb-6 sm:mb-10"
           eyebrowColor={accent}
           size="lg"
@@ -259,6 +264,14 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           maxGroupSize={theme.max_group_size}
           venue={theme.venue}
         />
+      </div>
+
+      {/*
+        상세를 끝까지 읽은 뒤 바로 신청하러 올라갈 수 있게. 모바일은 하단 고정 버튼이 있어 뺀다
+        (ScrollToBookingButton 이 sm 이상에서만 보인다).
+      */}
+      <div className="flex justify-center pb-16 sm:pb-24">
+        <ScrollToBookingButton accent={accent} direction="up" className="mt-0 md:mt-0" />
       </div>
 
       {/* 휠 한 번에 다음 화면 블록으로([data-screen]) */}

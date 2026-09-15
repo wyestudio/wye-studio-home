@@ -12,16 +12,16 @@ const CARDS = [
 
 export function ConceptCards() {
   return (
-    <section className="mx-auto max-w-3xl px-5 py-12">
-      <Reveal className="mb-8">
-        <SectionHeading eyebrow="Why" title="우주이스케이프가 다른 이유" />
+    <section className="mx-auto max-w-3xl px-5 py-12 sm:max-w-4xl sm:py-16 lg:max-w-5xl lg:py-20">
+      <Reveal className="mb-8 sm:mb-10">
+        <SectionHeading eyebrow="Why" title="우주이스케이프가 다른 이유" size="lg" />
       </Reveal>
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3 sm:gap-5">
         {CARDS.map((card, i) => (
           <Reveal key={card.title} delay={i * 0.08}>
-            <HudCard className="flex h-full flex-col gap-2 p-5 text-center">
-              <p className="font-bold">{card.title}</p>
-              <p className="text-sm text-muted">{card.desc}</p>
+            <HudCard className="flex h-full flex-col gap-2 p-5 text-center sm:gap-3 sm:p-7 lg:p-8">
+              <p className="font-bold sm:text-lg lg:text-xl">{card.title}</p>
+              <p className="text-sm text-muted sm:text-base lg:text-lg">{card.desc}</p>
             </HudCard>
           </Reveal>
         ))}

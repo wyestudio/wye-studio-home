@@ -20,16 +20,16 @@ export function NoticeTabs({ notices, faqs }: { notices: Notice[]; faqs: Faq[] }
   const reduceMotion = useReducedMotion();
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 sm:gap-12">
       {/* Tab Bar */}
-      <div className="flex justify-center gap-3" role="tablist">
+      <div className="flex justify-center gap-3 sm:gap-4" role="tablist">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setSelected(tab.key)}
             role="tab"
             aria-selected={selected === tab.key}
-            className="relative overflow-hidden rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+            className="relative overflow-hidden rounded-lg border px-4 py-2 text-sm font-semibold transition-colors sm:px-6 sm:py-3 sm:text-base lg:px-7 lg:py-3.5 lg:text-lg"
             style={{
               borderColor: selected === tab.key ? "var(--brand)" : "var(--border)",
               color: selected === tab.key ? "var(--brand-foreground)" : "var(--muted)",

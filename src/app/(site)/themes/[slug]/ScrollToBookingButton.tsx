@@ -10,16 +10,28 @@ import { scrollToBooking } from "./scrollToBooking";
  * 하단 고정 버튼이 있지만 넓은 화면(sm 이상)은 그게 없어 '아래에 뭐가 더 있다' 는
  * 신호가 필요했다. 그래서 모바일에서는 감추고 sm 이상에서만 보인다.
  */
-export function ScrollToBookingButton({ accent }: { accent: string }) {
+export function ScrollToBookingButton({
+  accent,
+  direction = "down",
+  className = "mt-10 md:mt-12",
+}: {
+  accent: string;
+  /** 회차 선택이 버튼보다 위에 있으면 up — 화살표 방향만 바뀐다(페이지 맨 아래 버튼). */
+  direction?: "down" | "up";
+  className?: string;
+}) {
   return (
     <a
       href="#booking"
       onClick={scrollToBooking}
-      className="group mx-auto mt-10 hidden items-center gap-2 rounded-full border px-6 py-3 text-base font-bold transition-colors sm:flex md:mt-12"
+      className={`group mx-auto hidden items-center gap-2 rounded-full border px-6 py-3 text-base font-bold transition-colors sm:flex lg:px-8 lg:py-4 lg:text-lg ${className}`}
       style={{ borderColor: `${accent}80`, color: accent }}
     >
       신청하기
-      <Chevron dir="down" className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+      <Chevron
+        dir={direction}
+        className={`h-4 w-4 transition-transform ${direction === "down" ? "group-hover:translate-y-0.5" : "group-hover:-translate-y-0.5"}`}
+      />
     </a>
   );
 }

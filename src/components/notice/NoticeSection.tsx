@@ -27,7 +27,7 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
 
   return (
     <section>
-      <h2 className="mb-6 text-center text-xl font-extrabold">공지사항</h2>
+      <h2 className="mb-6 text-center text-2xl font-extrabold sm:mb-10 sm:text-3xl lg:text-4xl">공지사항</h2>
 
       {notices.length === 0 ? (
         <HudPlaceholder label="등록된 공지가 없습니다." />
@@ -37,14 +37,14 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
             <li key={n.id}>
               <button
                 onClick={() => setOpen(n)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/5"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/5 sm:gap-5 sm:px-6 sm:py-5 lg:px-7 lg:py-6"
               >
-                <span className="min-w-0 flex-1 truncate text-sm">
+                <span className="min-w-0 flex-1 truncate text-sm sm:text-base lg:text-lg">
                   {n.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
                   {n.title}
                 </span>
                 {n.published_at && (
-                  <span className="shrink-0 text-xs text-muted">{kstDate(n.published_at)}</span>
+                  <span className="shrink-0 text-xs text-muted sm:text-sm">{kstDate(n.published_at)}</span>
                 )}
               </button>
             </li>
@@ -68,17 +68,17 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
     >
       {/* 안쪽을 눌렀을 때 닫히면 본문을 읽다가 실수로 닫힌다. */}
       <div
-        className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-xl border border-glass-border bg-surface p-6"
+        className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-xl border border-glass-border bg-surface p-6 sm:max-w-2xl sm:p-8 lg:p-10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h3 className="font-bold">
+            <h3 className="font-bold sm:text-xl lg:text-2xl">
               {notice.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
               {notice.title}
             </h3>
             {notice.published_at && (
-              <p className="mt-1 text-xs text-muted">{kstDate(notice.published_at)}</p>
+              <p className="mt-1 text-xs text-muted sm:mt-2 sm:text-sm">{kstDate(notice.published_at)}</p>
             )}
           </div>
           <button
@@ -90,11 +90,14 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
           </button>
         </div>
 
-        <RichText text={notice.body} className="block text-sm leading-relaxed text-muted" />
+        <RichText
+          text={notice.body}
+          className="block text-sm leading-relaxed text-muted sm:text-base lg:text-lg"
+        />
 
         <button
           onClick={onClose}
-          className="mt-6 w-full rounded-lg border border-glass-border py-2.5 text-sm"
+          className="mt-6 w-full rounded-lg border border-glass-border py-2.5 text-sm sm:mt-8 sm:py-3.5 sm:text-base"
         >
           닫기
         </button>

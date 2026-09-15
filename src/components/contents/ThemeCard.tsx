@@ -43,10 +43,14 @@ export type ThemeCardProps = {
   locked: boolean;
 };
 
-/* 모서리는 둥글리지 않는다 — 각진 쪽이 더 정제돼 보인다는 결정. */
+/*
+  모서리는 둥글리지 않는다 — 각진 쪽이 더 정제돼 보인다는 결정.
+  넓은 화면도 3열까지만(2026-09-15). 4열이면 포스터가 한 장 240px 남짓이라
+  테마 상세의 큰 포스터와 비율이 너무 달라 보였다.
+*/
 const BASE =
   "basis-[calc((100%-1.25rem)/2)] overflow-hidden border border-white/12 bg-white/[0.03] " +
-  "sm:basis-[calc((100%-2.5rem)/3)] lg:basis-[calc((100%-3.75rem)/4)]";
+  "sm:basis-[calc((100%-2.5rem)/3)]";
 
 /** 테마 목록의 포스터 카드 한 장. */
 export function ThemeCard({
@@ -75,7 +79,7 @@ export function ThemeCard({
         <PosterImage
           src={posterPath}
           alt={`${name} 포스터`}
-          sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+          sizes="(min-width:1024px) 340px, (min-width:640px) 33vw, 50vw"
         />
         {/*
           잠긴 테마는 홈의 'Planets to Escape' 와 같은 방식으로 가린다 —
@@ -83,17 +87,19 @@ export function ThemeCard({
         */}
         {locked && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#0a0a12]/70">
-            <LockIcon shaking={knocked} />
+            <LockIcon shaking={knocked} px={40} />
           </div>
         )}
       </div>
 
-      <div className="border-t border-white/12 p-3">
+      <div className="border-t border-white/12 p-3 sm:p-4 lg:p-5">
         {/* 글꼴은 테마마다 다르다 — 어드민에서 고른다. */}
-        <p className={`truncate text-base font-bold text-white ${titleFontClass}`}>{name}</p>
+        <p className={`truncate text-base font-bold text-white sm:text-lg lg:text-xl ${titleFontClass}`}>
+          {name}
+        </p>
         {/* 0 은 '미정' 이라 감춘다 — "난이도 0 · 0분" 은 고장으로 읽힌다. */}
         {(difficulty > 0 || durationMinutes > 0) && (
-          <p className="mt-1.5 text-xs text-muted">
+          <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
             {[
               difficulty > 0 ? `🔒 난이도 ${difficulty}` : null,
               durationMinutes > 0 ? `⏱ ${durationMinutes}분` : null,
@@ -102,7 +108,7 @@ export function ThemeCard({
               .join(" · ")}
           </p>
         )}
-        {locked && <p className="mt-1 text-xs text-muted">아직 탐사되지 않은 행성입니다</p>}
+        {locked && <p className="mt-1 text-xs text-muted sm:text-sm">아직 탐사되지 않은 행성입니다</p>}
       </div>
     </>
   );

@@ -23,7 +23,9 @@ export function HeroCtaButton() {
       ref={ref}
       href="/contents"
       onPointerEnter={handlePointerEnter}
-      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] pl-10 pr-[55px] text-[1.1rem] font-semibold tracking-wide text-white"
+      // ⚠️ lg 에서 키우는 폭은 조금만. 호버 때 퍼지는 흰 원(globals.css .hero-cta-fill)이
+      //    지름 340px 고정이라, 버튼이 너무 커지면 반대편 모서리가 덜 덮인다.
+      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] pl-10 pr-[55px] text-[1.1rem] font-semibold tracking-wide text-white lg:py-[15px] lg:text-[1.25rem]"
     >
       <span aria-hidden className="hero-cta-fill" />
       <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">

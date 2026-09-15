@@ -128,7 +128,13 @@ export function InstagramScene({
       */
       const byWidth = Math.min(BASE_WIDTH, area.clientWidth * 0.78) / BASE_WIDTH;
 
-      setScale(Math.max(0.45, Math.min(1, byHeight, byWidth)));
+      /*
+        넓은 화면(영역 폭 1100px 이상 — 영역은 max-w-6xl 이라 최대 1152px)은 원래 크기(1)보다
+        조금 키운다. 320px 카드가 큰 화면에서 우표만 해 보였다(2026-09-15).
+        세로 여유가 없으면 byHeight 가 막는다.
+      */
+      const maxScale = area.clientWidth >= 1100 ? 1.2 : 1;
+      setScale(Math.max(0.45, Math.min(maxScale, byHeight, byWidth * maxScale)));
     };
     fit();
 
@@ -142,13 +148,13 @@ export function InstagramScene({
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
       <div ref={areaRef} className="mx-auto flex h-full w-full max-w-6xl flex-col justify-center gap-5">
         <div ref={headerRef} className="shrink-0 text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-glow">INSTAGRAM</p>
-          <h2 className="mt-2 text-xl font-extrabold sm:text-2xl">소식은 인스타에 먼저 올라와요</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.3em] text-glow sm:text-sm">INSTAGRAM</p>
+          <h2 className="mt-2 text-xl font-extrabold sm:mt-3 sm:text-3xl lg:text-4xl">소식은 인스타에 먼저 올라와요</h2>
           <a
             href={`https://www.instagram.com/${HANDLE}/`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-block text-sm font-semibold text-muted transition-colors hover:text-foreground"
+            className="mt-2 inline-block text-sm font-semibold text-muted transition-colors hover:text-foreground sm:mt-3 lg:text-base"
           >
             @{HANDLE} →
           </a>

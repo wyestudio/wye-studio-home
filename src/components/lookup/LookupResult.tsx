@@ -20,9 +20,9 @@ const DEFAULT_ACCENT = "#3dffb0";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0">
-      <span className="shrink-0 text-xs text-muted">{label}</span>
-      <span className="text-right text-sm">{value}</span>
+    <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0 sm:py-3">
+      <span className="shrink-0 text-xs text-muted sm:text-sm">{label}</span>
+      <span className="text-right text-sm sm:text-base lg:text-lg">{value}</span>
     </div>
   );
 }
@@ -149,12 +149,12 @@ export function LookupResult() {
 
   if (cancelled) {
     return (
-      <div className="py-10 text-center">
-        <h1 className="text-2xl font-extrabold">신청이 취소되었습니다.</h1>
-        <p className="mt-1 text-sm text-muted">다음 기회에 뵙겠습니다. (제발)</p>
+      <div className="py-10 text-center sm:py-16">
+        <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">신청이 취소되었습니다.</h1>
+        <p className="mt-1 text-sm text-muted sm:mt-3 sm:text-base lg:text-lg">다음 기회에 뵙겠습니다. (제발)</p>
         <Link
           href="/contents"
-          className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-bold"
+          className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-bold sm:mt-8 sm:px-7 sm:py-4 sm:text-base lg:text-lg"
           style={{ backgroundColor: DEFAULT_ACCENT, color: "#0a0a12" }}
         >
           다른 컨텐츠 보기
@@ -186,33 +186,33 @@ export function LookupResult() {
       : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:space-y-8">
       {/* ── 접수번호 ── */}
-      <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center">
+      <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center sm:p-8 lg:p-10">
         <div className="mb-3 flex justify-center">
           <Badge tone={LIFECYCLE_TONE[result.lifecycleStatus]}>
             {LIFECYCLE_LABEL[result.lifecycleStatus]}
           </Badge>
         </div>
-        <p className="text-xs text-muted">접수번호</p>
-        <div className="mt-1 flex items-center justify-center gap-2">
-          <p className="text-3xl font-extrabold tracking-wider" style={{ color: accent }}>
+        <p className="text-xs text-muted sm:text-sm">접수번호</p>
+        <div className="mt-1 flex items-center justify-center gap-2 sm:mt-2 sm:gap-3">
+          <p className="text-3xl font-extrabold tracking-wider sm:text-4xl lg:text-5xl" style={{ color: accent }}>
             {result.confirmation_code}
           </p>
           <button
             type="button"
             onClick={() => copyCode(result.confirmation_code)}
             aria-label="접수번호 복사"
-            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/40 hover:text-foreground"
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/40 hover:text-foreground sm:px-3 sm:py-2 sm:text-sm"
           >
             {copied ? <>복사됨</> : <CopyIcon />}
           </button>
         </div>
 
         {result.status === "waiting" && result.waiting_number ? (
-          <p className="mt-4 text-sm text-amber-300">
+          <p className="mt-4 text-sm text-amber-300 sm:text-base">
             현재 대기 {result.waiting_number}번입니다. 자리가 나면 개별 연락드립니다.
-            <span className="mt-1 block text-xs text-muted">
+            <span className="mt-1 block text-xs text-muted sm:text-sm">
               앞선 신청이 취소되면 순번은 앞당겨질 수 있습니다.
             </span>
           </p>
@@ -221,21 +221,21 @@ export function LookupResult() {
 
       {/* ── 입금 안내: 계좌는 문자로만 ── */}
       {result.lifecycleStatus === "awaiting_payment" && (
-        <div className="rounded-xl border-2 p-5" style={{ borderColor: accent }}>
-          <h2 className="text-center font-bold">입금 안내를 문자로 보내드렸어요</h2>
-          <p className="mt-2 text-center text-sm text-muted">
+        <div className="rounded-xl border-2 p-5 sm:p-7 lg:p-8" style={{ borderColor: accent }}>
+          <h2 className="text-center font-bold sm:text-xl lg:text-2xl">입금 안내를 문자로 보내드렸어요</h2>
+          <p className="mt-2 text-center text-sm text-muted sm:mt-3 sm:text-base">
             <strong className="text-foreground">
               {representative ? formatPhoneDigits(representative.phone) : ""}
             </strong>{" "}
             으로 입금하실 계좌와 금액을 보냈습니다.
           </p>
-          <div className="mt-4 rounded-lg bg-white/5 p-4 text-center">
-            <p className="text-xs text-muted">입금하실 금액</p>
-            <p className="mt-1 text-2xl font-extrabold" style={{ color: accent }}>
+          <div className="mt-4 rounded-lg bg-white/5 p-4 text-center sm:mt-6 sm:p-6">
+            <p className="text-xs text-muted sm:text-sm">입금하실 금액</p>
+            <p className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accent }}>
               {formatKrw(result.amount_krw)}
             </p>
           </div>
-          <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-xs text-amber-200">
+          <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-xs text-amber-200 sm:mt-6 sm:space-y-2 sm:p-5 sm:text-sm">
             <p>⚠️ 입금자명이 다르면 처리가 늦어질 수 있습니다.</p>
             <p>⏱ 시간 내 미입금 시 자동으로 취소될 수 있습니다.</p>
             <p>💬 문자가 오지 않으면 카카오 채널로 문의해주세요.</p>
@@ -244,12 +244,12 @@ export function LookupResult() {
       )}
 
       {/* ── 신청 내용 ── */}
-      <div className="rounded-xl border border-white/15 p-5">
-        <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <h2 className="font-bold">{result.theme_name}</h2>
+      <div className="rounded-xl border border-white/15 p-5 sm:p-7 lg:p-8">
+        <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 sm:mb-4">
+          <h2 className="font-bold sm:text-xl lg:text-2xl">{result.theme_name}</h2>
           {result.category_name && (
             <span
-              className="rounded-full border px-2 py-0.5 text-[11px] font-bold"
+              className="rounded-full border px-2 py-0.5 text-[11px] font-bold sm:px-2.5 sm:py-1 sm:text-xs"
               style={{
                 color: accent,
                 borderColor: `${accent}59`,
@@ -261,7 +261,7 @@ export function LookupResult() {
           )}
           {/* 옛 회차만 그룹/소개팅 구분이 있다. 신규 회차는 카테고리로 대신한다. */}
           {result.format_label && (
-            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-muted">
+            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-muted sm:text-xs">
               {result.format_label}
             </span>
           )}
@@ -328,9 +328,9 @@ export function LookupResult() {
           />
         ) : null}
 
-        <div className="mt-4 space-y-3">
-          <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
-            <p className="mb-1 text-xs font-bold text-muted">
+        <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
+          <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:p-5">
+            <p className="mb-1 text-xs font-bold text-muted sm:text-sm">
               {isGroup ? "대표 신청자 (본인)" : "신청자"}
             </p>
             <AttendeeDisplay attendee={representative} />
@@ -339,8 +339,8 @@ export function LookupResult() {
           {companions.length > 0 && (
             <CompanionPager count={companions.length}>
               {(index) => (
-                <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4">
-                  <p className="mb-1 text-xs font-bold text-muted">동행자 {index + 1}</p>
+                <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:p-5">
+                  <p className="mb-1 text-xs font-bold text-muted sm:text-sm">동행자 {index + 1}</p>
                   <AttendeeDisplay attendee={companions[index]} />
                 </div>
               )}
@@ -350,9 +350,9 @@ export function LookupResult() {
 
         {/* 요청사항은 더 이상 받지 않지만, 예전 신청에는 남아 있다. */}
         {result.notes && (
-          <div className="mt-4 rounded-lg border border-white/12 bg-white/[0.03] p-4">
-            <p className="mb-1 text-xs font-bold text-muted">요청사항</p>
-            <p className="whitespace-pre-wrap text-sm">{result.notes}</p>
+          <div className="mt-4 rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:mt-6 sm:p-5">
+            <p className="mb-1 text-xs font-bold text-muted sm:text-sm">요청사항</p>
+            <p className="whitespace-pre-wrap text-sm sm:text-base">{result.notes}</p>
           </div>
         )}
       </div>
@@ -361,17 +361,17 @@ export function LookupResult() {
       {canCancel && <RefundPolicyBox />}
 
       {/* ── 버튼 ── */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 sm:gap-3">
         <Link
           href="/lookup"
-          className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-sm"
+          className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-sm sm:py-4 sm:text-base lg:text-lg"
         >
           다시 조회
         </Link>
         {result.theme_slug && (
           <Link
             href={`/themes/${result.theme_slug}`}
-            className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-sm"
+            className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-sm sm:py-4 sm:text-base lg:text-lg"
           >
             테마 보기
           </Link>
@@ -381,14 +381,14 @@ export function LookupResult() {
             type="button"
             onClick={handleCancelClick}
             disabled={cancelling}
-            className="flex-1 rounded-lg border border-red-500/50 px-4 py-3 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+            className="flex-1 rounded-lg border border-red-500/50 px-4 py-3 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50 sm:py-4 sm:text-base lg:text-lg"
           >
             {cancelling ? "처리 중…" : "신청 취소"}
           </button>
         )}
       </div>
 
-      {cancelError ? <p className="text-center text-sm text-danger">{cancelError}</p> : null}
+      {cancelError ? <p className="text-center text-sm text-danger sm:text-base">{cancelError}</p> : null}
 
       {state?.result && (
         <RefundInfoDialog

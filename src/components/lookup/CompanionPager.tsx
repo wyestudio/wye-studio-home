@@ -33,7 +33,7 @@ export function CompanionPager({
         >
           <Chevron dir="left" />
         </button>
-        <span className="text-xs text-muted">
+        <span className="text-xs text-muted sm:text-sm">
           {index + 1} / {count}
         </span>
         <button
