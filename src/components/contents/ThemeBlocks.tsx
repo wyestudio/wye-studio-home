@@ -60,8 +60,7 @@ export function ThemeBlocks({
         <section
           key={i}
           data-screen
-          // 데스크톱 목차(SectionNav)가 읽는 이름. 영문 라벨이 짧아서 목차 칸에 맞는다.
-          data-nav-code={navCodeOf(group[0])}
+          // 데스크톱 목차(SectionNav)가 읽는 이름
           data-nav-label={navLabelOf(group[0])}
           className={SCREEN_SECTION}
         >
@@ -85,11 +84,6 @@ export function ThemeBlocks({
       ))}
     </>
   );
-}
-
-/** 목차에 쓰는 짧은 영문 표기. 라벨(FOR YOU·PRICE…)이 없으면 블록 종류로. */
-function navCodeOf(block: ThemeBlock): string {
-  return block.eyebrow?.trim() || block.type.toUpperCase();
 }
 
 /** 목차에 쓰는 한글 이름. 제목 → 판 안 큰 문구(참가비 포함) → 블록 종류 이름 순. */

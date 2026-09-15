@@ -1,132 +1,29 @@
 "use client";
 
 import { useEffect } from "react";
-import { animateScrollTo, cancelScrollAnimation, isScrollAnimating, stickyEdge } from "./screenScroll";
 
 /**
- * 마우스 휠 한 번에 다음(이전) 화면 블록으로 넘어간다.
+ * 데스크톱에서 스크롤이 블록 경계 **근처에서 멈추면** 블록 윗끝에 살짝 붙게 한다.
+ * 브라우저 기본 기능(CSS scroll-snap, proximity)이라 입력을 가로채지 않는다.
+ * 규칙은 globals.css 의 `html.screen-snap` 에 있다. 이 컴포넌트는 테마 상세에 있는 동안만 켠다.
  *
- * 블록마다 화면 높이를 채우자 여백 덕에 보기는 편해졌지만 스크롤이 오래 걸린다는
- * 의견(2026-09-15). [data-screen] 이 붙은 블록 단위로 넘긴다.
+ * 왜 바꿨나 (2026-09-16)
+ *   처음(2026-09-15)에는 휠 이벤트를 가로채 '휠 한 번 = 블록 하나' 로 직접 넘겼다.
+ *   그랬더니 스크롤이 **씹힌다**는 의견이 나왔다. 원인은 둘이었다.
+ *   - 트랙패드는 한 번 쓸면 관성 휠 이벤트가 1초 가까이 쏟아진다. 두 칸씩 넘어가지 않게
+ *     '잠잠해질 때까지 먹기' 를 했는데, 그 사이에 다시 쓸면 새 동작까지 먹혔다.
+ *   - 휠을 가로채려면(preventDefault) 브라우저가 매 이벤트마다 스크립트를 기다렸다가
+ *     스크롤한다. 무거운 화면에서는 반응이 한 박자 늦다.
+ *   스크롤바를 잡고 끌 때만 멀쩡했던 것도 그래서다 — 그건 가로채지 않았다.
  *
- * 긴 블록(후기 등 화면보다 긴 것)
- *   바로 넘기지 않고 평소처럼 스크롤된다. **블록 끝이 화면 가운데까지 올라온 뒤**
- *   휠을 내리면 다음 블록으로 넘어간다. 올릴 때는 블록 윗끝이 헤더 밑까지 내려온 뒤
- *   한 번 더 올리면 이전 블록으로 간다.
- *
- * ⚠️ 휠만 가로챈다. 터치(모바일)·키보드·스크롤바 끌기는 평소대로 둔다 — 손가락으로
- *    밀 때 강제로 넘기면 조작이 막힌 느낌이 든다.
- * ⚠️ 트랙패드는 한 번 쓸면 휠 이벤트가 관성으로 1초 가까이 쏟아진다. 넘기는 중과
- *    넘긴 직후 이벤트가 잠잠해질 때까지는 추가 휠을 먹어서 두 칸씩 넘어가지 않게 한다.
- * ⚠️ 가로 휠(후기 슬라이더를 옆으로 밀기)·확대(ctrl+휠)는 건드리지 않는다.
+ * ⚠️ 휠을 다시 가로채지 말 것. 블록 사이 이동은 왼쪽 목차(SectionNav)가 맡는다.
+ * ⚠️ proximity(가까울 때만)를 쓴다. mandatory 는 긴 블록(후기) 안에서 멈출 수가 없다.
  */
-/** 휠이 이만큼 조용해야 잠금을 푼다(트랙패드 관성 흡수). */
-const QUIET_MS = 180;
-/** 이만큼 작은 휠 움직임은 무시한다(트랙패드 미세 떨림). */
-const MIN_DELTA = 4;
-
 export function ScreenSnap() {
   useEffect(() => {
-    /** 넘김을 시작한 순간부터, 넘김이 끝나고 휠이 잠잠해질 때까지 true. */
-    let locked = false;
-    let lastWheel = 0;
-
-    const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-      const now = performance.now();
-
-      // 넘기는 중이거나 직전 넘김의 관성이 남아 있으면 먹는다.
-      if (locked) {
-        if (isScrollAnimating() || now - lastWheel < QUIET_MS) {
-          e.preventDefault();
-          lastWheel = now;
-          return;
-        }
-        locked = false;
-      }
-      if (Math.abs(e.deltaY) < MIN_DELTA) return;
-
-      const screens = [...document.querySelectorAll<HTMLElement>("[data-screen]")];
-      if (screens.length === 0) return;
-
-      const { bottom: top, height: stickyH } = stickyEdge();
-      const vh = window.innerHeight;
-      const center = top + (vh - top) / 2;
-      const view = vh - stickyH;
-      // 헤더 바로 아래 줄이 걸쳐 있는 블록이 '지금 블록'.
-      const line = top + 2;
-      const idx = screens.findIndex((el) => {
-        const r = el.getBoundingClientRect();
-        return r.top <= line && r.bottom > line;
-      });
-
-      // 넘어간 뒤에는 헤더가 맨 위에 붙어 있으므로 붙어 있을 때 높이(stickyH)만큼 띄운다.
-      const targetOf = (el: HTMLElement) =>
-        Math.max(0, window.scrollY + el.getBoundingClientRect().top - stickyH);
-
-      let target: number | null = null;
-
-      if (idx === -1) {
-        // 블록 사이 틈이나 푸터. 아래로는 가장 가까운 다음 블록, 위로는 마지막으로 지나친 블록.
-        if (e.deltaY > 0) {
-          const next = screens.find((el) => el.getBoundingClientRect().top > line);
-          if (next && next.getBoundingClientRect().top < vh) target = targetOf(next);
-        } else {
-          const prev = [...screens].reverse().find((el) => el.getBoundingClientRect().bottom <= line);
-          // 푸터에서 올리는 경우 — 마지막 블록 윗끝으로.
-          if (prev) target = targetOf(prev);
-        }
-      } else {
-        const cur = screens[idx];
-        const r = cur.getBoundingClientRect();
-        const tall = r.height > view + 4;
-
-        if (e.deltaY > 0) {
-          const next = screens[idx + 1];
-          // 긴 블록 안: 끝이 가운데까지 올라올 때까진 평소대로.
-          // 단, 남은 거리가 휠 한 번보다 짧으면 어중간하게 멈추지 말고 바로 넘긴다.
-          if (tall && r.bottom - center > Math.abs(e.deltaY)) {
-            target = null;
-          } else if (next) {
-            target = targetOf(next);
-          }
-          // 마지막 블록이면 평소대로(푸터로 내려간다).
-        } else {
-          const aligned = Math.abs(r.top - top) < 4;
-          // 긴 블록 안: 윗끝이 헤더 밑에 올 때까진 평소대로.
-          // 남은 거리가 휠 한 번보다 짧으면 이 블록 윗끝에 멈추지 않고 바로 이전 블록으로 간다
-          // — 안 그러면 이전 블록이 살짝 보이는 어중간한 자리에 한 번 멈춘다.
-          const nearTop = tall && r.top < top && top - r.top <= Math.abs(e.deltaY);
-          if (!aligned && !nearTop) {
-            // 블록 중간에 걸쳐 있다.
-            if (tall && r.top < top) target = null;
-            else target = targetOf(cur);
-          } else if (idx > 0) {
-            const prev = screens[idx - 1];
-            const pr = prev.getBoundingClientRect();
-            // 이전 블록이 길면 윗끝이 아니라 끝부분(끝이 화면 가운데)이 보이게 돌아간다.
-            target =
-              pr.height > view + 4
-                ? Math.max(0, window.scrollY + pr.bottom - center)
-                : targetOf(prev);
-          } else {
-            target = 0;
-          }
-        }
-      }
-
-      if (target === null) return;
-      e.preventDefault();
-      lastWheel = now;
-      locked = true;
-      animateScrollTo(target);
-    };
-
-    window.addEventListener("wheel", onWheel, { passive: false });
-    return () => {
-      window.removeEventListener("wheel", onWheel);
-      cancelScrollAnimation();
-    };
+    const root = document.documentElement;
+    root.classList.add("screen-snap");
+    return () => root.classList.remove("screen-snap");
   }, []);
 
   return null;

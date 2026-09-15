@@ -8,11 +8,14 @@
  *   주의사항 800px)이라, 화면이 낮으면 넘칠 수밖에 없었다.
  *
  * 순서
- *   1. 들어가면 그대로 둔다(넓은 화면은 지금 모양 그대로).
+ *   0. **화면 높이에 비례해 모든 블록을 먼저 줄인다**(기본 배율). 넓은 모니터(헤더 뺀 높이
+ *      860px 이상)는 1 — 지금 모양 그대로다. 노트북은 그만큼 작아진다.
+ *      처음에는 넘칠 때만 줄였더니, 노트북에서 '들어가긴 하지만 여전히 크다' 는 의견(2026-09-16).
+ *   1. 기본 배율로 들어가면 그대로 둔다.
  *   2. 아래 여백(기본 화면 높이의 10%)을 줄여서 들어가면 여백만 줄인다.
- *   3. 그래도 넘치면 블록을 **비율 그대로 축소**한다(transform: scale).
- *   4. 너무 작아져야 들어가는 블록(후기처럼 원래 긴 것)은 건드리지 않는다 — 글씨가
- *      읽기 힘들어진다. 평소처럼 스크롤되고 휠 넘기기도 긴 블록으로 다룬다.
+ *   3. 그래도 넘치면 들어갈 만큼 더 줄인다(transform: scale).
+ *   4. 너무 작아져야 들어가는 블록(후기처럼 원래 긴 것)은 기본 배율까지만 줄이고 둔다 —
+ *      글씨가 읽기 힘들어진다. 평소처럼 스크롤된다.
  *
  * 왜 zoom 이 아니라 transform 인가
  *   zoom 은 브라우저마다 요소 크기를 재는 값이 달라(확대 전/후) 계산이 어긋난다.
@@ -28,6 +31,11 @@ export function fitScreen(section: HTMLElement): void {
   const PB_RATIO = 0.1;
   const PB_MIN = 28;
   const MIN_SCALE = 0.7;
+  // 이 높이(헤더 뺀 화면 높이) 이상이면 원래 크기. 1920×1080 모니터의 크롬은 약 820~860px.
+  const REF_AVAIL = 820;
+  // 화면이 낮아질수록 비례보다 조금 더 줄인다(1.5제곱). 그냥 비례로 하면 노트북(보이는
+  // 높이 약 740px)에서 90% 로 거의 그대로라 여전히 커 보인다.
+  const CURVE = 1.5;
 
   const inner = section.querySelector<HTMLElement>("[data-screen-inner]");
   if (!inner) return;
@@ -50,12 +58,14 @@ export function fitScreen(section: HTMLElement): void {
   const natural = inner.offsetHeight;
   if (natural === 0) return;
 
-  let scale = 1;
+  const base = Math.max(MIN_SCALE, Math.min(1, Math.pow(avail / REF_AVAIL, CURVE)));
+  const shown = natural * base;
+  let scale = base;
   let pb = -1;
-  if (natural + pt + vh * PB_RATIO <= avail) {
-    // 1. 그대로
-  } else if (natural + pt + PB_MIN <= avail) {
-    pb = avail - natural - pt;
+  if (shown + pt + vh * PB_RATIO <= avail) {
+    // 1. 기본 배율 그대로
+  } else if (shown + pt + PB_MIN <= avail) {
+    pb = avail - shown - pt;
   } else {
     const s = (avail - pt - PB_MIN) / natural;
     if (s >= MIN_SCALE) {
@@ -68,7 +78,8 @@ export function fitScreen(section: HTMLElement): void {
     clear();
     return;
   }
-  section.style.setProperty("--screen-pb", Math.floor(pb) + "px");
+  if (pb >= 0) section.style.setProperty("--screen-pb", Math.floor(pb) + "px");
+  else section.style.removeProperty("--screen-pb");
   if (scale < 1) {
     section.style.setProperty("--screen-body-h", Math.ceil(natural * scale) + "px");
     section.style.setProperty("--screen-transform", "scale(" + scale.toFixed(4) + ")");

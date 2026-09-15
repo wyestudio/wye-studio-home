@@ -1,16 +1,19 @@
 /**
  * 테마 상세의 화면 블록([data-screen]) 사이를 오가는 스크롤 도우미.
- * 휠 넘기기(ScreenSnap) · 목차(SectionNav) · 모바일 탭(DetailTabs) · 신청하기 버튼이 같이 쓴다.
+ * 목차(SectionNav) · 모바일 탭(DetailTabs) · 신청하기 버튼이 같이 쓴다.
  * 제각각 계산하면 도착 위치가 몇 px 씩 달라져, 같은 블록인데 누른 곳마다 다르게 멈춘다.
  */
 
 const DURATION = 650;
 
 let raf = 0;
-let animating = false;
 
-export function isScrollAnimating() {
-  return animating;
+/**
+ * 스크롤 스냅(ScreenSnap)은 움직이는 동안 끈다. 한 프레임씩 scrollTo 로 옮기는 도중
+ * 지나가는 블록 경계마다 스냅이 붙잡으려 해서 덜컹거린다. 도착하면 되돌린다.
+ */
+function setSnapPaused(paused: boolean) {
+  document.documentElement.style.scrollSnapType = paused ? "none" : "";
 }
 
 /**
@@ -42,25 +45,21 @@ export function animateScrollTo(target: number) {
   const start = window.scrollY;
   const dist = target - start;
   if (Math.abs(dist) < 2) return;
+  setSnapPaused(true);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     window.scrollTo(0, target);
+    requestAnimationFrame(() => setSnapPaused(false));
     return;
   }
-  animating = true;
   const t0 = performance.now();
   const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const step = (now: number) => {
     const t = Math.min(1, (now - t0) / DURATION);
     window.scrollTo(0, start + dist * ease(t));
     if (t < 1) raf = requestAnimationFrame(step);
-    else animating = false;
+    else setSnapPaused(false);
   };
   raf = requestAnimationFrame(step);
-}
-
-export function cancelScrollAnimation() {
-  cancelAnimationFrame(raf);
-  animating = false;
 }
 
 /**

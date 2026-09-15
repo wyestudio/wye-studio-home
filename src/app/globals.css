@@ -4,6 +4,23 @@ html {
   scrollbar-gutter: stable;
 }
 
+/*
+  테마 상세 데스크톱: 스크롤이 블록 경계 근처에서 멈추면 블록 윗끝에 살짝 붙는다.
+  ScreenSnap.tsx 가 페이지에 있는 동안만 html 에 screen-snap 을 붙인다.
+  - proximity: 가까울 때만. 긴 블록(후기) 안에서는 자유롭게 멈춘다.
+  - scroll-padding-top: 붙을 때 헤더(약 100px, Header.tsx) 밑에 오게.
+  - 모바일은 끈다 — 손가락 스크롤에 붙는 느낌이 들면 답답하다.
+*/
+@media (min-width: 768px) {
+  html.screen-snap {
+    scroll-snap-type: y proximity;
+    scroll-padding-top: 6.25rem;
+  }
+  html.screen-snap [data-screen] {
+    scroll-snap-align: start;
+  }
+}
+
 .copy-protected {
   -webkit-user-select: none;
   user-select: none;

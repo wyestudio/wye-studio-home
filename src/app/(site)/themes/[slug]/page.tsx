@@ -143,7 +143,6 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         // 인라인 스크립트(screenFitInlineScript)가 React 보다 먼저 style 을 넣는다.
         suppressHydrationWarning
         data-screen
-        data-nav-code="INTRO"
         data-nav-label="테마 소개"
         className={INTRO_SCREEN_SECTION}
       >
@@ -251,7 +250,6 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <section
         id="booking"
         data-screen
-        data-nav-code="BOOKING"
         data-nav-label="회차 선택"
         className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}
       >

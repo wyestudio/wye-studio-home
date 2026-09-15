@@ -139,12 +139,16 @@ export function VenueMap({
 
   if (!KEY_ID || failed) return null;
 
+  // ⚠️ isolate(새 쌓임 맥락)를 지우지 말 것. 네이버 지도는 확대 버튼·로고에 z-index 를 크게
+  //    준다. 가두지 않으면 스크롤할 때 그 조각들이 우리 헤더(z-20)·섹션 탭 위로 올라온다
+  //    (모바일에서 실제로 그랬다, 2026-09-16).
+
   return (
     <div
       ref={ref}
       role="region"
       aria-label={`${name} 위치 지도`}
-      className={`h-56 w-full overflow-hidden rounded-xl border border-panel-border bg-panel-raised sm:h-72 lg:h-80 ${className}`}
+      className={`relative isolate h-56 w-full overflow-hidden rounded-xl border border-panel-border bg-panel-raised sm:h-72 lg:h-80 ${className}`}
     />
   );
 }
