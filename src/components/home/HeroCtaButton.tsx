@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRef } from "react";
 
+import { Chevron } from "@/components/ui/Chevron";
+
 // 호버 시 커서가 들어온 지점에서 흰 원이 퍼지며 배경이 하얗게 뒤집히는 연출
 // (21st.dev "Origin Button" 참고) — --origin-x/y를 진입 지점으로 세팅해두면
 // CSS transition이 그 점을 중심으로 원을 확대한다.
@@ -25,7 +27,7 @@ export function HeroCtaButton() {
     >
       <span aria-hidden className="hero-cta-fill" />
       <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">
-        <span aria-hidden className="hero-cta-arrow" />
+        <Chevron dir="right" className="h-4 w-4" />
         YES
       </span>
       {/* 호버 라벨은 왼쪽 정렬된 기본 라벨과 별개로 버튼 전체 폭 기준 정중앙에 오게

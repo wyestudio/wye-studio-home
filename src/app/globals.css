@@ -298,15 +298,6 @@ html.custom-cursor-active label {
 }
 
 /* ">" 모양 — 글꼴에 기대지 않도록 정사각형을 45도 돌려서 위/오른쪽 변만 남긴다. */
-.hero-cta-arrow {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-top: 2px solid currentColor;
-  border-right: 2px solid currentColor;
-  transform: rotate(45deg);
-}
-
 .hero-cta-fill {
   position: absolute;
   left: var(--origin-x, 50%);
