@@ -69,6 +69,7 @@ function emptyTheme(venueId: string): ThemeInput {
     title_font: "",
     opening_date: null,
     category_id: null,
+    category_description: "",
     content: structuredClone(DEFAULT_THEME_CONTENT),
     is_active: true,
     is_listed: true,
@@ -79,7 +80,7 @@ function emptyTheme(venueId: string): ThemeInput {
   };
 }
 
-function toInput(t: ThemeWithTiers): ThemeInput {
+function toInput(t: ThemeWithTiers, categories: ThemeCategory[]): ThemeInput {
   return {
     id: t.id,
     slug: t.slug,
@@ -102,6 +103,7 @@ function toInput(t: ThemeWithTiers): ThemeInput {
     title_font: t.title_font ?? "",
     opening_date: t.opening_date ?? null,
     category_id: t.category_id ?? null,
+    category_description: categories.find((c) => c.id === t.category_id)?.description ?? "",
     // 옛 4칸 구조로 저장된 테마도 블록으로 읽어준다. 저장하면 새 구조로 덮인다.
     content: normalizeThemeContent(t.content),
     is_active: t.is_active,
@@ -270,7 +272,15 @@ export function ThemeEditor({
                   <select
                     className={field}
                     value={editing.category_id ?? ""}
-                    onChange={(e) => patch({ category_id: e.target.value || null })}
+                    onChange={(e) => {
+                      const category_id = e.target.value || null;
+                      // 카테고리를 바꾸면 그 카테고리에 저장된 설명을 불러온다.
+                      patch({
+                        category_id,
+                        category_description:
+                          categories.find((c) => c.id === category_id)?.description ?? "",
+                      });
+                    }}
                   >
                     <option value="">분류 없음</option>
                     {categories.map((c) => (
@@ -278,9 +288,25 @@ export function ThemeEditor({
                     ))}
                   </select>
                   <p className="mt-1 text-[11px] text-muted">
-                    상세 화면에서 테마명 바로 아래에 강조색으로 보입니다.
+                    상세 화면에서 테마명 옆에 강조색으로 보입니다.
                     {categoryName && ` 지금은 '${categoryName}'.`}
                   </p>
+                  {editing.category_id && (
+                    <div className="mt-2">
+                      <label className={label}>카테고리 설명 (물음표에 뜨는 문구)</label>
+                      <textarea
+                        className={`${field} min-h-16`}
+                        maxLength={200}
+                        value={editing.category_description ?? ""}
+                        onChange={(e) => patch({ category_description: e.target.value })}
+                        placeholder="예) 여러 팀이 한 공간에서 동시에 경쟁하는 방탈출이에요."
+                      />
+                      <p className="mt-1 text-[11px] text-muted">
+                        카테고리 옆 동그라미 물음표를 누르거나 마우스를 올리면 말풍선으로 보입니다.
+                        비우면 물음표가 사라져요. <strong>같은 카테고리를 쓰는 테마 전체</strong>에 같이 바뀝니다.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -657,7 +683,7 @@ export function ThemeEditor({
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setEditing(toInput(t))}
+                    onClick={() => setEditing(toInput(t, categories))}
                     className="overflow-hidden rounded-lg border border-border text-left transition-colors hover:border-glow"
                   >
                     <div className="relative aspect-square bg-background">

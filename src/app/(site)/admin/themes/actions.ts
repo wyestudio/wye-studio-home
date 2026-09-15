@@ -47,6 +47,11 @@ export type ThemeInput = {
   is_locked: boolean;
   sort_order: number;
   tiers: PriceTierInput[];
+  /**
+   * 고른 카테고리의 설명(물음표 말풍선). 카테고리 행에 저장된다 — 같은 카테고리를 쓰는
+   * 테마 전체에 같이 반영된다. undefined 면 건드리지 않는다(이 칸이 없던 옛 화면).
+   */
+  category_description?: string;
   /** 편집 화면을 열 때의 themes.updated_at. 저장 시 옛 화면인지 가려내는 데 쓴다. 새 테마는 null. */
   loaded_updated_at?: string | null;
 };
@@ -215,6 +220,8 @@ function validate(input: ThemeInput): string | null {
   if (!/^[a-z0-9-]+$/.test(input.slug.trim())) return "slug 는 영문 소문자·숫자·하이픈만 쓸 수 있습니다.";
   if (!input.name.trim()) return "테마 이름을 입력해주세요.";
   if (!input.venue_id) return "장소를 선택해주세요.";
+  if ((input.category_description ?? "").trim().length > 200)
+    return "카테고리 설명은 200자 이내로 적어주세요.";
   const genres = sanitizeGenres(input.genres);
   if (genres.length > GENRE_MAX_COUNT) return `장르는 ${GENRE_MAX_COUNT}개까지 넣을 수 있습니다.`;
   if (genres.some((g) => g.length > GENRE_MAX_LENGTH))
@@ -324,6 +331,18 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       const { data, error } = await supabase.from("themes").insert(row).select("id").single();
       if (error) throw error;
       themeId = data.id as string;
+    }
+
+    // 카테고리 설명. 카테고리를 골랐고, 이 칸을 보내는 화면에서 저장했을 때만 쓴다.
+    if (input.category_id && typeof input.category_description === "string") {
+      const { error: catErr } = await supabase
+        .from("theme_categories")
+        .update({
+          description: input.category_description.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", input.category_id);
+      if (catErr) throw catErr;
     }
 
     // 요금 구간은 통째로 교체한다(부분 수정보다 의도가 명확하고 잔여 행이 남지 않는다).

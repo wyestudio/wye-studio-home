@@ -256,6 +256,8 @@ export type PublicVenue = {
 export type ThemeCategory = {
   id: string;
   name: string;
+  /** 물음표 말풍선 설명. 비우면 물음표가 안 나온다. */
+  description: string | null;
   sort_order: number;
 };
 

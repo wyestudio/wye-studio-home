@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 import { BookingCalendar } from "@/components/booking/BookingCalendar";
+import { scrollToBooking } from "./scrollToBooking";
 
 export type PickerSession = SessionView & {
   stats: SessionStats | null;
@@ -269,6 +270,7 @@ function BookingCta({
             */
             <a
               href="#booking"
+              onClick={scrollToBooking}
               className="block rounded-lg border px-6 py-3.5 text-center text-base font-bold"
               style={{ borderColor: accentColor, color: accentColor }}
             >

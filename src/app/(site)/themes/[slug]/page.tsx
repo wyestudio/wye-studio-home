@@ -18,6 +18,8 @@ import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { PosterFit } from "./PosterFit";
+import { ScrollToBookingButton } from "./ScrollToBookingButton";
+import { CategoryLabel, type CategoryVariant } from "./CategoryLabel";
 import { posterFitInlineScript } from "./posterFitScript";
 
 /*
@@ -66,8 +68,16 @@ export async function generateMetadata({
   };
 }
 
-export default async function ThemeDetailPage({ params }: PageProps<"/themes/[slug]">) {
+export default async function ThemeDetailPage({
+  params,
+  searchParams,
+}: PageProps<"/themes/[slug]">) {
   const { slug } = await params;
+  // ⚠️ 임시(2026-09-15): 카테고리 표시 모양 세 가지를 테스트 서버에서 비교해 보려고
+  //    ?badge=1|2|3 으로 바꿔 볼 수 있게 했다. 모양이 정해지면 이 분기는 지운다.
+  const badgeParam = (await searchParams).badge;
+  const badgeVariant: CategoryVariant =
+    badgeParam === "2" ? "solid" : badgeParam === "3" ? "plain" : "eyebrow";
 
   const theme = await getThemeBySlug(slug);
   if (!theme) notFound();
@@ -88,8 +98,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
   // 조인 결과라 타입에 없다. 없으면 카테고리 줄을 통째로 생략한다.
-  const categoryName =
-    (theme as { theme_categories?: { name: string } | null }).theme_categories?.name ?? null;
+  const category =
+    (theme as { theme_categories?: { name: string; description: string | null } | null })
+      .theme_categories ?? null;
   // 옛 4칸 구조(for_you/steps/timetable/precautions)로 저장된 테마도 읽어준다.
   // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
   const content: ThemeContent = normalizeThemeContent(theme.content);
@@ -160,23 +171,18 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
 
         <div data-fit-top className="mb-2 min-w-0 self-start [grid-area:title] md:mb-3">
           {/*
-            제목 줄: 테마명 + 카테고리 배지 / 오른쪽 끝에 공유.
-            카테고리를 아래 줄에 크게 두면 부제처럼 읽혀서 분류라는 게 안 보인다.
+            제목 줄: 테마명 + 카테고리 / 오른쪽 끝에 공유.
+            카테고리가 장르 태그(테두리 알약)와 같은 모양이라 구분이 안 된다는 의견을 받아
+            다른 모양을 비교 중이다(CategoryLabel). 옆 물음표에 카테고리 설명이 뜬다.
           */}
+          {category && badgeVariant === "eyebrow" && (
+            <CategoryLabel variant="eyebrow" category={category} accent={accent} />
+          )}
           <div className="flex items-start gap-3">
             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
               <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
-              {categoryName && (
-                <span
-                  className="rounded-full border px-2.5 py-1 text-xs font-bold"
-                  style={{
-                    color: accent,
-                    borderColor: `${accent}59`,
-                    backgroundColor: `${accent}1f`,
-                  }}
-                >
-                  {categoryName}
-                </span>
+              {category && badgeVariant !== "eyebrow" && (
+                <CategoryLabel variant={badgeVariant} category={category} accent={accent} />
               )}
             </div>
             <div className="shrink-0">
@@ -231,6 +237,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <noscript>
         <style>{`#intro [data-poster]{opacity:1!important}`}</style>
       </noscript>
+      <ScrollToBookingButton accent={accent} />
       </div>
 
       {/* ── 날짜 선택 ── 상세 설명 블록과 같은 모양의 섹션으로 */}
