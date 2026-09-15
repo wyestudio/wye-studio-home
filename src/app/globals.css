@@ -334,30 +334,28 @@ html.custom-cursor-active label {
   대부분의 시간은 잔잔하고 한가운데에서 짧게 부풀어 오른다(심장박동처럼).
   일정한 사인파로 하면 '숨쉬는' 느낌이라 게임 UI 의 '재촉하는' 맛이 안 난다.
 
+  ⚠️ 심장박동처럼 뾰족하게 만들어봤더니 "부자연스럽다" 는 피드백을 받았다(2026-09-15).
+     고점 하나만 두고 ease-in-out 에 맡겨, 서서히 차올랐다 서서히 잦아들게 한다.
+
   filter: drop-shadow 를 쓰는 이유 — text-shadow 는 SVG 화살표에 안 먹는다.
   부모에 걸면 글자와 화살표가 같이 빛난다.
 */
 @keyframes hero-cta-idle {
   0%,
   100% {
-    opacity: 0.86;
+    opacity: 0.8;
     filter: drop-shadow(0 0 0 transparent);
   }
-  42% {
-    opacity: 0.94;
-  }
-  52% {
+  50% {
     opacity: 1;
-    filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.85))
-      drop-shadow(0 0 16px color-mix(in srgb, var(--glow) 70%, transparent));
-  }
-  66% {
-    opacity: 0.94;
+    filter: drop-shadow(0 0 8px rgb(255 255 255 / 0.95))
+      drop-shadow(0 0 20px rgb(255 255 255 / 0.55))
+      drop-shadow(0 0 34px color-mix(in srgb, var(--glow) 90%, transparent));
   }
 }
 
 .hero-cta-label-default {
-  animation: hero-cta-idle 2.4s ease-in-out infinite;
+  animation: hero-cta-idle 2.8s ease-in-out infinite;
 }
 
 /* 누르려고 다가온 뒤에는 반짝일 이유가 없다. '참여하기' 는 차분한 글자로 둔다. */
