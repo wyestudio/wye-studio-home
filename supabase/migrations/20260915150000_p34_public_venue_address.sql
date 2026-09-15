@@ -1,6 +1,6 @@
 -- Phase 34 — 진행 장소 상호명·주소 공개
 --
--- 적용: test 20260915150000 (적용 완료, 2026-09-15) / 운영 (미적용)
+-- 적용: test 20260915150000 (적용 완료, 2026-09-15) / 운영 20260915150000 (적용 완료, 2026-09-15)
 -- 되돌리기:
 --   ⚠️ create or replace view 로는 칸을 뺄 수 없다. drop 후 p8 의 정의로 다시 만든다.
 --   drop view if exists theme_public_venue;
@@ -8,7 +8,9 @@
 --     select t.id as theme_id, v.area_label, v.parking_note, v.map_url
 --     from themes t join venues v on v.id = t.venue_id;
 --   grant select on theme_public_venue to anon, authenticated, service_role;
---   (2번 블록 항목은 어드민 > 테마 > 블록 편집에서 다시 추가)
+--   (2번 블록 항목은 어드민 > 테마 > 블록 편집에서 다시 추가. 지운 항목 원문 — 운영/test 동일,
+--    baotalchul 테마 '참가 전 꼭 확인해주세요' 의 4번째:
+--    {"title":"진행 장소는 추후 안내","desc":"정확한 참여 장소는 참여 확정 후 진행 이틀 전에 문자로 안내드립니다."})
 --
 -- 왜 바꾸나
 --   파티룸을 대관해 진행해서, 지금까지는 '서울 건대 부근 파티룸' 까지만 보여주고
