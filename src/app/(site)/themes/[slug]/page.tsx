@@ -14,7 +14,7 @@ import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
-import { normalizeThemeContent, type ThemeContent } from "@/types/catalog";
+import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/catalog";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 
@@ -93,7 +93,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   const content: ThemeContent = normalizeThemeContent(theme.content);
   // 컬럼(p30)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const genres = theme.genres ?? [];
-  const synopsis = theme.description?.trim() ?? "";
+  const synopsis = tidySynopsis(theme.description);
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20">
@@ -185,8 +185,13 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
             >
               Synopsis
             </p>
+            {/*
+              pre-wrap: 입력한 줄바꿈과 **띄어쓰기 개수까지** 그대로 보여준다.
+              pre-line 이면 빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
+              break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
+            */}
             <p
-              className="whitespace-pre-line border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
+              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
               style={{ borderColor: `${accent}80` }}
             >
               {synopsis}

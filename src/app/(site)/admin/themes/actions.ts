@@ -9,6 +9,7 @@ import {
   THEME_CONTENT_VERSION,
   GENRE_MAX_COUNT,
   GENRE_MAX_LENGTH,
+  tidySynopsis,
   type ThemeBlock,
   type ThemeContent,
 } from "@/types/catalog";
@@ -258,7 +259,8 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
       slug: input.slug.trim(),
       name: input.name.trim(),
       tagline: input.tagline.trim() || null,
-      description: input.description.trim() || null,
+      // 시놉시스는 줄 안 띄어쓰기를 그대로 둔다(운영자가 빈칸으로 모양을 잡는다). tidySynopsis 참고.
+      description: tidySynopsis(input.description) || null,
       /*
         장르 값이 아예 안 왔으면 건드리지 않는다. 장르 칸이 생기기 전 화면(옛 코드)이
         보낸 저장이라는 뜻이다 — 빈 배열로 덮으면 다른 사람이 넣어둔 장르가 사라진다.

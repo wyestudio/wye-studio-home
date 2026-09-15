@@ -285,6 +285,18 @@ export type ThemeWithTiers = Theme & { tiers: ThemePriceTier[] };
 export const GENRE_MAX_COUNT = 8;
 export const GENRE_MAX_LENGTH = 12;
 
+/**
+ * 시놉시스 앞뒤의 **빈 줄만** 걷어낸다. 줄 안의 띄어쓰기는 한 칸도 건드리지 않는다.
+ *
+ * 운영자가 빈칸을 여러 개 넣어 모양을 잡는다(예: "[YES]        > [YES]").
+ * trim() 을 쓰면 첫 줄 들여쓰기가 잘려 나간다. 내용이 공백뿐이면 빈 문자열.
+ */
+export function tidySynopsis(raw: string | null | undefined): string {
+  const s = raw ?? "";
+  if (!s.trim()) return "";
+  return s.replace(/^(?:[ \t]*\r?\n)+/, "").replace(/(?:\r?\n[ \t]*)+$/, "").replace(/[ \t]+$/, "");
+}
+
 /** session_view — 회차 실효값. 앱은 sessions 테이블을 직접 읽지 않고 이 뷰를 쓴다. */
 export type SessionView = {
   id: string;
