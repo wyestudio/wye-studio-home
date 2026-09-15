@@ -440,20 +440,6 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
     <div className="mx-auto max-w-2xl sm:max-w-3xl lg:max-w-4xl px-5 py-10 sm:px-8 sm:py-14 lg:py-20 pb-32">
       {/* 모바일 레이아웃 */}
       <div className="sm:hidden mb-12 flex flex-col gap-6">
-        {/* 포스터 가운데 정렬 */}
-        <div className="flex justify-center">
-          <div className="relative aspect-[4/5] w-56 overflow-hidden border border-glass-border bg-surface">
-            <Image
-              src="/bar-o-title.png"
-              alt="우주이스케이프 바-오 탈출 테마 아트웍"
-              fill
-              className="object-contain"
-              sizes="224px"
-              priority
-            />
-          </div>
-        </div>
-
         {/* 제목 + 뱃지 */}
         <div>
           <div className="mb-3 flex flex-col items-start gap-1">
@@ -485,18 +471,6 @@ export default async function SessionDetailPage({ params }: PageProps<"/sessions
 
       {/* 태블릿+데스크톱 레이아웃: 포스터 좌 + 정보 우 */}
       <div className="hidden sm:flex gap-8 lg:gap-10 mb-12">
-        {/* 포스터 */}
-        <div className="relative aspect-[4/5] w-64 lg:w-80 flex-shrink-0 overflow-hidden border border-glass-border bg-surface">
-          <Image
-            src="/bar-o-title.png"
-            alt="우주이스케이프 바-오 탈출 테마 아트웍"
-            fill
-            className="object-contain"
-            sizes="(min-width: 1024px) 320px, 256px"
-            priority
-          />
-        </div>
-
         {/* 우측 컬럼 */}
         <div className="flex flex-1 flex-col justify-between">
           {/* 상단: 제목 + 뱃지 */}
