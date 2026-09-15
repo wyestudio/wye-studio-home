@@ -50,6 +50,7 @@
 - 2026-08-20: test/운영 DB 함수·이벤트 트리거 전체 대조(md5 해시 비교) — `get_session_stats()` 운영 버전이 컬럼명부터 다르게 드리프트돼 있던 것(다행히 미사용) + `rls_auto_enable` 이벤트 트리거(신규 테이블 자동 RLS)가 운영에만 없던 것 발견, v32로 운영에 동일 반영. Vercel 환경변수 키 목록도 대조 — SOLAPI 키 운영 설정 확인됨, 불필요한 `TEST_SUPABASE_*` 키가 운영 프로젝트에 남아있던 것 삭제
 - 2026-08-26: 그룹(모임) 출생년도 상한 2006→2007로 확장 (`src/lib/eligibility.ts` 상수 + DB `submit_application()`/CHECK 제약 v40, test에서 경계값 RPC 검증 후 운영 라이브 트래픽 중 무중단 반영)
 - 2026-09-13: 테마 상세 가격표를 어드민 블록으로 분리(순서 이동·숨김 가능) + 참가비 포함 블록에 라벨·제목 추가, 판 안 큰 문구를 `headline` 으로 분리. `themes.content` 에 구조 버전 `v` 신설(현재 3) — 읽을 때 옛 버전을 자동 변환하고 저장하면 최신 버전으로 굳는다
+- 2026-09-15: 본문 글꼴(SUIT)에 없는 글자 때문에 일부 기기에서 화살표가 `E`/`e`로 보이던 문제 수정 — UI 화살표는 SVG(`components/ui/Chevron.tsx`)로 대체, 한글 대체 글꼴 스택 추가, SUIT에 없는 기호만 담은 6KB 보조 글꼴 신설(`fonts/WyeSymbols-*`)
 
 ---
 
@@ -132,6 +133,29 @@
 3. **ad-hoc 함수 방지**:
    - 프로덕션 DB에 만든 새 함수는 반드시 `supabase-schema.sql`에 기록해 코드로 추적 가능하게 할 것
    - 향후 삭제 시 git 히스토리에서 원본을 복구할 수 있도록
+
+# ⚠️ 화면에 새 기호를 쓸 때 (2026-09-15)
+
+본문 글꼴 **SUIT 에는 없는 글자가 꽤 있다.** `‹ › • − ・ « » –` 등. 없는 글자를
+만나면 브라우저가 기기 기본 글꼴로 떨어지는데 그게 기기마다 달라서, 실제로 신청 폼
+화살표가 어떤 안드로이드에서 **`E` / `e`** 로 보인 사고가 있었다.
+
+**지금은 세 겹으로 막아 뒀다:**
+1. UI 화살표는 글자가 아니라 SVG 다 — `src/components/ui/Chevron.tsx`. 화살표를 쓸 땐 이걸 쓸 것.
+2. `fonts/WyeSymbols-Variable.woff2` (6KB) 가 SUIT 에 없는 기호를 메운다. 담긴 글자 목록은
+   `src/app/(site)/fonts/WyeSymbols-README.md` 참고. 거기 없는 기호를 새로 쓰면 다시 뚫린다.
+3. `globals.css` 의 `--font-sans` 에 한글 대체 글꼴을 순서대로 적어 뒀다.
+
+**확인하는 법** — 문구를 많이 고쳤다면 한 번 돌려볼 것:
+```bash
+python3 -c "
+from fontTools.ttLib import TTFont
+cm=TTFont('src/app/(site)/fonts/SUIT-Variable.woff2').getBestCmap()
+print([c for c in '여기에 확인할 문구' if ord(c)>0x7f and ord(c) not in cm])
+"
+```
+빈 배열이 아니면 그 글자는 SUIT 에 없다. 위 2번 서브셋에 있는지 확인하고, 없으면
+서브셋을 다시 만들거나(README 에 방법) 다른 글자로 바꾼다.
 
 # 향후 추가 예정 (설계는 돼 있으나 미구현 또는 부분 구현)
 

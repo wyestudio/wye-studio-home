@@ -31,6 +31,22 @@ const galmuri = localFont({
   preload: false,
 });
 
+/*
+  SUIT 에 없는 기호만 담은 6KB 보조 글꼴. 자세한 내용은 fonts/WyeSymbols-README.md.
+  ⚠️ preload 하지 않는다 — 평소에는 쓰일 일이 없고, 브라우저는 해당 글자가
+     실제로 나올 때만 받아온다.
+  ⚠️ adjustFontFallback 을 끈다. 켜두면 Arial 기반 대체 글꼴이 또 하나 끼어들어
+     globals.css 에 적어둔 한글 대체 순서보다 앞서버린다.
+*/
+const wyeSymbols = localFont({
+  src: "./fonts/WyeSymbols-Variable.woff2",
+  variable: "--font-symbols",
+  display: "swap",
+  weight: "100 900",
+  preload: false,
+  adjustFontFallback: false,
+});
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
@@ -123,7 +139,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${suit.variable} ${geistMono.variable} ${galmuri.variable} h-full antialiased`}
+      className={`${suit.variable} ${wyeSymbols.variable} ${geistMono.variable} ${galmuri.variable} h-full antialiased`}
     >
       {track ? (
         <Script id="gtm-base" strategy="afterInteractive">
