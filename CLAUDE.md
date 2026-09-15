@@ -53,6 +53,7 @@
 - 2026-09-15: 본문 글꼴(SUIT)에 없는 글자 때문에 일부 기기에서 화살표가 `E`/`e`로 보이던 문제 수정 — UI 화살표는 SVG(`components/ui/Chevron.tsx`)로 대체, 한글 대체 글꼴 스택 추가, SUIT에 없는 기호만 담은 6KB 보조 글꼴 신설(`fonts/WyeSymbols-*`)
 - 2026-09-15: 구글 이미지에 옛 소개팅 큐피드 아트웍이 계속 뜨던 문제 — `public/bar-o-title.png` 를 같은 이름으로 교체(08-11→08-13)해 구글이 옛 그림을 그 URL 에 캐시하고 있었음. 파일과 죽은 코드(SessionShowcase·SessionScene·ContentsSessionShowcase) 삭제해 404 처리
 - 2026-09-15: 신청 건에 유입경로(utm) 저장 — 잼핏 등 외부 플랫폼 입점이 **방문이 아니라 실제 신청**으로 이어지는지 보려고 추가. `applications` 에 `utm_*`·`referrer`·`landing_path` 7개 컬럼(p29), 어드민 분석에 경로별 신청·입금·매출 표. 자세한 규칙은 아래 「유입경로(utm)를 건드릴 때」
+- 2026-09-15: **운영 장애** — 테마 상세 배포 때 다른 세션이 만든 마이그레이션 2개(p30 genres, p31 theme_categories)를 빠뜨려 `/themes/[slug]` 가 500. 칸을 추가해 복구. 재발 방지는 아래 「운영에 배포할 때」 참고
 - 2026-09-15: 테마 상세 상단을 방탈출 사이트식으로 재배치 — 포스터 옆에 난이도·소요시간(큰 숫자)·장르 해시태그·시놉시스, 날짜 선택은 아래 `#booking` 섹션으로 내림. `themes.genres text[]` 신설(p30), 시놉시스는 비어 있던 `description` 칸을 그대로 씀. 어드민에 장르 태그 입력 추가
 
 ---
@@ -136,6 +137,43 @@
 3. **ad-hoc 함수 방지**:
    - 프로덕션 DB에 만든 새 함수는 반드시 `supabase-schema.sql`에 기록해 코드로 추적 가능하게 할 것
    - 향후 삭제 시 git 히스토리에서 원본을 복구할 수 있도록
+
+# ⚠️ 운영에 배포할 때 — DB 먼저, 코드 나중 (2026-09-15)
+
+**마이그레이션을 먼저 적용하고, 그 다음에 코드를 올린다.** 순서를 반대로 하면
+새 코드가 아직 없는 칸을 읽어 화면이 500 이 된다.
+
+**배포 전에 "적용할 마이그레이션 목록"을 파일이 아니라 DB 에서 뽑는다.**
+
+```sql
+-- 운영에 아직 기록되지 않은 마이그레이션 찾기
+select version, name from supabase_migrations.schema_migrations
+ where version >= '2026MMDD' order by version;
+```
+
+그리고 `supabase/migrations/` 파일 목록과 대조한다. **내가 만든 것만 세면 안 된다** —
+같은 기간에 다른 작업(다른 세션·다른 사람)이 만든 마이그레이션이 섞여 있다.
+
+**SQL Editor 에서 손으로 실행하면 이력이 남지 않는다.** 실행한 뒤 반드시 기록해야
+다음 배포 때 "뭐가 적용됐나"를 DB 에 물어볼 수 있다:
+
+```sql
+insert into supabase_migrations.schema_migrations (version, name)
+values ('20260915100000', 'p29_application_utm')
+on conflict (version) do nothing;
+```
+
+**계기 (2026-09-15 운영 장애)**
+  테마 상세 재작업을 운영에 올리면서 내가 만든 마이그레이션 3개(p31b·p32·p33)만
+  적용하고, 같은 날 다른 세션이 만든 2개(p30 genres, p31 theme_categories
+  description)를 빠뜨렸다. 코드는 `themes.genres` 를 읽는데 운영 DB 에 그 칸이 없어
+  **`/themes/[slug]` 가 500** 이 됐다(홈·컨텐츠·신청은 정상).
+  운영 이력에 p29·p30·p31 기록이 없었던 것도 원인이다 — 손으로 실행한 것들이라
+  `schema_migrations` 에 안 남아 있어서, "무엇이 빠졌는지"를 DB 에 물어볼 수 없었다.
+
+**마이그레이션 번호가 겹치지 않게 한다.** 같은 날 여러 작업이 동시에 돌면 p 번호가
+충돌한다. 새 번호를 정하기 전에 `ls supabase/migrations/` 로 확인하고, 이미 쓰인
+번호면 `p13b`·`p20b`·`p3c` 처럼 letter suffix 를 붙인다.
 
 # ⚠️ 유입경로(utm)를 건드릴 때 (2026-09-15)
 
