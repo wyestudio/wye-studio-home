@@ -23,6 +23,8 @@ const kst = formatDateFull;
 function discountLabel(c: CampaignRow): string {
   if (c.discount_type === "fixed") return `${formatKrw(c.discount_value)} 할인`;
   const cap = c.max_discount_krw ? ` (최대 ${formatKrw(c.max_discount_krw)})` : "";
+  // ⚠️ 새 할인 방식을 추가하면 여기도 같이 고쳐야 한다 — 안 그러면 정률로 잘못 표시된다.
+  if (c.discount_type === "per_head") return `1인당 ${formatKrw(c.discount_value)} 할인${cap}`;
   return `${c.discount_value}% 할인${cap}`;
 }
 

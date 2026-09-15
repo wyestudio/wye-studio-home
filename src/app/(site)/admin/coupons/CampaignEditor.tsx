@@ -20,7 +20,7 @@ export type CampaignRow = {
   id: string;
   name: string;
   description: string | null;
-  discount_type: "fixed" | "percent";
+  discount_type: "fixed" | "percent" | "per_head";
   discount_value: number;
   max_discount_krw: number | null;
   min_headcount: number | null;
@@ -109,15 +109,22 @@ export function CampaignEditor({
             className={field}
             value={form.discountType}
             onChange={(e) =>
-              setForm({ ...form, discountType: e.target.value as "fixed" | "percent" })
+              setForm({
+                ...form,
+                discountType: e.target.value as "fixed" | "percent" | "per_head",
+              })
             }
           >
-            <option value="fixed">정액 (원)</option>
+            <option value="fixed">정액 (원) — 예약 1건당</option>
+            <option value="per_head">인당 정액 (원) — 인원수 × 금액</option>
             <option value="percent">정률 (%)</option>
           </select>
         </div>
         <div>
-          <label className={label}>{form.discountType === "fixed" ? "할인 금액" : "할인율"}</label>
+          <label className={label}>
+            {form.discountType === "percent" ? "할인율" : "할인 금액"}
+            {form.discountType === "per_head" && <span className="ml-1 text-muted">(1인당)</span>}
+          </label>
           <div className="flex items-center gap-1">
             <input
               type="number"
@@ -125,10 +132,12 @@ export function CampaignEditor({
               value={form.discountValue}
               onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
             />
-            <span className="text-sm text-muted">{form.discountType === "fixed" ? "원" : "%"}</span>
+            <span className="text-sm text-muted">
+              {form.discountType === "percent" ? "%" : form.discountType === "per_head" ? "원 × 인원" : "원"}
+            </span>
           </div>
         </div>
-        {form.discountType === "percent" && (
+        {form.discountType !== "fixed" && (
           <div>
             <label className={label}>최대 할인액</label>
             <input
@@ -147,6 +156,14 @@ export function CampaignEditor({
       {form.discountType === "percent" && (
         <p className="text-xs text-muted">
           정률은 인원이 많을수록 할인액이 커집니다. 상한을 비워두면 4인 신청에서 할인액이 크게 뜁니다.
+        </p>
+      )}
+
+      {form.discountType === "per_head" && (
+        <p className="text-xs text-muted">
+          신청 인원수만큼 곱해서 깎입니다 — 1인당 1,000원이면 3인 신청은 3,000원 할인.
+          할인액은 <strong className="text-foreground">신청 시점의 실제 인원</strong>으로 계산되므로,
+          신청자가 화면에서 인원을 바꾸면 따라 바뀝니다. 단체 신청의 할인액이 걱정되면 최대 할인액을 걸어두세요.
         </p>
       )}
 

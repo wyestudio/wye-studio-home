@@ -16,7 +16,7 @@ export type CampaignInput = {
   id?: string;
   name: string;
   description: string;
-  discountType: "fixed" | "percent";
+  discountType: "fixed" | "percent" | "per_head";
   discountValue: number;
   /** 정률 전용 상한. 없으면 대인원 신청에서 할인액이 튄다. */
   maxDiscountKrw: number | null;
@@ -51,7 +51,8 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
       discount_type: input.discountType,
       discount_value: Math.round(input.discountValue),
       // 정액 쿠폰에 상한은 의미가 없다. 남겨두면 나중에 혼란만 준다.
-      max_discount_krw: input.discountType === "percent" ? input.maxDiscountKrw : null,
+      // 상한은 인원·금액에 따라 할인액이 달라지는 방식에서만 의미가 있다.
+      max_discount_krw: input.discountType === "fixed" ? null : input.maxDiscountKrw,
       min_headcount: input.minHeadcount,
       theme_id: input.themeId,
       valid_from: input.validFrom,

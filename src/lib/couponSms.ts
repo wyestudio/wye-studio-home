@@ -103,7 +103,14 @@ export async function sendCouponSms(to: string, text: string): Promise<SendOutco
   }
 }
 
-/** 쿠폰 금액 표기. 정액이면 금액, 정률이면 퍼센트. */
+/**
+ * 쿠폰 금액 표기. 문자 본문의 {{discount}} 자리에 들어간다.
+ *
+ * ⚠️ 새 할인 방식을 추가하면 여기도 같이 고쳐야 한다. 안 고치면 인당 1,000원짜리가
+ *    "1000%" 로 나가버린다(정률이 기본값이라서).
+ */
 export function discountLabel(type: string, value: number): string {
-  return type === "fixed" ? formatKrw(value) : `${value}%`;
+  if (type === "fixed") return formatKrw(value);
+  if (type === "per_head") return `1인당 ${formatKrw(value)}`;
+  return `${value}%`;
 }
