@@ -52,14 +52,17 @@ export function SectionNav({ accent }: { accent: string }) {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(update);
     };
-    // 목록은 서버가 그린 블록에서 읽으므로 화면이 뜬 다음 프레임에 채운다.
-    raf = requestAnimationFrame(() => {
+    // 목록은 서버가 그린 블록에서 읽으므로 화면이 뜬 직후에 채운다.
+    // ⚠️ requestAnimationFrame 으로 채우지 않는다. 백그라운드 탭(새 탭으로 열기)에서는
+    //    프레임 콜백이 멈춰 목차가 비어 있다(자동화 브라우저에서 실제로 그랬다).
+    const init = window.setTimeout(() => {
       setItems(els.map((el) => ({ el, label: el.dataset.navLabel ?? "" })));
       update();
-    });
+    }, 0);
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", schedule);
     return () => {
+      window.clearTimeout(init);
       cancelAnimationFrame(raf);
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
