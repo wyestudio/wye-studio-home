@@ -19,7 +19,7 @@ import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { PosterFit } from "./PosterFit";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
-import { CategoryLabel, type CategoryVariant } from "./CategoryLabel";
+import { CategoryLabel } from "./CategoryLabel";
 import { posterFitInlineScript } from "./posterFitScript";
 
 /*
@@ -68,16 +68,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function ThemeDetailPage({
-  params,
-  searchParams,
-}: PageProps<"/themes/[slug]">) {
+export default async function ThemeDetailPage({ params }: PageProps<"/themes/[slug]">) {
   const { slug } = await params;
-  // ⚠️ 임시(2026-09-15): 카테고리 표시 모양 세 가지를 테스트 서버에서 비교해 보려고
-  //    ?badge=1|2|3 으로 바꿔 볼 수 있게 했다. 모양이 정해지면 이 분기는 지운다.
-  const badgeParam = (await searchParams).badge;
-  const badgeVariant: CategoryVariant =
-    badgeParam === "2" ? "solid" : badgeParam === "3" ? "plain" : "eyebrow";
 
   const theme = await getThemeBySlug(slug);
   if (!theme) notFound();
@@ -171,19 +163,13 @@ export default async function ThemeDetailPage({
 
         <div data-fit-top className="mb-2 min-w-0 self-start [grid-area:title] md:mb-3">
           {/*
-            제목 줄: 테마명 + 카테고리 / 오른쪽 끝에 공유.
-            카테고리가 장르 태그(테두리 알약)와 같은 모양이라 구분이 안 된다는 의견을 받아
-            다른 모양을 비교 중이다(CategoryLabel). 옆 물음표에 카테고리 설명이 뜬다.
+            제목 위에 카테고리(강조색 작은 글씨 + 설명 물음표), 아래 줄에 테마명 / 오른쪽 끝에 공유.
+            카테고리를 제목 옆 알약으로 두면 장르 태그와 구분이 안 됐다(CategoryLabel 참고).
           */}
-          {category && badgeVariant === "eyebrow" && (
-            <CategoryLabel variant="eyebrow" category={category} accent={accent} />
-          )}
+          {category && <CategoryLabel category={category} accent={accent} />}
           <div className="flex items-start gap-3">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
-              {category && badgeVariant !== "eyebrow" && (
-                <CategoryLabel variant={badgeVariant} category={category} accent={accent} />
-              )}
             </div>
             <div className="shrink-0">
               <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
