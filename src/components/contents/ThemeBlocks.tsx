@@ -6,8 +6,8 @@ import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import { VenueCard } from "@/components/contents/VenueCard";
-import type { ThemeBlock, ThemePriceTier, PublicVenue } from "@/types/catalog";
-import { SCREEN_SECTION } from "@/components/contents/screenSection";
+import { THEME_BLOCK_LABELS, type ThemeBlock, type ThemePriceTier, type PublicVenue } from "@/types/catalog";
+import { SCREEN_BODY, SCREEN_INNER, SCREEN_SECTION } from "@/components/contents/screenSection";
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
@@ -57,23 +57,45 @@ export function ThemeBlocks({
   return (
     <>
       {screens.map((group, i) => (
-        <section key={i} data-screen className={SCREEN_SECTION}>
-          {group.map((block, j) => (
-            // 같은 화면 안에 붙은 덧붙임 블록은 조금만 띄운다.
-            <div key={j} className={j > 0 ? "mt-6" : undefined}>
-              <ThemeBlockView
-                block={block}
-                accent={accent}
-                tiers={tiers}
-                maxGroupSize={maxGroupSize}
-                venue={venue}
-              />
+        <section
+          key={i}
+          data-screen
+          // 데스크톱 목차(SectionNav)가 읽는 이름. 영문 라벨이 짧아서 목차 칸에 맞는다.
+          data-nav-code={navCodeOf(group[0])}
+          data-nav-label={navLabelOf(group[0])}
+          className={SCREEN_SECTION}
+        >
+          <div className={SCREEN_BODY}>
+            <div data-screen-inner className={SCREEN_INNER}>
+              {group.map((block, j) => (
+                // 같은 화면 안에 붙은 덧붙임 블록은 조금만 띄운다.
+                <div key={j} className={j > 0 ? "mt-6" : undefined}>
+                  <ThemeBlockView
+                    block={block}
+                    accent={accent}
+                    tiers={tiers}
+                    maxGroupSize={maxGroupSize}
+                    venue={venue}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </section>
       ))}
     </>
   );
+}
+
+/** 목차에 쓰는 짧은 영문 표기. 라벨(FOR YOU·PRICE…)이 없으면 블록 종류로. */
+function navCodeOf(block: ThemeBlock): string {
+  return block.eyebrow?.trim() || block.type.toUpperCase();
+}
+
+/** 목차에 쓰는 한글 이름. 제목 → 판 안 큰 문구(참가비 포함) → 블록 종류 이름 순. */
+function navLabelOf(block: ThemeBlock): string {
+  const headline = block.type === "list" ? block.headline?.trim() : "";
+  return block.title?.trim() || headline || THEME_BLOCK_LABELS[block.type];
 }
 
 /**

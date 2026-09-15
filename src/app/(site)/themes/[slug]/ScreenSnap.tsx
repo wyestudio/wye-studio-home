@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { animateScrollTo, cancelScrollAnimation, isScrollAnimating, stickyEdge } from "./screenScroll";
 
 /**
  * 마우스 휠 한 번에 다음(이전) 화면 블록으로 넘어간다.
@@ -19,7 +20,6 @@ import { useEffect } from "react";
  *    넘긴 직후 이벤트가 잠잠해질 때까지는 추가 휠을 먹어서 두 칸씩 넘어가지 않게 한다.
  * ⚠️ 가로 휠(후기 슬라이더를 옆으로 밀기)·확대(ctrl+휠)는 건드리지 않는다.
  */
-const DURATION = 650;
 /** 휠이 이만큼 조용해야 잠금을 푼다(트랙패드 관성 흡수). */
 const QUIET_MS = 180;
 /** 이만큼 작은 휠 움직임은 무시한다(트랙패드 미세 떨림). */
@@ -27,54 +27,9 @@ const MIN_DELTA = 4;
 
 export function ScreenSnap() {
   useEffect(() => {
-    let animating = false;
     /** 넘김을 시작한 순간부터, 넘김이 끝나고 휠이 잠잠해질 때까지 true. */
     let locked = false;
     let lastWheel = 0;
-    let raf = 0;
-
-    const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    /**
-     * 화면 위에 붙어 따라오는 줄(헤더, 모바일은 섹션 이동 탭까지)의
-     *   bottom : 지금 화면에서의 아래끝 — '지금 블록' 을 찾는 기준선
-     *   height : 붙어 있을 때의 높이 합 — 블록이 한 화면에 들어오는지 재는 기준
-     * ⚠️ 둘을 나눈 이유: 테스트 서버는 맨 위에 'TEST 환경' 띠가 있어 페이지 맨 위에서만
-     *    헤더 아래끝이 띠 높이만큼 내려가 있다. 그 값으로 화면 높이를 재면 첫 화면이
-     *    '화면보다 긴 블록' 으로 잘못 판정돼 휠이 넘어가지 않았다.
-     */
-    const stickyEdge = () => {
-      let bottom = 0;
-      let height = 0;
-      document.querySelectorAll<HTMLElement>("header, nav[aria-label='섹션 이동']").forEach((el) => {
-        const r = el.getBoundingClientRect();
-        if (r.height > 0 && getComputedStyle(el).position === "sticky") {
-          bottom = Math.max(bottom, r.bottom);
-          height += r.height;
-        }
-      });
-      return { bottom, height };
-    };
-
-    const animateTo = (target: number) => {
-      const start = window.scrollY;
-      const dist = target - start;
-      if (Math.abs(dist) < 2) return;
-      if (reduceMotion()) {
-        window.scrollTo(0, target);
-        return;
-      }
-      animating = true;
-      const t0 = performance.now();
-      const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-      const step = (now: number) => {
-        const t = Math.min(1, (now - t0) / DURATION);
-        window.scrollTo(0, start + dist * ease(t));
-        if (t < 1) raf = requestAnimationFrame(step);
-        else animating = false;
-      };
-      raf = requestAnimationFrame(step);
-    };
 
     const onWheel = (e: WheelEvent) => {
       if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
@@ -82,7 +37,7 @@ export function ScreenSnap() {
 
       // 넘기는 중이거나 직전 넘김의 관성이 남아 있으면 먹는다.
       if (locked) {
-        if (animating || now - lastWheel < QUIET_MS) {
+        if (isScrollAnimating() || now - lastWheel < QUIET_MS) {
           e.preventDefault();
           lastWheel = now;
           return;
@@ -164,13 +119,13 @@ export function ScreenSnap() {
       e.preventDefault();
       lastWheel = now;
       locked = true;
-      animateTo(target);
+      animateScrollTo(target);
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       window.removeEventListener("wheel", onWheel);
-      cancelAnimationFrame(raf);
+      cancelScrollAnimation();
     };
   }, []);
 

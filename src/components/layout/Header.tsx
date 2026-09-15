@@ -14,6 +14,8 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
+  // 테마 상세(/themes/[slug])에서만 모바일 헤더를 스크롤 방향에 따라 숨긴다.
+  const autoHide = /^\/themes\/[^/]+\/?$/.test(pathname);
 
   // 실제 렌더된 헤더 높이를 CSS 변수로 노출 — 홈 히어로의 스크롤 스테이지가 이 값만큼
   // 음수 마진을 줘서, 헤더 아래로 스크롤이 다 지나가야 스크롤텔링이 시작되는 "빈 스크롤
@@ -30,6 +32,59 @@ export function Header() {
     return () => resizeObserver.disconnect();
   }, []);
 
+  /*
+    모바일 테마 상세: 내리면 헤더를 숨기고, 올리면 다시 보인다 — 휴대폰 브라우저 주소창과
+    같은 방식(2026-09-15 요청). 헤더 + 섹션 이동 탭(DetailTabs)이 같이 붙어 있어 위가
+    너무 두꺼워 답답하다는 의견. 탭은 헤더가 숨으면 맨 위로 따라 올라간다.
+
+    상태는 <html data-header-hidden> 하나로 알린다. 헤더·탭·스크롤 계산(screenScroll.ts)이
+    같은 표시를 본다. ⚠️ 데스크톱(768px 이상)에서는 절대 숨기지 않는다.
+  */
+  useEffect(() => {
+    const root = document.documentElement;
+    if (!autoHide || isMenuOpen) {
+      root.removeAttribute("data-header-hidden");
+      return;
+    }
+    const mobile = window.matchMedia("(max-width: 767px)");
+    // 이 위(헤더 + 탭 높이 정도)에서는 숨기지 않는다. screenScroll.ts 의 HEADER_REVEAL_ZONE 과 같은 값.
+    const REVEAL_ZONE = 120;
+    // 손가락 떨림으로 깜빡이지 않게, 이만큼 한 방향으로 움직여야 바꾼다.
+    const THRESHOLD = 8;
+    let anchorY = window.scrollY;
+    let raf = 0;
+
+    const update = () => {
+      const y = Math.max(0, window.scrollY);
+      if (!mobile.matches || y < REVEAL_ZONE) {
+        root.removeAttribute("data-header-hidden");
+        anchorY = y;
+        return;
+      }
+      const dy = y - anchorY;
+      if (dy > THRESHOLD) {
+        root.setAttribute("data-header-hidden", "");
+        anchorY = y;
+      } else if (dy < -THRESHOLD) {
+        root.removeAttribute("data-header-hidden");
+        anchorY = y;
+      }
+    };
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    mobile.addEventListener("change", update);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      mobile.removeEventListener("change", update);
+      root.removeAttribute("data-header-hidden");
+    };
+  }, [autoHide, isMenuOpen]);
+
   const navItems = [
     { label: "About", href: "/about", enabled: process.env.NEXT_PUBLIC_ABOUT_ENABLED === "true" },
     { label: "Contents", href: "/contents" },
@@ -40,7 +95,7 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-20"
+      className="sticky top-0 z-20 transition-transform duration-300 ease-out max-md:[html[data-header-hidden]_&]:-translate-y-full"
     >
       {/* 데스크톱 헤더 */}
       {/*

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { scrollToScreen } from "./screenScroll";
 
 /**
  * 모바일 전용 섹션 이동 탭.
@@ -47,6 +48,8 @@ export function DetailTabs({ accent }: { accent: string }) {
     <nav
       className="sticky top-[var(--header-height,52px)] z-10 -mx-5 mb-2 flex border-b border-white/10 bg-background
                  before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-background
+                 transition-transform duration-300 ease-out
+                 [html[data-header-hidden]_&]:-translate-y-[var(--header-height,52px)]
                  sm:hidden"
       aria-label="섹션 이동"
     >
@@ -56,7 +59,15 @@ export function DetailTabs({ accent }: { accent: string }) {
           <a
             key={t.id}
             href={`#${t.id}`}
-            onClick={() => setActive(t.id)}
+            onClick={(e) => {
+              const el = document.getElementById(t.id);
+              if (!el) return;
+              // 헤더가 스크롤 방향에 따라 숨으므로 도착 위치를 직접 계산한다(screenScroll.ts).
+              // 링크 기본 이동(scroll-mt)에 맡기면 아래로 갈 때 헤더 높이만큼 빈 띠가 남는다.
+              e.preventDefault();
+              setActive(t.id);
+              scrollToScreen(el);
+            }}
             className={`flex-1 border-b-2 py-3 text-center text-sm font-bold transition-colors ${
               on ? "" : "border-transparent text-muted"
             }`}

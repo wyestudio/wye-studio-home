@@ -21,10 +21,23 @@
  * 아래 회차 선택이 비쳐 보이지 않게 하려는 것이라, 모바일 여백 줄이기(아래)에서 뺐다.
  */
 export const INTRO_SCREEN_SECTION =
-  "flex min-h-[calc(100svh-7rem)] flex-col justify-center pt-6 pb-[8svh] md:min-h-[calc(100svh-6.25rem)] md:pt-8 md:pb-[10svh]";
+  "flex min-h-[calc(100svh-7rem)] flex-col justify-center pt-6 pb-[8svh] md:min-h-[calc(100svh-6.25rem)] md:pt-8 md:pb-[var(--screen-pb,10svh)]";
 
 /** 이 섹션으로 스크롤해 올 때 헤더 밑에 딱 붙게 하는 여백. 섹션이 화면을 정확히 채운다. */
 export const SCREEN_SCROLL_MARGIN = "scroll-mt-[7rem] md:scroll-mt-[6.25rem]";
 
 export const SCREEN_SECTION =
-  "flex min-h-[72svh] flex-col justify-center pt-6 pb-[5svh] md:min-h-[calc(100svh-6.25rem)] md:pt-8 md:pb-[10svh]";
+  "flex min-h-[72svh] flex-col justify-center pt-6 pb-[5svh] md:min-h-[calc(100svh-6.25rem)] md:pt-8 md:pb-[var(--screen-pb,10svh)]";
+
+/**
+ * 화면 블록 안쪽을 두 겹으로 감싼다 — 데스크톱에서 한 화면에 안 들어가면 줄이기 위해.
+ *   바깥(SCREEN_BODY)  : 줄어든 만큼의 높이를 차지한다(--screen-body-h)
+ *   안쪽(SCREEN_INNER) : 원래 크기로 그려진 뒤 비율 그대로 줄어든다(--screen-transform)
+ * 값은 ScreenFit / screenFitScript.ts 가 블록([data-screen])에 넣는다. 안 넣으면 그대로다.
+ *
+ * ⚠️ transform 은 줄일 때만 건다(기본 none). scale(1) 이라도 걸려 있으면 안쪽의
+ *    position: fixed 가 화면이 아니라 이 칸을 기준으로 붙어버린다.
+ * ⚠️ 안쪽 칸에 data-screen-inner 를 꼭 붙일 것 — 계산이 이 표시로 찾는다.
+ */
+export const SCREEN_BODY = "w-full md:h-[var(--screen-body-h,auto)]";
+export const SCREEN_INNER = "w-full md:origin-top md:[transform:var(--screen-transform,none)]";

@@ -14,6 +14,8 @@ import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
   INTRO_SCREEN_SECTION,
+  SCREEN_BODY,
+  SCREEN_INNER,
   SCREEN_SECTION,
   SCREEN_SCROLL_MARGIN,
 } from "@/components/contents/screenSection";
@@ -24,6 +26,9 @@ import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { PosterFit } from "./PosterFit";
 import { ScreenSnap } from "./ScreenSnap";
+import { ScreenFit } from "./ScreenFit";
+import { SectionNav } from "./SectionNav";
+import { screenFitInlineScript } from "./screenFitScript";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
 import { posterFitInlineScript } from "./posterFitScript";
@@ -133,7 +138,17 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         같이 보이지 않게 한다. 한 화면에 정보가 몰리면 피로하다는 의견(2026-09-15).
         상세 블록·날짜 선택도 같은 규칙이다(SCREEN_SECTION 참고).
       */}
-      <div data-screen className={INTRO_SCREEN_SECTION}>
+      <div
+        id="intro-screen"
+        // 인라인 스크립트(screenFitInlineScript)가 React 보다 먼저 style 을 넣는다.
+        suppressHydrationWarning
+        data-screen
+        data-nav-code="INTRO"
+        data-nav-label="테마 소개"
+        className={INTRO_SCREEN_SECTION}
+      >
+      <div className={SCREEN_BODY}>
+      <div data-screen-inner className={SCREEN_INNER}>
       <section
         id="intro"
         suppressHydrationWarning
@@ -227,9 +242,21 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       </noscript>
       <ScrollToBookingButton accent={accent} />
       </div>
+      </div>
+      {/* 노트북처럼 낮은 화면에서 소개 블록을 한 화면에 맞춘다(screenFitScript.ts). 포스터를 맞춘 뒤에. */}
+      <script dangerouslySetInnerHTML={{ __html: screenFitInlineScript("intro-screen") }} />
+      </div>
 
       {/* ── 날짜 선택 ── 상세 블록과 같이 한 화면에 하나. '신청하기' 로 스크롤해 오면 화면을 딱 채운다. */}
-      <section id="booking" data-screen className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}>
+      <section
+        id="booking"
+        data-screen
+        data-nav-code="BOOKING"
+        data-nav-label="회차 선택"
+        className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}
+      >
+        <div className={SCREEN_BODY}>
+        <div data-screen-inner className={SCREEN_INNER}>
         <SectionHeading
           eyebrow="BOOKING"
           // 달력 위에 이미 '날짜 선택' 이 있어 겹친다. 블록 제목은 '회차 선택'.
@@ -248,6 +275,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               openingDate={theme.opening_date}
             />
           </Suspense>
+        </div>
+        </div>
         </div>
       </section>
 
@@ -276,6 +305,10 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
 
       {/* 휠 한 번에 다음 화면 블록으로([data-screen]) */}
       <ScreenSnap />
+      {/* 낮은 화면에서 블록을 한 화면에 맞춘다 */}
+      <ScreenFit />
+      {/* 넓은 화면 왼쪽 목차 — 지금 보는 블록 표시 + 눌러서 이동 */}
+      <SectionNav accent={accent} />
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}
       <KakaoChannelButton />

@@ -24,7 +24,7 @@ export function ScrollToBookingButton({
     <a
       href="#booking"
       onClick={scrollToBooking}
-      className={`group mx-auto hidden items-center gap-2 rounded-full border px-6 py-3 text-base font-bold transition-colors sm:flex lg:px-8 lg:py-4 lg:text-lg ${className}`}
+      className={`group mx-auto hidden w-fit items-center gap-2 rounded-full border px-6 py-3 text-base font-bold transition-colors sm:flex lg:px-8 lg:py-4 lg:text-lg ${className}`}
       style={{ borderColor: `${accent}80`, color: accent }}
     >
       신청하기

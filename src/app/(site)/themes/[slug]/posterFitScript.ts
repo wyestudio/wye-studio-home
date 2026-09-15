@@ -42,7 +42,11 @@ export function fitPoster(section: HTMLElement): void {
     for (let j = 0; j < bottoms.length; j++) {
       bottom = Math.max(bottom, bottoms[j].getBoundingClientRect().bottom);
     }
-    const height = bottom - top.getBoundingClientRect().top;
+    // 낮은 화면에서는 소개 블록 전체가 transform 으로 줄어 있다(screenFitScript.ts).
+    // getBoundingClientRect 는 줄어든 크기, --poster-w 는 줄기 전 크기라 비율로 되돌린다.
+    const shown = section.getBoundingClientRect().width;
+    const scale = section.offsetWidth > 0 && shown > 0 ? shown / section.offsetWidth : 1;
+    const height = (bottom - top.getBoundingClientRect().top) / scale;
     const max = Math.min(MAX_W, section.clientWidth * MAX_SHARE);
     const next = Math.round(Math.max(MIN_W, Math.min(max, height * 0.8)));
 
