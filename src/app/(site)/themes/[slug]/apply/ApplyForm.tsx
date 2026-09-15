@@ -23,6 +23,7 @@ import {
   type ApplyResult,
   type CouponPreview,
 } from "./actions";
+import { readAttribution } from "@/lib/attribution";
 import { AttendeeFields, type NicknameCheckState } from "./AttendeeFields";
 import {
   ConsentStep,
@@ -466,6 +467,9 @@ export function ApplyForm({
         consentOptional: consents.photo && consents.marketing,
         consentPhoto: consents.photo,
         consentMarketing: consents.marketing,
+        // 어디를 타고 들어와 신청까지 왔는지. 처음 도착한 순간에 잡아둔 값이다
+        // (신청 시점 주소에는 utm 이 이미 없다). 실패해도 신청은 그대로 진행된다.
+        attribution: readAttribution(),
       });
       if ("error" in res) {
         setError(res.error);

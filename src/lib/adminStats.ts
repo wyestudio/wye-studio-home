@@ -127,3 +127,101 @@ export async function getApplicationStats(days: number): Promise<ApplicationStat
 
   return { daily, totals };
 }
+
+/** 유입경로별 신청 한 줄. */
+export type ApplicationSourceStat = {
+  /** 묶음 키 — utm_source, 없으면 referrer 호스트, 그것도 없으면 "direct" */
+  key: string;
+  /** 화면에 그대로 쓰는 이름 */
+  label: string;
+  /** utm_campaign 이 여럿이면 쉼표로 이어 붙인다. 없으면 null */
+  campaigns: string | null;
+  applications: number;
+  headcount: number;
+  paid: number;
+  revenueKrw: number;
+};
+
+/**
+ * 잼핏 같은 외부 플랫폼 입점이 **실제 신청**으로 이어지는지 보기 위한 값.
+ *
+ * GA4 의 '어디서 들어오나' 와 다르다. 저쪽은 방문까지만 센다.
+ * 여기는 신청 한 건 한 건에 저장해 둔 유입경로라, 입금·매출까지 따라온다.
+ *
+ * ⚠️ utm 은 **2026-09-15(p29)부터** 쌓인다. 그 이전 신청은 전부 빈 값이라
+ *    '직접/기타' 로 잡힌다. 한동안은 비교 대상이 되지 않는다.
+ * ⚠️ 첫 유입 기준(first-touch)이다. 잼핏 → 홈 → 신청 이면 잼핏으로 센다.
+ */
+export async function getApplicationSources(days: number): Promise<ApplicationSourceStat[]> {
+  const supabase = createAdminClient();
+  const since = kstDaysAgoStart(days - 1);
+
+  const { data, error } = await supabase
+    .from("applications")
+    .select("utm_source, utm_medium, utm_campaign, referrer, status, amount_krw, headcount, paid_at")
+    .gte("created_at", since);
+
+  if (error) {
+    console.error("[adminStats] 유입경로 통계 조회 실패", error);
+    return [];
+  }
+
+  const bucket = new Map<string, ApplicationSourceStat & { campaignSet: Set<string> }>();
+
+  for (const row of data ?? []) {
+    const source = (row.utm_source as string | null)?.trim() || null;
+    const referrer = (row.referrer as string | null)?.trim() || null;
+
+    let key: string;
+    let label: string;
+    if (source) {
+      key = source.toLowerCase();
+      const medium = (row.utm_medium as string | null)?.trim();
+      label = medium ? `${source} / ${medium}` : source;
+    } else if (referrer) {
+      // 주소 전체 말고 호스트만 묶는다 — 같은 사이트의 여러 글이 흩어지면 셈이 안 된다.
+      let host = referrer;
+      try {
+        host = new URL(referrer).hostname.replace(/^www\./, "");
+      } catch {
+        /* 저장된 값이 주소가 아니면 그대로 쓴다 */
+      }
+      key = `ref:${host.toLowerCase()}`;
+      label = `${host} (링크 타고 옴)`;
+    } else {
+      key = "direct";
+      label = "직접 방문 · 출처 없음";
+    }
+
+    let b = bucket.get(key);
+    if (!b) {
+      b = {
+        key,
+        label,
+        campaigns: null,
+        applications: 0,
+        headcount: 0,
+        paid: 0,
+        revenueKrw: 0,
+        campaignSet: new Set<string>(),
+      };
+      bucket.set(key, b);
+    }
+
+    b.applications += 1;
+    b.headcount += (row.headcount as number) ?? 1;
+    if (row.paid_at) {
+      b.paid += 1;
+      b.revenueKrw += (row.amount_krw as number) ?? 0;
+    }
+    const campaign = (row.utm_campaign as string | null)?.trim();
+    if (campaign) b.campaignSet.add(campaign);
+  }
+
+  return [...bucket.values()]
+    .map(({ campaignSet, ...rest }) => ({
+      ...rest,
+      campaigns: campaignSet.size > 0 ? [...campaignSet].slice(0, 4).join(", ") : null,
+    }))
+    .sort((a, b) => b.applications - a.applications);
+}

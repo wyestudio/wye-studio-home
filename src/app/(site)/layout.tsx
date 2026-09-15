@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import Script from "next/script";
@@ -9,6 +10,7 @@ import { MascotCursor } from "@/components/space/MascotCursor";
 import { MascotSelectionProvider } from "@/components/space/MascotSelectionContext";
 import TestEnvBanner from "@/components/layout/TestEnvBanner";
 import { CopyProtectionProvider } from "@/components/layout/CopyProtection";
+import { AttributionTracker } from "@/components/AttributionTracker";
 import "../globals.css";
 import { headers } from "next/headers";
 import { isProductionHost } from "@/lib/hosts";
@@ -167,6 +169,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
           }}
         />
+        {/*
+          유입경로(utm)를 첫 도착 순간에 한 번만 잡아 둔다. 화면을 그리지 않는다.
+          ⚠️ useSearchParams 를 쓰므로 Suspense 가 필요하다. 없으면 빌드가
+             페이지 전체를 CSR 로 떨어뜨린다.
+        */}
+        <Suspense fallback={null}>
+          <AttributionTracker />
+        </Suspense>
         <CopyProtectionProvider>
           <MascotSelectionProvider>
             <StarfieldCanvas />

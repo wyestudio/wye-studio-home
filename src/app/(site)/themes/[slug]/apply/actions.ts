@@ -7,6 +7,8 @@ import { sendApplicationSlackAlertV2 } from "@/lib/slackV2";
 import { formatSessionDateTime } from "@/lib/format";
 import { isValidNickname } from "@/lib/validation";
 import { phoneDigits } from "@/lib/phone";
+import type { Attribution } from "@/lib/attribution";
+import { recordAttribution } from "@/lib/attributionServer";
 
 export type AttendeeInput = {
   name: string;
@@ -69,6 +71,8 @@ export type ApplyInput = {
   consentOptional: boolean;
   consentPhoto: boolean;
   consentMarketing: boolean;
+  /** 유입경로. 첫 도착 때 잡아둔 값이며 없을 수 있다(직접 방문). */
+  attribution?: Attribution | null;
 };
 
 export type ApplyResult =
@@ -140,6 +144,7 @@ export async function checkCoupon(input: {
   };
 }
 
+
 /**
  * 신청 제출.
  *
@@ -209,6 +214,9 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     amount_krw: number;
     waiting_number: number | null;
   };
+
+  // 유입경로를 신청 건에 붙인다. 근거와 주의사항은 attributionServer.ts 에 있다.
+  await recordAttribution(r.id, input.attribution);
 
   // ── 알림 ──────────────────────────────────────────────────────
   // ⚠️ 여기서 실패해도 신청은 이미 성공했다. 절대 사용자에게 에러를 돌려주지

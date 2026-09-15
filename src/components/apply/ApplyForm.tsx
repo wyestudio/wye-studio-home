@@ -8,6 +8,7 @@ import { ApplySessionSummary } from "@/components/apply/ApplySessionSummary";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
 import { ApplyConsent, type ConsentState } from "@/components/apply/ApplyConsent";
 import { applyAction, checkNicknameAvailability, checkActiveApplicationConflicts, type ApplyState } from "@/app/(site)/sessions/[slug]/apply/actions";
+import { ATTRIBUTION_FIELD, readAttribution } from "@/lib/attribution";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { formatKrw } from "@/lib/format";
 import { pushDataLayerEvent } from "@/lib/analytics";
@@ -488,6 +489,9 @@ export function ApplyForm({
     formData.set("consentPhoto", consents.photo ? "on" : "");
     formData.set("consentMarketing", consents.marketing ? "on" : "");
     if (attendees.length >= 2 && notes) formData.set("notes", notes);
+    // 유입경로. 이 폼은 아직 SMS 재신청 링크(/sessions/...)로 들어올 수 있어서
+    // 새 폼과 똑같이 남겨야 집계가 반쪽이 되지 않는다.
+    formData.set(ATTRIBUTION_FIELD, JSON.stringify(readAttribution()));
     attendees.forEach((attendee, i) => {
       formData.set(`attendees[${i}][name]`, attendee.name);
       formData.set(`attendees[${i}][phone]`, `${attendee.phone1}${attendee.phone2}${attendee.phone3}`);

@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import { AdminNav } from "@/components/admin/AdminNav";
 import type { TrafficSource, LandingPage, DailyTraffic, PathFunnel } from "@/lib/ga4";
-import type { ApplicationStats } from "@/lib/adminStats";
+import type { ApplicationStats, ApplicationSourceStat } from "@/lib/adminStats";
 import { sourceLabel, isUnknownSource, pathLabel } from "@/lib/analyticsLabels";
 
 interface GuideItem {
@@ -121,6 +121,7 @@ type ApiPayload = {
   dailyTraffic: DailyTraffic[];
   funnel: PathFunnel;
   applications: ApplicationStats;
+  applicationSources: ApplicationSourceStat[];
 };
 
 const PERIODS: { key: string; label: string }[] = [
@@ -245,6 +246,17 @@ export default function AnalyticsDashboard() {
       `${sourceTotal > 0 ? ` (전체의 ${((topSource.sessions / sourceTotal) * 100).toFixed(0)}%)` : ""}.` +
       `${unknown > 0 ? ` 출처를 알 수 없는 방문이 ${unknown}회 있습니다.` : ""}`
     : "출처를 알 수 있는 방문이 아직 없습니다.";
+
+  // 신청까지 도달한 유입경로. '직접 방문' 은 아직 값이 안 쌓인 신청까지
+  // 섞여 있어 요약 1위로 쓰면 오해를 부른다 — 출처가 있는 것 중에서 고른다.
+  const applicationSources = data?.applicationSources ?? [];
+  const topApplySource = applicationSources.find((s) => s.key !== "direct");
+  const applyTotal = applicationSources.reduce((a, s) => a + s.applications, 0);
+  const sourceApplySummary = topApplySource
+    ? `출처가 남은 신청 중 1위는 ${topApplySource.label}입니다 — ${topApplySource.applications}건` +
+      `${applyTotal > 0 ? ` (전체 신청 ${applyTotal}건 중)` : ""}` +
+      `${topApplySource.paid > 0 ? `, 그중 ${topApplySource.paid}건이 입금까지 왔습니다.` : "."}`
+    : "아직 유입경로가 남은 신청이 없습니다. 외부 링크에 utm 을 붙여야 쌓이기 시작합니다.";
 
   const topLanding = (data?.landingPages ?? [])[0];
   const landingTotal = (data?.landingPages ?? []).reduce((a, p) => a + p.sessions, 0);
@@ -408,6 +420,63 @@ export default function AnalyticsDashboard() {
               <p className="mt-3 text-xs text-muted">
                 앞 세 단계는 GA4 의 <strong>페이지 경로</strong>로 셉니다 — 이벤트 태그에 기대면
                 GTM 설정이 어긋날 때 조용히 0이 되는데, 경로는 페이지가 열리기만 하면 잡힙니다.
+              </p>
+            </div>
+
+            {/* ── 신청까지 온 유입경로 (우리 DB) ── */}
+            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+              <h2 className="mb-1 text-lg font-semibold">어디서 들어와 신청까지 했나</h2>
+              <p className="mb-3 text-sm text-muted">
+                아래 &lsquo;어디서 들어오나&rsquo;는 GA4 라 <strong className="text-foreground">방문</strong>까지만
+                셉니다. 이 표는 신청 한 건 한 건에 저장해 둔 유입경로라{" "}
+                <strong className="text-foreground">신청·입금·매출</strong>까지 따라옵니다. 외부
+                플랫폼 입점이 실제로 돈이 되는지 볼 때 이걸 봅니다.
+              </p>
+              {applicationSources.length > 0 ? (
+                <>
+                  <Summary text={sourceApplySummary} />
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-sm">
+                      <thead className="border-b border-border text-left text-xs text-muted">
+                        <tr>
+                          <th className="py-2 pr-3">유입경로</th>
+                          <th className="py-2 pr-3 text-right">신청</th>
+                          <th className="py-2 pr-3 text-right">인원</th>
+                          <th className="py-2 pr-3 text-right">입금</th>
+                          <th className="py-2 text-right">매출</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {applicationSources.map((s) => (
+                          <tr key={s.key} className="border-b border-border/40">
+                            <td className="py-2 pr-3">
+                              {s.label}
+                              {s.campaigns && (
+                                <span className="ml-1.5 font-mono text-[11px] text-muted">
+                                  {s.campaigns}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2 pr-3 text-right font-medium">{s.applications}</td>
+                            <td className="py-2 pr-3 text-right text-muted">{s.headcount}</td>
+                            <td className="py-2 pr-3 text-right">{s.paid}</td>
+                            <td className="py-2 text-right">{s.revenueKrw ? won(s.revenueKrw) : "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="text-muted">아직 데이터가 없습니다.</p>
+              )}
+              <p className="mt-3 text-xs text-muted">
+                · <strong className="text-foreground">2026-09-15부터</strong> 쌓입니다. 그 이전
+                신청은 값이 없어 전부 &lsquo;직접 방문 · 출처 없음&rsquo;으로 잡힙니다.
+                <br />· <strong className="text-foreground">처음 들어온 곳</strong> 기준입니다 —
+                잼핏으로 들어와 홈을 거쳐 신청했어도 잼핏으로 셉니다.
+                <br />· 외부 링크에 <code className="font-mono">?utm_source=jamfit</code> 처럼
+                붙여두면 이 표에 그 이름으로 뜹니다.
               </p>
             </div>
 

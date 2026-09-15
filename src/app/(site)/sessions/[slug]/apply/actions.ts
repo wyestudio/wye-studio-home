@@ -16,6 +16,8 @@ import {
   type ExperienceRange,
 } from "@/lib/validation";
 import type { Application, Gender } from "@/types/domain";
+import { ATTRIBUTION_FIELD, parseAttributionJson } from "@/lib/attribution";
+import { recordAttribution } from "@/lib/attributionServer";
 
 export async function checkNicknameAvailability(
   sessionId: string,
@@ -246,6 +248,16 @@ export async function applyAction(
   }
 
   const application = data as Application;
+
+  // 유입경로를 신청 건에 붙인다. 근거와 주의사항은 attributionServer.ts 에 있다.
+  // 이 폼은 SMS 재신청 링크(/sessions/...)로 아직 들어올 수 있어서 새 폼과
+  // 똑같이 남겨야 집계가 반쪽이 되지 않는다.
+  after(async () => {
+    await recordAttribution(
+      application.id,
+      parseAttributionJson(formData.get(ATTRIBUTION_FIELD))
+    );
+  });
 
   after(async () => {
     try {
