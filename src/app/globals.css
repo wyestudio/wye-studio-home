@@ -340,17 +340,31 @@ html.custom-cursor-active label {
   filter: drop-shadow 를 쓰는 이유 — text-shadow 는 SVG 화살표에 안 먹는다.
   부모에 걸면 글자와 화살표가 같이 빛난다.
 */
+/*
+  ⚠️ 양 끝과 가운데의 **색을 똑같이** 두고 투명도만 움직인다. 색을 바꾸면 안 된다.
+
+  `transparent` 는 이름과 달리 `rgba(0, 0, 0, 0)` — 즉 '투명한 검정' 이다.
+  거기서 파란 --glow 로 보간하면 중간이 탁한 검붉은색을 지나다가 끝에서야
+  파란빛이 확 나타난다. "서서히 밝아지다 갑자기 푸른빛이 빡 돈다" 는 게 이것이었다
+  (2026-09-15 확인: 700ms 시점 계산값이 rgba(1, 0, 0, 0.45) = 거의 검정).
+
+  그래서 세 겹 모두 흰색으로 고정하고 알파만 0 → 최대 → 0 으로 움직인다.
+  흰색끼리의 보간은 중간에 다른 색이 끼어들 여지가 없다.
+  번짐 반경도 고정한다 — 크기가 아니라 밝기만 차오르는 게 자연스럽다.
+*/
 @keyframes hero-cta-idle {
   0%,
   100% {
     opacity: 0.8;
-    filter: drop-shadow(0 0 0 transparent);
+    filter: drop-shadow(0 0 6px rgb(255 255 255 / 0))
+      drop-shadow(0 0 16px rgb(255 255 255 / 0))
+      drop-shadow(0 0 30px rgb(255 255 255 / 0));
   }
   50% {
     opacity: 1;
-    filter: drop-shadow(0 0 8px rgb(255 255 255 / 0.95))
-      drop-shadow(0 0 20px rgb(255 255 255 / 0.55))
-      drop-shadow(0 0 34px color-mix(in srgb, var(--glow) 90%, transparent));
+    filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.95))
+      drop-shadow(0 0 16px rgb(255 255 255 / 0.6))
+      drop-shadow(0 0 30px rgb(255 255 255 / 0.35));
   }
 }
 
