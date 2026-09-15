@@ -6,8 +6,13 @@ export function isValidKoreanName(name: string): boolean {
   return KOREAN_NAME_PATTERN.test(name.trim());
 }
 
-// 닉네임: 한글(완성형+자모)/영문(소문자만)/숫자, 공백/특수문자/대문자 불허
-export const NICKNAME_PATTERN = /^[가-힣ㄱ-ㅎㅏ-ㅣa-z0-9]{1,12}$/;
+// 닉네임: 한글(완성형+자모)/영문(대소문자)/숫자, 공백·특수문자 불허
+//
+// ⚠️ 대소문자를 구분하지 않고 중복을 본다. 같은 회차에 wooju 와 Wooju 가 같이
+//    있으면 현장에서 서로를 못 알아본다. 중복 판정은 DB 의
+//    check_nickname_available() 이 lower() 로 비교하며, 여기 normalizeNickname 은
+//    화면에서 같은 기준으로 미리 걸러내기 위한 것이다.
+export const NICKNAME_PATTERN = /^[가-힣ㄱ-ㅎㅏ-ㅣa-zA-Z0-9]{1,12}$/;
 export function isValidNickname(nickname: string): boolean {
   if (!nickname || nickname.trim() === "") return true; // 선택 필드
   return NICKNAME_PATTERN.test(nickname.trim());
@@ -75,7 +80,7 @@ export function getValidationErrorMessage(field: string, reason: string): string
       invalid: "유효한 경험 구간을 선택해주세요.",
     },
     nickname: {
-      invalid: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다.",
+      invalid: "닉네임은 한글/영문/숫자 1~12자만 가능합니다.",
     },
     notes: {
       invalid: "요청사항은 200자 이내이고, 한글/영문/숫자/기본 기호만 가능합니다.",

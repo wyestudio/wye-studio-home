@@ -169,7 +169,7 @@ export async function applyAction(
     }
     // 닉네임 (선택, 입력했을 때만 검사)
     if (attendee.nickname && !isValidNickname(attendee.nickname)) {
-      return { error: "닉네임은 한글/영문 소문자/숫자 1~12자만 가능합니다.", attendees, notes };
+      return { error: "닉네임은 한글/영문/숫자 1~12자만 가능합니다.", attendees, notes };
     }
   }
 
