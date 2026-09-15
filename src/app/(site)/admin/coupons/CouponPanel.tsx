@@ -6,6 +6,7 @@ import { CampaignEditor, type CampaignRow } from "./CampaignEditor";
 import { issueCoupons } from "./actions";
 import { formatCouponCode } from "@/lib/coupon";
 import { formatKrw, formatDateFull } from "@/lib/format";
+import { toCsv, downloadCsv, kstStamp } from "@/lib/csv";
 
 const field = "rounded border border-border bg-background px-3 py-2 text-sm";
 
@@ -203,6 +204,38 @@ export function CouponPanel({
                         <p className="mt-1 text-xs text-muted">
                           복사해서 발송에 쓰세요. 이 목록은 아래 표에서 다시 볼 수 있습니다.
                         </p>
+                      </div>
+                    )}
+
+                    {mine.length > 0 && (
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-xs text-muted">
+                          발급된 코드 {mine.length}장 · 사용 {mine.filter((c) => c.used_at).length}장
+                        </p>
+                        {/*
+                          제휴처에 코드를 넘길 때 쓴다. 화면에서 500장을 눈으로 옮겨 적으면
+                          한 장만 틀려도 그 손님이 쿠폰을 못 쓴다.
+                        */}
+                        <button
+                          type="button"
+                          className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted/30"
+                          onClick={() =>
+                            downloadCsv(
+                              `쿠폰_${c.name}_${kstStamp()}.csv`,
+                              toCsv(
+                                ["코드", "메모", "사용여부", "사용일시"],
+                                mine.map((cp) => [
+                                  formatCouponCode(cp.code),
+                                  cp.issued_label ?? "",
+                                  cp.used_at ? "사용" : "미사용",
+                                  cp.used_at ? kst(cp.used_at) : "",
+                                ])
+                              )
+                            )
+                          }
+                        >
+                          CSV 내려받기
+                        </button>
                       </div>
                     )}
 
