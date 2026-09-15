@@ -5,7 +5,7 @@ import type { PublicVenue } from "@/types/catalog";
 import { VenueMap } from "@/components/contents/VenueMap";
 
 /**
- * 진행 장소 카드. 상호명 → 지도 → 주소(복사) → 주차 → 지도 앱 버튼 순.
+ * 진행 장소 카드. 지도 → 주소(복사) → 주차 → 지도 앱 버튼 순.
  *
  * 2026-09-15 까지는 대략 위치만 보여주고 주소는 이틀 전 문자로만 보냈다.
  * 네이버 플레이스 등록에 홈페이지의 상세 장소가 필요해 공개로 바꿨다(p34).
@@ -39,39 +39,22 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl rounded-2xl border border-panel-border bg-panel p-6 sm:max-w-2xl sm:p-10 lg:max-w-3xl lg:p-12">
-      <div className="text-center">
-        {/* 지도에 이미 핀이 있으면 아이콘은 겹치므로 뺀다. */}
-        {!hasCoords && (
-          <span
-            className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full sm:mb-5 sm:h-14 sm:w-14"
-            style={{ backgroundColor: `${accent}1f`, color: accent }}
-            aria-hidden
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 sm:h-7 sm:w-7" fill="currentColor">
-              <path d="M12 2.25a7.25 7.25 0 0 0-7.25 7.25c0 5.1 6.1 11.4 6.36 11.66a1.25 1.25 0 0 0 1.78 0c.26-.26 6.36-6.56 6.36-11.66A7.25 7.25 0 0 0 12 2.25Zm0 10a2.75 2.75 0 1 1 0-5.5 2.75 2.75 0 0 1 0 5.5Z" />
-            </svg>
-          </span>
-        )}
-        <p className="text-xs font-semibold sm:text-sm" style={{ color: accent }}>
-          {venue.area_label}
-        </p>
-        <p className="mt-1 text-xl font-extrabold text-foreground sm:mt-2 sm:text-3xl lg:text-4xl">
-          {venue.name}
-        </p>
-      </div>
-
+    <div className="mx-auto w-full max-w-xl rounded-2xl border border-panel-border bg-panel p-5 sm:max-w-2xl sm:p-8 lg:max-w-3xl lg:p-10">
+      {/*
+        상호명·대략 위치 제목은 두지 않는다. 블록 제목('진행 장소')이 이미 있고,
+        주소 줄에 상호명까지 들어 있어 같은 말이 세 번 반복됐다(2026-09-15 사용자 요청).
+      */}
       {hasCoords && (
         <VenueMap
           lat={venue.lat!}
           lng={venue.lng!}
           name={venue.name}
           accent={accent}
-          className="mt-5 sm:mt-7"
+          className="mb-4 sm:mb-5"
         />
       )}
 
-      <div className="mt-4 flex flex-col gap-2.5 sm:mt-5 sm:gap-3">
+      <div className="flex flex-col gap-2.5 sm:gap-3">
         {/* 주소 + 복사. 긴 주소가 버튼을 밀어내지 않게 글자 쪽이 줄바꿈된다. */}
         <div className="flex items-center gap-3 rounded-xl border border-panel-border bg-panel-raised px-4 py-3 sm:px-5 sm:py-4">
           <p className="min-w-0 flex-1 break-keep text-sm leading-relaxed text-foreground sm:text-base lg:text-lg">
