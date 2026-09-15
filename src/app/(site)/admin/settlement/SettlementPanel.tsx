@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatKrw } from "@/lib/format";
 import { toCsv, downloadCsv } from "@/lib/csv";
-import type { SettlementResult, SettlementRow } from "@/lib/settlement";
+import type { SettlementResult, SettlementRow, SettlementSnapshot } from "@/lib/settlement";
+import { saveSettlementSnapshot } from "./actions";
 
 const CSV_HEADERS = [
   "예약번호", "프로그램", "회차", "예약인원", "쿠폰코드",
@@ -79,8 +81,19 @@ function Table({ rows, 제목 }: { rows: SettlementRow[]; 제목: string }) {
   );
 }
 
-export function SettlementPanel({ data, months }: { data: SettlementResult; months: string[] }) {
+export function SettlementPanel({
+  data,
+  months,
+  snapshots,
+}: {
+  data: SettlementResult;
+  months: string[];
+  snapshots: SettlementSnapshot[];
+}) {
   const router = useRouter();
+  const [note, setNote] = useState("");
+  const [saving, startSave] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
   const { rows, totals, deductions, month } = data;
 
   const 차감합계 = deductions.reduce((a, r) => a + r.commissionKrw, 0);
@@ -197,6 +210,106 @@ export function SettlementPanel({ data, months }: { data: SettlementResult; mont
       {rows.length === 0 && deductions.length === 0 && (
         <p className="py-16 text-center text-muted">이 달에는 잼핏 쿠폰을 쓴 입금 완료 건이 없습니다.</p>
       )}
+
+      {/*
+        ⚠️ 보관은 **기록일 뿐**이다. 보관했다고 그 달이 잠기거나, 그 건이
+           '정산 완료'로 분류되어 다음 달 계산에서 빠지거나 하지 않는다.
+           그래서 버튼 이름도 '확정'이 아니라 '보관'이다.
+      */}
+      <div className="mt-10 rounded-lg border border-border bg-background/50 p-5">
+        <h2 className="text-lg font-semibold">이 내역 보관</h2>
+        <p className="mt-1 text-sm text-muted">
+          정산 화면은 매번 <strong className="text-foreground">실시간으로 다시 계산</strong>합니다. 나중에
+          데이터가 바뀌면 과거 달 숫자도 같이 바뀌므로, 잼핏에 보낸 시점의 내역을 그대로 남겨 둡니다.
+          <br />
+          <strong className="text-foreground">보관은 기록일 뿐입니다</strong> — 보관했다고 이 달이 잠기거나,
+          그 건이 다음 달 계산에서 빠지거나 하지 않습니다. 몇 번이든 보관할 수 있습니다.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-sm"
+            placeholder="메모 (예: 잼핏에 메일로 전달)"
+            value={note}
+            maxLength={200}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() =>
+              startSave(async () => {
+                setSaveError(null);
+                const res = await saveSettlementSnapshot(month, note);
+                if ("error" in res) setSaveError(res.error);
+                else {
+                  setNote("");
+                  router.refresh();
+                }
+              })
+            }
+            className="rounded-lg border border-glow/40 bg-glow/10 px-4 py-2 text-sm font-semibold hover:bg-glow/20 disabled:opacity-50"
+          >
+            {saving ? "보관 중…" : "이 내역 보관"}
+          </button>
+        </div>
+        {saveError && (
+          <p className="mt-2 rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{saveError}</p>
+        )}
+
+        {snapshots.length > 0 && (
+          <div className="mt-5 overflow-x-auto rounded border border-border">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="border-b border-border text-left text-xs text-muted">
+                <tr>
+                  <th className="px-3 py-2">보관 시각</th>
+                  <th className="px-3 py-2 text-right">건수</th>
+                  <th className="px-3 py-2 text-right">수수료</th>
+                  <th className="px-3 py-2 text-right">잼핏 쿠폰부담</th>
+                  <th className="px-3 py-2">메모</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {snapshots.map((s) => (
+                  <tr key={s.id} className="border-t border-border/50">
+                    <td className="px-3 py-2 tabular-nums">
+                      {new Date(s.capturedAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{s.totals.count}건</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {formatKrw(s.totals.commissionKrw)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-amber-400">
+                      {formatKrw(s.totals.partnerCouponShareKrw)}
+                    </td>
+                    <td className="px-3 py-2 text-muted">{s.note ?? "-"}</td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        className="rounded border border-border px-2 py-1 text-xs hover:bg-muted/30"
+                        onClick={() =>
+                          downloadCsv(
+                            `잼핏정산_${s.month}_보관본.csv`,
+                            toCsv(CSV_HEADERS, [
+                              ...s.rows.map(csvRow),
+                              ...(s.deductions.length > 0
+                                ? [[], ["※ 차감 대상"], ...s.deductions.map(csvRow)]
+                                : []),
+                            ])
+                          )
+                        }
+                      >
+                        CSV
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </>
   );
 }

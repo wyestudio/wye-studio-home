@@ -1,5 +1,5 @@
 import { AdminNav } from "@/components/admin/AdminNav";
-import { getSettlement, COMMISSION_RATE } from "@/lib/settlement";
+import { getSettlement, listSnapshots, COMMISSION_RATE } from "@/lib/settlement";
 import { SettlementPanel } from "./SettlementPanel";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,8 @@ export default async function SettlementPage({
 
   // ⚠️ 실패를 조용히 0건으로 보여주면 안 된다. 정산에서 0건은 '줄 돈이 없다'로
   //    읽히기 때문에, 못 불러온 것과 정말 없는 것을 반드시 구분해야 한다.
+  // ⚠️ 보관 내역은 **보여주기만** 한다. getSettlement() 은 이 값을 쓰지 않는다.
+  const snapshots = await listSnapshots(month);
   let data: Awaited<ReturnType<typeof getSettlement>> | null = null;
   let loadError: string | null = null;
   try {
@@ -56,7 +58,7 @@ export default async function SettlementPage({
             </p>
           </div>
         ) : (
-          <SettlementPanel data={data} months={CONTRACT_MONTHS} />
+          <SettlementPanel data={data} months={CONTRACT_MONTHS} snapshots={snapshots} />
         )}
 
         <div className="mt-10 space-y-1.5 border-t border-border pt-6 text-xs text-muted">

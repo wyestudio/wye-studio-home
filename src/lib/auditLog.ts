@@ -43,6 +43,8 @@ export type AuditAction =
   | "coupon.campaign_saved"
   | "coupon.campaign_deleted"
   | "coupon.deleted"
+  // 정산 (보관은 기록일 뿐 — 계산에 영향을 주지 않는다)
+  | "settlement.snapshot_saved"
   // 카탈로그·콘텐츠
   | "theme.saved"
   | "theme.deleted"
@@ -61,6 +63,7 @@ export type AuditTargetType =
   | "schedule"
   | "coupon"
   | "coupon_campaign"
+  | "settlement"
   | "theme"
   | "venue"
   | "notice"

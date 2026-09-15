@@ -258,3 +258,65 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
 
   return { month, rows, totals, deductions };
 }
+
+/* ────────────────────────────────────────────────────────────────
+   정산 내역 보관(스냅샷)
+
+   ⚠️ **보관은 계산에 영향을 주지 않는다.** 보관했다고 그 건이 '정산 완료'로
+      분류되거나 다음 달에서 빠지거나 하지 않는다. getSettlement() 은 아래
+      표를 읽지 않으며, 그 구조를 깨지 말 것.
+      화면에 보낸 시점의 숫자를 그대로 남겨 두기 위한 기록일 뿐이다.
+   ──────────────────────────────────────────────────────────────── */
+
+export type SettlementSnapshot = {
+  id: string;
+  month: string;
+  capturedAt: string;
+  note: string | null;
+  totals: SettlementResult["totals"];
+  rows: SettlementRow[];
+  deductions: SettlementRow[];
+};
+
+/** 그 달에 보관해 둔 내역들. 최신 순. */
+export async function listSnapshots(month: string): Promise<SettlementSnapshot[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("settlement_snapshots")
+    .select("id, month, captured_at, note, totals, rows, deductions")
+    .eq("month", month)
+    .order("captured_at", { ascending: false });
+
+  if (error) {
+    console.error("[settlement] 보관 내역 조회 실패", error);
+    return [];
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    month: r.month as string,
+    capturedAt: r.captured_at as string,
+    note: (r.note as string | null) ?? null,
+    totals: r.totals as SettlementResult["totals"],
+    rows: (r.rows ?? []) as SettlementRow[],
+    deductions: (r.deductions ?? []) as SettlementRow[],
+  }));
+}
+
+/**
+ * 지금 화면의 내역을 그대로 보관한다.
+ *
+ * ⚠️ 클라이언트가 보낸 숫자를 믿지 않는다. 서버에서 다시 계산해 저장한다 —
+ *    보관본은 분쟁 시 근거가 되므로 화면에서 조작할 수 있으면 안 된다.
+ */
+export async function saveSnapshot(month: string, note: string | null): Promise<void> {
+  const result = await getSettlement(month);
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("settlement_snapshots").insert({
+    month,
+    note: note?.trim() || null,
+    totals: result.totals,
+    rows: result.rows,
+    deductions: result.deductions,
+  });
+  if (error) throw new Error(`보관에 실패했습니다: ${error.message}`);
+}
