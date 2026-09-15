@@ -3,7 +3,11 @@
  *
  * 방탈출 손님이 테마를 고를 때 제일 먼저 보는 셋이다. 예전에는 제목 아래
  * 작은 회색 글씨 한 줄(🔒🔒🔒🔒 난이도 4/5 · ⏱ 3시간)이라 그냥 지나쳤다.
- * 방탈출 사이트들이 공통으로 쓰는 '스펙 요약' 처럼 숫자를 크게 세운다.
+ * 방탈출 사이트들이 공통으로 쓰는 '스펙 요약' 처럼 크게 세운다.
+ *
+ * 난이도는 자물쇠, 소요시간은 '180분' 하나만 크게 둔다. 보조 표기(4 / 5, 3시간)는
+ * 가로가 넉넉한 데스크톱(lg)에서만 옆에 작게 붙인다 — 모바일은 포스터 옆 칸이
+ * 좁아 두 줄로 밀리고, 같은 정보를 두 번 읽게 된다.
  *
  * 0 은 '미정'(아직 만들지 않은 테마)이다. 해당 칸을 통째로 감춘다 —
  * "난이도 0/5 · 0분" 은 고장으로 읽힌다.
@@ -29,24 +33,21 @@ export function ThemeSpecs({
         <dl className="grid gap-2 sm:gap-3 md:grid-cols-2">
           {showDifficulty && (
             <SpecTile label="난이도">
-              <p className="flex items-baseline gap-1 leading-none">
-                <span className="text-[1.75rem] font-extrabold sm:text-4xl">{difficulty}</span>
-                <span className="text-sm font-bold text-muted sm:text-base">/ 5</span>
-              </p>
               <LockRow rating={difficulty} accent={accent} />
+              <span className="hidden text-sm font-bold text-muted lg:inline">{difficulty} / 5</span>
             </SpecTile>
           )}
           {showDuration && (
             <SpecTile label="소요시간">
-              <p className="flex items-baseline gap-1 leading-none">
-                <span className="text-[1.75rem] font-extrabold sm:text-4xl">{durationMinutes}</span>
+              <span className="flex items-baseline gap-0.5">
+                <span className="text-[1.75rem] font-extrabold leading-none sm:text-4xl">
+                  {durationMinutes}
+                </span>
                 <span className="text-sm font-bold text-muted sm:text-base">분</span>
-              </p>
-              {/* 자물쇠 줄과 높이를 맞춰 두 칸의 아래끝이 한 선에 선다.
-                  좁은 화면에서는 뺀다 — 포스터 옆 칸이 포스터보다 길어진다. */}
-              <p className="mt-2 hidden h-5 items-center text-xs text-muted sm:flex sm:text-sm">
-                {hoursLabel(durationMinutes)} 진행
-              </p>
+              </span>
+              <span className="hidden text-sm font-bold text-muted lg:inline">
+                {hoursLabel(durationMinutes)}
+              </span>
             </SpecTile>
           )}
         </dl>
@@ -69,11 +70,14 @@ export function ThemeSpecs({
   );
 }
 
+/**
+ * 칸 하나. 값 줄의 높이를 고정해 두 칸(자물쇠 / 숫자)의 아래끝이 한 선에 선다.
+ */
 function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-4">
       <dt className="mb-1.5 text-xs font-bold text-muted sm:mb-2 sm:text-sm">{label}</dt>
-      <dd>{children}</dd>
+      <dd className="flex h-8 items-center gap-3 sm:h-10">{children}</dd>
     </div>
   );
 }
@@ -87,17 +91,21 @@ function hoursLabel(minutes: number) {
 
 /**
  * 자물쇠 5개. 이모지(🔒)는 기기마다 모양·색이 달라 강조색을 입힐 수 없어서 SVG 로 그린다.
+ *
+ * ⚠️ 크기는 lg 에서만 키운다. md(태블릿)는 두 칸이 나란히 서는데 칸 폭이 좁아
+ *    큰 자물쇠 5개가 넘친다.
  */
 function LockRow({ rating, accent, max = 5 }: { rating: number; accent: string; max?: number }) {
   return (
-    <span className="mt-2 flex h-5 items-center gap-1" aria-hidden>
+    <span className="flex items-center gap-1 lg:gap-1.5" role="img" aria-label={`난이도 ${rating} / ${max}`}>
       {Array.from({ length: max }, (_, i) => {
         const on = i < rating;
         return (
           <svg
             key={i}
             viewBox="0 0 16 16"
-            className="h-4 w-4 sm:h-5 sm:w-5"
+            aria-hidden
+            className="h-5 w-5 lg:h-7 lg:w-7"
             style={{ color: on ? accent : "rgba(255,255,255,0.22)" }}
           >
             <path

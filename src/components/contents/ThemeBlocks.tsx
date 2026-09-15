@@ -5,7 +5,7 @@ import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
-import type { ThemeBlock, ThemePriceTier } from "@/types/catalog";
+import type { ThemeBlock, ThemePriceTier, PublicVenue } from "@/types/catalog";
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
@@ -21,20 +21,28 @@ export function ThemeBlocks({
   accent,
   tiers = [],
   maxGroupSize = null,
+  venue = null,
 }: {
   blocks: ThemeBlock[];
   accent: string;
   /** 가격표 블록이 쓸 요금 구간. 블록이 아니라 테마가 들고 있는 값이다. */
   tiers?: ThemePriceTier[];
   maxGroupSize?: number | null;
+  /** 장소 블록이 쓸 공개용 장소 정보. 이것도 테마가 들고 있는 값이다. */
+  venue?: PublicVenue | null;
 }) {
   return (
     <>
       {/* 블록 사이는 넉넉히 띄운다 — 붙어 있으면 어디서 끊기는지 안 보인다. */}
       {/* 숨긴 블록은 고객 화면에서만 빠진다. 어드민에는 그대로 남아 있다. */}
-      {/* 요금 구간이 하나도 없는 테마의 가격표 블록은 제목만 덩그러니 남으므로 뺀다. */}
+      {/* 요금 구간이 하나도 없는 테마의 가격표 블록은 제목만 덩그러니 남으므로 뺀다. 장소도 같다. */}
       {blocks
-        .filter((b) => !b.hidden && !(b.type === "price" && tiers.length === 0))
+        .filter(
+          (b) =>
+            !b.hidden &&
+            !(b.type === "price" && tiers.length === 0) &&
+            !(b.type === "venue" && !venue?.area_label)
+        )
         .map((block, i) => (
           <section key={i} className="mb-24 last:mb-0 sm:mb-32">
             <ThemeBlockView
@@ -42,6 +50,7 @@ export function ThemeBlocks({
               accent={accent}
               tiers={tiers}
               maxGroupSize={maxGroupSize}
+              venue={venue}
             />
           </section>
         ))}
@@ -60,11 +69,13 @@ export function ThemeBlockView({
   accent,
   tiers = [],
   maxGroupSize = null,
+  venue = null,
 }: {
   block: ThemeBlock;
   accent: string;
   tiers?: ThemePriceTier[];
   maxGroupSize?: number | null;
+  venue?: PublicVenue | null;
 }) {
   // 제목은 전부 가운데. 블록마다 왼쪽/가운데가 섞이면 시선이 계속 튄다.
   // included 도 라벨·제목을 달 수 있다. 다만 기본은 비워 두는 쪽이다 —
@@ -91,6 +102,14 @@ export function ThemeBlockView({
           <PriceTable tiers={tiers} maxGroupSize={maxGroupSize} accent={accent} />
         </div>
       )}
+
+      {block.type === "venue" &&
+        (venue?.area_label ? (
+          <VenueCard venue={venue} accent={accent} />
+        ) : (
+          // 고객 화면에서는 위 filter 가 이미 뺀다. 여기 오는 건 어드민 미리보기뿐이다.
+          <p className="text-center text-xs text-muted">연결된 장소에 공개용 위치가 없습니다.</p>
+        ))}
 
       {/* 짧은 주석 한 줄로 쓰이는 자리라 제목들과 같이 가운데로 둔다. */}
       {block.type === "text" && (
@@ -244,6 +263,37 @@ export function ThemeBlockView({
         <ReviewsBlock block={block} accent={accent} />
       )}
     </>
+  );
+}
+
+/**
+ * 진행 장소 카드. 대략 위치를 크게, 그 아래 주소 안내·주차 안내.
+ *
+ * ⚠️ 지도 링크(map_url)는 싣지 않는다. 링크를 열면 정확한 위치가 드러나는데,
+ *    정확한 주소는 참여 확정자에게 진행 이틀 전 문자로만 보낸다.
+ */
+function VenueCard({ venue, accent }: { venue: PublicVenue; accent: string }) {
+  return (
+    <div className="mx-auto w-full max-w-xl rounded-xl border border-panel-border bg-panel p-6 text-center sm:p-8">
+      <span
+        className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full"
+        style={{ backgroundColor: `${accent}1f`, color: accent }}
+        aria-hidden
+      >
+        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+          <path d="M12 2.25a7.25 7.25 0 0 0-7.25 7.25c0 5.1 6.1 11.4 6.36 11.66a1.25 1.25 0 0 0 1.78 0c.26-.26 6.36-6.56 6.36-11.66A7.25 7.25 0 0 0 12 2.25Zm0 10a2.75 2.75 0 1 1 0-5.5 2.75 2.75 0 0 1 0 5.5Z" />
+        </svg>
+      </span>
+      <p className="text-lg font-extrabold text-foreground sm:text-xl">{venue.area_label}</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted">
+        정확한 주소는 참여 확정 후 진행 이틀 전 문자로 안내드려요.
+      </p>
+      {venue.parking_note && (
+        <p className="mt-4 inline-block rounded-full border border-panel-border px-3.5 py-1.5 text-xs text-muted">
+          주차 · {venue.parking_note}
+        </p>
+      )}
+    </div>
   );
 }
 

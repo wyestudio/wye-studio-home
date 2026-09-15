@@ -88,6 +88,9 @@ function sanitizeContent(raw: unknown): ThemeContent {
         // 가격표는 들고 있는 값이 없다. 숫자는 theme_price_tiers 에서 온다.
         case "price":
           return { ...common, type: "price" };
+        // 장소 블록도 들고 있는 값이 없다. 테마에 연결된 장소에서 온다.
+        case "venue":
+          return { ...common, type: "venue" };
         case "list": {
           /*
             ⚠️ 여기서 아는 값만 남기므로, 새 variant 를 만들면 **반드시 같이

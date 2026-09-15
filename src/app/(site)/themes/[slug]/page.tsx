@@ -119,12 +119,23 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
                    md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_synopsis']
                    lg:grid-cols-[20rem_minmax(0,1fr)]"
       >
-        <div className="self-start [grid-area:poster]">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-white/15 bg-surface">
+        {/*
+          포스터는 옆 칸 높이에 맞춰 늘어난다(그리드 기본 stretch). 포스터 아래끝과
+          오른쪽 정보의 아래끝이 어긋나 보인다는 의견을 받았다(2026-09-15).
+          늘어난 만큼은 object-cover 로 양옆이 조금 잘린다.
+
+          ⚠️ 바닥 높이: 데스크톱은 4:5 를 깔아 둔다. 오른쪽 내용이 짧아도 포스터가
+             가로로 넓적하게 찌그러지지 않게. 모바일은 포스터 옆이 난이도·시간·장르뿐이라
+             그 높이에 정확히 맞추고, 아무것도 없는 테마를 위해 최소 높이만 둔다.
+          ⚠️ 그림은 absolute 로 깐다. 흐름 안에 있으면 그림 높이가 칸을 도로 밀어 올린다.
+        */}
+        <div className="relative min-h-40 overflow-hidden rounded-xl border border-white/15 bg-surface [grid-area:poster]">
+          <div className="hidden aspect-[4/5] md:block" aria-hidden />
+          <div className="absolute inset-0">
             <PosterImage
               src={theme.hero_image_path}
               alt={`${theme.name} 포스터`}
-              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 45vw"
+              sizes="(min-width: 1024px) 320px, (min-width: 768px) 288px, 50vw"
               priority
             />
           </div>
@@ -156,19 +167,10 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
             </div>
           </div>
 
-          {/*
-            장소는 대략 위치만 내보낸다. 정확한 주소는 진행 이틀 전 문자로만
-            간다 — 매번 파티룸을 대관하는 구조라 미리 공개할 수 없다.
-          */}
-          {theme.venue && (
-            <p className="mt-2 text-sm text-muted">
-              📍 {theme.venue.area_label}
-              <span className="text-xs"> · 정확한 주소는 진행 이틀 전 문자로 안내드려요</span>
-            </p>
-          )}
+          {/* 장소는 여기서 뺐다. 상세 정보의 '진행 장소' 블록(ThemeBlocks)이 보여준다. */}
         </div>
 
-        <div className="min-w-0 self-start [grid-area:specs]">
+        <div className="min-w-0 [grid-area:specs]">
           <ThemeSpecs
             difficulty={theme.difficulty}
             durationMinutes={theme.duration_minutes}
@@ -227,6 +229,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           accent={accent}
           tiers={theme.tiers}
           maxGroupSize={theme.max_group_size}
+          venue={theme.venue}
         />
       </div>
 

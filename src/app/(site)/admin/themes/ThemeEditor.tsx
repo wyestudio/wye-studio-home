@@ -419,6 +419,7 @@ export function ThemeEditor({
               accent={accent}
               tiers={editing.tiers.map((t) => ({ ...t, theme_id: "" }))}
               maxGroupSize={editing.max_group_size}
+              venue={activeVenues.find((v) => v.id === editing.venue_id) ?? null}
               onChange={(blocks) => patchContent({ blocks })}
             />
           </div>

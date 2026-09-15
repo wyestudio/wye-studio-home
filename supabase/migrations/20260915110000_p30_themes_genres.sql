@@ -37,3 +37,25 @@ update public.themes
                   || '남은 목숨은 하트 세 개. 경쟁 끝에 손에 쥐는 게 승리일지, 새로운 인연일지는 START 를 누른 당신에게 달렸습니다.',
        updated_at = now()
  where slug = 'baotalchul' and description is null;
+
+-- 진행 장소 블록. 상세 상단의 📍 한 줄을 없애고 상세 정보 블록으로 내렸다.
+-- 블록은 자리만 잡고, 보여줄 값은 테마에 연결된 장소(theme_public_venue)에서 온다.
+-- '참가 전 꼭 확인해주세요'(첫 callout) 바로 위에 끼운다. callout 이 없으면 맨 뒤.
+-- 이미 장소 블록이 있으면(어드민에서 먼저 넣었으면) 건드리지 않는다.
+with t as (
+  select th.id,
+         (select min(e.ord) - 1
+            from jsonb_array_elements(th.content->'blocks') with ordinality as e(b, ord)
+           where e.b->>'type' = 'callout') as idx
+    from public.themes th
+   where th.slug = 'baotalchul'
+     and not exists (select 1 from jsonb_array_elements(th.content->'blocks') b where b->>'type' = 'venue')
+)
+update public.themes th
+   set content = case
+         when t.idx is null then jsonb_set(th.content, '{blocks}', (th.content->'blocks') || jsonb_build_array('{"type":"venue","title":"진행 장소","eyebrow":"LOCATION"}'::jsonb))
+         else jsonb_insert(th.content, array['blocks', t.idx::text], '{"type":"venue","title":"진행 장소","eyebrow":"LOCATION"}'::jsonb)
+       end,
+       updated_at = now()
+  from t
+ where th.id = t.id;

@@ -55,6 +55,17 @@ export type ThemeBlock =
    */
   | ({ type: "price" } & BlockCommon)
   /**
+   * 진행 장소 안내.
+   *
+   * 가격표처럼 **값은 블록이 아니라 테마에 연결된 장소(venues)** 에서 온다.
+   * 공개해도 되는 칸(대략 위치·주차 안내)만 보여준다 — 정확한 주소는 진행 이틀 전
+   * 문자로만 나간다. 지도 링크(map_url)도 정확한 위치가 드러나므로 싣지 않는다.
+   *
+   * 예전에는 제목 아래 📍 한 줄이었는데(2026-09-15 까지), 난이도·시간·장르 자리를
+   * 비우려고 블록으로 내렸다.
+   */
+  | ({ type: "venue" } & BlockCommon)
+  /**
    * 목록. 이모지는 선택.
    *   "card"     = 이모지 + 제목 + 설명 카드 (2열)
    *   "step"     = STEP 1·2·3 배지가 붙은 카드 (3열)
@@ -161,6 +172,7 @@ export const DEFAULT_THEME_CONTENT: ThemeContent = {
 /** 블록 종류별 표시 이름. 어드민 '블록 추가' 메뉴에 쓴다. */
 export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
   price: "인원별 참가비",
+  venue: "진행 장소",
   reviews: "후기",
   text: "제목 + 문단",
   list: "목록",
@@ -233,6 +245,13 @@ export function normalizeThemeContent(raw: unknown): ThemeContent {
 
   return { ...parsed, blocks };
 }
+
+/** 고객 화면에 내보내도 되는 장소 정보. 상호명·정확 주소는 들어 있지 않다. */
+export type PublicVenue = {
+  area_label: string;
+  parking_note: string | null;
+  map_url: string | null;
+};
 
 export type ThemeCategory = {
   id: string;

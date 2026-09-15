@@ -6,6 +6,7 @@ import type {
   ThemePriceTier,
   ThemeWithTiers,
   SessionView,
+  PublicVenue,
 } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 
@@ -65,12 +66,8 @@ async function _getListedThemes(): Promise<ThemeWithTiers[]> {
  * slug 로 테마 1건.
  * is_active 가 false 여도 페이지는 보여야 하므로 여기서 거르지 않는다.
  */
-/** 고객 화면에 내보내도 되는 장소 정보. 상호명·정확 주소는 들어 있지 않다. */
-export type PublicVenue = {
-  area_label: string;
-  parking_note: string | null;
-  map_url: string | null;
-};
+// 장소 블록(ThemeBlocks)이 어드민 미리보기에서도 같은 타입을 써서 catalog 로 옮겼다.
+export type { PublicVenue };
 
 export type ThemeDetail = ThemeWithTiers & { venue: PublicVenue | null };
 

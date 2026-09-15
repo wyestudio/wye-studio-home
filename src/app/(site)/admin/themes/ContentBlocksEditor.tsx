@@ -7,6 +7,7 @@ import {
   type ThemeBlock,
   type ThemeBlockType,
   type ThemePriceTier,
+  type PublicVenue,
 } from "@/types/catalog";
 
 const field = "w-full rounded border border-border bg-background px-2 py-1.5 text-sm";
@@ -18,6 +19,8 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
   switch (type) {
     case "price":
       return { type, title: "인원별 참가비", eyebrow: "PRICE" };
+    case "venue":
+      return { type, title: "진행 장소", eyebrow: "LOCATION" };
     case "text":
       return { type, title: "", body: "" };
     case "list":
@@ -56,6 +59,7 @@ export function ContentBlocksEditor({
   accent,
   tiers,
   maxGroupSize,
+  venue,
   onChange,
 }: {
   blocks: ThemeBlock[];
@@ -63,6 +67,8 @@ export function ContentBlocksEditor({
   /** 가격표 블록 미리보기용. 아래 '요금 구간' 칸을 고치면 여기도 같이 바뀐다. */
   tiers: ThemePriceTier[];
   maxGroupSize: number | null;
+  /** 장소 블록 미리보기용. 위 '장소' 선택을 바꾸면 여기도 같이 바뀐다. */
+  venue: PublicVenue | null;
   onChange: (blocks: ThemeBlock[]) => void;
 }) {
   /** 폼이 열려 있는 블록. 미리보기만 보고 싶을 때가 대부분이라 기본은 닫힘. */
@@ -149,6 +155,7 @@ export function ContentBlocksEditor({
                   accent={accent}
                   tiers={tiers}
                   maxGroupSize={maxGroupSize}
+                  venue={venue}
                 />
               </div>
 
@@ -175,6 +182,14 @@ export function ContentBlocksEditor({
                     <p className="text-[11px] text-muted">
                       금액은 여기서 고치지 않습니다. 아래 <strong>요금 구간 (인당 가격)</strong> 칸을
                       고치면 이 표에 그대로 반영돼요.
+                    </p>
+                  )}
+
+                  {b.type === "venue" && (
+                    <p className="text-[11px] text-muted">
+                      장소는 여기서 고치지 않습니다. 위쪽 <strong>장소</strong> 선택과 <strong>장소</strong>{" "}
+                      메뉴의 &lsquo;공개용 위치·주차 안내&rsquo; 가 그대로 보여요. 정확한 주소·지도 링크는
+                      고객 화면에 나가지 않습니다.
                     </p>
                   )}
 
