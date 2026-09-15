@@ -45,3 +45,11 @@ comment on table public.settlement_snapshots is
 -- 이 프로젝트의 1차 방어선은 테이블 GRANT 다.
 alter table public.settlement_snapshots enable row level security;
 revoke all on public.settlement_snapshots from anon, authenticated;
+
+-- ⚠️ service_role 에 명시적으로 준다. 새 표는 기본값으로 SELECT/INSERT 가
+--    붙지 않아, 안 주면 어드민에서 'permission denied' 가 난다(실제로 겪음).
+--
+-- ⚠️ UPDATE·DELETE 는 **일부러 주지 않는다.** 보관본은 덧붙이기만 하고
+--    나중에 고칠 수 없어야 기록으로서 의미가 있다. 잘못 보관했으면 메모를
+--    남기고 다시 보관한다.
+grant select, insert on public.settlement_snapshots to service_role;
