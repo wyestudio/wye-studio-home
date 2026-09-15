@@ -141,7 +141,8 @@ function BaselineStrut() {
 
 /** 데스크톱(lg)에서만 보이는 보조 표기. 모바일은 칸이 좁아 뺀다. */
 function SmallNote({ children }: { children: React.ReactNode }) {
-  return <span className="hidden text-sm font-bold text-muted lg:inline">{children}</span>;
+  // 칸이 좁아져도 '4 / 5' 가 두 줄로 꺾이지 않게.
+  return <span className="hidden whitespace-nowrap text-sm font-bold text-muted lg:inline">{children}</span>;
 }
 
 function hoursLabel(minutes: number) {

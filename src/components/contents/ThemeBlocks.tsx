@@ -56,7 +56,7 @@ export function ThemeBlocks({
   return (
     <>
       {screens.map((group, i) => (
-        <section key={i} className={SCREEN_SECTION}>
+        <section key={i} data-screen className={SCREEN_SECTION}>
           {group.map((block, j) => (
             // 같은 화면 안에 붙은 덧붙임 블록은 조금만 띄운다.
             <div key={j} className={j > 0 ? "mt-6" : undefined}>
@@ -101,8 +101,9 @@ export function ThemeBlockView({
     <SectionHeading
       eyebrow={block.eyebrow ?? ""}
       title={block.title}
-      className="mb-6"
+      className="mb-6 sm:mb-10"
       eyebrowColor={accent}
+      size="lg"
     />
   );
 
@@ -115,8 +116,8 @@ export function ThemeBlockView({
         보였다. 숫자는 테마의 '요금 구간' 에서 오고 블록은 자리만 잡는다.
       */}
       {block.type === "price" && (
-        <div className="w-full">
-          <PriceTable tiers={tiers} maxGroupSize={maxGroupSize} accent={accent} />
+        <div className="mx-auto w-full max-w-3xl">
+          <PriceTable tiers={tiers} maxGroupSize={maxGroupSize} accent={accent} size="lg" />
         </div>
       )}
 
@@ -130,7 +131,7 @@ export function ThemeBlockView({
 
       {/* 짧은 주석 한 줄로 쓰이는 자리라 제목들과 같이 가운데로 둔다. */}
       {block.type === "text" && (
-        <RichText text={block.body} className="block text-center leading-relaxed" />
+        <RichText text={block.body} className="block text-center text-sm leading-relaxed sm:text-base" />
       )}
 
       {block.type === "image" && block.src && (
@@ -149,22 +150,22 @@ export function ThemeBlockView({
       */}
       {block.type === "list" && block.variant === "included" && (
         <div
-          className="w-full overflow-hidden rounded-xl border border-panel-border bg-panel p-6 sm:p-8"
+          className="w-full overflow-hidden rounded-2xl border border-panel-border bg-panel p-6 sm:p-10 lg:p-12"
         >
           {block.headline && (
-            <p className="text-lg font-extrabold leading-snug text-foreground sm:text-xl">
+            <p className="text-lg font-extrabold leading-snug text-foreground sm:text-2xl lg:text-3xl">
               {block.headline}
             </p>
           )}
           {block.subtitle && (
-            <p className="mt-2 text-sm leading-relaxed text-muted">{block.subtitle}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted sm:mt-3 sm:text-base">{block.subtitle}</p>
           )}
 
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4">
             {block.items.map((item, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-panel-border bg-panel-raised p-5 sm:px-6 sm:py-7"
+                className="rounded-xl border border-panel-border bg-panel-raised p-5 sm:px-7 sm:py-8"
               >
                 {/* 이모지는 배경 없이 그대로 둔다 — 원형 바탕을 깔면 아이콘처럼
                     보이려다 색만 튀어서, 카드가 산만해진다. */}
@@ -172,15 +173,17 @@ export function ThemeBlockView({
                     높이를 고정해 세 카드의 제목이 한 줄에 맞게 한다. */}
                 {item.emoji && (
                   <span
-                    className="mb-3 flex items-center text-2xl leading-none sm:mb-4 sm:h-8"
+                    className="mb-3 flex items-center text-2xl leading-none sm:mb-5 sm:h-10 sm:text-4xl"
                     aria-hidden
                   >
                     {item.emoji}
                   </span>
                 )}
-                <p className="font-bold text-foreground">{item.title}</p>
+                <p className="font-bold text-foreground sm:text-lg lg:text-xl">{item.title}</p>
                 {item.desc && (
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted">{item.desc}</p>
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">
+                    {item.desc}
+                  </p>
                 )}
               </div>
             ))}
@@ -188,7 +191,7 @@ export function ThemeBlockView({
 
           {block.highlight && (
             <p
-              className="mt-5 rounded-xl border px-5 py-3.5 text-center text-sm font-semibold"
+              className="mt-5 rounded-xl border px-5 py-3.5 text-center text-sm font-semibold sm:mt-6 sm:py-4 sm:text-base lg:text-lg"
               style={{ backgroundColor: `${accent}12`, borderColor: `${accent}33`, color: accent }}
             >
               {block.highlight}
@@ -196,7 +199,7 @@ export function ThemeBlockView({
           )}
 
           {block.footnote && (
-            <p className="mt-4 text-[11px] leading-relaxed text-muted">{block.footnote}</p>
+            <p className="mt-4 text-[11px] leading-relaxed text-muted sm:text-xs lg:text-sm">{block.footnote}</p>
           )}
         </div>
       )}
@@ -208,30 +211,37 @@ export function ThemeBlockView({
             {block.items.map((step, i) => (
               <div
                 key={i}
-                className="relative rounded-xl border border-panel-border bg-panel p-5 pt-6"
+                className="relative rounded-xl border border-panel-border bg-panel p-5 pt-6 sm:p-7 sm:pt-8"
               >
                 <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold text-brand-foreground">
                   STEP {i + 1}
                 </span>
-                <p className="mb-2 font-bold text-foreground">
+                <p className="mb-2 font-bold text-foreground sm:text-lg lg:text-xl">
                   {step.emoji} {step.title}
                 </p>
-                <p className="text-xs leading-relaxed text-muted">{step.desc}</p>
+                <p className="text-xs leading-relaxed text-muted sm:text-sm lg:text-base">{step.desc}</p>
               </div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
             {block.items.map((card, i) => (
-              <div key={i} className="flex gap-3 rounded-xl border border-panel-border bg-panel p-5">
+              <div
+                key={i}
+                className="flex gap-3 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-7 lg:p-8"
+              >
                 {card.emoji && (
-                  <span className="text-2xl" aria-hidden>
+                  <span className="text-2xl sm:text-4xl" aria-hidden>
                     {card.emoji}
                   </span>
                 )}
                 <div>
-                  <p className="font-bold text-foreground">{card.title}</p>
-                  {card.desc && <p className="mt-1 text-xs text-muted">{card.desc}</p>}
+                  <p className="font-bold text-foreground sm:text-lg lg:text-xl">{card.title}</p>
+                  {card.desc && (
+                    <p className="mt-1 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">
+                      {card.desc}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
@@ -239,19 +249,21 @@ export function ThemeBlockView({
         ))}
 
       {block.type === "timetable" && (
-        <div className="mx-auto flex max-w-xl flex-col">
+        <div className="mx-auto flex w-full max-w-xl flex-col sm:max-w-2xl lg:max-w-3xl">
           {block.items.map((t, i) => (
-            <div key={i} className="flex gap-4 pb-6 last:pb-0">
+            <div key={i} className="flex gap-4 pb-6 last:pb-0 sm:gap-6 sm:pb-10">
               <div className="flex flex-col items-center">
                 <PlanetDot planet={PLANET_CYCLE[i % PLANET_CYCLE.length]} className="mt-1" />
                 {i < block.items.length - 1 ? <div className="mt-1 w-px flex-1 bg-border" /> : null}
               </div>
               <div className="pb-1">
-                <p className="text-xs font-extrabold" style={{ color: accent }}>
+                <p className="text-xs font-extrabold sm:text-sm" style={{ color: accent }}>
                   {i + 1}
                 </p>
-                <p className="mt-0.5 font-bold text-foreground">{t.title}</p>
-                {t.desc && <p className="mt-1 text-xs text-muted">{t.desc}</p>}
+                <p className="mt-0.5 font-bold text-foreground sm:mt-1 sm:text-xl lg:text-2xl">{t.title}</p>
+                {t.desc && (
+                  <p className="mt-1 text-xs text-muted sm:mt-2 sm:text-base lg:text-lg">{t.desc}</p>
+                )}
               </div>
             </div>
           ))}
@@ -259,22 +271,31 @@ export function ThemeBlockView({
       )}
 
       {block.type === "callout" && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
           {block.items.map((p, i) => (
-            <div key={i} className="flex gap-4 rounded-xl border border-panel-border bg-panel p-5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-xs font-bold text-danger">
+            <div
+              key={i}
+              className="flex gap-4 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-6 lg:p-7"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-xs font-bold text-danger sm:h-9 sm:w-9 sm:text-sm">
                 {i + 1}
               </span>
-              <div className="flex flex-col gap-1">
-                <p className="font-bold text-foreground">{p.title}</p>
-                {p.desc && <p className="text-xs text-muted">{p.desc}</p>}
+              <div className="flex flex-col gap-1 sm:gap-1.5">
+                <p className="font-bold text-foreground sm:text-lg">{p.title}</p>
+                {p.desc && (
+                  <p className="text-xs leading-relaxed text-muted sm:text-sm lg:text-base">{p.desc}</p>
+                )}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {block.type === "faq" && <FlatFaqAccordion items={block.items} />}
+      {block.type === "faq" && (
+        <div className="mx-auto w-full max-w-4xl">
+          <FlatFaqAccordion items={block.items} size="lg" />
+        </div>
+      )}
 
       {block.type === "reviews" && (
         <ReviewsBlock block={block} accent={accent} />
@@ -291,22 +312,22 @@ export function ThemeBlockView({
  */
 function VenueCard({ venue, accent }: { venue: PublicVenue; accent: string }) {
   return (
-    <div className="mx-auto w-full max-w-xl rounded-xl border border-panel-border bg-panel p-6 text-center sm:p-8">
+    <div className="mx-auto w-full max-w-xl rounded-2xl border border-panel-border bg-panel p-6 text-center sm:max-w-2xl sm:p-12 lg:max-w-3xl lg:p-14">
       <span
-        className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full"
+        className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full sm:mb-5 sm:h-14 sm:w-14"
         style={{ backgroundColor: `${accent}1f`, color: accent }}
         aria-hidden
       >
-        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+        <svg viewBox="0 0 24 24" className="h-5 w-5 sm:h-7 sm:w-7" fill="currentColor">
           <path d="M12 2.25a7.25 7.25 0 0 0-7.25 7.25c0 5.1 6.1 11.4 6.36 11.66a1.25 1.25 0 0 0 1.78 0c.26-.26 6.36-6.56 6.36-11.66A7.25 7.25 0 0 0 12 2.25Zm0 10a2.75 2.75 0 1 1 0-5.5 2.75 2.75 0 0 1 0 5.5Z" />
         </svg>
       </span>
-      <p className="text-lg font-extrabold text-foreground sm:text-xl">{venue.area_label}</p>
-      <p className="mt-2 text-sm leading-relaxed text-muted">
+      <p className="text-lg font-extrabold text-foreground sm:text-2xl lg:text-3xl">{venue.area_label}</p>
+      <p className="mt-2 text-sm leading-relaxed text-muted sm:mt-3 sm:text-base lg:text-lg">
         정확한 주소는 참여 확정 후 진행 이틀 전 문자로 안내드려요.
       </p>
       {venue.parking_note && (
-        <p className="mt-4 inline-block rounded-full border border-panel-border px-3.5 py-1.5 text-xs text-muted">
+        <p className="mt-4 inline-block rounded-full border border-panel-border px-3.5 py-1.5 text-xs text-muted sm:mt-6 sm:px-5 sm:py-2 sm:text-sm">
           주차 · {venue.parking_note}
         </p>
       )}
@@ -328,7 +349,7 @@ function ReviewsBlock({
     <div className="flex flex-col gap-10 sm:gap-12">
       {/* 제목 아래 한 줄. 제목들과 같이 가운데. */}
       {block.subtitle && (
-        <p className="-mt-2 text-center text-sm leading-relaxed text-muted sm:text-base">
+        <p className="-mt-2 text-center text-sm leading-relaxed text-muted sm:-mt-4 sm:text-base lg:text-lg">
           {block.subtitle}
         </p>
       )}
@@ -339,19 +360,19 @@ function ReviewsBlock({
            보여줘야 "우리가 지어낸 값" 으로 읽히지 않는다.
       */}
       {block.stats.length > 0 && (
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:max-w-3xl">
           {block.stats.map((s, i) => (
             <div
               key={i}
               className="rounded-xl border border-panel-border bg-panel px-5 py-6 text-center sm:px-6 sm:py-7"
             >
               <p
-                className="text-[2rem] font-extrabold leading-none tabular-nums sm:text-[2.4rem]"
+                className="text-[2rem] font-extrabold leading-none tabular-nums sm:text-[2.4rem] lg:text-5xl"
                 style={{ color: accent }}
               >
                 {s.value}
               </p>
-              <p className="mt-2.5 text-sm font-bold text-foreground">{s.label}</p>
+              <p className="mt-2.5 text-sm font-bold text-foreground sm:mt-3 sm:text-base">{s.label}</p>
               {s.note && <p className="mt-1 text-[11px] leading-relaxed text-muted">{s.note}</p>}
             </div>
           ))}
@@ -373,11 +394,11 @@ function ReviewsBlock({
               >
                 &ldquo;
               </span>
-              <blockquote className="relative pt-3 text-sm leading-relaxed text-foreground">
+              <blockquote className="relative pt-3 text-sm leading-relaxed text-foreground sm:text-base">
                 {q.text}
               </blockquote>
               {q.meta && (
-                <figcaption className="mt-3 text-[11px] text-muted">{q.meta}</figcaption>
+                <figcaption className="mt-3 text-[11px] text-muted sm:text-xs">{q.meta}</figcaption>
               )}
             </figure>
           ))}

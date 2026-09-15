@@ -125,8 +125,8 @@ export function SessionPicker({
 
   return (
     <div className="flex flex-col gap-5 md:flex-row md:items-stretch md:gap-8">
-      <div className="md:w-[19rem] md:shrink-0">
-        <p className="mb-2 text-xs font-bold text-muted">날짜 선택</p>
+      <div className="md:w-[19rem] md:shrink-0 lg:w-[23rem]">
+        <p className="mb-2 text-xs font-bold text-muted lg:text-sm">날짜 선택</p>
         <BookingCalendar
           dateStatus={dateStatus}
           selected={selectedDate}
@@ -139,7 +139,7 @@ export function SessionPicker({
       {/* 시간 칸은 달력과 같은 높이로 늘어난다. 신청 버튼을 mt-auto 로 밀면
           버튼 아래끝이 달력 아래끝(=포스터 아래끝)과 같은 선에 놓인다. */}
       <div ref={timeRef} className="flex min-w-0 flex-1 scroll-mt-28 flex-col">
-        <p className="mb-2 text-xs font-bold text-muted">
+        <p className="mb-2 text-xs font-bold text-muted lg:text-sm">
           시간 선택
           {selectedDate && (
             <span className="ml-1.5 font-medium text-white/70">
@@ -163,12 +163,12 @@ export function SessionPicker({
                   key={s.id}
                   onClick={() => setSelectedId(s.id)}
                   disabled={!s.bookable}
-                  className={`rounded-lg border py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  className={`rounded-lg border py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40 lg:py-4 ${
                     isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
                   }`}
                   style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
                 >
-                  <p className="text-base font-bold">{kstTime(s.start_at)}</p>
+                  <p className="text-base font-bold lg:text-lg">{kstTime(s.start_at)}</p>
                   {!s.bookable && <p className="mt-0.5 text-xs text-muted">마감</p>}
                 </button>
               );

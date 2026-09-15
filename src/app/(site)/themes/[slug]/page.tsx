@@ -19,6 +19,7 @@ import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { PosterFit } from "./PosterFit";
+import { ScreenSnap } from "./ScreenSnap";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
 import { posterFitInlineScript } from "./posterFitScript";
@@ -128,7 +129,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         같이 보이지 않게 한다. 한 화면에 정보가 몰리면 피로하다는 의견(2026-09-15).
         상세 블록·날짜 선택도 같은 규칙이다(SCREEN_SECTION 참고).
       */}
-      <div className={SCREEN_SECTION}>
+      <div data-screen className={SCREEN_SECTION}>
       <section
         id="intro"
         suppressHydrationWarning
@@ -224,9 +225,15 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       </div>
 
       {/* ── 날짜 선택 ── 상세 블록과 같이 한 화면에 하나. '신청하기' 로 스크롤해 오면 화면을 딱 채운다. */}
-      <section id="booking" className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}>
-        <SectionHeading eyebrow="BOOKING" title="날짜 선택" className="mb-6" eyebrowColor={accent} />
-        <div className="mx-auto max-w-3xl">
+      <section id="booking" data-screen className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}>
+        <SectionHeading
+          eyebrow="BOOKING"
+          title="날짜 선택"
+          className="mb-6 sm:mb-10"
+          eyebrowColor={accent}
+          size="lg"
+        />
+        <div className="mx-auto w-full max-w-3xl lg:max-w-4xl">
           <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
             <SessionPicker
               themeSlug={theme.slug}
@@ -253,6 +260,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           venue={theme.venue}
         />
       </div>
+
+      {/* 휠 한 번에 다음 화면 블록으로([data-screen]) */}
+      <ScreenSnap />
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}
       <KakaoChannelButton />
