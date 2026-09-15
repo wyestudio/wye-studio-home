@@ -475,7 +475,7 @@ export default function AnalyticsDashboard() {
                 신청은 값이 없어 전부 &lsquo;직접 방문 · 출처 없음&rsquo;으로 잡힙니다.
                 <br />· <strong className="text-foreground">처음 들어온 곳</strong> 기준입니다 —
                 잼핏으로 들어와 홈을 거쳐 신청했어도 잼핏으로 셉니다.
-                <br />· 외부 링크에 <code className="font-mono">?utm_source=jamfit</code> 처럼
+                <br />· 외부 링크에 <code className="font-mono">?utm_source=zamfit</code> 처럼
                 붙여두면 이 표에 그 이름으로 뜹니다.
               </p>
             </div>
