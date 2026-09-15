@@ -6,6 +6,7 @@ import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import type { ThemeBlock, ThemePriceTier, PublicVenue } from "@/types/catalog";
+import { SCREEN_SECTION } from "@/components/contents/screenSection";
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
@@ -15,6 +16,11 @@ const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
  *
  * 운영자가 어드민에서 쌓은 순서 그대로 그린다. 블록 종류마다 모양만 다르고
  * 어떤 블록이 몇 개 오든 상관없다.
+ *
+ * **한 화면에 블록 하나**씩 세운다(SCREEN_SECTION). 첫 화면(테마 소개)과 같은 규칙이다.
+ * 단, **라벨·제목이 둘 다 없는 블록은 바로 앞 블록과 같은 화면에 붙인다.**
+ * 그런 블록은 앞 블록의 덧붙임이다 — 예: 진행 순서 아래 '*자세한 타임테이블은 현장
+ * 상황에 따라…' 한 줄. 혼자 한 화면을 차지하면 무슨 말인지 모른다.
  */
 export function ThemeBlocks({
   blocks,
@@ -31,29 +37,40 @@ export function ThemeBlocks({
   /** 장소 블록이 쓸 공개용 장소 정보. 이것도 테마가 들고 있는 값이다. */
   venue?: PublicVenue | null;
 }) {
+  // 숨긴 블록은 고객 화면에서만 빠진다. 어드민에는 그대로 남아 있다.
+  // 요금 구간이 하나도 없는 테마의 가격표 블록은 제목만 덩그러니 남으므로 뺀다. 장소도 같다.
+  const visible = blocks.filter(
+    (b) =>
+      !b.hidden &&
+      !(b.type === "price" && tiers.length === 0) &&
+      !(b.type === "venue" && !venue?.area_label)
+  );
+
+  const screens: ThemeBlock[][] = [];
+  for (const b of visible) {
+    const headless = !b.eyebrow?.trim() && !b.title?.trim();
+    if (headless && screens.length > 0) screens[screens.length - 1].push(b);
+    else screens.push([b]);
+  }
+
   return (
     <>
-      {/* 블록 사이는 넉넉히 띄운다 — 붙어 있으면 어디서 끊기는지 안 보인다. */}
-      {/* 숨긴 블록은 고객 화면에서만 빠진다. 어드민에는 그대로 남아 있다. */}
-      {/* 요금 구간이 하나도 없는 테마의 가격표 블록은 제목만 덩그러니 남으므로 뺀다. 장소도 같다. */}
-      {blocks
-        .filter(
-          (b) =>
-            !b.hidden &&
-            !(b.type === "price" && tiers.length === 0) &&
-            !(b.type === "venue" && !venue?.area_label)
-        )
-        .map((block, i) => (
-          <section key={i} className="mb-24 last:mb-0 sm:mb-32">
-            <ThemeBlockView
-              block={block}
-              accent={accent}
-              tiers={tiers}
-              maxGroupSize={maxGroupSize}
-              venue={venue}
-            />
-          </section>
-        ))}
+      {screens.map((group, i) => (
+        <section key={i} className={SCREEN_SECTION}>
+          {group.map((block, j) => (
+            // 같은 화면 안에 붙은 덧붙임 블록은 조금만 띄운다.
+            <div key={j} className={j > 0 ? "mt-6" : undefined}>
+              <ThemeBlockView
+                block={block}
+                accent={accent}
+                tiers={tiers}
+                maxGroupSize={maxGroupSize}
+                venue={venue}
+              />
+            </div>
+          ))}
+        </section>
+      ))}
     </>
   );
 }

@@ -12,6 +12,7 @@ import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { ThemeSpecTiles, ThemeGenreTile } from "@/components/contents/ThemeSpecs";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
+import { SCREEN_SECTION, SCREEN_SCROLL_MARGIN } from "@/components/contents/screenSection";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/catalog";
@@ -125,13 +126,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       {/*
         첫 화면에는 소개 블록만 — 화면 가운데보다 살짝 위에 띄우고, 아래 날짜 선택이
         같이 보이지 않게 한다. 한 화면에 정보가 몰리면 피로하다는 의견(2026-09-15).
-        pb 를 pt 보다 크게 줘서 가운데보다 위로 올린다.
-
-        ⚠️ 높이 계산에 --header-height 를 쓰지 않는다. 그 값은 React 가 뜬 뒤에
-           들어와서, 들어오는 순간 블록이 위아래로 한 번 움직인다. 헤더 높이
-           (모바일은 헤더 + 탭 줄)를 대략의 고정값으로 뺀다.
+        상세 블록·날짜 선택도 같은 규칙이다(SCREEN_SECTION 참고).
       */}
-      <div className="flex min-h-[calc(100svh-7.5rem)] flex-col justify-center pb-[8svh] pt-6 md:min-h-[calc(100svh-5.25rem)] md:pb-[10svh] md:pt-8">
+      <div className={SCREEN_SECTION}>
       <section
         id="intro"
         suppressHydrationWarning
@@ -226,9 +223,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <ScrollToBookingButton accent={accent} />
       </div>
 
-      {/* ── 날짜 선택 ── 상세 설명 블록과 같은 모양의 섹션으로 */}
-      {/* 소개 블록이 첫 화면 높이를 채우므로 위 여백은 작게 둔다. */}
-      <section id="booking" className="mt-8 scroll-mt-28 sm:mt-12">
+      {/* ── 날짜 선택 ── 상세 블록과 같이 한 화면에 하나. '신청하기' 로 스크롤해 오면 화면을 딱 채운다. */}
+      <section id="booking" className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}>
         <SectionHeading eyebrow="BOOKING" title="날짜 선택" className="mb-6" eyebrowColor={accent} />
         <div className="mx-auto max-w-3xl">
           <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
@@ -244,7 +240,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       </section>
 
       {/* ── 상세 정보 ── */}
-      <div id="detail" className="mt-24 scroll-mt-28 sm:mt-32">
+      <div id="detail" className={SCREEN_SCROLL_MARGIN}>
         {/*
           어드민에서 쌓은 블록 순서대로. 가격표도 블록 중 하나다 —
           예전에는 여기 하드코딩돼 있어서 순서를 바꾸거나 감출 수 없었다.

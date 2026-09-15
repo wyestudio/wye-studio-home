@@ -274,7 +274,7 @@ function BookingCta({
               className="block rounded-lg border px-6 py-3.5 text-center text-base font-bold"
               style={{ borderColor: accentColor, color: accentColor }}
             >
-              날짜 선택하기
+              신청하기
             </a>
           )}
         </div>

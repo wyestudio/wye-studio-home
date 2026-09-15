@@ -43,7 +43,12 @@ export function Header() {
       className="sticky top-0 z-20"
     >
       {/* 데스크톱 헤더 */}
-      <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-6 ${isHome ? "bg-transparent" : "bg-background/95 backdrop-blur-md"}`}>
+      {/*
+        크기(2026-09-15 키움): 테마 상세 첫 화면을 크게 세우고 나니 헤더가 작고 위에 붙어
+        보였다. 로고·글자·메뉴와 위아래 여백을 한 단계씩 키웠다(높이 약 84 → 100px).
+        ⚠️ 높이를 바꾸면 components/contents/screenSection.ts 의 숫자도 같이 고칠 것.
+      */}
+      <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-7 ${isHome ? "bg-transparent" : "bg-background/95 backdrop-blur-md"}`}>
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5">
             <Image
@@ -52,15 +57,15 @@ export function Header() {
               width={92}
               height={64}
               priority
-              className="h-9 w-auto"
+              className="h-11 w-auto"
             />
-            <span className="whitespace-nowrap text-lg font-extrabold tracking-tight text-foreground">
+            <span className="whitespace-nowrap text-xl font-extrabold tracking-tight text-foreground">
               우주이스케이프
             </span>
           </Link>
         </div>
         {/* 데스크톱 네비게이션 */}
-        <nav className="flex flex-wrap items-center gap-x-4 gap-y-1 text-base font-bold text-muted">
+        <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-lg font-bold text-muted">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return item.enabled === false ? null : (
@@ -78,7 +83,7 @@ export function Header() {
 
       {/* 모바일 헤더 */}
       <div className="md:hidden bg-background">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-4">
           <div className="flex shrink-0 items-center gap-2">
             <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-1.5">
               <Image
@@ -87,9 +92,9 @@ export function Header() {
                 width={92}
                 height={64}
                 priority
-                className="h-7 w-auto"
+                className="h-8 w-auto"
               />
-              <span className="whitespace-nowrap text-sm font-extrabold tracking-tight text-foreground">
+              <span className="whitespace-nowrap text-base font-extrabold tracking-tight text-foreground">
                 우주이스케이프
               </span>
             </Link>
@@ -97,12 +102,12 @@ export function Header() {
           {/* 모바일 햄버거 버튼 */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex flex-col gap-1 focus:outline-none"
+            className="flex flex-col gap-1.5 focus:outline-none"
             aria-label="메뉴"
           >
-            <div className={`h-0.5 w-5 bg-foreground transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-            <div className={`h-0.5 w-5 bg-foreground transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
-            <div className={`h-0.5 w-5 bg-foreground transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+            <div className={`h-0.5 w-6 bg-foreground transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <div className={`h-0.5 w-6 bg-foreground transition-opacity ${isMenuOpen ? 'opacity-0' : ''}`} />
+            <div className={`h-0.5 w-6 bg-foreground transition-transform ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
           </button>
         </div>
 
