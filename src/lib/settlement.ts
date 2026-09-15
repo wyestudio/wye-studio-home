@@ -90,7 +90,7 @@ type Raw = {
   status: string;
   utm_source: string | null;
   created_at: string;
-  coupons: { code: string } | null;
+  coupons: { code: string; coupon_campaigns: { name: string } | null } | null;
   sessions: { start_at: string; themes: { name: string } | null } | null;
 };
 
@@ -141,11 +141,24 @@ function settleOne(r: Raw): SettlementRow {
   };
 }
 
+/*
+  ⚠️ 캠페인 이름으로 **중첩 필터를 걸지 않는다.**
+     `.like("coupons.coupon_campaigns.name", ...)` 를 쓰면 PostgREST 가 오류 없이
+     0건을 돌려주는 경우가 있다(2026-09-15 실제로 겪음). 정산에서 0건은
+     "줄 돈이 없다"로 읽히므로, 조용히 틀리는 쪽이 에러보다 훨씬 위험하다.
+     쿠폰을 쓴 신청은 많아야 수백 건이라 전부 받아서 코드에서 거른다.
+*/
 const SELECT =
   "confirmation_code, headcount, amount_krw, discount_krw, paid_at, cancelled_at, " +
   "refund_completed_at, status, utm_source, created_at, " +
-  "coupons!inner(code, coupon_campaigns!inner(name)), " +
+  "coupons(code, coupon_campaigns(name)), " +
   "sessions(start_at, themes(name))";
+
+/** 잼핏 캠페인의 쿠폰을 쓴 건만 남긴다. */
+function isPartner(r: Raw): boolean {
+  const name = r.coupons?.coupon_campaigns?.name ?? "";
+  return name.startsWith(PARTNER_CAMPAIGN_PREFIX);
+}
 
 export async function getSettlement(month: string): Promise<SettlementResult> {
   const supabase = createAdminClient();
@@ -155,20 +168,21 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
   const { data, error } = await supabase
     .from("applications")
     .select(SELECT)
-    .like("coupons.coupon_campaigns.name", `${PARTNER_CAMPAIGN_PREFIX}%`)
+    .not("coupon_id", "is", null)
     .not("paid_at", "is", null)
     .gte("created_at", start)
     .lt("created_at", end)
     .order("created_at");
 
   if (error) {
+    // ⚠️ 삼켜서 0건으로 보여주면 안 된다. 화면이 실패를 드러내야 한다.
     console.error("[settlement] 조회 실패", error);
-    return { month, rows: [], totals: EMPTY_TOTALS, deductions: [] };
+    throw new Error(`정산 자료를 불러오지 못했습니다: ${error.message}`);
   }
 
   // 전액 환불된 건은 보유액이 0이라 수수료가 없다(제7조 6항).
   // 목록에는 남겨 둔다 — "왜 빠졌는지" 를 보여줘야 정산 근거가 된다.
-  const rows = (data as unknown as Raw[]).map(settleOne);
+  const rows = (data as unknown as Raw[]).filter(isPartner).map(settleOne);
 
   const totals = rows.reduce(
     (a, r) => ({
@@ -181,17 +195,22 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
   );
 
   // 제7조 9항 — 이전 달에 정산한 건이 이번 달에 취소되면 차기 정산에서 차감한다.
-  const { data: prev } = await supabase
+  const { data: prev, error: prevError } = await supabase
     .from("applications")
     .select(SELECT)
-    .like("coupons.coupon_campaigns.name", `${PARTNER_CAMPAIGN_PREFIX}%`)
+    .not("coupon_id", "is", null)
     .not("paid_at", "is", null)
     .lt("created_at", start)
     .gte("cancelled_at", start)
     .lt("cancelled_at", end)
     .order("cancelled_at");
 
-  const deductions = ((prev ?? []) as unknown as Raw[]).map(settleOne);
+  if (prevError) {
+    console.error("[settlement] 차감분 조회 실패", prevError);
+    throw new Error(`차감 대상을 불러오지 못했습니다: ${prevError.message}`);
+  }
+
+  const deductions = ((prev ?? []) as unknown as Raw[]).filter(isPartner).map(settleOne);
 
   return { month, rows, totals, deductions };
 }

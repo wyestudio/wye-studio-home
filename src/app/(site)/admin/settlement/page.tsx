@@ -22,7 +22,15 @@ export default async function SettlementPage({
   const raw = typeof params.month === "string" ? params.month : "";
   const month = CONTRACT_MONTHS.includes(raw) ? raw : defaultMonth();
 
-  const data = await getSettlement(month);
+  // ⚠️ 실패를 조용히 0건으로 보여주면 안 된다. 정산에서 0건은 '줄 돈이 없다'로
+  //    읽히기 때문에, 못 불러온 것과 정말 없는 것을 반드시 구분해야 한다.
+  let data: Awaited<ReturnType<typeof getSettlement>> | null = null;
+  let loadError: string | null = null;
+  try {
+    data = await getSettlement(month);
+  } catch (err) {
+    loadError = err instanceof Error ? err.message : String(err);
+  }
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -38,7 +46,18 @@ export default async function SettlementPage({
           </p>
         </header>
 
-        <SettlementPanel data={data} months={CONTRACT_MONTHS} />
+        {loadError || !data ? (
+          <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-6">
+            <p className="font-semibold text-red-400">정산 자료를 불러오지 못했습니다.</p>
+            <p className="mt-1 text-sm text-muted">{loadError}</p>
+            <p className="mt-3 text-sm text-amber-300">
+              ⚠️ 이 화면이 비어 있다고 해서 정산할 건이 없는 것이 아닙니다. 문제를 해결한 뒤 다시
+              확인해주세요.
+            </p>
+          </div>
+        ) : (
+          <SettlementPanel data={data} months={CONTRACT_MONTHS} />
+        )}
 
         <div className="mt-10 space-y-1.5 border-t border-border pt-6 text-xs text-muted">
           <p>
