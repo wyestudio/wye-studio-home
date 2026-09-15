@@ -91,7 +91,7 @@ type Raw = {
   utm_source: string | null;
   created_at: string;
   coupons: { code: string; coupon_campaigns: { name: string } | null } | null;
-  sessions: { start_at: string; themes: { name: string } | null } | null;
+  sessions: { start_at: string; theme_id: string | null } | null;
 };
 
 function kstLabel(iso: string): string {
@@ -108,7 +108,7 @@ function kstLabel(iso: string): string {
  * 환불 금액을 따로 저장하는 칸이 없어서 규정대로 계산한다 —
  * 규정과 다르게 환불한 건이 있으면 needsReview 로 표시해 사람이 확인하게 한다.
  */
-function settleOne(r: Raw): SettlementRow {
+function settleOne(r: Raw, themeNames: Map<string, string>): SettlementRow {
   const paid = r.amount_krw ?? 0;
   const cancelled = r.status === "cancelled" || r.cancelled_at !== null;
 
@@ -125,7 +125,7 @@ function settleOne(r: Raw): SettlementRow {
 
   return {
     confirmationCode: r.confirmation_code,
-    themeName: r.sessions?.themes?.name ?? "(테마 없음)",
+    themeName: (r.sessions?.theme_id && themeNames.get(r.sessions.theme_id)) || "(테마 없음)",
     sessionLabel: r.sessions?.start_at ? kstLabel(r.sessions.start_at) : "-",
     headcount: r.headcount ?? 1,
     couponCode: r.coupons?.code ?? null,
@@ -155,12 +155,27 @@ const SELECT =
   //    (applications.coupon_id → coupons, coupons.used_application_id → applications).
   //    그냥 "coupons(...)" 라고 쓰면 PostgREST 가 어느 쪽인지 몰라 조회가 통째로 실패한다.
   "coupons!applications_coupon_id_fkey(code, coupon_campaigns(name)), " +
-  "sessions(start_at, themes(name))";
+  // ⚠️ 테마 이름을 여기서 중첩으로 끌어오지 않는다. 3단 임베드는 값이 조용히
+  //    비어 오는 일이 있었다(화면에 "(테마 없음)"). 테마는 몇 개뿐이라 따로
+  //    받아서 코드에서 붙인다 — 실패하면 눈에 띄고, 값이 비지 않는다.
+  "sessions(start_at, theme_id)";
 
 /** 잼핏 캠페인의 쿠폰을 쓴 건만 남긴다. */
 function isPartner(r: Raw): boolean {
   const name = r.coupons?.coupon_campaigns?.name ?? "";
   return name.startsWith(PARTNER_CAMPAIGN_PREFIX);
+}
+
+/** 테마 id → 이름. 테마는 몇 개뿐이라 통째로 받아 쓴다. */
+async function loadThemeNames(
+  supabase: ReturnType<typeof createAdminClient>
+): Promise<Map<string, string>> {
+  const { data, error } = await supabase.from("themes").select("id, name");
+  if (error) {
+    console.error("[settlement] 테마 이름 조회 실패", error);
+    return new Map();
+  }
+  return new Map((data ?? []).map((t) => [t.id as string, t.name as string]));
 }
 
 export async function getSettlement(month: string): Promise<SettlementResult> {
@@ -185,7 +200,8 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
 
   // 전액 환불된 건은 보유액이 0이라 수수료가 없다(제7조 6항).
   // 목록에는 남겨 둔다 — "왜 빠졌는지" 를 보여줘야 정산 근거가 된다.
-  const rows = (data as unknown as Raw[]).filter(isPartner).map(settleOne);
+  const themeNames = await loadThemeNames(supabase);
+  const rows = (data as unknown as Raw[]).filter(isPartner).map((r) => settleOne(r, themeNames));
 
   const totals = rows.reduce(
     (a, r) => ({
@@ -213,7 +229,9 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
     throw new Error(`차감 대상을 불러오지 못했습니다: ${prevError.message}`);
   }
 
-  const deductions = ((prev ?? []) as unknown as Raw[]).filter(isPartner).map(settleOne);
+  const deductions = ((prev ?? []) as unknown as Raw[])
+    .filter(isPartner)
+    .map((r) => settleOne(r, themeNames));
 
   return { month, rows, totals, deductions };
 }
