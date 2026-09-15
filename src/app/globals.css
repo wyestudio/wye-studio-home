@@ -87,13 +87,29 @@ html {
   --color-mascot-kape: var(--mascot-kape);
   /*
     ⚠️ 대체 글꼴을 반드시 남겨 둔다.
-       SUIT 는 한글 본문용이라 없는 글자가 꽤 있다(‹ › • − ⓒ ・ 등).
-       대체 글꼴이 없으면 브라우저가 기기 기본값으로 떨어지는데, 그게 기기마다
-       달라서 어떤 안드로이드에서는 화살표가 'E'/'e' 로 보였다(2026-09-15 제보).
-       한국어가 제대로 나오는 시스템 글꼴을 순서대로 적어 예측 가능하게 만든다.
+       SUIT 에 없는 글자를 만나면 브라우저는 기기 기본값으로 떨어지는데, 그게
+       기기마다 달라서 어떤 안드로이드에서는 화살표가 'E'/'e' 로 보였다
+       (2026-09-15 제보).
+
+    순서는 **SUIT 와 닮은 순**으로 잡았다. SUIT 는 기하학적인 현대 한글 산세리프다.
+      1. Pretendard    — SUIT 와 가장 닮았다. 설치된 사람에게만 쓰인다.
+      2. 애플 시스템    — SF Pro + Apple SD Gothic Neo. Pretendard 가 본뜬 글꼴이라 결이 비슷하다.
+      3. Noto Sans KR  — 안드로이드 기본 한글. 조금 더 정직한 인상이지만 무난하다.
+      4. Malgun Gothic — 윈도우 기본. 여기까지 오면 인상이 제법 달라진다.
+
+    ⚠️ 현재 **화면에 나가는 글자 중 SUIT 에 없는 것은 없다**(2026-09-15 전수 확인).
+       그래서 이 목록은 평소에는 쓰이지 않고, SUIT 파일을 못 받았을 때만 동작한다.
+       새 글자를 넣을 때는 SUIT 에 있는지 먼저 확인할 것.
+
+    ⚠️ var(--font-suit) 는 next/font 가 만든 `"suit", "suit Fallback"` 으로 펼쳐진다.
+       'suit Fallback' 은 local(Arial) 에 SUIT 의 세로 비율을 맞춰 둔 것이라
+       글자가 밀리지 않게 해준다. 다만 **Arial 에는 한글이 없어서** 그 뒤가
+       비어 있으면 한글이 기기 기본값으로 떨어진다 — 그게 이번 사고의 경로였다.
+       아래 한글 글꼴들이 그 빈자리를 메운다.
   */
-  --font-sans: var(--font-suit), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-    "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --font-sans: var(--font-suit), "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui,
+    sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   /* 테마별 선택 글꼴. 기본 폰트가 아니라 font-galmuri 를 붙인 곳에서만 쓰인다. */
   --font-galmuri: var(--font-galmuri-src), monospace;
