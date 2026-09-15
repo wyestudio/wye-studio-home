@@ -28,58 +28,74 @@ export function ThemeSpecs({
   if (!showDifficulty && !showDuration && genres.length === 0) return null;
 
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {(showDifficulty || showDuration) && (
-        <dl className="grid gap-2 sm:gap-3 md:grid-cols-2">
-          {showDifficulty && (
-            <SpecTile label="난이도">
-              <LockRow rating={difficulty} accent={accent} />
-              <span className="hidden text-sm font-bold text-muted lg:inline">{difficulty} / 5</span>
-            </SpecTile>
-          )}
-          {showDuration && (
-            <SpecTile label="소요시간">
-              <span className="flex items-baseline gap-0.5">
-                <span className="text-[1.75rem] font-extrabold leading-none sm:text-4xl">
-                  {durationMinutes}
-                </span>
-                <span className="text-sm font-bold text-muted sm:text-base">분</span>
+    <dl className="grid gap-2 sm:gap-3 md:grid-cols-2">
+      {showDifficulty && (
+        <SpecTile label="난이도">
+          <SpecValue>
+            <LockRow rating={difficulty} accent={accent} />
+            <span className="hidden text-sm font-bold text-muted lg:inline">{difficulty} / 5</span>
+          </SpecValue>
+        </SpecTile>
+      )}
+      {showDuration && (
+        <SpecTile label="소요시간">
+          <SpecValue>
+            <span className="flex items-baseline gap-0.5">
+              <span className="text-[1.75rem] font-extrabold leading-none sm:text-4xl">
+                {durationMinutes}
               </span>
-              <span className="hidden text-sm font-bold text-muted lg:inline">
-                {hoursLabel(durationMinutes)}
-              </span>
-            </SpecTile>
-          )}
-        </dl>
+              <span className="text-sm font-bold text-muted sm:text-base">분</span>
+            </span>
+            <span className="hidden text-sm font-bold text-muted lg:inline">
+              {hoursLabel(durationMinutes)}
+            </span>
+          </SpecValue>
+        </SpecTile>
       )}
 
+      {/* 장르도 같은 칸 모양에 소제목을 단다. 태그 개수가 들쭉날쭉해 높이는 고정하지 않는다. */}
       {genres.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5 sm:gap-2" aria-label="장르">
-          {genres.map((g) => (
-            <li
-              key={g}
-              className="rounded-full border px-2.5 py-1 text-xs font-bold sm:px-3.5 sm:py-1.5 sm:text-base"
-              style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
-            >
-              #{g}
-            </li>
-          ))}
-        </ul>
+        <SpecTile label="장르" className="md:col-span-2">
+          <ul className="flex flex-wrap gap-1.5 sm:gap-2">
+            {genres.map((g) => (
+              <li
+                key={g}
+                className="rounded-full border px-2.5 py-1 text-xs font-bold sm:px-3.5 sm:py-1.5 sm:text-base"
+                style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
+              >
+                #{g}
+              </li>
+            ))}
+          </ul>
+        </SpecTile>
       )}
+    </dl>
+  );
+}
+
+/** 칸 하나. 소제목(dt) + 내용(dd). */
+function SpecTile({
+  label,
+  className = "",
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-4 ${className}`}
+    >
+      <dt className="mb-1.5 text-xs font-bold text-muted sm:mb-2 sm:text-sm">{label}</dt>
+      <dd>{children}</dd>
     </div>
   );
 }
 
-/**
- * 칸 하나. 값 줄의 높이를 고정해 두 칸(자물쇠 / 숫자)의 아래끝이 한 선에 선다.
- */
-function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-4">
-      <dt className="mb-1.5 text-xs font-bold text-muted sm:mb-2 sm:text-sm">{label}</dt>
-      <dd className="flex h-8 items-center gap-3 sm:h-10">{children}</dd>
-    </div>
-  );
+/** 난이도·소요시간 값 줄. 높이를 고정해 두 칸(자물쇠 / 숫자)의 아래끝이 한 선에 선다. */
+function SpecValue({ children }: { children: React.ReactNode }) {
+  return <div className="flex h-8 items-center gap-3 sm:h-10">{children}</div>;
 }
 
 function hoursLabel(minutes: number) {
