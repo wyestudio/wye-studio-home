@@ -85,8 +85,16 @@ html {
   --color-mascot-woodju: var(--mascot-woodju);
   --color-mascot-is: var(--mascot-is);
   --color-mascot-kape: var(--mascot-kape);
-  --font-sans: var(--font-suit);
-  --font-mono: var(--font-geist-mono);
+  /*
+    ⚠️ 대체 글꼴을 반드시 남겨 둔다.
+       SUIT 는 한글 본문용이라 없는 글자가 꽤 있다(‹ › • − ⓒ ・ 등).
+       대체 글꼴이 없으면 브라우저가 기기 기본값으로 떨어지는데, 그게 기기마다
+       달라서 어떤 안드로이드에서는 화살표가 'E'/'e' 로 보였다(2026-09-15 제보).
+       한국어가 제대로 나오는 시스템 글꼴을 순서대로 적어 예측 가능하게 만든다.
+  */
+  --font-sans: var(--font-suit), -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+    "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   /* 테마별 선택 글꼴. 기본 폰트가 아니라 font-galmuri 를 붙인 곳에서만 쓰인다. */
   --font-galmuri: var(--font-galmuri-src), monospace;
 }

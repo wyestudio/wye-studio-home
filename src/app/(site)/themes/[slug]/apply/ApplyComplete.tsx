@@ -177,7 +177,7 @@ export function ApplyComplete({
                   {formatKrw(result.baseAmountKrw)}
                 </span>
                 <span className="text-xs text-glow">
-                  {" "}− 쿠폰 {formatKrw(result.discountKrw)}
+                  {" "}- 쿠폰 {formatKrw(result.discountKrw)}
                 </span>
                 <span className="text-xs text-muted">)</span>
               </>

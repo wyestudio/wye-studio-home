@@ -650,7 +650,7 @@ export function ApplyForm({
                     <>
                       <div className="mt-1.5 flex items-baseline justify-between text-sm">
                         <span className="text-muted">쿠폰 할인</span>
-                        <span className="text-glow">− {formatKrw(appliedDiscount)}</span>
+                        <span className="text-glow">- {formatKrw(appliedDiscount)}</span>
                       </div>
                       <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2">
                         <span className="text-sm font-semibold">입금하실 금액</span>

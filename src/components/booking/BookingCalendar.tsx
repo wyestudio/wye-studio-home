@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Chevron } from "@/components/ui/Chevron";
 
 /**
  * 예약 달력.
@@ -94,7 +95,7 @@ export function BookingCalendar({
           aria-label="이전 달"
           className="rounded px-3 py-1.5 text-lg leading-none text-muted disabled:opacity-25"
         >
-          ‹
+          <Chevron dir="left" />
         </button>
         <p className="font-bold">
           {Number(y)}년 {Number(m)}월
@@ -106,7 +107,7 @@ export function BookingCalendar({
           aria-label="다음 달"
           className="rounded px-3 py-1.5 text-lg leading-none text-muted disabled:opacity-25"
         >
-          ›
+          <Chevron dir="right" />
         </button>
       </div>
 

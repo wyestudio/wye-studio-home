@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Chevron } from "@/components/ui/Chevron";
 
 export function Select({
   id,
@@ -85,7 +86,7 @@ export function Select({
         <span className={selectedLabel === placeholder ? "text-muted" : ""}>
           {selectedLabel}
         </span>
-        <span className="shrink-0">▾</span>
+        <Chevron dir="down" className="h-4 w-4 shrink-0 opacity-70" />
       </button>
 
       {isOpen && (

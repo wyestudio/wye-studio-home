@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Chevron } from "@/components/ui/Chevron";
 
 function attendeeTabClassName(isActive: boolean, hasError: boolean) {
   const base = "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-all";
@@ -39,7 +40,7 @@ export function AttendeeTabs({
         onClick={() => onSelect(activeIndex - 1)}
         className={arrowButtonClassName(activeIndex === 0)}
       >
-        ‹
+        <Chevron dir="left" />
       </button>
 
       <div className="flex gap-2 overflow-x-auto scrollbar-hide">
@@ -61,7 +62,7 @@ export function AttendeeTabs({
         onClick={() => onSelect(activeIndex + 1)}
         className={arrowButtonClassName(activeIndex === count - 1)}
       >
-        ›
+        <Chevron dir="right" />
       </button>
     </div>
   );

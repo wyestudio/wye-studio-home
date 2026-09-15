@@ -34,7 +34,7 @@ const SAMPLE_VARS: Record<string, string> = {
   status: "확정",
   status_suffix: "",
   discount: "5,000원",
-  discount_suffix: " (쿠폰 −5,000원)",
+  discount_suffix: " (쿠폰 -5,000원)",
   created_at: "2026.09.26 14:02",
   payment_deadline: "2026.09.26 14:32",
   confirmed_count: "12",

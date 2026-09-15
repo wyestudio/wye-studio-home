@@ -52,9 +52,9 @@ const GUIDE_ITEMS: GuideItem[] = [
       "좌측 메뉴에서 '탐색(Explore)' 클릭",
       "템플릿 갤러리에서 '유입경로 탐색' 선택",
       "우측 '단계' 패널에서 '+' 눌러 단계별 조건 추가:",
-      "  • 1단계: page_view (페이지 경로에 /sessions/ 포함)",
-      "  • 2단계: eventName = '신청 시작'",
-      "  • 3단계: eventName = '신청 완료'",
+      "  · 1단계: page_view (페이지 경로에 /sessions/ 포함)",
+      "  · 2단계: eventName = '신청 시작'",
+      "  · 3단계: eventName = '신청 완료'",
       "저장하면 막대 사이 꺾쇠에 '이탈 X%' 표시됨",
     ],
     example:
@@ -598,9 +598,9 @@ export default function AnalyticsDashboard() {
         </div>
 
         <div className="mt-12 text-xs text-muted border-t border-border pt-6">
-          <p>• 데이터 기준: {PERIODS.find((p) => p.key === period)?.label ?? period}</p>
-          <p>• 업데이트: 5분 캐시 · 방문 수는 GA4, 신청·입금·매출은 우리 DB</p>
-          <p>• GA4 측정 ID: G-EG7FHGECVK</p>
+          <p>· 데이터 기준: {PERIODS.find((p) => p.key === period)?.label ?? period}</p>
+          <p>· 업데이트: 5분 캐시 · 방문 수는 GA4, 신청·입금·매출은 우리 DB</p>
+          <p>· GA4 측정 ID: G-EG7FHGECVK</p>
         </div>
       </div>
     </div>

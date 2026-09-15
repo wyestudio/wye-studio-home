@@ -287,9 +287,9 @@ export function ApplyConsent({
               {expandedItems.has("phone-collection") && (
                 <div className="mt-2 p-2 bg-surface rounded text-xs text-muted leading-relaxed max-h-[120px] overflow-y-auto">
                   공정성·몰입·콘텐츠 유출 방지를 위해 <strong>1부 시작 직전 수거 → 종료 직후 즉시 반환</strong>합니다.<br />
-                  • 개별 식별 봉투/보관함에 잠금 보관, 스태프 관리<br />
-                  • 긴급 시 스태프에게 요청하면 즉시 사용 가능<br />
-                  • 회사는 선량한 관리자의 주의를 다하되, 기존 파손·본인 부주의 손상은 책임지지 않음
+                  · 개별 식별 봉투/보관함에 잠금 보관, 스태프 관리<br />
+                  · 긴급 시 스태프에게 요청하면 즉시 사용 가능<br />
+                  · 회사는 선량한 관리자의 주의를 다하되, 기존 파손·본인 부주의 손상은 책임지지 않음
                 </div>
               )}
             </div>

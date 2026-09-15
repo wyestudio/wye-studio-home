@@ -287,7 +287,7 @@ export function LookupResult() {
                   ({result.headcount}명 × {formatKrw(result.unit_price_krw)} ={" "}
                   {formatKrw(result.base_amount_krw)}
                 </span>
-                <span className="text-xs text-glow"> − 쿠폰 {formatKrw(result.discount_krw)}</span>
+                <span className="text-xs text-glow"> - 쿠폰 {formatKrw(result.discount_krw)}</span>
                 <span className="text-xs text-muted">)</span>
               </>
             ) : (

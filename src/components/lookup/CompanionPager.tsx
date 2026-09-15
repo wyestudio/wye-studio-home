@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Chevron } from "@/components/ui/Chevron";
 
 export function CompanionPager({
   count,
@@ -30,7 +31,7 @@ export function CompanionPager({
               : "border-white/25 text-foreground hover:border-white/50"
           }`}
         >
-          ‹
+          <Chevron dir="left" />
         </button>
         <span className="text-xs text-muted">
           {index + 1} / {count}
@@ -45,7 +46,7 @@ export function CompanionPager({
               : "border-white/25 text-foreground hover:border-white/50"
           }`}
         >
-          ›
+          <Chevron dir="right" />
         </button>
       </div>
     </div>

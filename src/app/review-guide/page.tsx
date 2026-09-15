@@ -305,7 +305,7 @@ const PAGE_BODY_HTML = String.raw`
 
   <footer>
     궁금한 점은 <a href="https://pf.kakao.com/_EGNBX/chat" target="_blank" rel="noopener">카카오톡 채널</a>로 편하게 물어보세요<br>
-    ⓒ 우주이스케이프 · wouldyouescape.com
+    © 우주이스케이프 · wouldyouescape.com
   </footer>
 
 </div>

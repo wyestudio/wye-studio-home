@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Chevron } from "@/components/ui/Chevron";
 
 export type ConsentState = {
   ageSelf: boolean;
@@ -102,9 +103,9 @@ const ITEMS: Item[] = [
     detail: (
       <>
         공정성·몰입·콘텐츠 유출 방지를 위해 <strong>1부 시작 직전 수거 → 종료 직후 즉시 반환</strong>합니다.
-        <br />• 개별 식별 봉투/보관함에 잠금 보관, 스태프 관리
-        <br />• 긴급 시 스태프에게 요청하면 즉시 사용 가능
-        <br />• 회사는 선량한 관리자의 주의를 다하되, 기존 파손·본인 부주의 손상은 책임지지 않음
+        <br />· 개별 식별 봉투/보관함에 잠금 보관, 스태프 관리
+        <br />· 긴급 시 스태프에게 요청하면 즉시 사용 가능
+        <br />· 회사는 선량한 관리자의 주의를 다하되, 기존 파손·본인 부주의 손상은 책임지지 않음
       </>
     ),
   },
@@ -218,7 +219,7 @@ export function ConsentStep({
               rel="noopener noreferrer"
               className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline"
             >
-              보기 ›
+              보기 <Chevron dir="right" className="ml-0.5 inline h-3 w-3 align-middle" />
             </a>
           ) : it.detail ? (
             <button
@@ -227,7 +228,11 @@ export function ConsentStep({
               aria-expanded={expanded.has(it.id)}
               className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline"
             >
-              {expanded.has(it.id) ? "닫기 ˄" : "보기 ›"}
+              {expanded.has(it.id) ? (
+                <>닫기 <Chevron dir="up" className="ml-0.5 inline h-3 w-3 align-middle" /></>
+              ) : (
+                <>보기 <Chevron dir="right" className="ml-0.5 inline h-3 w-3 align-middle" /></>
+              )}
             </button>
           ) : null}
         </div>

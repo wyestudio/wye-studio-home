@@ -63,7 +63,7 @@ const PAGE_BODY_HTML = String.raw`
       <div class="result" id="result" tabindex="-1" aria-live="polite"><h3>신청이 접수됐어요 🎉</h3><p>확인 후 인스타 DM으로 연락드릴게요.</p></div>
     </div></section>
 
-    <footer>문의는 <a href="https://pf.kakao.com/_EGNBX/chat" target="_blank" rel="noopener">카카오톡 채널</a>로 연락해 주세요.<br>ⓒ 우주이스케이프 · wouldyouescape.com</footer>
+    <footer>문의는 <a href="https://pf.kakao.com/_EGNBX/chat" target="_blank" rel="noopener">카카오톡 채널</a>로 연락해 주세요.<br>© 우주이스케이프 · wouldyouescape.com</footer>
   </main>
 
 `;

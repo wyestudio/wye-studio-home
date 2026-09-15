@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 import { useInstagramEmbedHeight } from "@/lib/useInstagramEmbedHeight";
+import { Chevron } from "@/components/ui/Chevron";
 
 /**
  * 크리에이터 후기 게시물 슬라이더.
@@ -133,7 +134,7 @@ function SliderButton({
       className="flex h-8 w-8 items-center justify-center rounded-full border border-panel-border
                  bg-panel text-sm text-foreground transition-opacity disabled:opacity-30"
     >
-      {dir === -1 ? "‹" : "›"}
+      <Chevron dir={dir === -1 ? "left" : "right"} className="h-4 w-4" />
     </button>
   );
 }
