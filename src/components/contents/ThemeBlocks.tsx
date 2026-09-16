@@ -396,6 +396,14 @@ function ReviewsBlock({
         인스타는 공식 임베드라 클라이언트에서만 뜨므로 별도 컴포넌트로 뺐다.
       */}
       {links.length > 0 && <ReviewLinkSlider links={links} accent={accent} />}
+
+      {/* 후기에 대한 단서. 후기를 다 본 뒤 읽히도록 맨 아래. */}
+      {block.footnote && (
+        <RichText
+          text={block.footnote}
+          className="-mt-2 block text-center text-xs leading-relaxed text-muted sm:text-sm"
+        />
+      )}
     </div>
   );
 }

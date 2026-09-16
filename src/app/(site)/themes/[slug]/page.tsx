@@ -19,6 +19,7 @@ import {
   SCREEN_SECTION,
   SCREEN_SCROLL_MARGIN,
 } from "@/components/contents/screenSection";
+import { RichText } from "@/components/ui/RichText";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/catalog";
@@ -110,6 +111,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   // 컬럼(p30)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const genres = theme.genres ?? [];
   const synopsis = tidySynopsis(theme.description);
+  // 칸(p38)이 아직 없는 DB 에서 읽어도 깨지지 않게.
+  const introNotice = theme.intro_notice?.trim() || "";
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20">
@@ -208,7 +211,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           <ThemeGenreTile genres={genres} accent={accent} />
         </div>
 
-        {synopsis && (
+        {(synopsis || introNotice) && (
           <div data-fit-bottom className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3">
             <p
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em]"
@@ -221,12 +224,31 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               pre-line 이면 빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
               break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
             */}
-            <p
-              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
-              style={{ borderColor: `${accent}80` }}
-            >
-              {synopsis}
-            </p>
+            {synopsis && (
+              <p
+                className="whitespace-pre-wrap break-words border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
+                style={{ borderColor: `${accent}80` }}
+              >
+                {synopsis}
+              </p>
+            )}
+
+            {/*
+              강조 안내(themes.intro_notice). **시놉시스 바로 아래**가 자리다 —
+              이 테마 시놉시스가 "소개팅 받아볼래?" 로 시작해서 오해를 키우는데,
+              바로 그 아래에서 바로잡아야 읽힌다. 신청 버튼보다 위이기도 하다.
+            */}
+            {introNotice && (
+              <div
+                className="mt-4 rounded-xl border px-4 py-3 sm:mt-5 sm:px-5 sm:py-4"
+                style={{ borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
+              >
+                <RichText
+                  text={introNotice}
+                  className="block text-[13px] leading-relaxed text-white/85 sm:text-sm lg:text-base"
+                />
+              </div>
+            )}
           </div>
         )}
       </section>

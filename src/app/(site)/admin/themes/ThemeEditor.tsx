@@ -54,6 +54,7 @@ function emptyTheme(venueId: string): ThemeInput {
     name: "",
     tagline: "",
     description: "",
+    intro_notice: "",
     genres: [],
     difficulty: 3,
     duration_minutes: 180,
@@ -88,6 +89,7 @@ function toInput(t: ThemeWithTiers, categories: ThemeCategory[]): ThemeInput {
     // 폼에서 뺀 값이지만 저장할 때 날려버리지 않도록 그대로 들고 다닌다.
     tagline: t.tagline ?? "",
     description: t.description ?? "",
+    intro_notice: t.intro_notice ?? "",
     genres: t.genres ?? [],
     difficulty: t.difficulty,
     duration_minutes: t.duration_minutes,
@@ -395,6 +397,20 @@ export function ThemeEditor({
               <p className="mt-1 text-[11px] text-muted">
                 상세 페이지 상단, 난이도·시간·장르 아래에 큰 글씨로 보입니다. 줄바꿈도 그대로 반영돼요.
                 한 줄 소개가 비어 있으면 검색 결과 설명으로도 쓰입니다.
+              </p>
+            </div>
+
+            <div>
+              <label className={label}>소개 강조 안내 (시놉시스 아래 네모 박스)</label>
+              <textarea
+                className={`${field} min-h-20 leading-relaxed`}
+                value={editing.intro_notice}
+                onChange={(e) => patch({ intro_notice: e.target.value })}
+                placeholder="예: ※ 정식 오픈 회차는 **소개팅 없이 진행되는 그룹 파티형 방탈출**입니다."
+              />
+              <p className="mt-1 text-[11px] text-muted">
+                오해를 미리 풀어야 할 때 쓰는 자리입니다. 비우면 안 나옵니다.
+                <strong>**별표 두 개**</strong>로 감싸면 그 부분만 굵게 보여요.
               </p>
             </div>
 

@@ -129,6 +129,11 @@ export type ThemeBlock =
       /** 한 줄 후기. meta 는 '2026.08.29 · 그룹 회차' 처럼 출처 한 줄. */
       quotes: { text: string; meta?: string }[];
       /**
+       * 맨 아래 작은 단서. 후기 자체에 대한 주석을 다는 자리다 —
+       * 예: 프리오픈 때 소개팅 회차 후기가 섞여 있다는 안내(2026-09-16).
+       */
+      footnote?: string;
+      /**
        * 크리에이터 후기 게시물. 옆으로 밀어서 본다.
        *
        * instagram : 인스타 공식 임베드로 **게시물 원본 그대로** 보여준다.
@@ -279,6 +284,11 @@ export type Theme = {
   tagline: string | null;
   /** 시놉시스. 상세 화면 상단에 크게 보인다. (칸 이름은 옛 '설명' 그대로) */
   description: string | null;
+  /**
+   * 소개 화면 시놉시스 아래 강조 안내(p38). 비우면 안 나온다. **굵게** 지원.
+   * 프리오픈 때 소개팅 회차가 있었어서 생긴 오해를 첫 화면에서 바로 풀려고 만들었다.
+   */
+  intro_notice: string | null;
   /** 장르 해시태그. # 없이 저장한다 — 화면이 붙여 그린다. */
   genres: string[];
   difficulty: number;

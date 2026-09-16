@@ -232,6 +232,12 @@ export function ContentBlocksEditor({
                         placeholder="제목 아래 한 줄 (비우면 안 나옵니다)"
                       />
                       <input
+                        className={cell}
+                        value={b.footnote ?? ""}
+                        onChange={(e) => patch(i, { footnote: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="맨 아래 작은 단서 (비우면 안 나옵니다)"
+                      />
+                      <input
                         className={field}
                         value={b.highlight ?? ""}
                         onChange={(e) => patch(i, { highlight: e.target.value } as Partial<ThemeBlock>)}

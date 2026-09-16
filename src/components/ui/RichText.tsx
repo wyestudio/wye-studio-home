@@ -3,8 +3,8 @@ import { Fragment } from "react";
 /**
  * 운영자가 어드민에서 입력한 평문을 화면용으로 렌더한다.
  *
- * 줄바꿈을 살리고 URL 을 링크로 만든다. 예전에는 이 내용이 코드 안에
- * JSX 로 들어 있어 링크를 넣으려면 개발자가 필요했다.
+ * 줄바꿈을 살리고, URL 을 링크로, **별표 두 개로 감싼 부분**을 굵게 만든다.
+ * 예전에는 이 내용이 코드 안에 JSX 로 들어 있어 링크를 넣으려면 개발자가 필요했다.
  *
  * ⚠️ HTML 을 그대로 넣지 않는다(dangerouslySetInnerHTML 미사용).
  *    어드민 입력이라도 화면에 raw HTML 을 흘릴 이유가 없다.
@@ -13,6 +13,9 @@ import { Fragment } from "react";
 //    들고 다녀서 같은 문자열에도 true/false 가 번갈아 나온다.
 const URL_SPLIT = /(https?:\/\/[^\s<>()]+)/g;
 const IS_URL = /^https?:\/\//;
+/** **굵게** — 문구에서 한 부분만 강조하고 싶을 때. 여는/닫는 별표가 짝이 맞아야 한다. */
+const BOLD_SPLIT = /(\*\*[^*]+\*\*)/g;
+const IS_BOLD = /^\*\*[^*]+\*\*$/;
 
 export function RichText({ text, className = "" }: { text: string; className?: string }) {
   return (
@@ -29,7 +32,17 @@ export function RichText({ text, className = "" }: { text: string; className?: s
             {part.replace(/^https?:\/\//, "")}
           </a>
         ) : (
-          <Fragment key={i}>{part}</Fragment>
+          <Fragment key={i}>
+            {part.split(BOLD_SPLIT).map((chunk, j) =>
+              IS_BOLD.test(chunk) ? (
+                <strong key={j} className="font-bold text-foreground">
+                  {chunk.slice(2, -2)}
+                </strong>
+              ) : (
+                <Fragment key={j}>{chunk}</Fragment>
+              )
+            )}
+          </Fragment>
         )
       )}
     </span>
