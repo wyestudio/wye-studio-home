@@ -1,3 +1,5 @@
+import { InstagramEventBubble } from "@/components/ui/InstagramEventBubble";
+
 const KAKAO_CHANNEL_URL = "http://pf.kakao.com/_EGNBX";
 const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
 
@@ -18,6 +20,11 @@ export function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
         raised ? "bottom-36" : "bottom-5"
       }`}
     >
+      {/* 이벤트 말풍선 — 인스타 버튼 위에 붙는다(위치 기준이 이 묶음이라 relative). */}
+      <div className="relative w-full">
+        <InstagramEventBubble href={INSTAGRAM_URL} />
+      </div>
+
       <a
         href={INSTAGRAM_URL}
         target="_blank"

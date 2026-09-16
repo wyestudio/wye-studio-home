@@ -524,6 +524,27 @@ body:has(.admin-shell) header {
   }
 }
 
+/* 우하단 이벤트 말풍선 — 스르륵 떠오른 뒤 아주 천천히 위아래로 움직인다.
+   쇼핑몰 플로팅 배너와 같은 신호다. 크게 움직이면 광고처럼 느껴져 폭을 작게(3px) 뒀다. */
+@keyframes event-bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes event-bubble-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+.event-bubble {
+  animation:
+    event-bubble-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both,
+    event-bubble-float 2.6s ease-in-out 0.35s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .event-bubble {
+    animation: event-bubble-in 0.01s both;
+  }
+}
+
 /* 잠긴 자리를 눌렀을 때 자물쇠가 제자리에서 한 번 튕긴다.
    게임에서 해금 전 스테이지를 눌렀을 때의 "안 열림" 신호와 같은 동작.
 
