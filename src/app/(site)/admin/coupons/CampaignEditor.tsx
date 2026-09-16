@@ -16,8 +16,19 @@ function isContractBound(name: string): boolean {
   return name.trim().startsWith("잼핏");
 }
 
-/** 계약에 걸린 항목만 추린다. 이름·설명처럼 계약과 무관한 건 확인을 요구하지 않는다. */
-function contractChanges(before: CampaignRow, after: CampaignInput): string[] {
+/**
+ * 계약에 걸린 항목만 추린다. 이름·설명처럼 계약과 무관한 건 확인을 요구하지 않는다.
+ *
+ * ⚠️ 날짜는 **화면에 보이는 분 단위 문자열**로 비교한다. ISO 문자열끼리 비교하면
+ *    안 된다 — 입력칸이 분 단위라 toLocal/toIso 를 왕복하면 초가 떨어져
+ *    (`:59:59` → `:59:00`) 손대지 않아도 '바뀜' 으로 잡힌다.
+ *    쓸데없는 경고가 쌓이면 진짜 경고도 무시하게 된다.
+ */
+function contractChanges(
+  before: CampaignRow,
+  after: CampaignInput,
+  dates: { from: string; until: string }
+): string[] {
   const out: string[] = [];
   const 방식 = { fixed: "예약 1건당 정액", per_head: "1인당 정액", percent: "정률" } as const;
   if (before.discount_type !== after.discountType) {
@@ -35,8 +46,8 @@ function contractChanges(before: CampaignRow, after: CampaignInput): string[] {
     out.push(`최소 인원: ${before.min_headcount ?? "제한 없음"} → ${after.minHeadcount ?? "제한 없음"}`);
   }
   if ((before.theme_id ?? null) !== (after.themeId ?? null)) out.push("사용 가능 테마");
-  if ((before.valid_from ?? null) !== (after.validFrom ?? null)) out.push("사용 시작일");
-  if ((before.valid_until ?? null) !== (after.validUntil ?? null)) out.push("사용 종료일");
+  if (toLocal(before.valid_from) !== dates.from) out.push("사용 시작일");
+  if (toLocal(before.valid_until) !== dates.until) out.push("사용 종료일");
   if (before.is_active !== after.isActive) {
     out.push(after.isActive ? "사용 가능으로 전환" : "사용 중지로 전환");
   }
@@ -106,7 +117,7 @@ export function CampaignEditor({
     setError(null);
     const next = { ...form, validFrom: toIso(from), validUntil: toIso(until) };
     if (campaign && isContractBound(campaign.name)) {
-      const changes = contractChanges(campaign, next);
+      const changes = contractChanges(campaign, next, { from, until });
       if (changes.length > 0) {
         setConfirmChanges(changes);
         return;
