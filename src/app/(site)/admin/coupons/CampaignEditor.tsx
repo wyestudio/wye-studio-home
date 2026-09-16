@@ -4,6 +4,45 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveCampaign, deleteCampaign, type CampaignInput } from "./actions";
 
+/**
+ * 계약으로 묶인 쿠폰인지.
+ *
+ * ⚠️ 잼핏(ZAMFIT) 제휴계약 제6조 7항 — "쿠폰 사용조건 또는 할인금액의 변경은
+ *    양 당사자의 서면 합의로 정한다". 실수로 한 번 고치면 그 자체가 계약 위반이라
+ *    저장 전에 한 번 더 확인받는다.
+ *    이름으로 판별한다 — 계약 상대가 늘면 여기에 추가한다.
+ */
+function isContractBound(name: string): boolean {
+  return name.trim().startsWith("잼핏");
+}
+
+/** 계약에 걸린 항목만 추린다. 이름·설명처럼 계약과 무관한 건 확인을 요구하지 않는다. */
+function contractChanges(before: CampaignRow, after: CampaignInput): string[] {
+  const out: string[] = [];
+  const 방식 = { fixed: "예약 1건당 정액", per_head: "1인당 정액", percent: "정률" } as const;
+  if (before.discount_type !== after.discountType) {
+    out.push(
+      `할인 방식: ${방식[before.discount_type] ?? before.discount_type} → ${방식[after.discountType] ?? after.discountType}`
+    );
+  }
+  if (before.discount_value !== Math.round(after.discountValue)) {
+    out.push(`할인 금액: ${before.discount_value.toLocaleString()} → ${Math.round(after.discountValue).toLocaleString()}`);
+  }
+  if ((before.max_discount_krw ?? null) !== (after.maxDiscountKrw ?? null)) {
+    out.push(`최대 할인액: ${before.max_discount_krw?.toLocaleString() ?? "제한 없음"} → ${after.maxDiscountKrw?.toLocaleString() ?? "제한 없음"}`);
+  }
+  if ((before.min_headcount ?? null) !== (after.minHeadcount ?? null)) {
+    out.push(`최소 인원: ${before.min_headcount ?? "제한 없음"} → ${after.minHeadcount ?? "제한 없음"}`);
+  }
+  if ((before.theme_id ?? null) !== (after.themeId ?? null)) out.push("사용 가능 테마");
+  if ((before.valid_from ?? null) !== (after.validFrom ?? null)) out.push("사용 시작일");
+  if ((before.valid_until ?? null) !== (after.validUntil ?? null)) out.push("사용 종료일");
+  if (before.is_active !== after.isActive) {
+    out.push(after.isActive ? "사용 가능으로 전환" : "사용 중지로 전환");
+  }
+  return out;
+}
+
 const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
 const label = "block text-xs text-muted mb-1";
 
@@ -59,12 +98,29 @@ export function CampaignEditor({
   const [until, setUntil] = useState(toLocal(campaign?.valid_until ?? null));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /** 계약 연동 쿠폰의 조건을 바꿨을 때, 저장 전에 한 번 더 확인받는다. */
+  const [confirmChanges, setConfirmChanges] = useState<string[] | null>(null);
 
-  async function submit() {
+  /** 저장 버튼. 계약 연동 쿠폰의 조건이 바뀌었으면 먼저 확인을 받는다. */
+  function requestSubmit() {
+    setError(null);
+    const next = { ...form, validFrom: toIso(from), validUntil: toIso(until) };
+    if (campaign && isContractBound(campaign.name)) {
+      const changes = contractChanges(campaign, next);
+      if (changes.length > 0) {
+        setConfirmChanges(changes);
+        return;
+      }
+    }
+    void save(next);
+  }
+
+  async function save(next: CampaignInput) {
     setBusy(true);
     setError(null);
-    const result = await saveCampaign({ ...form, validFrom: toIso(from), validUntil: toIso(until) });
+    const result = await saveCampaign(next);
     setBusy(false);
+    setConfirmChanges(null);
     if ("error" in result) return setError(result.error);
     router.refresh();
     onDone?.();
@@ -237,9 +293,48 @@ export function CampaignEditor({
 
       {error && <p className="rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
 
+      {/*
+        계약으로 묶인 쿠폰의 조건을 바꿀 때만 뜬다.
+        ⚠️ 네이티브 confirm() 을 쓰지 않는다 — 브라우저를 멈춰 세우고, 무엇이
+           바뀌는지 목록으로 보여줄 수도 없다.
+      */}
+      {confirmChanges && (
+        <div className="rounded-lg border border-amber-400/50 bg-amber-400/5 p-4">
+          <p className="font-semibold text-amber-300">
+            ⚠️ 이 쿠폰은 잼핏(ZAMFIT) 제휴계약으로 조건이 정해져 있습니다
+          </p>
+          <p className="mt-1.5 text-sm text-muted">
+            계약 제6조 7항 — <strong className="text-foreground">&ldquo;쿠폰 사용조건 또는 할인금액의
+            변경은 양 당사자의 서면 합의로 정한다&rdquo;</strong>. 합의 없이 바꾸면 그 자체가 계약
+            위반이 될 수 있습니다.
+          </p>
+          <ul className="mt-3 space-y-1 text-sm">
+            {confirmChanges.map((c) => (
+              <li key={c} className="text-amber-200">· {c}</li>
+            ))}
+          </ul>
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={() => save({ ...form, validFrom: toIso(from), validUntil: toIso(until) })}
+              disabled={busy}
+              className="rounded border border-amber-400/50 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-200 disabled:opacity-50"
+            >
+              {busy ? "저장 중…" : "합의됐습니다 — 변경"}
+            </button>
+            <button
+              onClick={() => setConfirmChanges(null)}
+              disabled={busy}
+              className="rounded border border-border px-4 py-2 text-sm disabled:opacity-50"
+            >
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <button
-          onClick={submit}
+          onClick={requestSubmit}
           disabled={busy}
           className="rounded bg-glow px-4 py-2 text-sm font-semibold text-glow-foreground disabled:opacity-50"
         >

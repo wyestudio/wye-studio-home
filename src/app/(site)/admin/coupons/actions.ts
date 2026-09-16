@@ -67,11 +67,23 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
       : await supabase.from("coupon_campaigns").insert(row);
     if (error) throw error;
 
+    // ⚠️ 저장된 조건을 같이 남긴다. 제휴 쿠폰은 계약으로 금액이 정해져 있어서
+    //    "언제 얼마로 바뀌었나" 를 나중에 되짚을 수 있어야 한다(잼핏 계약 제6조 7항).
     await writeAuditLog({
       action: "coupon.campaign_saved",
       targetType: "coupon_campaign",
       targetId: input.id ?? "(신규)",
       summary: `쿠폰 종류 저장 — ${input.name}`,
+      detail: {
+        discount_type: row.discount_type,
+        discount_value: row.discount_value,
+        max_discount_krw: row.max_discount_krw,
+        min_headcount: row.min_headcount,
+        theme_id: row.theme_id,
+        valid_from: row.valid_from,
+        valid_until: row.valid_until,
+        is_active: row.is_active,
+      },
     });
 
     revalidatePath("/admin/coupons");
