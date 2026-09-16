@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { formatKrw } from "@/lib/format";
+import { PriceTable } from "@/components/contents/PriceTable";
 import { resolveUnitPrice, type ThemePriceTier } from "@/types/catalog";
 import { Select } from "@/components/ui/Select";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
@@ -689,6 +690,18 @@ export function ApplyForm({
         {/* ══ 3. 제출 ══ */}
         {step === 2 && (
           <div className="space-y-4 sm:space-y-5">
+            {/*
+              인원별 참가비 표. 테마 상세에서 본 것과 같은 표를 결제 직전에 한 번 더 보여준다
+              (2026-09-16 요청) — 인원이 늘수록 싸진다는 걸 여기서 다시 확인하고,
+              바로 아래 총액이 어떻게 나온 값인지도 같이 읽힌다.
+            */}
+            {tiers.length > 0 && (
+              <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
+                <p className="mb-3 text-sm font-bold sm:mb-4 sm:text-base">인원별 참가비</p>
+                <PriceTable tiers={tiers} maxGroupSize={maxGroupSize} accent={accentColor} />
+              </div>
+            )}
+
             <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
               {unitPrice !== null && total !== null && payable !== null ? (
                 <>
