@@ -288,7 +288,8 @@ export async function buildEventReminderText(
   venueName: string,
   venueAddress: string | null
 ): Promise<string> {
-  const addressText = venueAddress ? ` (${venueAddress})` : "";
+  // 옛 회차(테마 없는 회차)용 경로. 괄호는 붙이지 않는다 — 신규 경로(smsV2)와 맞춘다.
+  const addressText = venueAddress ?? "";
   const dating = isDatingTheme(session.session_type);
   const templateKey = dating ? "event_reminder_dating" : "event_reminder_group";
   const body = await getTemplateBody(templateKey);

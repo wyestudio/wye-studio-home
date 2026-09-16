@@ -166,6 +166,11 @@ function baseVars(sd: SessionDisplay) {
     start_time: startTime(sd.start_at),
     duration: sd.end_at ? formatDuration(sd.start_at, sd.end_at) : "-",
     min_age: sd.min_age != null ? String(sd.min_age) : "",
+    // 장소는 모든 문자에서 쓸 수 있게 공통으로 넣는다. 운영자가 어드민에서 문자2(입금확인)에
+    // 장소 줄을 넣었는데 여기 없어서 {{venue_address_text}} 글자가 그대로 나갈 뻔했다(2026-09-16).
+    // ⚠️ 괄호를 붙이지 않는다 — 괄호가 필요하면 템플릿 문구에서 붙인다.
+    venue_address_text: sd.venue_address ?? "현장 안내 예정",
+    parking_note: sd.venue_parking_note ?? "인근 유료주차장을 이용해 주세요.",
     reapply_url: `www.wouldyouescape.com${sd.public_path ?? "/contents"}`,
   };
 }

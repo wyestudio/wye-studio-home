@@ -98,7 +98,9 @@ export async function loadPreviewThemes(): Promise<PreviewTheme[]> {
       start_time: startAt ? kst(startAt, { hour: "2-digit", minute: "2-digit", hour12: false }) : "",
       end_time: endAt ? `~${kst(endAt, { hour: "2-digit", minute: "2-digit", hour12: false })}` : "",
       venue_name: (venue?.name as string) ?? "(장소 미지정)",
-      venue_address_text: venue?.address ? ` (${venue.address})` : "",
+      // ⚠️ 괄호를 붙이지 않는다. 실제 발송(smsV2)은 주소를 그대로 넣는데 미리보기만
+      //    괄호를 씌워서, 운영자가 괄호까지 발송되는 줄 알았다(2026-09-16).
+      venue_address_text: (venue?.address as string) ?? "(장소 미지정)",
       parking_note: (venue?.parking_note as string) ?? "",
       reapply_url: `www.wouldyouescape.com/themes/${t.slug}`,
       // 아래는 테마와 무관한 값들 — 실제 상수이거나 사람마다 달라지는 값이다.
