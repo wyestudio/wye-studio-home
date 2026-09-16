@@ -14,8 +14,25 @@ const ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const BODY_LENGTH = 7;
 
 /**
+ * 접두사로 쓸 수 있는 글자인지. ALPHABET 에 있는 글자만 된다.
+ *
+ * ⚠️ I·L·O·U 를 접두사로 쓰면 **영원히 조회되지 않는 쿠폰**이 만들어진다.
+ *    DB 의 normalize_coupon_code() 가 혼동 방지를 위해 I→1, L→1, O→0, U→V 로
+ *    치환하기 때문에, 발급된 코드와 조회 키가 어긋난다.
+ *    (2026-09-16 인스타 이벤트 쿠폰을 'I' 로 만들려다 발견)
+ */
+export function isValidCouponPrefix(prefix: string): boolean {
+  const head = prefix.trim().toUpperCase().slice(0, 1);
+  return head === "" || ALPHABET.includes(head);
+}
+
+/** 접두사로 못 쓰는 글자들. 화면 안내에 쓴다. */
+export const FORBIDDEN_PREFIXES = "ILOU";
+
+/**
  * @param prefix 코드 맨 앞 한 글자 (본인 M · 지인 F 처럼 종류를 눈으로 구분).
  *               비우면 본문만 8자로 만든다.
+ *               ⚠️ I·L·O·U 는 쓸 수 없다 — isValidCouponPrefix 참고.
  */
 export function generateCouponCode(prefix = ""): string {
   const head = prefix.toUpperCase().slice(0, 1);

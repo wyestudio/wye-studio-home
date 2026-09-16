@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
-import { generateUniqueCodes } from "@/lib/couponCode";
+import { generateUniqueCodes, isValidCouponPrefix, FORBIDDEN_PREFIXES } from "@/lib/couponCode";
 
 /**
  * 쿠폰 캠페인·코드 관리.
@@ -25,6 +25,7 @@ export type CampaignInput = {
   validFrom: string | null;
   validUntil: string | null;
   restrictToIssuedPhone: boolean;
+  stackable: boolean;
   isActive: boolean;
 };
 
@@ -58,6 +59,7 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
       valid_from: input.validFrom,
       valid_until: input.validUntil,
       restrict_to_issued_phone: input.restrictToIssuedPhone,
+      stackable: input.stackable,
       is_active: input.isActive,
       updated_at: new Date().toISOString(),
     };
@@ -83,6 +85,7 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
         valid_from: row.valid_from,
         valid_until: row.valid_until,
         is_active: row.is_active,
+        stackable: row.stackable,
       },
     });
 
@@ -141,6 +144,13 @@ export async function issueCoupons(input: {
 }): Promise<IssueResult> {
   try {
     if (input.count < 1 || input.count > 500) return { error: "1~500장 사이로 발급해주세요." };
+    // ⚠️ I·L·O·U 로 발급하면 조회가 안 되는 쿠폰이 만들어진다(couponCode.ts 참고).
+    if (!isValidCouponPrefix(input.prefix)) {
+      return {
+        error: `앞글자로 ${FORBIDDEN_PREFIXES.split("").join("·")} 는 쓸 수 없어요. ` +
+          `숫자 1·0 과 헷갈려서 코드에서 제외한 글자라, 발급해도 조회되지 않습니다.`,
+      };
+    }
 
     const supabase = await requireAdmin();
     const codes = generateUniqueCodes(input.count, input.prefix.trim());

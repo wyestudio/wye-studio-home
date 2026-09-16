@@ -48,6 +48,9 @@ function contractChanges(
   if ((before.theme_id ?? null) !== (after.themeId ?? null)) out.push("사용 가능 테마");
   if (toLocal(before.valid_from) !== dates.from) out.push("사용 시작일");
   if (toLocal(before.valid_until) !== dates.until) out.push("사용 종료일");
+  if (before.stackable !== after.stackable) {
+    out.push(after.stackable ? "다른 쿠폰과 중복 사용 허용" : "중복 사용 불가로 변경");
+  }
   if (before.is_active !== after.isActive) {
     out.push(after.isActive ? "사용 가능으로 전환" : "사용 중지로 전환");
   }
@@ -78,6 +81,7 @@ export type CampaignRow = {
   valid_from: string | null;
   valid_until: string | null;
   restrict_to_issued_phone: boolean;
+  stackable: boolean;
   is_active: boolean;
 };
 
@@ -103,6 +107,7 @@ export function CampaignEditor({
     validFrom: campaign?.valid_from ?? null,
     validUntil: campaign?.valid_until ?? null,
     restrictToIssuedPhone: campaign?.restrict_to_issued_phone ?? false,
+    stackable: campaign?.stackable ?? false,
     isActive: campaign?.is_active ?? true,
   });
   const [from, setFrom] = useState(toLocal(campaign?.valid_from ?? null));
@@ -298,8 +303,21 @@ export function CampaignEditor({
           받은 분 번호로만 사용
         </label>
       </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={form.stackable}
+          onChange={(e) => setForm({ ...form, stackable: e.target.checked })}
+        />
+        다른 쿠폰과 중복 사용 가능
+      </label>
+
       <p className="text-xs text-muted">
         &lsquo;받은 분 번호로만&rsquo;을 켜면 양도가 막힙니다. 지인에게 선물하는 쿠폰이면 꺼두세요.
+        <br />
+        &lsquo;중복 사용 가능&rsquo;은 <strong className="text-foreground">겹쳐 쓸 쿠폰끼리 모두</strong>{" "}
+        켜야 동작합니다. 한 장이라도 꺼져 있으면 그 쿠폰은 혼자서만 쓸 수 있어요. 같은 종류 쿠폰을
+        두 장 쓰는 건 언제나 막힙니다.
       </p>
 
       {error && <p className="rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}

@@ -110,6 +110,7 @@ export function CouponPanel({
                     </p>
                     <p className="mt-0.5 text-xs text-muted">
                       {discountLabel(c)} · {periodLabel(c)}
+                      {c.stackable && <span className="ml-1.5 text-glow">· 중복 사용 가능</span>}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">

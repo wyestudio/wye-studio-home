@@ -9,13 +9,13 @@ import { saveSettlementSnapshot } from "./actions";
 
 const CSV_HEADERS = [
   "예약번호", "프로그램", "회차", "예약인원", "쿠폰코드",
-  "할인액", "실입금액", "취소여부", "환불률", "보유액", "수수료(5%)", "잼핏쿠폰부담(50%)", "유입경로",
+  "적용쿠폰", "총할인액", "잼핏할인액", "실입금액", "취소여부", "환불률", "보유액", "수수료(5%)", "잼핏쿠폰부담(50%)", "유입경로",
 ];
 
 function csvRow(r: SettlementRow) {
   return [
     r.confirmationCode, r.themeName, r.sessionLabel, r.headcount, r.couponCode ?? "",
-    r.discountKrw, r.paidKrw,
+    r.allCoupons, r.discountKrw, r.partnerDiscountKrw, r.paidKrw,
     r.cancelled ? "취소" : "정상",
     r.refundRatio === null ? "" : `${Math.round(r.refundRatio * 100)}%`,
     r.retainedKrw, r.commissionKrw, r.partnerCouponShareKrw, r.utmSource ?? "",
@@ -59,7 +59,14 @@ function Table({ rows, 제목 }: { rows: SettlementRow[]; 제목: string }) {
                   <td className="px-3 py-2">{r.confirmationCode}</td>
                   <td className="px-3 py-2 text-muted">{r.sessionLabel}</td>
                   <td className="px-3 py-2 text-right">{r.headcount}</td>
-                  <td className="px-3 py-2">{r.couponCode ?? "-"}</td>
+                  <td className="px-3 py-2">
+                    {r.allCoupons || "-"}
+                    {r.partnerDiscountKrw > 0 && r.discountKrw !== r.partnerDiscountKrw && (
+                      <span className="ml-1 text-[11px] text-muted">
+                        (잼핏분 {formatKrw(r.partnerDiscountKrw)})
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-right">{formatKrw(r.paidKrw)}</td>
                   <td className={`px-3 py-2 ${st.cls}`}>
                     {st.text}
@@ -169,7 +176,9 @@ export function SettlementPanel({
         <div className="mb-6 rounded-lg border border-border bg-background/50 p-4">
           <p className="mb-2 text-sm font-semibold">쿠폰 비용 상계 (제6조 3·4항)</p>
           <p className="mb-3 text-sm text-muted">
-            쿠폰 할인비용은 <strong className="text-foreground">잼핏 50% · 우리 50%</strong> 부담입니다.
+            <strong className="text-foreground">잼핏 쿠폰</strong> 할인비용은{" "}
+            <strong className="text-foreground">잼핏 50% · 우리 50%</strong> 부담입니다. 다른 이벤트
+            쿠폰(인스타 등)은 우리가 전액 부담하므로 여기 들어가지 않습니다.
             아래 금액은 <strong className="text-foreground">우리가 잼핏에게 받을 돈</strong>이고,
             계약은 이를 수수료와 상계할 수 있다고 정합니다 —
             다만 <strong className="text-foreground">&ldquo;양 당사자의 동의 하에&rdquo;</strong>이므로
@@ -177,9 +186,9 @@ export function SettlementPanel({
           </p>
           <dl className="grid gap-2 text-sm sm:grid-cols-3">
             <div className="rounded border border-border px-3 py-2">
-              <dt className="text-xs text-muted">할인액 합계</dt>
+              <dt className="text-xs text-muted">잼핏 쿠폰 할인액</dt>
               <dd className="mt-0.5 font-bold">
-                {formatKrw(rows.reduce((a, r) => a + (r.retainedKrw > 0 ? r.discountKrw : 0), 0))}
+                {formatKrw(rows.reduce((a, r) => a + (r.retainedKrw > 0 ? r.partnerDiscountKrw : 0), 0))}
               </dd>
             </div>
             <div className="rounded border border-border px-3 py-2">

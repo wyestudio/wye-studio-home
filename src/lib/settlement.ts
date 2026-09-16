@@ -12,7 +12,7 @@ import { refundRate } from "@/lib/refundPolicy";
  *    누락하면 즉시 해지 + 마케팅비 청구** 라고 정하고 있다.
  *
  * ── 정산 대상 (제8조 2항) ──────────────────────────────────
- *   · 잼핏 전용 쿠폰이 사용된 예약        → applications.coupon_id 로 판정
+ *   · 잼핏 전용 쿠폰이 사용된 예약        → application_coupons 로 판정
  *   · 실제 예약대금의 입금이 완료된 예약  → paid_at is not null
  *   · 해당 월 말일까지 전액 환불되지 않은 예약
  *
@@ -24,9 +24,13 @@ import { refundRate } from "@/lib/refundPolicy";
  *    수수료가 발생한다.** status <> 'cancelled' 로 거르면 잼핏에 줄 돈을
  *    누락하는 것이고, 그것이 곧 제16조의 해지 사유다.
  *
- * ⚠️ 쿠폰 사용 여부는 **applications.coupon_id** 로 본다. coupons.used_at 이
- *    아니다 — 취소되면 쿠폰이 풀리면서(p21) used_at 이 null 로 돌아가기 때문에,
- *    쿠폰 테이블 기준으로 세면 취소 건이 통째로 사라진다.
+ * ⚠️ 쿠폰 사용 여부는 **application_coupons** 로 본다.
+ *    · coupons.used_at 이 아니다 — 취소되면 쿠폰이 풀리면서(p21) used_at 이 null 로
+ *      돌아가기 때문에, 쿠폰 테이블 기준으로 세면 취소 건이 통째로 사라진다.
+ *    · applications.coupon_id 도 아니다 — 쿠폰 중복 적용(p37)이 되면서 그 칸은
+ *      더 이상 쓰지 않는다. 잼핏+인스타를 같이 쓴 건을 놓치게 된다.
+ *    application_coupons 는 코드·캠페인명·할인액을 문자열로 박아 두므로,
+ *    나중에 쿠폰이나 캠페인이 지워져도 정산 근거가 남는다.
  *
  * ⚠️ 개인정보(이름·연락처)는 넣지 않는다. 제8조 4항·제14조 3항이
  *    "예약번호·쿠폰 사용 여부·인원·결제금액·취소여부 등 최소한의 정보"로 제한한다.
@@ -64,8 +68,15 @@ export type SettlementRow = {
   /** KST 'YYYY-MM-DD HH:mm' */
   sessionLabel: string;
   headcount: number;
+  /** 이 건에 붙은 잼핏 쿠폰 코드 */
   couponCode: string | null;
+  /** 이 건에 붙은 모든 쿠폰 (잼핏 + 다른 이벤트 쿠폰) */
+  allCoupons: string;
+  /** 모든 쿠폰을 합친 할인액 */
   discountKrw: number;
+  /** ⚠️ **잼핏 쿠폰만의** 할인액. 비용 50% 분담(제6조)의 기준은 이것이다.
+   *     총 할인액을 쓰면 인스타 이벤트 쿠폰까지 잼핏에 청구하게 된다. */
+  partnerDiscountKrw: number;
   /** 고객이 실제로 입금한 금액 */
   paidKrw: number;
   cancelled: boolean;
@@ -109,7 +120,7 @@ type Raw = {
   status: string;
   utm_source: string | null;
   created_at: string;
-  coupons: { code: string; coupon_campaigns: { name: string } | null } | null;
+  application_coupons: { code: string; campaign_name: string; discount_krw: number }[] | null;
   sessions: { start_at: string; theme_id: string | null } | null;
 };
 
@@ -142,21 +153,28 @@ function settleOne(r: Raw, themeNames: Map<string, string>): SettlementRow {
     retained = 0;
   }
 
+  const partner = partnerCoupon(r);
+  const coupons = r.application_coupons ?? [];
+
   return {
     confirmationCode: r.confirmation_code,
     themeName: (r.sessions?.theme_id && themeNames.get(r.sessions.theme_id)) || "(테마 없음)",
     sessionLabel: r.sessions?.start_at ? kstLabel(r.sessions.start_at) : "-",
     headcount: r.headcount ?? 1,
-    couponCode: r.coupons?.code ?? null,
+    couponCode: partner?.code ?? null,
+    allCoupons: coupons.map((c) => `${c.campaign_name} ${c.code}`).join(" + "),
     discountKrw: r.discount_krw ?? 0,
+    partnerDiscountKrw: partner?.discount_krw ?? 0,
     paidKrw: paid,
     cancelled,
     refundRatio: ratio,
     retainedKrw: retained,
     commissionKrw: Math.round(retained * COMMISSION_RATE),
-    // 전액 환불된 건은 고객이 할인을 누린 것이 없으므로 비용 분담도 없다.
+    // ⚠️ **잼핏 쿠폰 할인액**에만 50% 를 매긴다(제6조 3항). 다른 이벤트 쿠폰은
+    //    우리가 전액 부담하므로 잼핏에 청구할 수 없다.
+    //    전액 환불된 건은 고객이 할인을 누린 것이 없으므로 분담도 없다.
     partnerCouponShareKrw:
-      retained > 0 ? Math.round((r.discount_krw ?? 0) * PARTNER_COUPON_SHARE) : 0,
+      retained > 0 ? Math.round((partner?.discount_krw ?? 0) * PARTNER_COUPON_SHARE) : 0,
     utmSource: r.utm_source,
     // 환불 처리는 했는데 규정상 100% 환불이 아닌 건 = 금액을 손으로 정했을 수 있다
     needsReview: cancelled && (ratio === null || (r.refund_completed_at !== null && ratio !== 1)),
@@ -165,27 +183,32 @@ function settleOne(r: Raw, themeNames: Map<string, string>): SettlementRow {
 
 /*
   ⚠️ 캠페인 이름으로 **중첩 필터를 걸지 않는다.**
-     `.like("coupons.coupon_campaigns.name", ...)` 를 쓰면 PostgREST 가 오류 없이
+     `.like("...coupon_campaigns.name", ...)` 를 쓰면 PostgREST 가 오류 없이
      0건을 돌려주는 경우가 있다(2026-09-15 실제로 겪음). 정산에서 0건은
      "줄 돈이 없다"로 읽히므로, 조용히 틀리는 쪽이 에러보다 훨씬 위험하다.
      쿠폰을 쓴 신청은 많아야 수백 건이라 전부 받아서 코드에서 거른다.
+
+  ⚠️ 테마 이름을 중첩으로 끌어오지 않는다. 3단 임베드는 값이 조용히 비어 올 수
+     있어, 테마는 따로 받아서 코드에서 붙인다.
 */
 const SELECT =
   "confirmation_code, headcount, amount_krw, discount_krw, paid_at, cancelled_at, " +
   "refund_completed_at, status, utm_source, created_at, " +
-  // ⚠️ 관계를 FK 이름으로 못박는다. applications 와 coupons 사이에는 관계가 둘이다
-  //    (applications.coupon_id → coupons, coupons.used_application_id → applications).
-  //    그냥 "coupons(...)" 라고 쓰면 PostgREST 가 어느 쪽인지 몰라 조회가 통째로 실패한다.
-  "coupons!applications_coupon_id_fkey(code, coupon_campaigns(name)), " +
-  // ⚠️ 테마 이름을 여기서 중첩으로 끌어오지 않는다. 3단 임베드는 값이 조용히
-  //    비어 오는 일이 있었다(화면에 "(테마 없음)"). 테마는 몇 개뿐이라 따로
-  //    받아서 코드에서 붙인다 — 실패하면 눈에 띄고, 값이 비지 않는다.
+  "application_coupons(code, campaign_name, discount_krw), " +
   "sessions(start_at, theme_id)";
 
-/** 잼핏 캠페인의 쿠폰을 쓴 건만 남긴다. */
+/** 잼핏 캠페인 쿠폰이 **한 장이라도** 붙어 있으면 정산 대상이다. */
 function isPartner(r: Raw): boolean {
-  const name = r.coupons?.coupon_campaigns?.name ?? "";
-  return name.startsWith(PARTNER_CAMPAIGN_PREFIX);
+  return (r.application_coupons ?? []).some((c) =>
+    (c.campaign_name ?? "").startsWith(PARTNER_CAMPAIGN_PREFIX)
+  );
+}
+
+/** 이 건에 붙은 잼핏 쿠폰 한 장. 캠페인당 1장이므로 하나뿐이다. */
+function partnerCoupon(r: Raw) {
+  return (r.application_coupons ?? []).find((c) =>
+    (c.campaign_name ?? "").startsWith(PARTNER_CAMPAIGN_PREFIX)
+  );
 }
 
 /** 테마 id → 이름. 테마는 몇 개뿐이라 통째로 받아 쓴다. */
@@ -208,7 +231,8 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
   const { data, error } = await supabase
     .from("applications")
     .select(SELECT)
-    .not("coupon_id", "is", null)
+    // ⚠️ 쿠폰 유무를 DB 에서 거르지 않는다. 임베드에 !inner 를 걸면 조용히 0건이
+    //    될 수 있어서(2026-09-15), 한 달치를 받아 isPartner 로 거른다.
     .not("paid_at", "is", null)
     .gte("created_at", start)
     .lt("created_at", end)
@@ -240,7 +264,6 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
   const { data: prev, error: prevError } = await supabase
     .from("applications")
     .select(SELECT)
-    .not("coupon_id", "is", null)
     .not("paid_at", "is", null)
     .lt("created_at", start)
     .gte("cancelled_at", start)

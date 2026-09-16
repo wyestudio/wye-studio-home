@@ -42,7 +42,7 @@ export async function checkNickname(
 /**
  * 같은 테마에 이미 신청한 번호가 있는지 미리 확인한다.
  *
- * ⚠️ 화면에서 일찍 알려주려는 것일 뿐이다. 최종 판정은 submit_application_v2()
+ * ⚠️ 화면에서 일찍 알려주려는 것일 뿐이다. 최종 판정은 submit_application_v3()
  *    안에서 행을 잠그고 한다 — 동시 요청은 여기서 막을 수 없다.
  */
 export async function checkThemeConflicts(
@@ -63,7 +63,8 @@ export async function checkThemeConflicts(
 
 export type ApplyInput = {
   sessionId: string;
-  couponCode: string;
+  /** 적용할 쿠폰 코드들. 중복 가능한 캠페인끼리는 여러 장. */
+  couponCodes: string[];
   depositorName: string;
   attendees: AttendeeInput[];
   notes: string;
@@ -89,15 +90,21 @@ export type ApplyResult =
     }
   | { error: string; capacityFull?: true };
 
+/** 적용된 쿠폰 한 장 */
+export type AppliedCoupon = {
+  code: string;
+  campaignName: string;
+  discountKrw: number;
+};
+
 export type CouponPreview =
   | {
       ok: true;
-      code: string;
-      campaignName: string;
-      description: string | null;
+      /** 적용된 쿠폰들. 중복 가능한 캠페인끼리는 여러 장이 올 수 있다. */
+      items: AppliedCoupon[];
+      /** 전부 합친 할인액 */
       discountKrw: number;
       finalAmountKrw: number;
-      validUntil: string | null;
     }
   | { ok: false; reason: string };
 
@@ -108,17 +115,19 @@ export type CouponPreview =
  * 다른 규칙을 쓰면 "화면에는 할인이 떴는데 신청하니 안 먹는" 일이 생긴다.
  */
 export async function checkCoupon(input: {
-  code: string;
+  /** 지금까지 적용된 코드 + 새로 넣은 코드. 합쳐서 판정한다. */
+  codes: string[];
   themeId: string;
   headcount: number;
   baseAmountKrw: number;
   phone: string;
 }): Promise<CouponPreview> {
-  if (!input.code.trim()) return { ok: false, reason: "쿠폰 코드를 입력해주세요." };
+  const codes = input.codes.map((c) => c.trim()).filter(Boolean);
+  if (codes.length === 0) return { ok: false, reason: "쿠폰 코드를 입력해주세요." };
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("preview_coupon", {
-    p_code: input.code,
+  const { data, error } = await supabase.rpc("preview_coupons", {
+    p_codes: codes,
     p_theme_id: input.themeId,
     p_headcount: input.headcount,
     p_base_amount: input.baseAmountKrw,
@@ -126,7 +135,7 @@ export async function checkCoupon(input: {
   });
 
   if (error) {
-    console.error("[apply] preview_coupon 실패", error);
+    console.error("[apply] preview_coupons 실패", error);
     return { ok: false, reason: "쿠폰을 확인하지 못했어요. 잠시 후 다시 시도해주세요." };
   }
 
@@ -135,20 +144,20 @@ export async function checkCoupon(input: {
 
   return {
     ok: true,
-    code: String(r.code),
-    campaignName: String(r.campaign_name),
-    description: (r.description as string) ?? null,
+    items: ((r.items as Record<string, unknown>[]) ?? []).map((i) => ({
+      code: String(i.code),
+      campaignName: String(i.campaign_name),
+      discountKrw: Number(i.discount_krw),
+    })),
     discountKrw: Number(r.discount_krw),
     finalAmountKrw: Number(r.final_amount_krw),
-    validUntil: (r.valid_until as string) ?? null,
   };
 }
-
 
 /**
  * 신청 제출.
  *
- * 검증은 전부 DB 의 submit_application_v2() 안에서 한다. 정원·재참여 배타는
+ * 검증은 전부 DB 의 submit_application_v3() 안에서 한다. 정원·재참여 배타는
  * 동시 요청을 직렬화해야 정확하므로 애플리케이션에서 미리 판단하면 안 된다.
  * (select ... for update 로 잠근 뒤 판정한다)
  */
@@ -173,7 +182,8 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase.rpc("submit_application_v2", {
+  // ⚠️ v3 를 쓴다. v2 는 쿠폰 1장 시절 함수이며 **그대로 살려둔다**(p37).
+  const { data, error } = await supabase.rpc("submit_application_v3", {
     p_session_id: input.sessionId,
     p_depositor_name: input.depositorName.trim(),
     p_consent_required: input.consentRequired,
@@ -189,7 +199,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     p_notes: input.notes.trim() || null,
     p_consent_photo: input.consentPhoto,
     p_consent_marketing: input.consentMarketing,
-    p_coupon_code: input.couponCode.trim() || null,
+    p_coupon_codes: input.couponCodes.map((c) => c.trim()).filter(Boolean),
     p_user_id: user?.id ?? null,
   });
 
@@ -199,7 +209,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     if (message.startsWith("정원마감:")) {
       return { error: message.replace("정원마감:", "").trim(), capacityFull: true };
     }
-    console.error("[apply] submit_application_v2 실패", error);
+    console.error("[apply] submit_application_v3 실패", error);
     return { error: message };
   }
 

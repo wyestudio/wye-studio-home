@@ -13,7 +13,7 @@ import {
   isValidKoreanName,
   isValidNickname,
 } from "@/lib/validation";
-import { normalizeCouponCode } from "@/lib/coupon";
+import { normalizeCouponCode, formatCouponCode } from "@/lib/coupon";
 import {
   applyToSession,
   checkCoupon,
@@ -122,6 +122,12 @@ export function ApplyForm({
     initialCouponCode.slice(4, 8),
   ]);
   const couponCode = couponParts.join("");
+  /**
+   * 이미 적용된 쿠폰 코드들. 중복 가능한 캠페인끼리는 여러 장을 붙일 수 있다.
+   * 어떤 조합이 되는지는 DB 의 preview_coupons() 가 판정한다 — 화면에서
+   * 규칙을 흉내 내면 두 곳이 갈라진다.
+   */
+  const [appliedCodes, setAppliedCodes] = useState<string[]>([]);
   const [coupon, setCoupon] = useState<CouponPreview | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
   const [nicknameChecks, setNicknameChecks] = useState<Record<number, NicknameCheckState>>({});
@@ -299,7 +305,9 @@ export function ApplyForm({
   // ── 조작 ──────────────────────────────────────────────────
   function setCount(count: number) {
     setActiveIndex((prev) => Math.min(prev, count - 1));
-    setCoupon(null); // 인원이 바뀌면 정가가 바뀐다. 정률 쿠폰은 할인액도 달라진다.
+    // 인원이 바뀌면 정가가 바뀐다. 인당 할인·정률 쿠폰은 할인액도 달라진다.
+    setCoupon(null);
+    setAppliedCodes([]);
     setAttendees((prev) => {
       const next = [...prev];
       while (next.length < count) next.push(emptyAttendee());
@@ -325,11 +333,37 @@ export function ApplyForm({
     }));
   }
 
+  /** 새 코드를 기존 적용분에 더해 확인한다. 통과하면 목록에 넣고 입력칸을 비운다. */
   async function verifyCoupon() {
-    if (total === null) return;
+    if (total === null || !couponCode) return;
+    setCouponChecking(true);
+    const next = [...appliedCodes, couponCode];
+    const result = await checkCoupon({
+      codes: next,
+      themeId,
+      headcount,
+      baseAmountKrw: total,
+      phone: attendees[0] ? joinPhone(attendees[0].phoneParts) : "",
+    });
+    setCouponChecking(false);
+    setCoupon(result);
+    if (result.ok) {
+      setAppliedCodes(next);
+      setCouponParts(["", ""]);
+    }
+  }
+
+  /** 한 장만 뺀다. 남은 게 있으면 다시 확인해 금액을 맞춘다. */
+  async function removeCoupon(code: string) {
+    const next = appliedCodes.filter((c) => c !== code);
+    setAppliedCodes(next);
+    if (next.length === 0 || total === null) {
+      setCoupon(null);
+      return;
+    }
     setCouponChecking(true);
     const result = await checkCoupon({
-      code: couponCode,
+      codes: next,
       themeId,
       headcount,
       baseAmountKrw: total,
@@ -459,7 +493,7 @@ export function ApplyForm({
         sessionId,
         // 확인을 통과한 쿠폰만 보낸다. 입력만 해두고 적용을 안 눌렀으면 할인 없이
         // 신청되는 게 맞다 — 화면에 안 보이던 할인이 붙는 게 더 혼란스럽다.
-        couponCode: coupon?.ok ? coupon.code : "",
+        couponCodes: coupon?.ok ? appliedCodes : [],
         depositorName,
         attendees: attendees.map(toPayload),
         notes: "",
@@ -690,7 +724,6 @@ export function ApplyForm({
                         value={couponParts[half]}
                         maxLength={4}
                         placeholder="XXXX"
-                        disabled={coupon?.ok}
                         onChange={(e) => {
                           const part = normalizeCouponCode(e.target.value).slice(0, 4);
                           setCouponParts((prev) => prev.map((p, i) => (i === half ? part : p)));
@@ -716,34 +749,54 @@ export function ApplyForm({
                       />
                     </div>
                   ))}
-                  {coupon?.ok ? (
-                    <button
-                      type="button"
-                      onClick={() => { setCoupon(null); setCouponParts(["", ""]); }}
-                      className="shrink-0 self-stretch rounded-lg border border-white/20 px-4 py-2.5 text-sm text-muted sm:px-5 sm:text-base"
-                    >
-                      해제
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={verifyCoupon}
-                      disabled={couponChecking || !couponCode || total === null}
-                      className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-40 sm:px-5 sm:text-base"
-                    >
-                      {couponChecking ? "확인 중…" : "적용"}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={verifyCoupon}
+                    disabled={couponChecking || !couponCode || total === null}
+                    className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-40 sm:px-5 sm:text-base"
+                  >
+                    {couponChecking ? "확인 중…" : "적용"}
+                  </button>
                 </div>
-                {coupon?.ok ? (
-                  <p className="mt-1.5 text-xs text-glow sm:mt-2 sm:text-sm">
-                    ✓ {coupon.campaignName} 적용됨 — {formatKrw(coupon.discountKrw)} 할인
-                  </p>
-                ) : coupon ? (
+
+                {/* 적용된 쿠폰들. 겹쳐 쓸 수 있는 조합이면 여러 줄이 된다. */}
+                {coupon?.ok && coupon.items.length > 0 && (
+                  <ul className="mt-2 space-y-1.5">
+                    {coupon.items.map((it) => (
+                      <li
+                        key={it.code}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-glow/25 bg-glow/5 px-3 py-2"
+                      >
+                        <span className="min-w-0 text-xs sm:text-sm">
+                          <span className="text-glow">✓ {it.campaignName}</span>
+                          <span className="ml-1.5 font-mono text-[11px] text-muted">
+                            {formatCouponCode(it.code)}
+                          </span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          <span className="text-xs text-glow sm:text-sm">
+                            -{formatKrw(it.discountKrw)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeCoupon(it.code)}
+                            disabled={couponChecking}
+                            className="rounded border border-white/20 px-2 py-0.5 text-[11px] text-muted disabled:opacity-40"
+                          >
+                            빼기
+                          </button>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                {coupon && !coupon.ok ? (
                   <p className="mt-1.5 text-xs text-amber-400 sm:mt-2 sm:text-sm">{coupon.reason}</p>
                 ) : (
                   <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
-                    쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요. 신청 1건에 1장 사용할 수 있어요.
+                    쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요.
+                    {" "}쿠폰에 따라 여러 장을 함께 쓸 수 있어요.
                   </p>
                 )}
               </div>
