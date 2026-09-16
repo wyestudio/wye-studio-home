@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
+import { EVENT_BUBBLE_KEY, SITE_SETTINGS_TAG } from "@/lib/siteSettings";
 
 /**
  * 공지·FAQ 편집.
@@ -139,5 +140,48 @@ export async function deleteFaq(id: string): Promise<ActionResult> {
     return { success: true as const };
   } catch (err) {
     return toActionError(err, "FAQ 삭제 실패");
+  }
+}
+
+/**
+ * 우하단 이벤트 말풍선(인스타 버튼 위) 설정.
+ *
+ * 고객 화면은 site_settings 의 'public.event_bubble' 을 읽는다(src/lib/siteSettings.ts).
+ * 이벤트가 끝나면 여기서 끄면 되고, 배포는 필요 없다.
+ */
+export async function saveEventBubble(input: {
+  enabled: boolean;
+  text: string;
+}): Promise<ActionResult> {
+  try {
+    const text = input.text.trim();
+    if (input.enabled && !text) return { error: "말풍선을 켜려면 문구를 입력해주세요." };
+    if (text.length > 60) return { error: "문구는 60자 이내로 적어주세요. 두 줄이 넘으면 잘립니다." };
+
+    const supabase = await requireAdmin();
+    const { error } = await supabase.from("site_settings").upsert(
+      {
+        key: EVENT_BUBBLE_KEY,
+        value: { enabled: input.enabled, text },
+        description: "우하단 인스타 버튼 위 말풍선. 어드민 > 공지·FAQ 화면에서 켜고 끈다.",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" }
+    );
+    if (error) throw error;
+
+    await writeAuditLog({
+      action: "site_setting.saved",
+      targetType: "site_setting",
+      targetId: EVENT_BUBBLE_KEY,
+      summary: `이벤트 말풍선 ${input.enabled ? "켬" : "끔"} — ${text || "(문구 없음)"}`,
+    });
+
+    // 고객 화면이 30초간 들고 있는 값이라 저장하자마자 털어준다.
+    updateTag(SITE_SETTINGS_TAG);
+    revalidatePath("/admin/content");
+    return { success: true as const };
+  } catch (err) {
+    return toActionError(err, "이벤트 말풍선 저장 실패");
   }
 }

@@ -42,6 +42,7 @@ const ACTION_LABEL: Record<string, string> = {
   "venue.saved": "장소 저장",
   "venue.deleted": "장소 삭제",
   "notice.saved": "공지 저장",
+  "site_setting.saved": "사이트 설정 저장",
   "notice.deleted": "공지 삭제",
   "faq.saved": "FAQ 저장",
   "faq.deleted": "FAQ 삭제",

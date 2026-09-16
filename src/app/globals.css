@@ -539,6 +539,11 @@ body:has(.admin-shell) header {
     event-bubble-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both,
     event-bubble-float 2.6s ease-in-out 0.35s infinite;
 }
+/* 이번 방문에 이미 닫았으면 처음부터 없는 것처럼. 표시는 인라인 스크립트가 단다
+   (InstagramEventBubble.tsx) — 화면이 그려진 뒤 지우면 깜빡 보였다 사라진다. */
+html[data-event-bubble-off] .event-bubble {
+  display: none;
+}
 @media (prefers-reduced-motion: reduce) {
   .event-bubble {
     animation: event-bubble-in 0.01s both;

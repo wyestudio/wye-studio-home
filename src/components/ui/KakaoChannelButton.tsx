@@ -1,4 +1,8 @@
-import { InstagramEventBubble } from "@/components/ui/InstagramEventBubble";
+import {
+  InstagramEventBubble,
+  eventBubbleDismissScript,
+} from "@/components/ui/InstagramEventBubble";
+import { getEventBubble } from "@/lib/siteSettings";
 
 const KAKAO_CHANNEL_URL = "http://pf.kakao.com/_EGNBX";
 const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
@@ -12,8 +16,16 @@ const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
  * ⚠️ 색은 각 서비스의 브랜드 색을 쓴다. 우리 강조색으로 칠하면 무슨 버튼인지
  *    아이콘만으로 알아보기 어렵다.
  */
-export function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
+export async function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
+  // 말풍선 문구·노출은 어드민에서 정한다(site_settings). 읽기에 실패하면 말풍선만 빠진다.
+  const bubble = await getEventBubble();
+
   return (
+    <>
+      {bubble.enabled && (
+        // 이미 닫은 방문자에게 깜빡 보였다 사라지지 않게, 그려지기 전에 표시를 단다.
+        <script dangerouslySetInnerHTML={{ __html: eventBubbleDismissScript }} />
+      )}
     <div
       // kakao-float: 모바일 하단 고정 CTA 가 있으면 CSS 가 이 묶음을 위로 올린다(globals.css).
       className={`kakao-float fixed right-4 z-40 flex flex-col items-center gap-2.5 lg:right-20 ${
@@ -21,9 +33,11 @@ export function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
       }`}
     >
       {/* 이벤트 말풍선 — 인스타 버튼 위에 붙는다(위치 기준이 이 묶음이라 relative). */}
-      <div className="relative w-full">
-        <InstagramEventBubble href={INSTAGRAM_URL} />
-      </div>
+      {bubble.enabled && (
+        <div className="relative w-full">
+          <InstagramEventBubble href={INSTAGRAM_URL} text={bubble.text} />
+        </div>
+      )}
 
       <a
         href={INSTAGRAM_URL}
@@ -54,5 +68,6 @@ export function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
         </svg>
       </a>
     </div>
+    </>
   );
 }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { NoticeEditor, type NoticeRow } from "./NoticeEditor";
 import { FaqEditor, type FaqRow } from "./FaqEditor";
+import { EventBubbleEditor } from "./EventBubbleEditor";
 import { formatDateFull } from "@/lib/format";
 
 // 날짜 형식은 어드민 전체가 같아야 한다 — formatDateFull 하나만 쓴다.
@@ -14,12 +15,21 @@ const kst = formatDateFull;
  * 목록에서 항목을 눌러 펼쳐 고친다. 별도 상세 페이지를 두지 않은 이유는
  * 항목이 짧고, 여러 개를 연달아 손보는 일이 많기 때문이다.
  */
-export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: FaqRow[] }) {
-  const [tab, setTab] = useState<"notice" | "faq">("notice");
+export function ContentManager({
+  notices,
+  faqs,
+  eventBubble,
+}: {
+  notices: NoticeRow[];
+  faqs: FaqRow[];
+  /** 우하단 이벤트 말풍선 설정(site_settings) */
+  eventBubble: { enabled: boolean; text: string };
+}) {
+  const [tab, setTab] = useState<"notice" | "faq" | "bubble">("notice");
   const [openId, setOpenId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
-  const tabBtn = (key: "notice" | "faq", label: string, count: number) => (
+  const tabBtn = (key: "notice" | "faq" | "bubble", label: string, count?: number) => (
     <button
       key={key}
       onClick={() => {
@@ -31,7 +41,8 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
         tab === key ? "bg-glow text-glow-foreground font-semibold" : "border border-border text-muted"
       }`}
     >
-      {label} <span className="text-xs">({count})</span>
+      {label}
+      {count !== undefined && <span className="text-xs"> ({count})</span>}
     </button>
   );
 
@@ -40,6 +51,8 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
       <div className="mb-4 flex items-center gap-2">
         {tabBtn("notice", "공지사항", notices.length)}
         {tabBtn("faq", "자주 묻는 질문", faqs.length)}
+        {tabBtn("bubble", eventBubble.enabled ? "이벤트 말풍선 · 켜짐" : "이벤트 말풍선")}
+        {tab !== "bubble" && (
         <button
           onClick={() => {
             setAdding((v) => !v);
@@ -49,7 +62,10 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
         >
           {adding ? "취소" : tab === "notice" ? "+ 공지 추가" : "+ 질문 추가"}
         </button>
+        )}
       </div>
+
+      {tab === "bubble" && <EventBubbleEditor initial={eventBubble} />}
 
       {adding && (
         <div className="mb-4">
@@ -61,7 +77,7 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
         </div>
       )}
 
-      {tab === "notice" ? (
+      {tab === "bubble" ? null : tab === "notice" ? (
         notices.length === 0 ? (
           <Empty label="등록된 공지가 없습니다." />
         ) : (

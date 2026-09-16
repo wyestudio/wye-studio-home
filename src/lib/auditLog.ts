@@ -52,6 +52,7 @@ export type AuditAction =
   | "venue.deleted"
   | "notice.saved"
   | "notice.deleted"
+  | "site_setting.saved"
   | "faq.saved"
   | "faq.deleted"
   | "sms_template.updated"
@@ -69,7 +70,8 @@ export type AuditTargetType =
   | "notice"
   | "faq"
   | "sms_template"
-  | "slack_template";
+  | "slack_template"
+  | "site_setting";
 
 /** 요청한 브라우저의 IP·UA. 공유 계정이라 이거라도 남겨야 구분이 된다. */
 async function requestContext(): Promise<{ ip: string | null; ua: string | null }> {
