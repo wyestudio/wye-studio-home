@@ -211,7 +211,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           <ThemeGenreTile genres={genres} accent={accent} />
         </div>
 
-        {(synopsis || introNotice) && (
+        {synopsis && (
           <div data-fit-bottom className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3">
             <p
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em]"
@@ -224,34 +224,34 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               pre-line 이면 빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
               break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
             */}
-            {synopsis && (
-              <p
-                className="whitespace-pre-wrap break-words border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
-                style={{ borderColor: `${accent}80` }}
-              >
-                {synopsis}
-              </p>
-            )}
+            <p
+              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
+              style={{ borderColor: `${accent}80` }}
+            >
+              {synopsis}
+            </p>
 
-            {/*
-              강조 안내(themes.intro_notice). **시놉시스 바로 아래**가 자리다 —
-              이 테마 시놉시스가 "소개팅 받아볼래?" 로 시작해서 오해를 키우는데,
-              바로 그 아래에서 바로잡아야 읽힌다. 신청 버튼보다 위이기도 하다.
-            */}
-            {introNotice && (
-              <div
-                className="mt-4 rounded-xl border px-4 py-3 sm:mt-5 sm:px-5 sm:py-4"
-                style={{ borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
-              >
-                <RichText
-                  text={introNotice}
-                  className="block text-[13px] leading-relaxed text-white/85 sm:text-sm lg:text-base"
-                />
-              </div>
-            )}
           </div>
         )}
       </section>
+
+      {/*
+        강조 안내(themes.intro_notice). 포스터·정보 묶음 **바깥 아래**에 가로로 길게 둔다.
+        ⚠️ 안쪽(시놉시스 아래)에 두면 오른쪽 칸이 길어져 포스터 높이 맞추기(PosterFit)가
+           같이 늘어난다 — 포스터와 정보의 아래끝이 어긋났다(2026-09-16).
+        읽히는 순서는 그대로다: 시놉시스 → 이 안내 → 신청하기.
+      */}
+      {introNotice && (
+        <div
+          className="mt-4 rounded-xl border px-4 py-3 sm:mt-6 sm:px-5 sm:py-4"
+          style={{ borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
+        >
+          <RichText
+            text={introNotice}
+            className="block text-[13px] leading-relaxed text-white/85 sm:text-sm lg:text-base"
+          />
+        </div>
+      )}
       {/*
         첫 로드 때 포스터 크기를 화면이 그려지기 전에 맞춘다(posterFitScript.ts).
         다른 화면에서 넘어올 때는 이 스크립트가 돌지 않아 PosterFit 이 맡는다.
