@@ -35,6 +35,8 @@ const SAMPLE_VARS: Record<string, string> = {
   status_suffix: "",
   discount: "5,000원",
   discount_suffix: " (쿠폰 -5,000원)",
+  coupons: "잼핏 제휴 할인 Z03G-3A8T (−1,000원), 인스타 댓글 이벤트 E01Y-07TY (−5,000원)",
+  coupons_line: "\n🎟 쿠폰: 잼핏 제휴 할인 Z03G-3A8T, 인스타 댓글 이벤트 E01Y-07TY",
   created_at: "2026.09.26 14:02",
   payment_deadline: "2026.09.26 14:32",
   confirmed_count: "12",

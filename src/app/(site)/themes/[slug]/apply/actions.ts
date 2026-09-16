@@ -223,6 +223,8 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     discount_krw: number;
     amount_krw: number;
     waiting_number: number | null;
+    /** v3 가 돌려주는, 실제로 적용된 쿠폰들 */
+    coupons?: { code: string; campaign_name: string; discount_krw: number }[];
   };
 
   // 유입경로를 신청 건에 붙인다. 근거와 주의사항은 attributionServer.ts 에 있다.
@@ -276,6 +278,12 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
           headcount: r.headcount,
           amountKrw: r.amount_krw,
           discountKrw: r.discount_krw,
+          // 어느 쿠폰을 썼는지 운영자가 알림에서 바로 보게 한다.
+          coupons: (r.coupons ?? []).map((c) => ({
+            code: c.code,
+            campaignName: c.campaign_name,
+            discountKrw: c.discount_krw,
+          })),
           depositorName: input.depositorName.trim(),
           notes: input.notes.trim() || null,
           // ⚠️ 동행자까지 전부 넘긴다. 슬랙 포맷에서 {{#attendees}} 블록으로

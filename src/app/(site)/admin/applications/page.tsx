@@ -15,6 +15,9 @@ type Row = {
   payment_status: "pending" | "confirmed" | "cancelled";
   headcount: number;
   amount_krw: number | null;
+  discount_krw: number | null;
+  /** 이 신청에 붙은 쿠폰들 '캠페인명 코드, …'. 없으면 null */
+  coupons: string | null;
   created_at: string;
   session_id: string;
   session_start_at: string;
@@ -173,7 +176,21 @@ export default async function AdminApplicationsPage({
                         {PAYMENT_LABEL[r.payment_status]}
                       </span>
                     </td>
-                    <td className="px-3 py-2.5 text-right">{r.amount_krw != null ? formatKrw(r.amount_krw) : "-"}</td>
+                    <td className="px-3 py-2.5 text-right">
+                      {r.amount_krw != null ? formatKrw(r.amount_krw) : "-"}
+                      {/*
+                        쿠폰 중복 적용이 되면서 같은 회차라도 결제액이 제각각이다.
+                        왜 이 금액인지 목록에서 바로 알 수 있어야 한다.
+                      */}
+                      {r.discount_krw != null && r.discount_krw > 0 && (
+                        <span className="block text-[11px] text-glow" title={r.coupons ?? undefined}>
+                          쿠폰 −{formatKrw(r.discount_krw)}
+                        </span>
+                      )}
+                      {r.coupons && (
+                        <span className="block text-[11px] text-muted">{r.coupons}</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2.5 text-xs text-muted">
                       {formatDateFull(r.created_at)}
                     </td>

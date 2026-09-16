@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatKrw, formatDateTimeDotted } from "@/lib/format";
+import { formatCouponCode } from "@/lib/coupon";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { renderTemplate, type TemplateBlocks, type TemplateVars } from "@/lib/messageTemplate";
 
@@ -135,6 +136,8 @@ export async function sendApplicationSlackAlertV2(p: {
   headcount: number;
   amountKrw: number;
   discountKrw: number;
+  /** 이 신청에 붙은 쿠폰들. 중복 적용되면 여러 장이다(p37). */
+  coupons?: { code: string; campaignName: string; discountKrw: number }[];
   depositorName: string;
   notes?: string | null;
   /** 대표가 [0] 번이다. 동행자까지 전부 넘긴다 */
@@ -158,6 +161,16 @@ export async function sendApplicationSlackAlertV2(p: {
     base_amount: formatKrw(p.amountKrw + p.discountKrw),
     discount: formatKrw(p.discountKrw),
     discount_suffix: p.discountKrw > 0 ? ` (쿠폰 −${formatKrw(p.discountKrw)})` : "",
+    // 어느 쿠폰을 썼는지. 중복 적용되면 여러 줄이 된다.
+    // 쿠폰을 안 썼으면 빈 문자열이라, 템플릿에서 줄 하나가 통째로 비워진다.
+    coupons: (p.coupons ?? [])
+      .map((c) => `${c.campaignName} ${formatCouponCode(c.code)} (−${formatKrw(c.discountKrw)})`)
+      .join(", "),
+    coupons_line: (p.coupons ?? []).length
+      ? `\n🎟 쿠폰: ${(p.coupons ?? [])
+          .map((c) => `${c.campaignName} ${formatCouponCode(c.code)}`)
+          .join(", ")}`
+      : "",
     created_at: formatDateTimeDotted(p.createdAt),
     payment_deadline: formatDateTimeDotted(deadline),
     confirmed_count: counts.confirmed,

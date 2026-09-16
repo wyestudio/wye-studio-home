@@ -20,6 +20,8 @@ export const SLACK_PLACEHOLDER_LABELS: Record<string, string> = {
   base_amount: "할인 전 금액",
   discount: "쿠폰 할인액",
   discount_suffix: "쿠폰 썼을 때만 ' (쿠폰 −5,000원)'",
+  coupons: "쓴 쿠폰들 '잼핏 제휴 할인 Z03G-3A8T (−1,000원)'",
+  coupons_line: "쿠폰 썼을 때만 줄바꿈 + '🎟 쿠폰: …' (안 썼으면 줄 자체가 없음)",
   created_at: "신청일시",
   payment_deadline: "입금기한 (신청 +30분)",
   confirmed_count: "이 회차 확정 인원",
