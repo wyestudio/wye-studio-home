@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CampaignEditor, type CampaignRow } from "./CampaignEditor";
-import { issueCoupons, issueCouponToHandle } from "./actions";
+import { issueCoupons, importIssuedHandles } from "./actions";
 import { formatCouponCode } from "@/lib/coupon";
 import { formatKrw, formatDateFull } from "@/lib/format";
 import { toCsv, downloadCsv, kstStamp } from "@/lib/csv";
@@ -58,10 +58,10 @@ export function CouponPanel({
   const [issued, setIssued] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // 인스타 아이디 수동 발급 (캠페인별로 따로 들고 있는다)
-  const [handleInputs, setHandleInputs] = useState<Record<string, string>>({});
-  const [handleResult, setHandleResult] = useState<Record<string, string>>({});
-  const [busyHandle, setBusyHandle] = useState<string | null>(null);
+  // 발송 기록 CSV 반영 (캠페인별로 따로 들고 있는다)
+  const [csvInputs, setCsvInputs] = useState<Record<string, string>>({});
+  const [csvResult, setCsvResult] = useState<Record<string, string>>({});
+  const [busyCsv, setBusyCsv] = useState<string | null>(null);
 
   async function issue(campaignId: string) {
     setBusy(true);
@@ -215,54 +215,58 @@ export function CouponPanel({
                     )}
 
                     {/*
-                      ManyChat 자동화가 멈췄을 때(무료체험 만료 등) 손으로 발급하는 칸.
-                      ⚠️ 자동화와 **같은 DB 함수**를 쓴다 — 이미 받아간 계정이면 새 코드를
-                         만들지 않고 그때 준 코드를 그대로 다시 알려준다.
+                      연동 도구(외부 DM 발송 페이지)를 쓰는 캠페인은 **발급이 아니라 기록 반영**이
+                      필요하다.
+                      ⚠️ 수동 발급 칸을 일부러 두지 않았다. 발급을 두 곳에서 하면 서로를 못 봐서
+                         같은 코드가 두 사람에게 나간다. 발급은 외부 도구 한 곳에서만 한다.
+                         (되살리려면 actions.ts 의 issueCouponToHandle 을 다시 붙이면 된다)
                     */}
                     {c.key && (
                       <div className="mb-3 rounded border border-border bg-background/40 p-3">
-                        <p className="text-xs font-semibold">인스타 아이디로 발급</p>
+                        <p className="text-xs font-semibold">발송 기록 CSV 반영</p>
                         <p className="mt-1 text-[11px] text-muted">
-                          ManyChat 자동 발급이 멈췄을 때 씁니다. 이미 받아간 계정이면 그때 준
-                          코드를 다시 알려줘요 — 두 번 나가지 않습니다.
+                          외부 발송 도구에서 내보낸 CSV 를 붙여넣으면 「받아간 계정」에 반영됩니다.
+                          같은 CSV 를 여러 번 넣어도 안전해요. 이미 다른 아이디가 적힌 코드는
+                          덮어쓰지 않고 알려드립니다.
+                          <br />
+                          ⚠️ <strong className="text-foreground">이 쿠폰은 외부 도구에서만 발급합니다.</strong>{" "}
+                          여기서 따로 발급하면 같은 코드가 두 사람에게 갈 수 있어요.
                         </p>
+                        <textarea
+                          className="mt-2 h-24 w-full rounded border border-border bg-background p-2 font-mono text-[11px]"
+                          placeholder={'"코드","메모","발송여부","인스타아이디","발송일시"\n"E01Y-07TY",...'}
+                          value={csvInputs[c.id] ?? ""}
+                          onChange={(e) => setCsvInputs((p) => ({ ...p, [c.id]: e.target.value }))}
+                        />
                         <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <input
-                            className={`${field} w-48`}
-                            placeholder="@ 없이 아이디"
-                            value={handleInputs[c.id] ?? ""}
-                            onChange={(e) =>
-                              setHandleInputs((p) => ({ ...p, [c.id]: e.target.value }))
-                            }
-                          />
                           <button
                             type="button"
-                            disabled={busyHandle === c.id || !(handleInputs[c.id] ?? "").trim()}
+                            disabled={busyCsv === c.id || !(csvInputs[c.id] ?? "").trim()}
                             onClick={async () => {
-                              setBusyHandle(c.id);
-                              setHandleResult((p) => ({ ...p, [c.id]: "" }));
-                              const res = await issueCouponToHandle(
-                                c.key!,
-                                handleInputs[c.id] ?? ""
-                              );
-                              setBusyHandle(null);
-                              setHandleResult((p) => ({
-                                ...p,
-                                [c.id]:
-                                  "error" in res
-                                    ? `⚠️ ${res.error}`
-                                    : `${formatCouponCode(res.code)}${
-                                        res.alreadyIssued ? " (이미 받아간 계정 — 같은 코드)" : " (신규 발급)"
-                                      }`,
-                              }));
+                              setBusyCsv(c.id);
+                              setCsvResult((p) => ({ ...p, [c.id]: "" }));
+                              const res = await importIssuedHandles(c.key!, csvInputs[c.id] ?? "");
+                              setBusyCsv(null);
+                              if ("error" in res) {
+                                setCsvResult((p) => ({ ...p, [c.id]: `⚠️ ${res.error}` }));
+                              } else {
+                                const 부분 = [`반영 ${res.applied}건`, `이미 반영됨 ${res.unchanged}건`];
+                                if (res.notFound.length) 부분.push(`없는 코드 ${res.notFound.length}건`);
+                                if (res.conflicts.length)
+                                  부분.push(`충돌 ${res.conflicts.length}건 — ${res.conflicts.join(", ")}`);
+                                if (res.duplicateHandles.length)
+                                  부분.push(`중복 아이디 ${res.duplicateHandles.length}건 — ${res.duplicateHandles.join(", ")}`);
+                                setCsvResult((p) => ({ ...p, [c.id]: 부분.join(" · ") }));
+                                setCsvInputs((p) => ({ ...p, [c.id]: "" }));
+                              }
                               router.refresh();
                             }}
                             className="rounded border border-border px-3 py-2 text-xs hover:bg-muted/30 disabled:opacity-40"
                           >
-                            {busyHandle === c.id ? "발급 중…" : "쿠폰 발급"}
+                            {busyCsv === c.id ? "반영 중…" : "CSV 반영"}
                           </button>
-                          {handleResult[c.id] && (
-                            <span className="font-mono text-sm text-glow">{handleResult[c.id]}</span>
+                          {csvResult[c.id] && (
+                            <span className="text-xs text-glow">{csvResult[c.id]}</span>
                           )}
                         </div>
                       </div>

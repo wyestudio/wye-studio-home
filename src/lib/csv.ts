@@ -45,3 +45,42 @@ export function kstStamp(d: Date = new Date()): string {
   const k = new Date(d.getTime() + 9 * 60 * 60 * 1000);
   return k.toISOString().slice(0, 10).replace(/-/g, "");
 }
+
+/**
+ * CSV 문자열을 행 배열로 읽는다.
+ *
+ * ⚠️ 직접 파서를 두는 이유: 따옴표 안의 쉼표·줄바꿈 때문에 `split(",")` 로는
+ *    안 된다. 발송 기록에는 메모가 들어가고 거기 쉼표가 섞일 수 있다.
+ *
+ * ⚠️ 맨 앞 BOM 을 떼어낸다. 엑셀로 열었다 다시 저장하면 붙는데,
+ *    안 떼면 첫 칸 이름이 '﻿코드' 가 되어 못 찾는다.
+ */
+export function parseCsv(text: string): string[][] {
+  const src = text.replace(/^﻿/, "");
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+
+    if (quoted) {
+      if (ch === '"') {
+        if (src[i + 1] === '"') { cell += '"'; i++; }  // "" → 따옴표 한 개
+        else quoted = false;
+      } else cell += ch;
+      continue;
+    }
+
+    if (ch === '"') { quoted = true; continue; }
+    if (ch === ",") { row.push(cell); cell = ""; continue; }
+    if (ch === "\r") continue;
+    if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; continue; }
+    cell += ch;
+  }
+  // 마지막 줄에 줄바꿈이 없을 수 있다
+  if (cell !== "" || row.length > 0) { row.push(cell); rows.push(row); }
+
+  return rows.filter((r) => r.some((c) => c.trim() !== ""));
+}

@@ -5,6 +5,7 @@ import { EVENT_BUBBLE_TAG } from "@/lib/siteSettings";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
 import { generateUniqueCodes, isValidCouponPrefix, FORBIDDEN_PREFIXES } from "@/lib/couponCode";
+import { parseCsv } from "@/lib/csv";
 
 /**
  * 쿠폰 캠페인·코드 관리.
@@ -151,6 +152,124 @@ export type HandleIssueResult =
  *    계정당 1장 보장이 깨진다 — 자동으로 받아간 사람에게 또 줄 수 있다.
  *    이미 받아간 계정이면 새 코드를 만들지 않고 그때 준 코드를 그대로 돌려준다.
  */
+export type ImportResult =
+  | {
+      success: true;
+      /** 이번에 새로 반영된 건 */
+      applied: number;
+      /** 이미 같은 값으로 들어 있던 건 (다시 넣어도 안전하다) */
+      unchanged: number;
+      /** 코드가 이 캠페인에 없어 건너뛴 건 */
+      notFound: string[];
+      /** 같은 코드에 다른 아이디가 이미 있어 건드리지 않은 건 */
+      conflicts: string[];
+      /** 한 아이디가 여러 코드에 걸려 있어 건너뛴 건 */
+      duplicateHandles: string[];
+    }
+  | { error: string };
+
+/**
+ * 외부 발송 도구의 CSV 를 읽어 "누가 어느 코드를 받아갔는지" 를 DB 에 반영한다.
+ *
+ * 왜 필요한가
+ *   인스타 이벤트는 외부 도구로 DM 을 보낸다. 그 도구는 자기 안에만 기록을 남기므로,
+ *   브라우저 데이터가 날아가면 복구할 방법이 없다. 우리 DB 로 옮겨 두면 매일 백업에 들어가고,
+ *   어드민에서도 「받아간 계정」이 보여 문의에 바로 답할 수 있다.
+ *
+ * ⚠️ **이미 다른 아이디가 적힌 코드는 덮어쓰지 않는다.** 덮어쓰면 누가 진짜 받았는지
+ *    영영 알 수 없어진다. 충돌한 건은 건드리지 않고 목록으로 돌려준다.
+ *
+ * ⚠️ 여러 번 넣어도 안전하다(멱등). 같은 CSV 를 다시 넣으면 전부 unchanged 로 잡힌다.
+ */
+export async function importIssuedHandles(
+  campaignKey: string,
+  csvText: string
+): Promise<ImportResult> {
+  try {
+    const supabase = await requireAdmin();
+    const rows = parseCsv(csvText);
+    if (rows.length < 2) return { error: "CSV 내용이 비어 있어요." };
+
+    const header = rows[0].map((h) => h.trim());
+    const codeAt = header.findIndex((h) => h.includes("코드"));
+    const handleAt = header.findIndex((h) => h.includes("아이디"));
+    if (codeAt < 0 || handleAt < 0) {
+      return { error: "CSV 에 '코드' 와 '인스타아이디' 칸이 있어야 해요." };
+    }
+
+    const { data: camp } = await supabase
+      .from("coupon_campaigns").select("id").eq("key", campaignKey).single();
+    if (!camp) return { error: "쿠폰 종류를 찾을 수 없어요." };
+
+    const { data: existing, error: readErr } = await supabase
+      .from("coupons").select("id, code, issued_to_handle").eq("campaign_id", camp.id);
+    if (readErr) throw readErr;
+
+    const byCode = new Map((existing ?? []).map((c) => [c.code as string, c]));
+    // 이미 다른 코드에 붙어 있는 아이디. 유니크 제약에 걸리기 전에 미리 거른다.
+    const handleOwner = new Map<string, string>();
+    for (const c of existing ?? []) {
+      if (c.issued_to_handle) handleOwner.set(c.issued_to_handle as string, c.code as string);
+    }
+
+    const notFound: string[] = [];
+    const conflicts: string[] = [];
+    const duplicateHandles: string[] = [];
+    const toUpdate: { id: string; handle: string }[] = [];
+    let unchanged = 0;
+
+    for (const row of rows.slice(1)) {
+      // 코드는 하이픈 없이 대문자로 저장돼 있다(E01Y-07TY → E01Y07TY).
+      const code = (row[codeAt] ?? "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+      const handle = (row[handleAt] ?? "").trim().replace(/^@+/, "").toLowerCase();
+      if (!code || !handle) continue;  // 미발송 줄은 아이디가 비어 있다
+
+      const coupon = byCode.get(code);
+      if (!coupon) { notFound.push(code); continue; }
+
+      const current = (coupon.issued_to_handle as string | null) ?? null;
+      if (current === handle) { unchanged++; continue; }
+      if (current) { conflicts.push(`${code} (DB: @${current} / CSV: @${handle})`); continue; }
+
+      const owner = handleOwner.get(handle);
+      if (owner && owner !== code) {
+        duplicateHandles.push(`@${handle} (이미 ${owner})`);
+        continue;
+      }
+
+      handleOwner.set(handle, code);
+      toUpdate.push({ id: coupon.id as string, handle });
+    }
+
+    for (const u of toUpdate) {
+      const { error } = await supabase
+        .from("coupons").update({ issued_to_handle: u.handle }).eq("id", u.id);
+      if (error) throw error;
+    }
+
+    await writeAuditLog({
+      action: "coupon.issued",
+      targetType: "coupon_campaign",
+      targetId: campaignKey,
+      summary: `발송 기록 CSV 반영 — ${toUpdate.length}건`,
+      detail: { applied: toUpdate.length, unchanged, notFound: notFound.length,
+                conflicts: conflicts.length },
+    });
+
+    revalidatePath("/admin/coupons");
+    return {
+      success: true as const,
+      applied: toUpdate.length,
+      unchanged,
+      notFound: notFound.slice(0, 10),
+      conflicts: conflicts.slice(0, 10),
+      duplicateHandles: duplicateHandles.slice(0, 10),
+    };
+  } catch (err) {
+    return toActionError(err, "CSV 반영 실패");
+  }
+}
+
 export async function issueCouponToHandle(
   campaignKey: string,
   handle: string
