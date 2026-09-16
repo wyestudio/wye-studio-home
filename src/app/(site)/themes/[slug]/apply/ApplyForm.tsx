@@ -22,6 +22,7 @@ import {
   type AttendeeInput,
   type ApplyResult,
   type CouponPreview,
+  type AppliedCoupon,
 } from "./actions";
 import { readAttribution } from "@/lib/attribution";
 import { AttendeeFields, type NicknameCheckState } from "./AttendeeFields";
@@ -84,6 +85,9 @@ type FieldError = { field: string; message: string };
  * 눌러 돌아갈 수 있다. 검사 항목은 8/29 회차 폼의 것을 그대로 옮기되 테마 구조에
  * 맞춰 조정했다 — 출생연도는 고정 연도 범위가 아니라 회차의 최소 연령으로 판정한다.
  */
+/** 적용에 성공한 쿠폰 상태 */
+type AppliedState = { items: AppliedCoupon[]; discountKrw: number };
+
 export function ApplyForm({
   sessionId,
   themeName,
@@ -128,7 +132,13 @@ export function ApplyForm({
    * 규칙을 흉내 내면 두 곳이 갈라진다.
    */
   const [appliedCodes, setAppliedCodes] = useState<string[]>([]);
-  const [coupon, setCoupon] = useState<CouponPreview | null>(null);
+  /**
+   * ⚠️ **마지막으로 성공한 적용 결과**와 **마지막 실패 사유**를 따로 들고 있는다.
+   *    하나로 합치면, 쿠폰을 하나 더 넣었다가 거부됐을 때 이미 적용해 둔 쿠폰이
+   *    화면에서 사라지고 제출에서도 빠진다 — 고객이 할인을 통째로 잃는다.
+   */
+  const [applied, setApplied] = useState<AppliedState | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [couponChecking, setCouponChecking] = useState(false);
   const [nicknameChecks, setNicknameChecks] = useState<Record<number, NicknameCheckState>>({});
   const [conflictPhones, setConflictPhones] = useState<Set<string>>(new Set());
@@ -171,7 +181,7 @@ export function ApplyForm({
 
   const unitPrice = resolveUnitPrice(tiers, headcount);
   const total = unitPrice !== null ? unitPrice * headcount : null;
-  const appliedDiscount = coupon?.ok ? coupon.discountKrw : 0;
+  const appliedDiscount = applied?.discountKrw ?? 0;
   const payable = total !== null ? Math.max(0, total - appliedDiscount) : null;
 
   // ── 검사 ──────────────────────────────────────────────────
@@ -306,7 +316,8 @@ export function ApplyForm({
   function setCount(count: number) {
     setActiveIndex((prev) => Math.min(prev, count - 1));
     // 인원이 바뀌면 정가가 바뀐다. 인당 할인·정률 쿠폰은 할인액도 달라진다.
-    setCoupon(null);
+    setApplied(null);
+    setCouponError(null);
     setAppliedCodes([]);
     setAttendees((prev) => {
       const next = [...prev];
@@ -337,6 +348,7 @@ export function ApplyForm({
   async function verifyCoupon() {
     if (total === null || !couponCode) return;
     setCouponChecking(true);
+    setCouponError(null);
     const next = [...appliedCodes, couponCode];
     const result = await checkCoupon({
       codes: next,
@@ -346,10 +358,13 @@ export function ApplyForm({
       phone: attendees[0] ? joinPhone(attendees[0].phoneParts) : "",
     });
     setCouponChecking(false);
-    setCoupon(result);
     if (result.ok) {
       setAppliedCodes(next);
+      setApplied({ items: result.items, discountKrw: result.discountKrw });
       setCouponParts(["", ""]);
+    } else {
+      // ⚠️ 이미 적용된 쿠폰은 건드리지 않는다. 새로 넣은 것만 거부한다.
+      setCouponError(result.reason);
     }
   }
 
@@ -357,8 +372,9 @@ export function ApplyForm({
   async function removeCoupon(code: string) {
     const next = appliedCodes.filter((c) => c !== code);
     setAppliedCodes(next);
+    setCouponError(null);
     if (next.length === 0 || total === null) {
-      setCoupon(null);
+      setApplied(null);
       return;
     }
     setCouponChecking(true);
@@ -370,7 +386,8 @@ export function ApplyForm({
       phone: attendees[0] ? joinPhone(attendees[0].phoneParts) : "",
     });
     setCouponChecking(false);
-    setCoupon(result);
+    if (result.ok) setApplied({ items: result.items, discountKrw: result.discountKrw });
+    else setCouponError(result.reason);
   }
 
   function focusFirstStep1Error(errors: FieldError[]) {
@@ -493,7 +510,8 @@ export function ApplyForm({
         sessionId,
         // 확인을 통과한 쿠폰만 보낸다. 입력만 해두고 적용을 안 눌렀으면 할인 없이
         // 신청되는 게 맞다 — 화면에 안 보이던 할인이 붙는 게 더 혼란스럽다.
-        couponCodes: coupon?.ok ? appliedCodes : [],
+        // ⚠️ 마지막 '적용' 시도가 거부됐더라도, 이미 성공한 쿠폰은 그대로 보낸다.
+        couponCodes: appliedCodes,
         depositorName,
         attendees: attendees.map(toPayload),
         notes: "",
@@ -727,7 +745,7 @@ export function ApplyForm({
                         onChange={(e) => {
                           const part = normalizeCouponCode(e.target.value).slice(0, 4);
                           setCouponParts((prev) => prev.map((p, i) => (i === half ? part : p)));
-                          setCoupon(null); // 코드를 고치면 이전 적용은 무효다
+                          setCouponError(null); // 새로 치는 중이니 이전 오류만 지운다
                           if (part.length === 4 && half === 0) {
                             document.getElementById("couponCode2")?.focus();
                           }
@@ -744,7 +762,7 @@ export function ApplyForm({
                           if (!pasted) return;
                           e.preventDefault();
                           setCouponParts([pasted.slice(0, 4), pasted.slice(4, 8)]);
-                          setCoupon(null);
+                          setCouponError(null);
                         }}
                       />
                     </div>
@@ -760,9 +778,9 @@ export function ApplyForm({
                 </div>
 
                 {/* 적용된 쿠폰들. 겹쳐 쓸 수 있는 조합이면 여러 줄이 된다. */}
-                {coupon?.ok && coupon.items.length > 0 && (
+                {applied && applied.items.length > 0 && (
                   <ul className="mt-2 space-y-1.5">
-                    {coupon.items.map((it) => (
+                    {applied.items.map((it) => (
                       <li
                         key={it.code}
                         className="flex items-center justify-between gap-2 rounded-lg border border-glow/25 bg-glow/5 px-3 py-2"
@@ -791,8 +809,8 @@ export function ApplyForm({
                   </ul>
                 )}
 
-                {coupon && !coupon.ok ? (
-                  <p className="mt-1.5 text-xs text-amber-400 sm:mt-2 sm:text-sm">{coupon.reason}</p>
+                {couponError ? (
+                  <p className="mt-1.5 text-xs text-amber-400 sm:mt-2 sm:text-sm">{couponError}</p>
                 ) : (
                   <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
                     쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요.
