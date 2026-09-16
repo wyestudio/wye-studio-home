@@ -84,8 +84,9 @@ export function SectionNav({ accent }: { accent: string }) {
   return (
     <nav
       aria-label="상세 목차"
-      className="group/nav fixed top-1/2 z-30 hidden -translate-y-1/2 xl:block
-                 left-[max(0.5rem,calc((100vw-64rem)/2-3.5rem))]"
+      // 본문에서 충분히 떨어뜨려 화면 왼쪽 끝에 붙인다 — 본문 옆에 바짝 붙으니
+      // 답답해 보인다는 의견(2026-09-16). 펼쳤을 때만 본문 쪽으로 자란다.
+      className="group/nav fixed left-6 top-1/2 z-30 hidden -translate-y-1/2 xl:block"
     >
       <div
         className={`relative rounded-md border border-transparent px-2.5 py-2 transition-[background-color,border-color] duration-300 ${panelOn}`}
