@@ -85,6 +85,8 @@ export type CampaignRow = {
   is_active: boolean;
   show_event_bubble: boolean;
   event_bubble_text: string | null;
+  /** 외부 연동(ManyChat 등)이 이 캠페인을 찾는 고정 키. 없으면 연동 대상이 아니다. */
+  key: string | null;
 };
 
 export function CampaignEditor({

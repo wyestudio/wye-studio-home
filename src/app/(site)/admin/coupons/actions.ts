@@ -140,6 +140,55 @@ export async function deleteCampaign(id: string): Promise<ActionResult> {
 
 export type IssueResult = { success: true; codes: string[] } | { error: string };
 
+export type HandleIssueResult =
+  | { success: true; code: string; alreadyIssued: boolean }
+  | { error: string };
+
+/**
+ * 인스타 아이디로 쿠폰 한 장을 배정한다. (ManyChat 자동화가 멈췄을 때 수동 발급용)
+ *
+ * ⚠️ 자동화(API)와 **똑같은 DB 함수**를 쓴다. 손으로 발급한다고 다른 경로를 타면
+ *    계정당 1장 보장이 깨진다 — 자동으로 받아간 사람에게 또 줄 수 있다.
+ *    이미 받아간 계정이면 새 코드를 만들지 않고 그때 준 코드를 그대로 돌려준다.
+ */
+export async function issueCouponToHandle(
+  campaignKey: string,
+  handle: string
+): Promise<HandleIssueResult> {
+  try {
+    const supabase = await requireAdmin();
+    if (!handle.trim()) return { error: "인스타 아이디를 입력해주세요." };
+
+    const { data, error } = await supabase.rpc("assign_coupon_to_handle", {
+      p_campaign_key: campaignKey,
+      p_handle: handle,
+    });
+    if (error) throw error;
+
+    const r = data as { ok?: boolean; code?: string; reused?: boolean; reason?: string };
+    if (!r?.ok) {
+      const 안내: Record<string, string> = {
+        SOLD_OUT_OR_ENDED: "남은 쿠폰이 없거나 이벤트가 끝났습니다.",
+        INVALID_HANDLE: "인스타 아이디를 확인해주세요.",
+        CAMPAIGN_NOT_FOUND: "이 쿠폰 종류에는 연동 키가 없습니다.",
+      };
+      return { error: 안내[r?.reason ?? ""] ?? "발급하지 못했습니다." };
+    }
+
+    await writeAuditLog({
+      action: "coupon.issued",
+      targetType: "coupon_campaign",
+      targetId: campaignKey,
+      summary: `인스타 아이디로 쿠폰 발급 — ${r.reused ? "기존 코드 재안내" : "신규"}`,
+    });
+
+    revalidatePath("/admin/coupons");
+    return { success: true as const, code: r.code ?? "", alreadyIssued: Boolean(r.reused) };
+  } catch (err) {
+    return toActionError(err, "쿠폰 발급 실패");
+  }
+}
+
 /**
  * 코드 일괄 발급.
  *

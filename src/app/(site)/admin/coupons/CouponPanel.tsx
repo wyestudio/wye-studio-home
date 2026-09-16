@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CampaignEditor, type CampaignRow } from "./CampaignEditor";
-import { issueCoupons } from "./actions";
+import { issueCoupons, issueCouponToHandle } from "./actions";
 import { formatCouponCode } from "@/lib/coupon";
 import { formatKrw, formatDateFull } from "@/lib/format";
 import { toCsv, downloadCsv, kstStamp } from "@/lib/csv";
@@ -16,6 +16,8 @@ export type CouponRow = {
   code: string;
   issued_label: string | null;
   used_at: string | null;
+  /** 인스타 등 외부 계정으로 배정된 경우 그 아이디 */
+  issued_to_handle: string | null;
 };
 
 // 날짜 형식은 어드민 전체가 같아야 한다 — formatDateFull 하나만 쓴다.
@@ -56,6 +58,10 @@ export function CouponPanel({
   const [issued, setIssued] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 인스타 아이디 수동 발급 (캠페인별로 따로 들고 있는다)
+  const [handleInputs, setHandleInputs] = useState<Record<string, string>>({});
+  const [handleResult, setHandleResult] = useState<Record<string, string>>({});
+  const [busyHandle, setBusyHandle] = useState<string | null>(null);
 
   async function issue(campaignId: string) {
     setBusy(true);
@@ -208,6 +214,60 @@ export function CouponPanel({
                       </div>
                     )}
 
+                    {/*
+                      ManyChat 자동화가 멈췄을 때(무료체험 만료 등) 손으로 발급하는 칸.
+                      ⚠️ 자동화와 **같은 DB 함수**를 쓴다 — 이미 받아간 계정이면 새 코드를
+                         만들지 않고 그때 준 코드를 그대로 다시 알려준다.
+                    */}
+                    {c.key && (
+                      <div className="mb-3 rounded border border-border bg-background/40 p-3">
+                        <p className="text-xs font-semibold">인스타 아이디로 발급</p>
+                        <p className="mt-1 text-[11px] text-muted">
+                          ManyChat 자동 발급이 멈췄을 때 씁니다. 이미 받아간 계정이면 그때 준
+                          코드를 다시 알려줘요 — 두 번 나가지 않습니다.
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <input
+                            className={`${field} w-48`}
+                            placeholder="@ 없이 아이디"
+                            value={handleInputs[c.id] ?? ""}
+                            onChange={(e) =>
+                              setHandleInputs((p) => ({ ...p, [c.id]: e.target.value }))
+                            }
+                          />
+                          <button
+                            type="button"
+                            disabled={busyHandle === c.id || !(handleInputs[c.id] ?? "").trim()}
+                            onClick={async () => {
+                              setBusyHandle(c.id);
+                              setHandleResult((p) => ({ ...p, [c.id]: "" }));
+                              const res = await issueCouponToHandle(
+                                c.key!,
+                                handleInputs[c.id] ?? ""
+                              );
+                              setBusyHandle(null);
+                              setHandleResult((p) => ({
+                                ...p,
+                                [c.id]:
+                                  "error" in res
+                                    ? `⚠️ ${res.error}`
+                                    : `${formatCouponCode(res.code)}${
+                                        res.alreadyIssued ? " (이미 받아간 계정 — 같은 코드)" : " (신규 발급)"
+                                      }`,
+                              }));
+                              router.refresh();
+                            }}
+                            className="rounded border border-border px-3 py-2 text-xs hover:bg-muted/30 disabled:opacity-40"
+                          >
+                            {busyHandle === c.id ? "발급 중…" : "쿠폰 발급"}
+                          </button>
+                          {handleResult[c.id] && (
+                            <span className="font-mono text-sm text-glow">{handleResult[c.id]}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {mine.length > 0 && (
                       <div className="mb-2 flex items-center justify-between">
                         <p className="text-xs text-muted">
@@ -246,6 +306,7 @@ export function CouponPanel({
                           <thead className="sticky top-0 bg-background text-left text-muted">
                             <tr>
                               <th className="px-3 py-2">코드</th>
+                              <th className="px-3 py-2">받아간 계정</th>
                               <th className="px-3 py-2">메모</th>
                               <th className="px-3 py-2">사용</th>
                             </tr>
@@ -254,6 +315,13 @@ export function CouponPanel({
                             {mine.map((cp) => (
                               <tr key={cp.id} className="border-t border-border/50">
                                 <td className="px-3 py-1.5 font-mono">{formatCouponCode(cp.code)}</td>
+                                <td className="px-3 py-1.5">
+                                  {cp.issued_to_handle ? (
+                                    <span className="text-glow">@{cp.issued_to_handle}</span>
+                                  ) : (
+                                    <span className="text-muted">-</span>
+                                  )}
+                                </td>
                                 <td className="px-3 py-1.5 text-muted">{cp.issued_label ?? "-"}</td>
                                 <td className="px-3 py-1.5">
                                   {cp.used_at ? (

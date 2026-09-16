@@ -13,7 +13,7 @@ export default async function AdminCouponsPage() {
     supabase.from("coupon_campaigns").select("*").order("created_at", { ascending: false }),
     supabase
       .from("coupons")
-      .select("id, campaign_id, code, issued_label, used_at")
+      .select("id, campaign_id, code, issued_label, used_at, issued_to_handle")
       .order("code"),
     supabase.from("themes").select("id, name").order("sort_order"),
     // 발송 대상은 "이 회차에 참여한 사람" 으로 고른다.
