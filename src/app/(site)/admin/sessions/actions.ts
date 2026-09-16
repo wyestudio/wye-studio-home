@@ -185,6 +185,38 @@ export async function updateSessionStatus(id: string, status: "open" | "closed")
   }
 }
 
+/**
+ * 회차 태그('인기' 등) 켜고 끄기.
+ *
+ * 고객 화면에서는 **신청할 수 있는 회차에만** 보인다(마감·비활성화면 '마감' 표시가 이긴다,
+ * SessionPicker 참고). 그래서 마감된 회차의 태그를 굳이 지울 필요는 없다.
+ */
+export async function updateSessionBadge(id: string, badge: string | null): Promise<ActionResult> {
+  try {
+    const value = badge?.trim() ? badge.trim().slice(0, 10) : null;
+    const supabase = await requireAdmin();
+    const { error } = await supabase
+      .from("sessions")
+      .update({ badge: value, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+
+    await writeAuditLog({
+      action: "session.badge_changed",
+      targetType: "session",
+      targetId: id,
+      summary: value ? `회차 태그 '${value}' 켬` : "회차 태그 끔",
+      detail: { badge: value },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/sessions");
+    return { success: true as const };
+  } catch (err) {
+    return toActionError(err, "회차 태그 변경 실패");
+  }
+}
+
 export async function updateSessionMinAge(id: string, minAge: number): Promise<ActionResult> {
   try {
     if (!Number.isInteger(minAge) || minAge < 0 || minAge > 100) {

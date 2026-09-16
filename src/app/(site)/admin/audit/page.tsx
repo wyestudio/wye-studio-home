@@ -28,6 +28,7 @@ const ACTION_LABEL: Record<string, string> = {
   "application.updated": "신청 정보 수정",
   "session.deactivated": "회차 비활성화",
   "session.reminder_sent": "이틀 전 안내 발송",
+  "session.badge_changed": "회차 태그 변경",
   "session.status_changed": "회차 상태 변경",
   "session.min_age_changed": "최소 연령 변경",
   "session.deleted": "회차 삭제",

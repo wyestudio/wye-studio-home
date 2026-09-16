@@ -35,6 +35,7 @@ export type AuditAction =
   | "session.reminder_sent"
   | "session.status_changed"
   | "session.min_age_changed"
+  | "session.badge_changed"
   | "session.deleted"
   | "schedule.saved"
   // 쿠폰

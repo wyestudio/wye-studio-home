@@ -6,6 +6,7 @@ import { BookingCalendar } from "@/components/booking/BookingCalendar";
 import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
 import { formatDateFull, formatDateTimeFull } from "@/lib/format";
 import { SessionStatusToggle } from "@/components/admin/SessionStatusToggle";
+import { SessionBadgeToggle } from "@/components/admin/SessionBadgeToggle";
 
 const ACCENT = "#3dffb0";
 
@@ -22,6 +23,8 @@ export type DashboardSession = {
   headcount_line: string;
   unpaid: number;
   public_path: string | null;
+  /** 고객 화면 시각 옆에 붙는 표시(예: 인기). 비우면 안 붙는다. */
+  badge: string | null;
 };
 
 export type DashboardTheme = { id: string; name: string };
@@ -203,6 +206,8 @@ export function DashboardSessions({
                           label={`${kstDateLabel(date)} ${kstTime(s.start_at)}`}
                           size="md"
                         />
+                        {/* 마감·비활성화된 회차는 고객 화면에서 '마감' 이 이기므로 태그가 안 보인다. */}
+                        <SessionBadgeToggle sessionId={s.id} badge={s.badge} />
                       </div>
                     </div>
                   );

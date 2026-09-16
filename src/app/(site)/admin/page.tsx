@@ -161,6 +161,8 @@ export default async function AdminDashboard() {
       headcount_line: stats ? formatHeadcountLine(s, stats) : "확정 0명 · 대기 0명",
       unpaid: unpaidBySession.get(s.id) ?? 0,
       public_path: s.public_path,
+      // 칸(p42·p43)이 아직 없는 DB 에서 읽어도 깨지지 않게.
+      badge: (s as { badge?: string | null }).badge ?? null,
     };
   });
 
