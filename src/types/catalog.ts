@@ -361,6 +361,8 @@ export type SessionView = {
   capacity_confirm_line: number;
   capacity_max: number;
   venue_id: string | null;
+  /** 회차 시각 옆 짧은 표시(예: 인기). 비우면 안 나온다 — p42. */
+  badge?: string | null;
 };
 
 /**

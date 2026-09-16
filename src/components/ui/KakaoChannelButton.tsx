@@ -2,7 +2,7 @@ import {
   InstagramEventBubble,
   eventBubbleDismissScript,
 } from "@/components/ui/InstagramEventBubble";
-import { getEventBubble } from "@/lib/siteSettings";
+import { getEventBubbleText } from "@/lib/siteSettings";
 
 const KAKAO_CHANNEL_URL = "http://pf.kakao.com/_EGNBX";
 const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
@@ -17,8 +17,9 @@ const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
  *    아이콘만으로 알아보기 어렵다.
  */
 export async function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
-  // 말풍선 문구·노출은 어드민에서 정한다(site_settings). 읽기에 실패하면 말풍선만 빠진다.
-  const bubble = await getEventBubble();
+  // 말풍선 문구·노출은 어드민 > 쿠폰 캠페인에서 정한다. 켜진 캠페인이 없으면 빈 문자열이다.
+  const bubbleText = await getEventBubbleText();
+  const bubble = { enabled: bubbleText.trim().length > 0, text: bubbleText };
 
   return (
     <>

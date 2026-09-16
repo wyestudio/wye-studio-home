@@ -163,11 +163,27 @@ export function SessionPicker({
                   key={s.id}
                   onClick={() => setSelectedId(s.id)}
                   disabled={!s.bookable}
-                  className={`rounded-lg border py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40 lg:py-4 ${
+                  className={`relative rounded-lg border py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40 lg:py-4 ${
                     isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
                   }`}
                   style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
                 >
+                  {/*
+                    회차 태그(sessions.badge). 쇼핑몰 상품 목록의 'BEST' 처럼 **칸 모서리에 걸친**
+                    작은 알약이다(2026-09-16). 회차가 여럿 열려 있으면 "아무도 신청 안 했나?" 싶어
+                    망설인다는 의견이 있어, 사람이 몰리는 시각을 눈에 띄게 한다.
+                    ⚠️ 고른 칸은 배경이 강조색이라 같은 색 알약은 묻힌다 — 그때는 어두운 알약으로 뒤집는다.
+                  */}
+                  {s.badge && s.bookable && (
+                    <span
+                      className={`absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-extrabold leading-tight shadow-sm sm:text-[11px] ${
+                        isActive ? "bg-[#0a0a12] text-white" : ""
+                      }`}
+                      style={isActive ? undefined : { backgroundColor: accentColor, color: "#0a0a12" }}
+                    >
+                      {s.badge}
+                    </span>
+                  )}
                   <p className="text-base font-bold lg:text-lg">{kstTime(s.start_at)}</p>
                   {!s.bookable && <p className="mt-0.5 text-xs text-muted">마감</p>}
                 </button>

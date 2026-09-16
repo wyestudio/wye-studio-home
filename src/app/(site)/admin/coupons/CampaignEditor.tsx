@@ -83,6 +83,8 @@ export type CampaignRow = {
   restrict_to_issued_phone: boolean;
   stackable: boolean;
   is_active: boolean;
+  show_event_bubble: boolean;
+  event_bubble_text: string | null;
 };
 
 export function CampaignEditor({
@@ -109,6 +111,8 @@ export function CampaignEditor({
     restrictToIssuedPhone: campaign?.restrict_to_issued_phone ?? false,
     stackable: campaign?.stackable ?? false,
     isActive: campaign?.is_active ?? true,
+    showEventBubble: campaign?.show_event_bubble ?? false,
+    eventBubbleText: campaign?.event_bubble_text ?? "",
   });
   const [from, setFrom] = useState(toLocal(campaign?.valid_from ?? null));
   const [until, setUntil] = useState(toLocal(campaign?.valid_until ?? null));
@@ -311,6 +315,36 @@ export function CampaignEditor({
         />
         다른 쿠폰과 중복 사용 가능
       </label>
+
+      {/*
+        사이트 우하단 인스타 버튼 위 말풍선. 말풍선이 알리는 게 결국 이 쿠폰 이벤트라
+        쿠폰과 같은 자리에서 켜고 끈다(2026-09-16). 쿠폰을 끄거나 기간이 지나면 같이 사라진다.
+      */}
+      <div className="rounded border border-border p-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={form.showEventBubble}
+            onChange={(e) => setForm({ ...form, showEventBubble: e.target.checked })}
+          />
+          사이트에 이벤트 말풍선 띄우기 (우하단 인스타 버튼 위)
+        </label>
+        {form.showEventBubble && (
+          <div className="mt-2">
+            <label className={label}>말풍선 문구 (줄바꿈하면 두 줄 · 비우면 쿠폰 이름)</label>
+            <textarea
+              className={`${field} min-h-16 leading-relaxed`}
+              value={form.eventBubbleText}
+              onChange={(e) => setForm({ ...form, eventBubbleText: e.target.value })}
+              placeholder={"오픈기념 할인쿠폰 이벤트\n팔로우하고 5,000원 쿠폰 받기"}
+            />
+            <p className="mt-1 text-[11px] text-muted">
+              방문자가 X 로 닫으면 그 방문 동안은 안 뜨고, 사이트에 다시 들어오면 또 보입니다.
+              쿠폰을 &lsquo;사용 중지&rsquo; 하거나 사용 기간이 지나면 말풍선도 같이 사라져요.
+            </p>
+          </div>
+        )}
+      </div>
 
       <p className="text-xs text-muted">
         &lsquo;받은 분 번호로만&rsquo;을 켜면 양도가 막힙니다. 지인에게 선물하는 쿠폰이면 꺼두세요.

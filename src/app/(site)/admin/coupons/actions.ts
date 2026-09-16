@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { EVENT_BUBBLE_TAG } from "@/lib/siteSettings";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
 import { generateUniqueCodes, isValidCouponPrefix, FORBIDDEN_PREFIXES } from "@/lib/couponCode";
@@ -27,6 +28,10 @@ export type CampaignInput = {
   restrictToIssuedPhone: boolean;
   stackable: boolean;
   isActive: boolean;
+  /** 사이트 우하단 인스타 버튼 위 말풍선으로 이 이벤트를 알린다. */
+  showEventBubble: boolean;
+  /** 말풍선 문구. 비우면 쿠폰 이름이 그대로 나간다. */
+  eventBubbleText: string;
 };
 
 function validate(input: CampaignInput): string | null {
@@ -61,6 +66,8 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
       restrict_to_issued_phone: input.restrictToIssuedPhone,
       stackable: input.stackable,
       is_active: input.isActive,
+      show_event_bubble: input.showEventBubble,
+      event_bubble_text: input.eventBubbleText.trim() || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -86,9 +93,12 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
         valid_until: row.valid_until,
         is_active: row.is_active,
         stackable: row.stackable,
+        show_event_bubble: row.show_event_bubble,
       },
     });
 
+    // 고객 화면의 말풍선이 30초간 들고 있는 값이라, 켜고 끄면 바로 털어준다.
+    updateTag(EVENT_BUBBLE_TAG);
     revalidatePath("/admin/coupons");
     return { success: true as const };
   } catch (err) {
