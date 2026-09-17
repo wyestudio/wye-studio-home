@@ -85,6 +85,7 @@ export type CampaignRow = {
   is_active: boolean;
   show_event_bubble: boolean;
   event_bubble_text: string | null;
+  event_bubble_url: string | null;
   /** 외부 연동(ManyChat 등)이 이 캠페인을 찾는 고정 키. 없으면 연동 대상이 아니다. */
   key: string | null;
 };
@@ -115,6 +116,7 @@ export function CampaignEditor({
     isActive: campaign?.is_active ?? true,
     showEventBubble: campaign?.show_event_bubble ?? false,
     eventBubbleText: campaign?.event_bubble_text ?? "",
+    eventBubbleUrl: campaign?.event_bubble_url ?? "",
   });
   const [from, setFrom] = useState(toLocal(campaign?.valid_from ?? null));
   const [until, setUntil] = useState(toLocal(campaign?.valid_until ?? null));
@@ -340,9 +342,18 @@ export function CampaignEditor({
               onChange={(e) => setForm({ ...form, eventBubbleText: e.target.value })}
               placeholder={"오픈기념 할인쿠폰 이벤트\n팔로우하고 5,000원 쿠폰 받기"}
             />
+            <label className={`${label} mt-2`}>연결할 이벤트 게시물 주소 (비우면 인스타 계정 홈)</label>
+            <input
+              className={field}
+              value={form.eventBubbleUrl}
+              onChange={(e) => setForm({ ...form, eventBubbleUrl: e.target.value })}
+              placeholder="https://www.instagram.com/p/..."
+            />
             <p className="mt-1 text-[11px] text-muted">
               방문자가 X 로 닫으면 그 방문 동안은 안 뜨고, 사이트에 다시 들어오면 또 보입니다.
               쿠폰을 &lsquo;사용 중지&rsquo; 하거나 사용 기간이 지나면 말풍선도 같이 사라져요.
+              <br />
+              말풍선이 떠 있는 동안은 우하단 인스타 버튼도 위 게시물로 가고, 끄면 계정 홈으로 돌아가요.
             </p>
           </div>
         )}

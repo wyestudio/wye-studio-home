@@ -2,7 +2,7 @@ import {
   InstagramEventBubble,
   eventBubbleDismissScript,
 } from "@/components/ui/InstagramEventBubble";
-import { getEventBubbleText } from "@/lib/siteSettings";
+import { getEventBubble } from "@/lib/siteSettings";
 
 const KAKAO_CHANNEL_URL = "http://pf.kakao.com/_EGNBX";
 const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
@@ -15,11 +15,15 @@ const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
  *
  * ⚠️ 색은 각 서비스의 브랜드 색을 쓴다. 우리 강조색으로 칠하면 무슨 버튼인지
  *    아이콘만으로 알아보기 어렵다.
+ *
+ * 이벤트 말풍선이 켜진 동안은 인스타 버튼도 캠페인에 적어 둔 이벤트 게시물로 간다.
+ * 말풍선을 끄거나 주소를 비우면 계정 홈으로 돌아온다(2026-09-17).
  */
 export async function KakaoChannelButton({ raised = false }: { raised?: boolean }) {
   // 말풍선 문구·노출은 어드민 > 쿠폰 캠페인에서 정한다. 켜진 캠페인이 없으면 빈 문자열이다.
-  const bubbleText = await getEventBubbleText();
-  const bubble = { enabled: bubbleText.trim().length > 0, text: bubbleText };
+  const bubbleData = await getEventBubble();
+  const bubble = { enabled: bubbleData.text.trim().length > 0, text: bubbleData.text };
+  const instagramHref = bubble.enabled && bubbleData.url ? bubbleData.url : INSTAGRAM_URL;
 
   return (
     <>
@@ -36,15 +40,15 @@ export async function KakaoChannelButton({ raised = false }: { raised?: boolean 
       {/* 이벤트 말풍선 — 인스타 버튼 위에 붙는다(위치 기준이 이 묶음이라 relative). */}
       {bubble.enabled && (
         <div className="relative w-full">
-          <InstagramEventBubble href={INSTAGRAM_URL} text={bubble.text} />
+          <InstagramEventBubble href={instagramHref} text={bubble.text} />
         </div>
       )}
 
       <a
-        href={INSTAGRAM_URL}
+        href={instagramHref}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="인스타그램 계정 보기"
+        aria-label={instagramHref === INSTAGRAM_URL ? "인스타그램 계정 보기" : "인스타그램 이벤트 게시물 보기"}
         className="flex h-11 w-11 items-center justify-center rounded-full text-white shadow-lg shadow-black/40 transition-transform hover:scale-105 sm:h-14 sm:w-14"
         style={{
           // 인스타 로고의 그라데이션. 단색으로 칠하면 다른 서비스처럼 보인다.

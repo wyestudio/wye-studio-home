@@ -33,6 +33,8 @@ export type CampaignInput = {
   showEventBubble: boolean;
   /** 말풍선 문구. 비우면 쿠폰 이름이 그대로 나간다. */
   eventBubbleText: string;
+  /** 말풍선이 켜진 동안 인스타 버튼·말풍선이 향할 주소. 비우면 계정 홈. */
+  eventBubbleUrl: string;
 };
 
 function validate(input: CampaignInput): string | null {
@@ -43,6 +45,8 @@ function validate(input: CampaignInput): string | null {
     return "정률 할인은 1~100 사이여야 합니다.";
   if (input.validFrom && input.validUntil && input.validFrom >= input.validUntil)
     return "사용 종료일이 시작일보다 빨라요.";
+  const url = input.eventBubbleUrl.trim();
+  if (url && !/^https:\/\/\S+$/.test(url)) return "연결할 주소는 https:// 로 시작해야 해요.";
   return null;
 }
 
@@ -69,6 +73,7 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
       is_active: input.isActive,
       show_event_bubble: input.showEventBubble,
       event_bubble_text: input.eventBubbleText.trim() || null,
+      event_bubble_url: input.eventBubbleUrl.trim() || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -95,6 +100,7 @@ export async function saveCampaign(input: CampaignInput): Promise<ActionResult> 
         is_active: row.is_active,
         stackable: row.stackable,
         show_event_bubble: row.show_event_bubble,
+        event_bubble_url: row.event_bubble_url,
       },
     });
 
