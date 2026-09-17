@@ -18,6 +18,7 @@ import {
 import type { Application, Gender } from "@/types/domain";
 import { ATTRIBUTION_FIELD, parseAttributionJson } from "@/lib/attribution";
 import { recordAttribution } from "@/lib/attributionServer";
+import { isInternalDevice, markInternalApplication } from "@/lib/internalTraffic";
 
 export async function checkNicknameAvailability(
   sessionId: string,
@@ -252,7 +253,10 @@ export async function applyAction(
   // 유입경로를 신청 건에 붙인다. 근거와 주의사항은 attributionServer.ts 에 있다.
   // 이 폼은 SMS 재신청 링크(/sessions/...)로 아직 들어올 수 있어서 새 폼과
   // 똑같이 남겨야 집계가 반쪽이 되지 않는다.
+  // 쿠키는 after() 안에서 못 읽어서 여기서 미리 읽는다(internalTraffic.ts).
+  const internal = await isInternalDevice();
   after(async () => {
+    await markInternalApplication(application.id, internal);
     await recordAttribution(
       application.id,
       parseAttributionJson(formData.get(ATTRIBUTION_FIELD))

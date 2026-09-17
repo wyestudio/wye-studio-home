@@ -78,6 +78,8 @@ export async function getApplicationStats(days: number): Promise<ApplicationStat
   const { data, error } = await supabase
     .from("applications")
     .select("created_at, paid_at, cancelled_at, status, amount_krw, headcount")
+    // 우리 기기에서 넣은 테스트 신청은 뺀다(internalTraffic.ts). 아래 두 함수도 같다.
+    .eq("is_internal", false)
     .or(`created_at.gte.${since},paid_at.gte.${since},cancelled_at.gte.${since}`);
 
   if (error) {
@@ -159,6 +161,7 @@ export async function getApplicationSources(days: number): Promise<ApplicationSo
   const { data, error } = await supabase
     .from("applications")
     .select("utm_source, utm_medium, utm_campaign, referrer, status, amount_krw, headcount, paid_at")
+    .eq("is_internal", false)
     .gte("created_at", since);
 
   if (error) {
@@ -259,6 +262,7 @@ export async function getApplicationsByCampaign(
   const { data, error } = await supabase
     .from("applications")
     .select("utm_source, utm_medium, utm_campaign, status, amount_krw, headcount, paid_at")
+    .eq("is_internal", false)
     .gte("created_at", since)
     .not("utm_source", "is", null);
 

@@ -23,7 +23,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       // /lookup/result는 sessionStorage 없이 직접 접근 불가능하고 색인 필요 없음.
       // /openyourdream은 QR코드로만 도달하는 숨겨진 이스터에그(타로 미니게임) —
       // 사이트 어디서도 링크되지 않고, sitemap.ts에도 등록하지 않으며 색인도 불필요.
-      disallow: ["/login", "/signup", "/account", "/auth", "/lookup/result", "/openyourdream"],
+      // /internal은 우리 기기를 분석에서 빼는 스위치 — 운영자만 쓴다.
+      disallow: ["/login", "/signup", "/account", "/auth", "/lookup/result", "/openyourdream", "/internal"],
     },
     sitemap: `${BASE_URL}/sitemap.xml`,
   };

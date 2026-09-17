@@ -9,6 +9,7 @@ import { isValidNickname } from "@/lib/validation";
 import { phoneDigits } from "@/lib/phone";
 import type { Attribution } from "@/lib/attribution";
 import { recordAttribution } from "@/lib/attributionServer";
+import { isInternalDevice, markInternalApplication } from "@/lib/internalTraffic";
 
 export type AttendeeInput = {
   name: string;
@@ -229,6 +230,8 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
 
   // 유입경로를 신청 건에 붙인다. 근거와 주의사항은 attributionServer.ts 에 있다.
   await recordAttribution(r.id, input.attribution);
+  // 우리 기기에서 넣은 신청이면 분석에서 빼도록 표시한다(internalTraffic.ts).
+  await markInternalApplication(r.id, await isInternalDevice());
 
   // ── 알림 ──────────────────────────────────────────────────────
   // ⚠️ 여기서 실패해도 신청은 이미 성공했다. 절대 사용자에게 에러를 돌려주지
