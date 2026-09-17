@@ -57,7 +57,10 @@ export type AuditAction =
   | "faq.saved"
   | "faq.deleted"
   | "sms_template.updated"
-  | "slack_template.updated";
+  | "slack_template.updated"
+  // 유입경로 링크 (분석·홍보용 — 신청·정산에 영향 없음)
+  | "utm_link.saved"
+  | "utm_link.status";
 
 export type AuditTargetType =
   | "application"
@@ -72,7 +75,8 @@ export type AuditTargetType =
   | "faq"
   | "sms_template"
   | "slack_template"
-  | "site_setting";
+  | "site_setting"
+  | "utm_link";
 
 /** 요청한 브라우저의 IP·UA. 공유 계정이라 이거라도 남겨야 구분이 된다. */
 async function requestContext(): Promise<{ ip: string | null; ua: string | null }> {
