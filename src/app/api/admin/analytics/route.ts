@@ -7,6 +7,7 @@ import {
   getLandingPages,
   getDailyTraffic,
   getPathFunnel,
+  getTestDeviceSessions,
 } from "@/lib/ga4";
 import {
   getApplicationStats,
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
       appSources,
       appByCampaign,
       internalApplications,
+      testDeviceSessions,
     ] = await Promise.all([
       getTrafficSources(startDate).catch(named("trafficSources", [])),
       getCampaignTraffic(startDate).catch(named("campaignTraffic", [])),
@@ -72,6 +74,7 @@ export async function GET(request: NextRequest) {
       getApplicationSources(days).catch(named("applicationSources", [])),
       getApplicationsByCampaign(days).catch(named("applicationsByCampaign", [])),
       countInternalApplications(days).catch(named("internalApplications", 0)),
+      getTestDeviceSessions(startDate).catch(named("testDeviceSessions", 0)),
     ]);
 
     return NextResponse.json({
@@ -86,6 +89,7 @@ export async function GET(request: NextRequest) {
       applicationSources: appSources,
       applicationsByCampaign: appByCampaign,
       internalApplications,
+      testDeviceSessions,
     });
   } catch (error) {
     console.error("Analytics API error:", error);
