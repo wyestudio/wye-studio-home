@@ -22,6 +22,8 @@ export type BulkMessage = {
   key: string;
   to: string;
   text: string;
+  /** LMS 제목. SMS(90바이트 이하)에는 넣지 않는다. */
+  subject?: string;
 };
 
 export type BulkSendResult = {
@@ -75,7 +77,12 @@ export async function sendSmsBulk(
 
     try {
       const res = await service.send(
-        chunk.map((m) => ({ from: senderNumber, to: digitsOf(m.to), text: m.text }))
+        chunk.map((m) => ({
+          from: senderNumber,
+          to: digitsOf(m.to),
+          text: m.text,
+          ...(m.subject ? { subject: m.subject } : {}),
+        }))
       );
 
       // 접수 실패한 건만 failedMessageList 에 수신번호로 담겨 온다.

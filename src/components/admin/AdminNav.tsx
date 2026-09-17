@@ -33,6 +33,7 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
       { href: "/sponsorships", label: "협찬 신청" },
       { href: "/review-paybacks", label: "후기 페이백" },
       { href: "/coupons", label: "쿠폰" },
+      { href: "/marketing-sms", label: "광고 문자" },
       { href: "/settlement", label: "잼핏 정산" },
       { href: "/utm", label: "유입경로 링크" },
       { href: "/analytics", label: "분석" },

@@ -49,6 +49,9 @@ const ACTION_LABEL: Record<string, string> = {
   "faq.deleted": "FAQ 삭제",
   "sms_template.updated": "문자 포맷 수정",
   "slack_template.updated": "슬랙 포맷 수정",
+  "marketing_sms.sent": "광고 문자 발송",
+  "marketing_optout.added": "광고 수신거부 등록",
+  "marketing_optout.removed": "광고 수신거부 해제",
 };
 
 /** 되돌리기 어렵거나 고객에게 문자가 나가는 액션은 눈에 띄게 한다. */
@@ -59,6 +62,8 @@ const HEAVY = new Set([
   "session.deactivated",
   "session.deleted",
   "coupon.sent",
+  "marketing_sms.sent",
+  "marketing_optout.removed",
   "theme.deleted",
   "venue.deleted",
   "sms_template.updated",
