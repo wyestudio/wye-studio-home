@@ -8,7 +8,11 @@ import {
   getDailyTraffic,
   getPathFunnel,
 } from "@/lib/ga4";
-import { getApplicationStats, getApplicationSources } from "@/lib/adminStats";
+import {
+  getApplicationStats,
+  getApplicationSources,
+  getApplicationsByCampaign,
+} from "@/lib/adminStats";
 
 export const revalidate = 300; // 5분 캐시 — 하루 단위로 보려면 1시간은 너무 굼뜨다
 
@@ -48,6 +52,7 @@ export async function GET(request: NextRequest) {
       funnel,
       appStats,
       appSources,
+      appByCampaign,
     ] = await Promise.all([
       getTrafficSources(startDate).catch(named("trafficSources", [])),
       getCampaignTraffic(startDate).catch(named("campaignTraffic", [])),
@@ -63,6 +68,7 @@ export async function GET(request: NextRequest) {
         })
       ),
       getApplicationSources(days).catch(named("applicationSources", [])),
+      getApplicationsByCampaign(days).catch(named("applicationsByCampaign", [])),
     ]);
 
     return NextResponse.json({
@@ -75,6 +81,7 @@ export async function GET(request: NextRequest) {
       funnel,
       applications: appStats,
       applicationSources: appSources,
+      applicationsByCampaign: appByCampaign,
     });
   } catch (error) {
     console.error("Analytics API error:", error);

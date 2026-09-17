@@ -120,10 +120,20 @@ const GUIDE_ITEMS: GuideItem[] = [
 ];
 
 
+type CampaignApplicationStat = {
+  sourceMedium: string;
+  campaign: string;
+  applications: number;
+  headcount: number;
+  paid: number;
+  revenueKrw: number;
+};
+
 type ApiPayload = {
   days: number;
   trafficSources: TrafficSource[];
   campaignTraffic: CampaignTraffic[];
+  applicationsByCampaign: CampaignApplicationStat[];
   landingPages: LandingPage[];
   dailyTraffic: DailyTraffic[];
   funnel: PathFunnel;
@@ -268,13 +278,59 @@ export default function AnalyticsDashboard() {
   // 캠페인별 유입. 같은 인스타라도 바이오(profile)·8월 게시물(0829_*)·
   // 926 이벤트(coupon_event_0926) 가 여기서만 갈린다.
   // 캠페인이 없는 줄(검색·직접 방문 등)은 비교 대상이 아니라 빼고 센다.
-  const campaignRows = (data?.campaignTraffic ?? []).filter((c) => c.campaign);
-  const campaignTotal = campaignRows.reduce((a, c) => a + c.sessions, 0);
-  const topCampaign = campaignRows[0];
-  const campaignSummary = topCampaign
-    ? `캠페인 1위는 ${topCampaign.campaign}입니다 — ${topCampaign.sessions.toLocaleString()}회` +
-      `${campaignTotal > 0 ? ` (캠페인이 붙은 방문 ${campaignTotal.toLocaleString()}회 중)` : ""}.`
-    : "캠페인이 붙은 방문이 아직 없습니다. 링크에 utm_campaign 이 빠졌는지 확인하세요.";
+  const campaignTrafficRows = (data?.campaignTraffic ?? []).filter((c) => c.campaign);
+
+  // ── 방문(GA4) 과 신청(우리 DB) 을 한 줄에 붙인다 ──────────────────────
+  // 둘은 출처가 다르다. GA4 는 '몇 명이 들어왔나' 까지만 알고, 신청 한 건이 어디서
+  // 왔는지는 우리 DB 에만 있다. 판단에 필요한 건 두 숫자를 나눈 값이라 여기서 합친다.
+  //
+  // ⚠️ 키를 양쪽 다 소문자로 맞춘다. 대소문자가 어긋나면 아무것도 안 붙어서 표가
+  //    통째로 비는데, 그게 "유입이 없다" 로 잘못 읽힌다.
+  // ⚠️ GA4 쪽은 상위 40개만 받아온다. 꼬리에 있는 캠페인은 신청만 있고 방문이
+  //    비어 보일 수 있어, 그 경우 방문 칸에 '-' 를 찍고 0 으로 쓰지 않는다.
+  const mergeKey = (sourceMedium: string, campaign: string) =>
+    `${sourceMedium.toLowerCase()}|${campaign.toLowerCase()}`;
+
+  const visitsByKey = new Map(
+    campaignTrafficRows.map((c) => [mergeKey(c.sourceMedium, c.campaign), c])
+  );
+  const appsByKey = new Map(
+    (data?.applicationsByCampaign ?? []).map((a) => [
+      mergeKey(a.sourceMedium, a.campaign),
+      a,
+    ])
+  );
+
+  const mergedRows = [...new Set([...visitsByKey.keys(), ...appsByKey.keys()])]
+    .map((key) => {
+      const v = visitsByKey.get(key);
+      const a = appsByKey.get(key);
+      return {
+        key,
+        sourceMedium: v?.sourceMedium ?? a?.sourceMedium ?? "(알 수 없음)",
+        campaign: v?.campaign ?? a?.campaign ?? "",
+        content: v?.content ?? "",
+        // 방문이 없는 게 아니라 '모르는' 경우가 있어 null 로 구분한다
+        sessions: v ? v.sessions : null,
+        applications: a?.applications ?? 0,
+        headcount: a?.headcount ?? 0,
+        paid: a?.paid ?? 0,
+        revenueKrw: a?.revenueKrw ?? 0,
+      };
+    })
+    .sort((x, y) => (y.sessions ?? 0) - (x.sessions ?? 0) || y.applications - x.applications);
+
+  const mergedApplyTotal = mergedRows.reduce((acc, r) => acc + r.applications, 0);
+  const topConverting = [...mergedRows]
+    .filter((r) => r.applications > 0 && (r.sessions ?? 0) > 0)
+    .sort((x, y) => y.applications / (y.sessions ?? 1) - x.applications / (x.sessions ?? 1))[0];
+  const mergedSummary = topConverting
+    ? `신청으로 가장 잘 이어진 캠페인은 ${topConverting.campaign}입니다 — ` +
+      `방문 ${(topConverting.sessions ?? 0).toLocaleString()}회 중 ${topConverting.applications}건 ` +
+      `(${pct(topConverting.applications, topConverting.sessions ?? 0)}).`
+    : mergedApplyTotal > 0
+      ? "아직 방문과 신청이 같은 캠페인으로 묶인 건이 없습니다."
+      : "유입경로가 남은 신청이 아직 없습니다. utm 은 2026-09-15 부터 쌓입니다.";
 
   const topLanding = (data?.landingPages ?? [])[0];
   const landingTotal = (data?.landingPages ?? []).reduce((a, p) => a + p.sessions, 0);
@@ -582,49 +638,80 @@ export default function AnalyticsDashboard() {
               </div>
             </div>
 
-            {/* ── 캠페인별 유입 ── */}
+            {/* ── 캠페인별 유입 → 신청 ── */}
             <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
-              <h2 className="mb-1 text-lg font-semibold">어느 캠페인이 데려오나</h2>
+              <h2 className="mb-1 text-lg font-semibold">어느 캠페인이 신청까지 오나</h2>
               <p className="mb-3 text-sm text-muted">
                 위 &lsquo;어디서 들어오나&rsquo; 는 채널까지만 봅니다. 같은 인스타그램이라도
                 바이오 링크·8월 게시물·926 오픈 이벤트는{" "}
-                <strong className="text-foreground">캠페인으로만 갈립니다</strong> — 그 구분을
-                여기서 봅니다. 링크를 정리할지 판단할 때 씁니다.
+                <strong className="text-foreground">캠페인으로만 갈립니다</strong>.
+                <br />
+                <strong className="text-foreground">방문</strong>은 GA4,{" "}
+                <strong className="text-foreground">신청·인원·입금</strong>은 우리 DB에서 가져와
+                한 줄에 붙였습니다. 어느 홍보에 돈과 시간을 더 쓸지 판단할 때 씁니다.
               </p>
-              {campaignRows.length > 0 ? (
+              {mergedRows.length > 0 ? (
                 <>
-                  <Summary text={campaignSummary} />
+                  <Summary text={mergedSummary} />
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[520px] text-sm">
+                    <table className="w-full min-w-[720px] text-sm">
                       <thead className="border-b border-border text-left text-xs text-muted">
                         <tr>
                           <th className="py-2 pr-3">채널</th>
                           <th className="py-2 pr-3">캠페인</th>
                           <th className="py-2 pr-3">진입 지점</th>
-                          <th className="py-2 text-right">방문</th>
+                          <th className="py-2 pr-3 text-right">방문</th>
+                          <th className="py-2 pr-3 text-right">신청</th>
+                          <th className="py-2 pr-3 text-right">전환율</th>
+                          <th className="py-2 pr-3 text-right">인원</th>
+                          <th className="py-2 text-right">입금</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {campaignRows.slice(0, 15).map((c, i) => (
-                          <tr key={i} className="border-b border-border/40">
+                        {mergedRows.slice(0, 20).map((r) => (
+                          <tr key={r.key} className="border-b border-border/40">
                             <td className="py-2 pr-3">
-                              {sourceLabel(c.sourceMedium)}
+                              {sourceLabel(r.sourceMedium)}
                               <span className="ml-1.5 font-mono text-[11px] text-muted">
-                                {c.sourceMedium}
+                                {r.sourceMedium}
                               </span>
                             </td>
-                            <td className="py-2 pr-3 font-mono text-xs">{c.campaign}</td>
+                            <td className="py-2 pr-3 font-mono text-xs">{r.campaign}</td>
                             <td className="py-2 pr-3 font-mono text-xs text-muted">
-                              {c.content || "-"}
+                              {r.content || "-"}
                             </td>
-                            <td className="py-2 text-right font-medium">
-                              {c.sessions.toLocaleString()}
+                            <td className="py-2 pr-3 text-right">
+                              {r.sessions === null ? (
+                                <span className="text-muted">-</span>
+                              ) : (
+                                r.sessions.toLocaleString()
+                              )}
                             </td>
+                            <td className="py-2 pr-3 text-right font-medium">
+                              {r.applications || <span className="text-muted">-</span>}
+                            </td>
+                            <td className="py-2 pr-3 text-right text-muted">
+                              {r.sessions ? pct(r.applications, r.sessions) : "-"}
+                            </td>
+                            <td className="py-2 pr-3 text-right text-muted">
+                              {r.headcount || "-"}
+                            </td>
+                            <td className="py-2 text-right text-muted">{r.paid || "-"}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                  <p className="mt-3 text-xs text-muted">
+                    · <strong className="text-foreground">방문 &lsquo;-&rsquo;</strong> 는 0이
+                    아니라 <strong className="text-foreground">모른다</strong>는 뜻입니다. GA4에서
+                    상위 40개만 받아오기 때문에 꼬리에 있는 캠페인은 방문 수가 비어 보일 수 있습니다.
+                    <br />· 신청 쪽 유입경로는{" "}
+                    <strong className="text-foreground">2026-09-15부터</strong> 쌓입니다. 그 이전
+                    신청은 값이 없어 이 표에 잡히지 않습니다.
+                    <br />· 둘 다 <strong className="text-foreground">처음 들어온 곳</strong>{" "}
+                    기준입니다 — 잼핏으로 들어와 홈을 거쳐 신청했어도 잼핏으로 셉니다.
+                  </p>
                 </>
               ) : (
                 <p className="text-muted">데이터 없음</p>

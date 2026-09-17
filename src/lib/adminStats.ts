@@ -225,3 +225,73 @@ export async function getApplicationSources(days: number): Promise<ApplicationSo
     }))
     .sort((a, b) => b.applications - a.applications);
 }
+
+export type CampaignApplicationStat = {
+  /** GA4 의 sessionSourceMedium 과 맞추기 위한 키. 'instagram / social' */
+  sourceMedium: string;
+  campaign: string;
+  applications: number;
+  headcount: number;
+  paid: number;
+  revenueKrw: number;
+};
+
+/**
+ * 캠페인까지 쪼갠 신청 수.
+ *
+ * 왜 따로 두나
+ *   getApplicationSources() 는 utm_source 하나로만 묶는다. 그래서 인스타 바이오·
+ *   8월 게시물·926 이벤트가 전부 'instagram' 한 줄이 된다. 방문(GA4)과 나란히 놓고
+ *   전환율을 보려면 **GA4 와 같은 축**으로 세야 한다.
+ *
+ * ⚠️ 키를 GA4 표기(`source / medium`)에 맞춰 만든다. 양쪽 축이 다르면 아무것도
+ *    안 붙어서 표가 통째로 비는데, 그게 "유입이 없다" 로 잘못 읽힌다.
+ *
+ * ⚠️ utm 은 **2026-09-15 부터** 쌓인다. 그 이전 신청은 값이 없어 여기 안 잡힌다.
+ * ⚠️ 첫 유입 기준(first-touch)이다. GA4 세션도 같은 기준이라 축이 맞는다.
+ */
+export async function getApplicationsByCampaign(
+  days: number
+): Promise<CampaignApplicationStat[]> {
+  const supabase = createAdminClient();
+  const since = kstDaysAgoStart(days - 1);
+
+  const { data, error } = await supabase
+    .from("applications")
+    .select("utm_source, utm_medium, utm_campaign, status, amount_krw, headcount, paid_at")
+    .gte("created_at", since)
+    .not("utm_source", "is", null);
+
+  if (error) {
+    console.error("[adminStats] 캠페인별 신청 통계 조회 실패", error);
+    return [];
+  }
+
+  const bucket = new Map<string, CampaignApplicationStat>();
+
+  for (const row of data ?? []) {
+    const source = (row.utm_source as string | null)?.trim();
+    const campaign = (row.utm_campaign as string | null)?.trim();
+    // 캠페인이 없으면 GA4 쪽과 붙일 축이 없다. 소스 단위 표(위쪽)에서 이미 세고 있다.
+    if (!source || !campaign) continue;
+
+    const medium = (row.utm_medium as string | null)?.trim() || "(none)";
+    const sourceMedium = `${source.toLowerCase()} / ${medium.toLowerCase()}`;
+    const key = `${sourceMedium}|${campaign.toLowerCase()}`;
+
+    let b = bucket.get(key);
+    if (!b) {
+      b = { sourceMedium, campaign, applications: 0, headcount: 0, paid: 0, revenueKrw: 0 };
+      bucket.set(key, b);
+    }
+
+    b.applications += 1;
+    b.headcount += (row.headcount as number) ?? 1;
+    if (row.paid_at) {
+      b.paid += 1;
+      b.revenueKrw += (row.amount_krw as number) ?? 0;
+    }
+  }
+
+  return [...bucket.values()].sort((a, b) => b.applications - a.applications);
+}
