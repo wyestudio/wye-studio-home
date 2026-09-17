@@ -19,13 +19,23 @@ import {
 import type { MarketingRecipient } from "@/lib/marketingSmsServer";
 import { sendMarketingSms, type SendResult } from "./actions";
 
-const kstDate = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
+// 같은 날 오후·저녁 회차가 따로 열려서 날짜만으로는 어느 회차인지 구분이 안 된다. 시각까지 보여준다.
+const kstDateTime = (iso: string) => {
+  const d = new Date(iso);
+  const date = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
     month: "numeric",
     day: "numeric",
     weekday: "short",
-  }).format(new Date(iso));
+  }).format(d);
+  const time = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(d);
+  return `${date} ${time}`;
+};
 
 /**
  * 광고 문자 작성·발송.
@@ -223,7 +233,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
                     </td>
                     <td className="p-2">{r.name}</td>
                     <td className="p-2 tabular-nums">{formatPhoneDigits(r.phone)}</td>
-                    <td className="p-2">{kstDate(r.lastSessionStart)}</td>
+                    <td className="p-2">{kstDateTime(r.lastSessionStart)}</td>
                     <td className="p-2 tabular-nums">{r.participationCount}회</td>
                   </tr>
                 ))}
