@@ -95,8 +95,16 @@ export function utmUrl(
  */
 export const SHORT_LINK_PREFIX = "/go";
 
-export function shortUrl(slug: string | null, origin: string = SITE_ORIGIN): string | null {
-  return slug ? `${origin}${SHORT_LINK_PREFIX}/${slug}` : null;
+export function shortUrl(
+  link: { slug: string | null; managed_by?: "db" | "code" },
+  origin: string = SITE_ORIGIN
+): string | null {
+  if (!link.slug) return null;
+  // ⚠️ 코드에 박힌 짧은 주소(/open-event, *.go)는 **최상위**에 있다. 여기에도 /go/ 를
+  //    붙이면 목록에 404 나는 주소가 표시되고, 운영자가 그걸 복사해 밖에 뿌리게 된다.
+  //    (2026-09-17 운영 화면에서 실제로 그렇게 나왔다)
+  const prefix = link.managed_by === "code" ? "" : SHORT_LINK_PREFIX;
+  return `${origin}${prefix}/${link.slug}`;
 }
 
 /**

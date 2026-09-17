@@ -49,12 +49,22 @@ const label = "block text-xs font-medium text-muted mb-1";
 function previewOf(input: UtmLinkInput) {
   return {
     landing_path: input.landing_path || "/",
-    utm_source: input.utm_source || "?",
+    utm_source: input.utm_source.trim(),
     utm_medium: input.utm_medium,
-    utm_campaign: input.utm_campaign || "?",
-    utm_content: input.utm_content || null,
-    utm_term: input.utm_term || null,
+    utm_campaign: input.utm_campaign.trim(),
+    utm_content: input.utm_content.trim() || null,
+    utm_term: input.utm_term.trim() || null,
   };
+}
+
+/**
+ * 필수 칸이 비어 있으면 주소를 보여주지 않는다.
+ *
+ * 빈 값을 자리표시자로 채워 넣으면 `utm_source=%3F` 처럼 **진짜 값처럼 보이는**
+ * 주소가 만들어져, 그대로 복사해 나갈 수 있다(2026-09-17 운영 화면에서 확인).
+ */
+function isPreviewReady(input: UtmLinkInput): boolean {
+  return Boolean(input.utm_source.trim() && input.utm_campaign.trim());
 }
 
 export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
@@ -102,7 +112,8 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
     }
   }
 
-  const preview = editing ? previewOf(editing) : null;
+  const ready = editing ? isPreviewReady(editing) : false;
+  const preview = editing && ready ? previewOf(editing) : null;
   const previewUrl = preview ? utmUrl(preview) : "";
   const tooLong = preview ? isOverLengthLimit(preview) : false;
 
@@ -261,17 +272,25 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
           <div className="mt-4 rounded border border-border bg-background p-3">
             <div className="mb-1 flex items-baseline justify-between gap-2">
               <span className="text-xs font-medium text-muted">완성된 주소</span>
-              <span
-                className={`text-xs ${tooLong ? "font-semibold text-red-400" : "text-muted"}`}
-              >
-                {previewUrl.length}자
-                {tooLong && ` — ${LENGTH_LIMIT}자 제한 초과`}
-              </span>
+              {ready && (
+                <span
+                  className={`text-xs ${tooLong ? "font-semibold text-red-400" : "text-muted"}`}
+                >
+                  {previewUrl.length}자
+                  {tooLong && ` — ${LENGTH_LIMIT}자 제한 초과`}
+                </span>
+              )}
             </div>
-            <p className="break-all font-mono text-xs text-foreground">{previewUrl}</p>
+            {ready ? (
+              <p className="break-all font-mono text-xs text-foreground">{previewUrl}</p>
+            ) : (
+              <p className="text-xs text-muted">
+                utm_source 와 utm_campaign 을 채우면 주소가 만들어집니다.
+              </p>
+            )}
             {editing.slug && (
               <p className="mt-2 break-all font-mono text-xs text-muted">
-                짧은 주소: {shortUrl(editing.slug)}
+                짧은 주소: {shortUrl({ slug: editing.slug, managed_by: isCodeManaged ? "code" : "db" })}
               </p>
             )}
             {tooLong && (
@@ -316,7 +335,7 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
           <tbody>
             {links.map((l) => {
               const url = utmUrl(l);
-              const short = shortUrl(l.slug);
+              const short = shortUrl(l);
               const off = l.status !== "active";
               return (
                 <tr
