@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { formatKrw, formatDateTimeFull, formatDateFull } from "@/lib/format";
 import { ApplicationFilters } from "./ApplicationFilters";
+import { getInternalApplicationIds } from "@/lib/internalTraffic";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,8 @@ export default async function AdminApplicationsPage({
   }
 
   const rows = (rowsRes.data ?? []) as Row[];
+  // 우리 기기에서 넣은 신청. 분석에서는 빠지지만 여기서는 그대로 보이니 배지로 구분한다.
+  const internalIds = await getInternalApplicationIds(rows.map((r) => r.id));
   const total = rows[0]?.total_count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -155,7 +158,10 @@ export default async function AdminApplicationsPage({
               <tbody>
                 {rows.map((r) => (
                   <tr key={r.id} className="border-b border-border/50 last:border-0">
-                    <td className="px-3 py-2.5 font-mono">{r.confirmation_code}</td>
+                    <td className="px-3 py-2.5 font-mono">
+                      {r.confirmation_code}
+                      {internalIds.has(r.id) && <TestBadge />}
+                    </td>
                     <td className="px-3 py-2.5">
                       {r.representative_name ?? "-"}
                       <span className="ml-1.5 text-xs text-muted">{maskPhone(r.representative_phone)}</span>
@@ -218,6 +224,17 @@ export default async function AdminApplicationsPage({
         )}
       </div>
     </div>
+  );
+}
+
+function TestBadge() {
+  return (
+    <span
+      className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 font-sans text-[10px] font-semibold text-amber-400"
+      title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
+    >
+      테스트
+    </span>
   );
 }
 

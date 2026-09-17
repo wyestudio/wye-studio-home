@@ -76,3 +76,28 @@ export async function markInternalApplication(applicationId: string, internal: b
     console.error("[internal] 테스트 기기 표시 실패 (신청 자체는 성공)", err);
   }
 }
+
+/**
+ * 주어진 신청 중 우리 기기에서 넣은 것의 id.
+ *
+ * 어드민 목록·회차 상세에 '테스트' 배지를 달 때 쓴다. 그 화면들은
+ * admin_search_applications() 함수와 admin_application_view 뷰로 읽는데,
+ * 신청 경로와 가까운 DB 객체라 칸을 더하지 않고 여기서 따로 묻는다.
+ */
+export async function getInternalApplicationIds(applicationIds: string[]): Promise<Set<string>> {
+  if (applicationIds.length === 0) return new Set();
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("applications")
+      .select("id")
+      .in("id", applicationIds)
+      .eq("is_internal", true);
+    if (error) throw error;
+    return new Set((data ?? []).map((r) => r.id as string));
+  } catch (err) {
+    // 배지는 보조 표시다. 못 읽어도 목록은 그대로 보여준다.
+    console.error("[internal] 테스트 신청 조회 실패", err);
+    return new Set();
+  }
+}

@@ -139,6 +139,8 @@ type ApiPayload = {
   funnel: PathFunnel;
   applications: ApplicationStats;
   applicationSources: ApplicationSourceStat[];
+  /** 이 기간 테스트 기기에서 넣어 신청 숫자에서 뺀 건수 */
+  internalApplications?: number;
 };
 
 const PERIODS: { key: string; label: string }[] = [
@@ -393,6 +395,19 @@ export default function AnalyticsDashboard() {
           <p className="py-20 text-center text-red-400">데이터를 불러오지 못했습니다.</p>
         ) : (
           <>
+            {/*
+              테스트 기기(/internal)에서 넣은 신청은 아래 신청·입금·매출에서 뺀다.
+              화면만 봐서는 빠진 줄 모르니 몇 건 뺐는지 알린다.
+              방문(GA4)은 GA4 의 'Internal Traffic' 필터가 '사용'일 때부터 빠진다.
+            */}
+            {(data.internalApplications ?? 0) > 0 && (
+              <p className="mb-4 rounded-lg border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-sm text-amber-300">
+                <span className="mr-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-[10px] font-semibold">
+                  테스트
+                </span>
+                테스트 기기에서 넣은 신청 {data.internalApplications}건은 신청·입금·매출 숫자에서 뺐습니다.
+              </p>
+            )}
             {/* ── 한눈에 ── */}
             <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-5">
               <Kpi label="방문 (세션)" value={sessions.toLocaleString()} />
