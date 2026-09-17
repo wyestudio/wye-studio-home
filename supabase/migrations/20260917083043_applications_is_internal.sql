@@ -1,6 +1,6 @@
 -- 우리 기기에서 넣은 신청에 표시를 달아 분석에서 뺀다
 --
--- 적용: test (2026-09-17 적용·이력 기록) / 운영 (미적용)
+-- 적용: test (2026-09-17 적용·이력 기록) / 운영 (2026-09-17 적용·이력 기록)
 -- 되돌리기:
 --   alter table applications drop column if exists is_internal;
 --
