@@ -81,6 +81,7 @@ comment on view public_event_bubble is
 grant select on public_event_bubble to anon, authenticated, service_role;
 
 -- 4) p41(site_settings 공개 읽기)은 되돌린다. 말풍선 설정이 쿠폰으로 옮겨가 쓰이지 않는다.
+--    p41 파일은 운영에 적용하지 않고 지웠다(2026-09-17) — 원문은 git 3b17845. 아래 세 줄은 p41 이 없는 DB 에서도 그냥 지나간다.
 delete from site_settings where key = 'public.event_bubble';
 drop policy if exists site_settings_public_read on site_settings;
 revoke select on site_settings from anon, authenticated;

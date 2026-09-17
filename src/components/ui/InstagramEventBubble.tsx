@@ -16,7 +16,7 @@ import { useState } from "react";
  *    화면이 그려지기 전에 인라인 스크립트가 <html> 에 표시를 달고 CSS 가 감춘다
  *    (eventBubbleDismissScript / globals.css).
  *
- * 문구와 노출 여부는 어드민 > 공지·FAQ 에서 고친다(site_settings.public.event_bubble).
+ * 문구와 노출 여부는 어드민 > 쿠폰 의 캠페인에서 고친다(coupon_campaigns.show_event_bubble → public_event_bubble 뷰, p42).
  */
 export const EVENT_BUBBLE_DISMISS_KEY = "wye.eventBubbleDismissed";
 export const EVENT_BUBBLE_HIDE_ATTR = "data-event-bubble-off";
