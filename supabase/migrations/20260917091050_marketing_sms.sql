@@ -1,6 +1,6 @@
 -- 광고 문자 발송 대상 조회 + 수신거부 목록
 --
--- 적용: test (2026-09-17 적용·이력 기록) / 운영 (미적용)
+-- 적용: test (2026-09-17 적용·이력 기록) / 운영 (2026-09-17 적용·이력 기록)
 -- 되돌리기:
 --   drop function if exists marketing_sms_recipients();
 --   drop function if exists add_marketing_optout(text, text);
