@@ -13,6 +13,7 @@ import {
   SMS_MAX_BYTES,
   buildMarketingSms,
   isQuietHoursKst,
+  sanitizeForSms,
   smsBytes,
 } from "@/lib/marketingSms";
 
@@ -44,6 +45,9 @@ export async function sendMarketingSms(input: {
     }
     const body = input.body.trim();
     if (!body) return { ok: false, error: "문구를 입력해주세요." };
+    if (!sanitizeForSms(body).text.trim()) {
+      return { ok: false, error: "이모지를 빼고 나면 보낼 글자가 없습니다." };
+    }
     if (input.phoneHashes.length === 0) return { ok: false, error: "보낼 대상을 선택해주세요." };
     if (smsBytes(buildMarketingSms(body, "홍길동")) > LMS_MAX_BYTES) {
       return { ok: false, error: `문구가 너무 깁니다(최대 ${LMS_MAX_BYTES}바이트).` };

@@ -7,9 +7,13 @@ import { formatPhoneDigits } from "@/lib/phone";
 import {
   LMS_MAX_BYTES,
   NAME_PLACEHOLDER,
+  OPTOUT_FOOTER,
+  AD_PREFIX,
   SMS_MAX_BYTES,
+  SMS_SAFE_SYMBOLS,
   buildMarketingSms,
   isQuietHoursKst,
+  sanitizeForSms,
   smsBytes,
 } from "@/lib/marketingSms";
 import type { MarketingRecipient } from "@/lib/marketingSmsServer";
@@ -46,6 +50,8 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
   const bytes = smsBytes(preview);
   const tooLong = bytes > LMS_MAX_BYTES;
   const quiet = isQuietHoursKst();
+  const { removed, replaced } = useMemo(() => sanitizeForSms(body), [body]);
+  const emptyAfterSanitize = body.trim().length > 0 && sanitizeForSms(body).text.trim().length === 0;
 
   const toggle = (hash: string) =>
     setSelected((cur) => {
@@ -71,10 +77,34 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
     router.refresh();
   }
 
-  const canSend = !busy && !quiet && !tooLong && body.trim().length > 0 && chosen.length > 0;
+  const canSend = !busy && !quiet && !tooLong && body.trim().length > 0 && !emptyAfterSanitize && chosen.length > 0;
 
   return (
     <section className="space-y-4">
+      <div className="rounded-lg border border-border p-4 text-sm">
+        <p className="mb-2 font-semibold">보내기 전에 알아둘 것</p>
+        <ul className="list-disc space-y-1 pl-5 text-muted">
+          <li>
+            <strong className="text-foreground">오전 8시~밤 9시에만 보낼 수 있습니다.</strong> 밤 9시부터 다음 날
+            아침 8시까지는 보내기 버튼이 막힙니다(야간 광고는 따로 동의를 받아야 합니다).{" "}
+            <span className={quiet ? "text-red-400" : "text-glow"}>
+              {quiet ? "지금은 보낼 수 없는 시간입니다." : "지금은 보낼 수 있는 시간입니다."}
+            </span>
+          </li>
+          <li>
+            맨 앞 &quot;{AD_PREFIX}&quot; 와 맨 끝 &quot;{OPTOUT_FOOTER}&quot; 는 자동으로 붙습니다. 문구
+            칸에는 넣지 마세요.
+          </li>
+          <li>
+            이모지는 문자로 보내지지 않아 자동으로 빠집니다. 대신 이런 기호는 보내집니다:{" "}
+            <span className="text-foreground">{SMS_SAFE_SYMBOLS}</span>
+          </li>
+          <li>90바이트(한글 약 45자)를 넘으면 장문(LMS)으로 나갑니다.</li>
+          <li>같은 문구는 10분 안에 다시 보낼 수 없습니다(중복 발송 방지).</li>
+          <li>동행자와 수신거부 목록에 있는 번호는 대상에 들어오지 않습니다.</li>
+        </ul>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-border p-4">
           <label htmlFor="marketing-body" className="mb-1 block text-sm font-semibold">
@@ -89,9 +119,21 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={10}
-            placeholder={`🚀 GRAND OPEN EVENT\n9/26 정식 오픈 기념, 인스타그램에서 5,000원 할인 이벤트를 진행합니다!`}
+            placeholder={`GRAND OPEN EVENT\n9/26 정식 오픈 기념, 인스타그램에서 5,000원 할인 이벤트를 진행합니다!`}
             className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
           />
+          {(removed.length > 0 || replaced.length > 0) && (
+            <div className="mt-2 rounded bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              {removed.length > 0 && <p>문자로 보내지지 않아 빠지는 이모지: {removed.join("  ")}</p>}
+              {replaced.length > 0 && (
+                <p>보내지는 기호로 바뀌는 글자: {replaced.map(([a, b]) => `${a} 대신 ${b}`).join(", ")}</p>
+              )}
+              <p className="mt-1">오른쪽 미리보기가 실제로 받는 모습입니다.</p>
+            </div>
+          )}
+          {emptyAfterSanitize && (
+            <p className="mt-2 text-xs text-red-400">이모지를 빼고 나면 보낼 글자가 없습니다.</p>
+          )}
         </div>
 
         <div className="rounded-lg border border-border p-4">
