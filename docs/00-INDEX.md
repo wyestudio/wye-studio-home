@@ -46,3 +46,14 @@
 | 문서 | 내용 |
 |---|---|
 | [10-production-rollout-2026-09-12.md](./10-production-rollout-2026-09-12.md) | **운영 반영 완료 보고** (2026-09-12) — 마이그레이션 29건 · 커밋 106개 · 실 플로우 검증 · 발견한 결함 4건 |
+
+### CLAUDE.md 에서 옮겨온 자료 (2026-09-17)
+
+매 세션 읽히는 `CLAUDE.md` 를 짧게 유지하려고, 규칙은 `CLAUDE.md`·`.claude/skills/` 에 두고
+찾아볼 자료는 아래로 나눴습니다.
+
+| 문서 | 내용 |
+|---|---|
+| [11-stack-and-security.md](./11-stack-and-security.md) | 스택 선택 이유 · 보안 강화 조치 |
+| [12-data-model-and-screens.md](./12-data-model-and-screens.md) | 데이터 모델(v23) · 화면/라우팅 구조 |
+| [13-backlog.md](./13-backlog.md) | 미구현 항목 · 앞으로 할 일 · 설계 변경 이력 |

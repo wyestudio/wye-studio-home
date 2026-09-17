@@ -1,6 +1,6 @@
 # HISTORY.md — 배경 이력서 & 트러블슈팅 기록
 
-CLAUDE.md의 "지금까지 완료한 것"에서 나열된 각 항목의 **상세 서사·시행착오·관련 파일 목록·"다음에 이어서 할 만한 것"** 메모를 기록. 또한 **도메인 연결/배포 후 버그/외부 서비스 결정** 같은 구체적인 배경을 한 곳에 보관.
+CLAUDE.md 에 있던 "최근 완료 항목" 타임라인(2026-09-17 부터 `docs/11-stack-and-security.md`)에서 나열된 각 항목의 **상세 서사·시행착오·관련 파일 목록·"다음에 이어서 할 만한 것"** 메모를 기록. 또한 **도메인 연결/배포 후 버그/외부 서비스 결정** 같은 구체적인 배경을 한 곳에 보관.
 
 ---
 
@@ -199,7 +199,7 @@ About 페이지는 배포 환경에서는 `NEXT_PUBLIC_ABOUT_ENABLED` 환경변�
 
 - **가입 시 입력한 추가정보가 이메일 인증 후 사라지는 문제**: 위 버그를 고치고 나니, Confirm email 경로에서는 가입 폼에 입력한 이름/휴대폰/생년월일/성별이 그냥 버려지고 `/signup/profile`에서 재입력을 요구하는 게 확인됨(사용자 피드백으로 발견). `signUp()`의 `options.data`(=`user_metadata`)에 이 값들을 실어 보내고, `/auth/callback`에서 `createProfileFromSignupMetadata()`(`src/lib/profile.ts`)로 자동으로 `profiles`를 생성하도록 수정 — 이제 재입력 없이 바로 홈으로 이동함. `user_metadata`가 없거나(OAuth 등) 검증 실패 시에만 `/signup/profile`로 폴백.
 
-- **`sessions.venue_name` REST API 노출**: 위 "session_venues" 항목 참고(CLAUDE.md의 데이터 모델 섹션 참고).
+- **`sessions.venue_name` REST API 노출**: 위 "session_venues" 항목 참고(`docs/12-data-model-and-screens.md` 의 데이터 모델 참고).
 
 ---
 
