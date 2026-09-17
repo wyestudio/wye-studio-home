@@ -77,6 +77,75 @@ export async function getTrafficSources(startDate: string = "28daysAgo"): Promis
     }));
 }
 
+/**
+ * 캠페인까지 쪼갠 유입.
+ *
+ * 왜 따로 두나
+ *   getTrafficSources() 는 소스/매체 한 축만 본다. 그런데 우리 인스타 링크는
+ *   바이오(profile)·8월 게시물(0829_*)·926 오픈 이벤트(coupon_event_0926) 가
+ *   전부 utm_campaign 으로만 갈린다. 소스/매체만 보면 이 셋이 한 줄로 뭉쳐
+ *   "어느 홍보가 먹혔나" 를 답할 수 없다.
+ *
+ * ⚠️ 차원 이름은 2026-09-17 에 실제 GA4 속성에 질의해 확인한 값이다.
+ *    틀린 차원을 넣으면 요청 전체가 에러가 나는데, 호출부가 실패를 빈 배열로
+ *    삼키므로 화면에는 "데이터 없음" 으로만 보인다 — 조용히 죽는다.
+ *    이름을 바꿀 일이 있으면 반드시 실제 질의로 확인하고 바꾼다.
+ *
+ * ⚠️ 조합 수가 많아 limit 을 넉넉히 둔다. 소스/매체 × 캠페인 × 진입지점이라
+ *    10 으로 자르면 꼬리가 아니라 허리가 잘린다.
+ */
+export interface CampaignTraffic {
+  /** 'instagram / social' */
+  sourceMedium: string;
+  /** utm_campaign. 값이 없으면 빈 문자열 */
+  campaign: string;
+  /** utm_content(진입 지점). 값이 없으면 빈 문자열 */
+  content: string;
+  sessions: number;
+}
+
+/** GA4 가 "값 없음" 을 뜻할 때 쓰는 표기들. 화면에서는 빈 값으로 취급한다. */
+const GA4_EMPTY = new Set([
+  "(not set)",
+  "(direct)",
+  "(none)",
+  "(organic)",
+  "(referral)",
+  "(data not available)",
+  "",
+]);
+
+function blankIfEmpty(raw: string | null | undefined): string {
+  const v = (raw || "").trim();
+  return GA4_EMPTY.has(v.toLowerCase()) ? "" : v;
+}
+
+export async function getCampaignTraffic(
+  startDate: string = "28daysAgo"
+): Promise<CampaignTraffic[]> {
+  const response = await analyticsDataClient.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate, endDate: "today" }],
+    dimensions: [
+      { name: "sessionSourceMedium" },
+      { name: "sessionCampaignName" },
+      { name: "sessionManualAdContent" },
+    ],
+    metrics: [{ name: "sessions" }],
+    orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+    limit: 40,
+  });
+
+  return (response[0]?.rows || [])
+    .filter((row) => row.dimensionValues && row.metricValues)
+    .map((row) => ({
+      sourceMedium: row.dimensionValues![0].value || "(not set)",
+      campaign: blankIfEmpty(row.dimensionValues![1].value),
+      content: blankIfEmpty(row.dimensionValues![2].value),
+      sessions: parseInt(row.metricValues![0].value || "0", 10),
+    }));
+}
+
 export async function getLandingPages(startDate: string = "28daysAgo"): Promise<LandingPage[]> {
   const response = await analyticsDataClient.runReport({
     property: `properties/${propertyId}`,

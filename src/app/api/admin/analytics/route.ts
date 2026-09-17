@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { verifyAdminToken } from "@/lib/adminAuth";
 import {
   getTrafficSources,
+  getCampaignTraffic,
   getLandingPages,
   getDailyTraffic,
   getPathFunnel,
@@ -39,9 +40,17 @@ export async function GET(request: NextRequest) {
       return fallback;
     };
 
-    const [trafficSources, landingPages, dailyTraffic, funnel, appStats, appSources] =
-      await Promise.all([
+    const [
+      trafficSources,
+      campaignTraffic,
+      landingPages,
+      dailyTraffic,
+      funnel,
+      appStats,
+      appSources,
+    ] = await Promise.all([
       getTrafficSources(startDate).catch(named("trafficSources", [])),
+      getCampaignTraffic(startDate).catch(named("campaignTraffic", [])),
       getLandingPages(startDate).catch(named("landingPages", [])),
       getDailyTraffic(startDate).catch(named("dailyTraffic", [])),
       getPathFunnel(startDate).catch(
@@ -60,6 +69,7 @@ export async function GET(request: NextRequest) {
       period,
       days,
       trafficSources,
+      campaignTraffic,
       landingPages,
       dailyTraffic,
       funnel,

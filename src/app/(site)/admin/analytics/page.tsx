@@ -13,7 +13,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { AdminNav } from "@/components/admin/AdminNav";
-import type { TrafficSource, LandingPage, DailyTraffic, PathFunnel } from "@/lib/ga4";
+import type {
+  TrafficSource,
+  CampaignTraffic,
+  LandingPage,
+  DailyTraffic,
+  PathFunnel,
+} from "@/lib/ga4";
 import type { ApplicationStats, ApplicationSourceStat } from "@/lib/adminStats";
 import { sourceLabel, isUnknownSource, pathLabel } from "@/lib/analyticsLabels";
 
@@ -117,6 +123,7 @@ const GUIDE_ITEMS: GuideItem[] = [
 type ApiPayload = {
   days: number;
   trafficSources: TrafficSource[];
+  campaignTraffic: CampaignTraffic[];
   landingPages: LandingPage[];
   dailyTraffic: DailyTraffic[];
   funnel: PathFunnel;
@@ -257,6 +264,17 @@ export default function AnalyticsDashboard() {
       `${applyTotal > 0 ? ` (전체 신청 ${applyTotal}건 중)` : ""}` +
       `${topApplySource.paid > 0 ? `, 그중 ${topApplySource.paid}건이 입금까지 왔습니다.` : "."}`
     : "아직 유입경로가 남은 신청이 없습니다. 외부 링크에 utm 을 붙여야 쌓이기 시작합니다.";
+
+  // 캠페인별 유입. 같은 인스타라도 바이오(profile)·8월 게시물(0829_*)·
+  // 926 이벤트(coupon_event_0926) 가 여기서만 갈린다.
+  // 캠페인이 없는 줄(검색·직접 방문 등)은 비교 대상이 아니라 빼고 센다.
+  const campaignRows = (data?.campaignTraffic ?? []).filter((c) => c.campaign);
+  const campaignTotal = campaignRows.reduce((a, c) => a + c.sessions, 0);
+  const topCampaign = campaignRows[0];
+  const campaignSummary = topCampaign
+    ? `캠페인 1위는 ${topCampaign.campaign}입니다 — ${topCampaign.sessions.toLocaleString()}회` +
+      `${campaignTotal > 0 ? ` (캠페인이 붙은 방문 ${campaignTotal.toLocaleString()}회 중)` : ""}.`
+    : "캠페인이 붙은 방문이 아직 없습니다. 링크에 utm_campaign 이 빠졌는지 확인하세요.";
 
   const topLanding = (data?.landingPages ?? [])[0];
   const landingTotal = (data?.landingPages ?? []).reduce((a, p) => a + p.sessions, 0);
@@ -562,6 +580,55 @@ export default function AnalyticsDashboard() {
                   <p className="text-muted">데이터 없음</p>
                 )}
               </div>
+            </div>
+
+            {/* ── 캠페인별 유입 ── */}
+            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+              <h2 className="mb-1 text-lg font-semibold">어느 캠페인이 데려오나</h2>
+              <p className="mb-3 text-sm text-muted">
+                위 &lsquo;어디서 들어오나&rsquo; 는 채널까지만 봅니다. 같은 인스타그램이라도
+                바이오 링크·8월 게시물·926 오픈 이벤트는{" "}
+                <strong className="text-foreground">캠페인으로만 갈립니다</strong> — 그 구분을
+                여기서 봅니다. 링크를 정리할지 판단할 때 씁니다.
+              </p>
+              {campaignRows.length > 0 ? (
+                <>
+                  <Summary text={campaignSummary} />
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-sm">
+                      <thead className="border-b border-border text-left text-xs text-muted">
+                        <tr>
+                          <th className="py-2 pr-3">채널</th>
+                          <th className="py-2 pr-3">캠페인</th>
+                          <th className="py-2 pr-3">진입 지점</th>
+                          <th className="py-2 text-right">방문</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {campaignRows.slice(0, 15).map((c, i) => (
+                          <tr key={i} className="border-b border-border/40">
+                            <td className="py-2 pr-3">
+                              {sourceLabel(c.sourceMedium)}
+                              <span className="ml-1.5 font-mono text-[11px] text-muted">
+                                {c.sourceMedium}
+                              </span>
+                            </td>
+                            <td className="py-2 pr-3 font-mono text-xs">{c.campaign}</td>
+                            <td className="py-2 pr-3 font-mono text-xs text-muted">
+                              {c.content || "-"}
+                            </td>
+                            <td className="py-2 text-right font-medium">
+                              {c.sessions.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              ) : (
+                <p className="text-muted">데이터 없음</p>
+              )}
             </div>
 
             {/* ── 날짜별 표 ── */}
