@@ -11,6 +11,7 @@ description: 금액이 틀리면 되돌릴 수 없는 작업. 쿠폰 발급·할
 - `src/lib/coupon.ts`, `src/lib/couponCode.ts`
 - `src/app/(site)/admin/coupons/`, `src/app/(site)/admin/settlement/`
 - DB: `preview_coupons()`, `submit_application*()`, `coupon_campaigns`, `coupons`, `application_coupons`
+- `src/lib/sms*.ts`, `src/lib/kakao.ts` 등 **실제로 돈이 나가는 외부 발송**
 
 ---
 
@@ -67,3 +68,17 @@ SQL 로 직접 넣을 때는 알아서 피해야 한다. (현재: 본인 M · �
 여부까지만. 이름·연락처는 넘기지 않는다.
 
 관련 파일: `src/lib/settlement.ts`, `src/app/(site)/admin/settlement/`
+
+---
+
+## 실제 비용이 나가는 기능은 켜기 전에 가드레일부터 넣는다
+
+문자·알림톡·결제·외부 웹훅처럼 **누르면 실제로 돈이 나가는** 기능은, 팀원이 운영에서
+반복해서 눌러본다는 전제로 만든다. 사고가 난 뒤에 막지 말고 처음부터 같이 넣는다.
+
+- **테스트 환경으로 갈라 둔다** — `NEXT_PUBLIC_IS_TEST_ENV` 가 켜진 곳에서는 발송하지 않는다
+- **테스트로 넣은 건을 가려낼 수단을 같이 만든다** — `applications.is_internal`
+- 필요하면 호출 빈도 제한·비용 상한을 둔다
+
+← 2026-08-11 에 팀원들이 운영에서 신규 기능을 반복 테스트하며 **실제 문자 요금이 계속
+나갔고**, 급히 발송 호출을 꺼서 막은 적이 있다 (경위는 `HISTORY.md`)
