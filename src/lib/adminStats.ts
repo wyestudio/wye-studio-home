@@ -299,3 +299,22 @@ export async function getApplicationsByCampaign(
 
   return [...bucket.values()].sort((a, b) => b.applications - a.applications);
 }
+
+/**
+ * 기간 안에 들어온 '우리 기기' 신청 수. 위 통계들에서 뺀 만큼을 화면에 알려주려고 센다.
+ * 못 세도 0 으로 둔다 — 안내 문구가 안 뜰 뿐 숫자는 틀리지 않는다.
+ */
+export async function countInternalApplications(days: number): Promise<number> {
+  const supabase = createAdminClient();
+  const since = kstDaysAgoStart(days - 1);
+  const { count, error } = await supabase
+    .from("applications")
+    .select("id", { count: "exact", head: true })
+    .eq("is_internal", true)
+    .gte("created_at", since);
+  if (error) {
+    console.error("[adminStats] 테스트 신청 수 조회 실패", error);
+    return 0;
+  }
+  return count ?? 0;
+}

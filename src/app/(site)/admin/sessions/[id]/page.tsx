@@ -8,6 +8,7 @@ import { ManualApplyButton } from "./ManualApplyButton";
 import { ApplicationDetailDialog } from "./ApplicationDetailDialog";
 import { ApplicationActionMenu } from "./ApplicationActionMenu";
 import { RefundCompleteButton } from "./RefundCompleteButton";
+import { getInternalApplicationIds } from "@/lib/internalTraffic";
 import { getSessionStats } from "@/lib/sessions";
 import {
   formatCapacityLine,
@@ -85,6 +86,14 @@ function StatusCell({ app }: { app: any }) {
       >
         {app.status === "confirmed" ? "확정" : app.status === "cancelled" ? "취소" : "대기"}
       </span>
+      {app.is_internal && (
+        <span
+          className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-[10px] font-semibold text-amber-400"
+          title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
+        >
+          테스트
+        </span>
+      )}
     </td>
   );
 }
@@ -237,7 +246,9 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
   const unpaidConfirmedCount = countUnpaidConfirmed(applications ?? [], attendees ?? []).get(session.id) ?? 0;
 
-  const allApplications = applications ?? [];
+  // 우리 기기에서 넣은 신청에 '테스트' 배지를 단다. 정원·명단에는 그대로 포함된다.
+  const internalIds = await getInternalApplicationIds((applications ?? []).map((a) => a.id as string));
+  const allApplications = (applications ?? []).map((a) => ({ ...a, is_internal: internalIds.has(a.id as string) }));
 
   // 입금 전 건이 위로 오도록 정렬 (동순위는 기존 created_at desc 순서 유지, Array#sort는 안정 정렬).
   const confirmedApps = allApplications

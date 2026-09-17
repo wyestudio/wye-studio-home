@@ -12,6 +12,7 @@ import {
   getApplicationStats,
   getApplicationSources,
   getApplicationsByCampaign,
+  countInternalApplications,
 } from "@/lib/adminStats";
 
 export const revalidate = 300; // 5분 캐시 — 하루 단위로 보려면 1시간은 너무 굼뜨다
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
       appStats,
       appSources,
       appByCampaign,
+      internalApplications,
     ] = await Promise.all([
       getTrafficSources(startDate).catch(named("trafficSources", [])),
       getCampaignTraffic(startDate).catch(named("campaignTraffic", [])),
@@ -69,6 +71,7 @@ export async function GET(request: NextRequest) {
       ),
       getApplicationSources(days).catch(named("applicationSources", [])),
       getApplicationsByCampaign(days).catch(named("applicationsByCampaign", [])),
+      countInternalApplications(days).catch(named("internalApplications", 0)),
     ]);
 
     return NextResponse.json({
@@ -82,6 +85,7 @@ export async function GET(request: NextRequest) {
       applications: appStats,
       applicationSources: appSources,
       applicationsByCampaign: appByCampaign,
+      internalApplications,
     });
   } catch (error) {
     console.error("Analytics API error:", error);
