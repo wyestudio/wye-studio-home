@@ -99,7 +99,7 @@ async function _getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
   // 고객 화면에 필요한 칸만 추린 theme_public_venue 뷰를 쓴다.
   const { data: venue } = await supabase
     .from("theme_public_venue")
-    .select("area_label, parking_note, map_url, name, address, lat, lng")
+    .select("area_label, parking_note, map_url, name, address, lat, lng, operating_period")
     .eq("theme_id", (data as Theme).id)
     .maybeSingle();
 

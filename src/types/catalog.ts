@@ -11,6 +11,11 @@ export type Venue = {
   /** 위도·경도. 둘 다 있을 때만 테마 상세에 지도가 뜬다 (p35). */
   lat: number | null;
   lng: number | null;
+  /**
+   * 이 장소에서의 운영기간 표기. 예: '2026.09.26 ~ 2027.03.25'.
+   * 네이버 스마트플레이스 팝업스토어 등록이 '운영기간(종료일) 명시'를 요구해 공개한다.
+   */
+  operating_period: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -267,6 +272,8 @@ export type PublicVenue = {
   address: string;
   lat: number | null;
   lng: number | null;
+  /** '2026.09.26 ~ 2027.03.25' 같은 이 장소에서의 운영기간. 비우면 안 보인다. */
+  operating_period: string | null;
 };
 
 export type ThemeCategory = {

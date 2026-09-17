@@ -14,6 +14,8 @@ export type VenueInput = {
   map_url: string;
   /** '37.54, 127.08' 처럼 위도·경도를 한 칸에. 비우면 지도 없음. */
   coords: string;
+  /** '2026.09.26 ~ 2027.03.25' 처럼 이 장소에서의 운영기간. 비우면 화면에 안 나온다. */
+  operating_period: string;
   is_active: boolean;
 };
 
@@ -58,6 +60,7 @@ export async function saveVenue(input: VenueInput): Promise<ActionResult> {
       map_url: input.map_url.trim() || null,
       lat: coords?.lat ?? null,
       lng: coords?.lng ?? null,
+      operating_period: input.operating_period.trim() || null,
       is_active: input.is_active,
       updated_at: new Date().toISOString(),
     };

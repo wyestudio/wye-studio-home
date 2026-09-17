@@ -11,6 +11,7 @@ const EMPTY: VenueInput = {
   parking_note: "",
   map_url: "",
   coords: "",
+  operating_period: "",
   is_active: true,
 };
 
@@ -23,6 +24,7 @@ function toInput(v: Venue): VenueInput {
     parking_note: v.parking_note ?? "",
     map_url: v.map_url ?? "",
     coords: v.lat != null && v.lng != null ? `${v.lat}, ${v.lng}` : "",
+    operating_period: v.operating_period ?? "",
     is_active: v.is_active,
   };
 }
@@ -148,6 +150,20 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
             />
             <p className="mt-1 text-[11px] text-muted">
               구글 지도에서 장소를 마우스 오른쪽 버튼으로 누르면 맨 위에 좌표가 나와요. 눌러서 복사한 뒤 그대로 붙여 넣으면 됩니다.
+            </p>
+          </div>
+
+          <div>
+            <label className={label}>운영기간 (테마 상세 진행 장소에 공개) — 비우면 안 보임</label>
+            <input
+              className={field}
+              value={editing.operating_period}
+              onChange={(e) => setEditing({ ...editing, operating_period: e.target.value })}
+              placeholder="예: 2026.09.26 ~ 2027.03.25"
+            />
+            <p className="mt-1 text-[11px] text-muted">
+              네이버 스마트플레이스(팝업스토어) 등록에 필요해서 화면에 보여줍니다. 종료일 없이
+              적으면 등록이 보류돼요. 화면에는 &ldquo;이 장소에서 진행하는 기간&rdquo;이라는 안내가 같이 붙습니다.
             </p>
           </div>
 
