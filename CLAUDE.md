@@ -11,8 +11,11 @@
 - Vercel: **연동 완료**. `wyestudio/wye-studio-home` Import, Vercel Team "WYE"(Hobby), 환경변수 `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` 등록 완료. 배포 URL: `https://wye-studio-home-1ih0pshfp-wye1.vercel.app` (main 브랜치 push마다 자동 재배포됨). **커스텀 도메인 연결 완료**(`wouldyouescape.com`).
 - 도메인: **`wouldyouescape.com`을 Cloudflare Registrar에서 구매 완료**(2026-08-06). 네임서버도 Cloudflare 사용 중.
 
-# ⚠️ 커밋할 때
+# ⚠️ 커밋·푸시할 때
 
+- **`develop` 에 먼저 올리고, 대표님이 확인한 뒤에 `main` 에 올린다** ← `main` push 는 곧
+  운영 배포다. 확인 없이 운영에 나가면 되돌리는 비용이 훨씬 크다
+- **배포 횟수가 빠듯할 때만 한 번에 묶는다.** 그때도 먼저 물어본다 (Vercel Hobby 100회/일)
 - **커밋 메시지는 한 줄 한국어. 본문을 붙이지 않는다** ← 배경은 코드 주석이나 `docs/` 에
 - **AI 협업 표기를 넣지 않는다** (`Co-Authored-By: Claude`, `Claude-Session:`, `🤖 Generated with…`)
   ← 대표님 본인 커밋으로 남아야 한다. 설정으로 꺼 뒀지만 초기화되면 다시 붙으므로 커밋 직전에 눈으로 확인한다
