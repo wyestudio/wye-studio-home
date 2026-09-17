@@ -40,10 +40,11 @@
 
 | 건드리는 것 | 읽을 스킬 |
 |---|---|
-| `src/lib/settlement.ts`, `src/lib/coupon*.ts`, 어드민 쿠폰·정산 화면, `preview_coupons()`·`submit_application*()` | `wye-money` |
+| `src/lib/settlement.ts`, `src/lib/coupon*.ts`, `src/lib/sms*.ts`, 어드민 쿠폰·정산 화면, `preview_coupons()`·`submit_application*()` | `wye-money` |
 | `supabase/migrations/`, 운영 DB 에 SQL 실행, `main` 브랜치 push(=운영 배포) | `wye-db-release` |
 | `src/lib/attribution*.ts`, `utmLinks.ts`, `shortLinks.ts`, `ga4.ts`, 어드민 유입경로 화면, `next.config.ts` 의 `redirects()` | `wye-marketing` |
-| `public/` 이미지, `theme-assets` 버킷, 화면 문구에 새 기호 | `wye-customer-facing` |
+| `public/` 이미지, `theme-assets` 버킷, 공개 화면 문구, 공개 페이지 추가·수정, `src/app/sitemap.ts`·`robots.ts` | `wye-customer-facing` |
+| **`CLAUDE.md`, `.claude/skills/**`, `docs/` 의 규칙 문서를 고친다** | `~/.claude/CLAUDE.md` 의 「규칙·문서를 고칠 때」 여섯 절 |
 
 # 더 볼 곳
 
