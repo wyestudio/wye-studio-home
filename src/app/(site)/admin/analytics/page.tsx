@@ -687,25 +687,30 @@ export default function AnalyticsDashboard() {
                                 r.sessions.toLocaleString()
                               )}
                             </td>
-                            <td className="py-2 pr-3 text-right font-medium">
-                              {r.applications || <span className="text-muted">-</span>}
+                            {/* ⚠️ 0 을 '-' 로 찍지 않는다. 방문 칸의 '-' 는 '모른다' 라
+                                는 뜻이라, 같은 줄에서 기호가 두 뜻으로 읽히면 안 된다. */}
+                            <td
+                              className={`py-2 pr-3 text-right ${
+                                r.applications > 0 ? "font-medium" : "text-muted"
+                              }`}
+                            >
+                              {r.applications}
                             </td>
                             <td className="py-2 pr-3 text-right text-muted">
-                              {r.sessions ? pct(r.applications, r.sessions) : "-"}
+                              {r.sessions === null ? "-" : pct(r.applications, r.sessions)}
                             </td>
-                            <td className="py-2 pr-3 text-right text-muted">
-                              {r.headcount || "-"}
-                            </td>
-                            <td className="py-2 text-right text-muted">{r.paid || "-"}</td>
+                            <td className="py-2 pr-3 text-right text-muted">{r.headcount}</td>
+                            <td className="py-2 text-right text-muted">{r.paid}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                   <p className="mt-3 text-xs text-muted">
-                    · <strong className="text-foreground">방문 &lsquo;-&rsquo;</strong> 는 0이
-                    아니라 <strong className="text-foreground">모른다</strong>는 뜻입니다. GA4에서
+                    · <strong className="text-foreground">방문 칸의 &lsquo;-&rsquo;</strong> 만
+                    0이 아니라 <strong className="text-foreground">모른다</strong>는 뜻입니다. GA4에서
                     상위 40개만 받아오기 때문에 꼬리에 있는 캠페인은 방문 수가 비어 보일 수 있습니다.
+                    나머지 칸의 0은 <strong className="text-foreground">진짜 0</strong>입니다.
                     <br />· 신청 쪽 유입경로는{" "}
                     <strong className="text-foreground">2026-09-15부터</strong> 쌓입니다. 그 이전
                     신청은 값이 없어 이 표에 잡히지 않습니다.
