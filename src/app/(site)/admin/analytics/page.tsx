@@ -141,6 +141,8 @@ type ApiPayload = {
   applicationSources: ApplicationSourceStat[];
   /** 이 기간 테스트 기기에서 넣어 신청 숫자에서 뺀 건수 */
   internalApplications?: number;
+  /** 이 기간 테스트 기기 방문(GA4 세션). 방문·유입·퍼널 숫자에서 뺐다 */
+  testDeviceSessions?: number;
 };
 
 const PERIODS: { key: string; label: string }[] = [
@@ -396,16 +398,17 @@ export default function AnalyticsDashboard() {
         ) : (
           <>
             {/*
-              테스트 기기(/internal)에서 넣은 신청은 아래 신청·입금·매출에서 뺀다.
-              화면만 봐서는 빠진 줄 모르니 몇 건 뺐는지 알린다.
-              방문(GA4)은 GA4 의 'Internal Traffic' 필터가 '사용'일 때부터 빠진다.
+              테스트 기기(/internal)의 방문(GA4)과 신청(우리 DB)은 아래 숫자에서 전부 뺀다
+              (ga4.ts 의 REAL_TRAFFIC, adminStats.ts 의 is_internal).
+              화면만 봐서는 빠진 줄 모르니 얼마나 뺐는지 알린다.
             */}
-            {(data.internalApplications ?? 0) > 0 && (
+            {((data.testDeviceSessions ?? 0) > 0 || (data.internalApplications ?? 0) > 0) && (
               <p className="mb-4 rounded-lg border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-sm text-amber-300">
                 <span className="mr-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-[10px] font-semibold">
                   테스트
                 </span>
-                테스트 기기에서 넣은 신청 {data.internalApplications}건은 신청·입금·매출 숫자에서 뺐습니다.
+                테스트 기기 방문 {data.testDeviceSessions ?? 0}회, 신청 {data.internalApplications ?? 0}건은
+                아래 숫자에서 뺐습니다.
               </p>
             )}
             {/* ── 한눈에 ── */}

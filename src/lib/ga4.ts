@@ -19,6 +19,48 @@ const analyticsDataClient = new BetaAnalyticsDataClient({
   },
 });
 
+/**
+ * 테스트 기기 방문은 뺀다.
+ *
+ * 테스트 기기(/internal)에서 온 방문은 GTM 이 traffic_type=internal 을 붙이고,
+ * GA4 의 'Internal Traffic' 데이터 필터가 걸러낸다. 그런데 필터가 **테스트 중**
+ * 상태일 때는 빼지 않고 testDataFilterName 에 필터 이름만 적어 둔다. 그래서
+ * 여기서 그 이름이 붙은 방문을 뺀다.
+ *
+ * 필터를 '사용' 으로 바꾸면 그런 방문은 애초에 수집되지 않으므로, 이 조건을
+ * 그대로 둬도 결과는 같다.
+ *
+ * ⚠️ GA4 필터 이름을 그대로 쓴다. GA4 에서 필터 이름을 바꾸면 여기도 같이 바꾼다 —
+ *    안 바꾸면 테스트 방문이 조용히 다시 섞인다.
+ * ⚠️ '(not set)' 으로 거르는 조건은 GA4 가 거부한다(INVALID_ARGUMENT, 2026-09-17 실측).
+ * ⚠️ 한 세션 안에서 표시를 켜고 끄면 양쪽에 다 잡혀 합이 1~2 어긋날 수 있다.
+ * ⚠️ GTM 게시(2026-09-17) 이전 방문에는 표시가 없어 가를 수 없다.
+ */
+const TEST_FILTER_NAME = "Internal Traffic";
+const TEST_TRAFFIC = {
+  filter: {
+    fieldName: "testDataFilterName",
+    stringFilter: { matchType: "EXACT" as const, value: TEST_FILTER_NAME },
+  },
+};
+const REAL_TRAFFIC = { notExpression: TEST_TRAFFIC };
+
+/** 기존 조건이 있으면 '테스트 기기 제외' 와 AND 로 묶는다. */
+function realOnly<T extends object>(filter?: T) {
+  return filter ? { andGroup: { expressions: [REAL_TRAFFIC, filter] } } : REAL_TRAFFIC;
+}
+
+/** 기간 안의 테스트 기기 방문(세션) 수. 분석 화면에 '몇 회 뺐다' 고 알리는 데 쓴다. */
+export async function getTestDeviceSessions(startDate: string): Promise<number> {
+  const [res] = await analyticsDataClient.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate, endDate: "today" }],
+    metrics: [{ name: "sessions" }],
+    dimensionFilter: TEST_TRAFFIC,
+  });
+  return parseInt(res.rows?.[0]?.metricValues?.[0]?.value || "0", 10);
+}
+
 export interface TrafficSource {
   source: string;
   sessions: number;
@@ -67,6 +109,7 @@ export async function getTrafficSources(startDate: string = "28daysAgo"): Promis
       },
     ],
     limit: 10,
+    dimensionFilter: realOnly(),
   });
 
   return (response[0]?.rows || [])
@@ -134,6 +177,7 @@ export async function getCampaignTraffic(
     metrics: [{ name: "sessions" }],
     orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
     limit: 40,
+    dimensionFilter: realOnly(),
   });
 
   return (response[0]?.rows || [])
@@ -174,6 +218,7 @@ export async function getLandingPages(startDate: string = "28daysAgo"): Promise<
       },
     ],
     limit: 10,
+    dimensionFilter: realOnly(),
   });
 
   return (response[0]?.rows || [])
@@ -224,6 +269,7 @@ export async function getDailyTraffic(startDate: string): Promise<DailyTraffic[]
     metrics: [{ name: "sessions" }, { name: "totalUsers" }, { name: "screenPageViews" }],
     orderBys: [{ dimension: { dimensionName: "date" } }],
     limit: 100,
+    dimensionFilter: realOnly(),
   });
 
   return (res.rows || [])
@@ -281,23 +327,24 @@ export async function getPathFunnel(startDate: string): Promise<PathFunnel> {
       property: `properties/${propertyId}`,
       dateRanges: range,
       metrics: [{ name: "sessions" }],
+      dimensionFilter: realOnly(),
     }),
     analyticsDataClient.runReport({
       property: `properties/${propertyId}`,
       dateRanges: range,
       metrics: [{ name: "sessions" }],
       // 상품 상세만 — 신청 폼(/apply)은 뺀다.
-      dimensionFilter: {
+      dimensionFilter: realOnly({
         andGroup: {
           expressions: [productPaths, { notExpression: endsWithApply }],
         },
-      },
+      }),
     }),
     analyticsDataClient.runReport({
       property: `properties/${propertyId}`,
       dateRanges: range,
       metrics: [{ name: "sessions" }],
-      dimensionFilter: endsWithApply,
+      dimensionFilter: realOnly(endsWithApply),
     }),
   ]);
 
