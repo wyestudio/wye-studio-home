@@ -1,6 +1,6 @@
 -- 이벤트 말풍선이 켜진 동안 우하단 인스타 버튼이 이벤트 게시물로 가게 한다
 --
--- 적용: test (2026-09-17 적용·이력 기록) / 운영 (미적용)
+-- 적용: test (2026-09-17 적용·이력 기록) / 운영 (2026-09-17 적용·이력 기록)
 -- 되돌리기:
 --   (public_event_bubble 을 url 칸 없이 이전 정의로 되돌리려면 drop view 후 p42 정의로 create)
 --   alter table coupon_campaigns drop column if exists event_bubble_url;
