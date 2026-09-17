@@ -163,7 +163,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
             />
             <p className="mt-1 text-[11px] text-muted">
               네이버 스마트플레이스(팝업스토어) 등록에 필요해서 화면에 보여줍니다. 종료일 없이
-              적으면 등록이 보류돼요. 화면에는 &ldquo;이 장소에서 진행하는 기간&rdquo;이라는 안내가 같이 붙습니다.
+              적으면 등록이 보류돼요. 화면에는 &ldquo;이 장소 운영기간 · (입력한 값)&rdquo; 으로 나옵니다.
             </p>
           </div>
 

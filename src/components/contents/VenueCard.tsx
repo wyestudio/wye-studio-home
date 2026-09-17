@@ -81,19 +81,15 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
           홈페이지에서 확인할 수 있어야 한다고 해서 공개한다(2026-09-17 보류 사유).
           심사는 사람이 화면을 보고 하므로 숨겨 두면 안 된다.
 
-          ⚠️ 아래 한 줄은 지우지 말 것 — 날짜만 있으면 **우주이스케이프가 2027년 3월에
+          ⚠️ 라벨의 '이 장소' 를 빼지 말 것 — 날짜만 있으면 **우주이스케이프가 2027년 3월에
              문을 닫는 것처럼** 읽힌다. 이건 이 장소에서 진행하는 기간일 뿐이다.
+             (설명 한 줄을 따로 달았다가, 안내문처럼 늘어져 라벨 안으로 넣었다)
         */}
         {venue.operating_period && (
-          <div className="px-1">
-            <p className="text-xs text-muted sm:text-sm">
-              <span className="font-semibold text-foreground">운영기간</span> ·{" "}
-              {venue.operating_period}
-            </p>
-            <p className="mt-1 text-[11px] leading-relaxed text-muted/80 sm:text-xs">
-              이 장소에서 진행하는 기간입니다. 이후 회차는 새로운 장소·기간으로 이어집니다.
-            </p>
-          </div>
+          <p className="px-1 text-xs text-muted sm:text-sm">
+            <span className="font-semibold text-foreground">이 장소 운영기간</span> ·{" "}
+            {venue.operating_period}
+          </p>
         )}
       </div>
 
