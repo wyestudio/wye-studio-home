@@ -5083,3 +5083,28 @@ revoke all on function get_session_stats(uuid) from public;
 grant execute on function get_session_stats(uuid) to anon, authenticated;
 
 grant select on public.admin_review_payback_applications_view to service_role;
+
+
+-- =========================================================
+-- 코드네임 맞히기 이벤트(/codename) — 2026-09-19
+-- 원본: supabase/migrations/20260919095742_codename_event.sql
+-- =========================================================
+create table if not exists public.codename_submissions (
+  id                    uuid primary key default gen_random_uuid(),
+  round                 smallint not null default 1 check (round in (1, 2)),
+  nickname              text not null check (char_length(nickname) between 1 and 30),
+  codename              text not null check (codename ~ '^[A-Z]{1,32}$'),
+  phone_enc             bytea not null,
+  phone_hash            text not null,
+  consent_personal_info boolean not null default false,
+  is_rejoin             boolean not null default false,
+  is_correct            boolean,
+  is_free_pair_winner   boolean not null default false,
+  submitted_at          timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+  unique (phone_hash, round)
+);
+-- codename_exists(text, smallint)  : 이 번호로 낸 적 있나(코드네임은 안 돌려줌)
+-- submit_codename(smallint, text, text, text, boolean, boolean, boolean)
+--                                  : 저장. 중복이면 쓰지 않고 duplicate 를 돌려준다
+-- 둘 다 security definer, service_role 전용. 정의는 위 마이그레이션 파일에 있다.
