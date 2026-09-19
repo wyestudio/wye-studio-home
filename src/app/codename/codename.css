@@ -1067,22 +1067,26 @@ img { max-width: 100%; }
 .cn .padlock .rivet { fill: var(--ink); opacity: 0.38; }
 .cn .padlock .keyhole { fill: var(--ink); }
 
-/* ⚠️ 고리는 오른쪽 다리를 축으로 **시계방향**으로 돌아야 왼쪽 다리가 몸통에서 빠진다.
-   반시계로 돌리면 몸통 안으로 파고든다. */
+/* ⚠️ 자물쇠는 **열린 채로 시작해서 잠긴다.** 반대로 두지 말 것 —
+   이 화면의 문구가 "기록 봉인하기 / 봉인 완료" 라서, 다 끝난 순간 자물쇠가
+   열리면 말과 그림이 어긋난다.
+   ⚠️ 고리는 오른쪽 다리를 축으로 **시계방향**으로 열린다. 반시계로 돌리면
+   왼쪽 다리가 몸통 안으로 파고든다. */
 .cn .padlock .shackle {
   fill: none;
   stroke: var(--ink);
   stroke-width: 5.4;
   stroke-linecap: round;
+  transform: rotate(24deg);
   transform-origin: 49px 46px;
   transition: transform 620ms cubic-bezier(0.3, 1.5, 0.4, 1);
 }
 
-.cn .padlock.open .shackle { transform: rotate(24deg); }
-.cn .padlock.open .body { stroke: var(--ok); }
-.cn .padlock.open .seam { stroke: var(--ok); }
-.cn .padlock.open .rivet,
-.cn .padlock.open .keyhole { fill: var(--ok); }
+.cn .padlock.sealed .shackle { transform: none; }
+.cn .padlock.sealed .body { stroke: var(--ok); }
+.cn .padlock.sealed .seam { stroke: var(--ok); }
+.cn .padlock.sealed .rivet,
+.cn .padlock.sealed .keyhole { fill: var(--ok); }
 
 .cn .seal-steps { margin: 20px 0 0; padding: 0; list-style: none; }
 

@@ -708,9 +708,10 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
 
           {phase === "sealing" && (
             <section className="sealing" aria-live="polite">
-              {/* 서류에 그려 넣은 판화풍 자물쇠 — 몸통 위 이음선과 네 귀퉁이 리벳까지 */}
+              {/* 서류에 그려 넣은 판화풍 자물쇠 — 몸통 위 이음선과 네 귀퉁이 리벳까지.
+                  열린 채로 시작해 단계가 끝나면 잠긴다(문구가 "봉인" 이다). */}
               <svg
-                className={`padlock${stamped ? " open" : ""}`}
+                className={`padlock${stamped ? " sealed" : ""}`}
                 viewBox="0 0 72 96"
                 role="img"
                 aria-label="기록 봉인 중"
