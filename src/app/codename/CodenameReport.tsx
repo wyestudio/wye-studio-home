@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createAudio } from "./audio";
-import { checkExistingCodename, submitCodename } from "./actions";
-import { CERT_PHRASE, CODENAME_LENGTH, COMMS, HINTS, HINT_MASKS, type Round } from "./content";
+import { checkExistingCodename, revealHint, submitCodename } from "./actions";
+import { CERT_PHRASE, CODENAME_LENGTH, COMMS, HINT_MASKS, type Round } from "./content";
 
 type Phase = "form" | "sealing" | "receipt";
 type FieldId = "nickname" | "codename" | "phone" | "consent";
@@ -73,6 +73,9 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
   const [lockFocused, setLockFocused] = useState(false);
   const [popIndex, setPopIndex] = useState(-1);
   const [openedHints, setOpenedHints] = useState(0);
+  // 열어 본 힌트 원문. 서버에서 한 줄씩 받아 채운다(hints.ts 참고).
+  const [hintTexts, setHintTexts] = useState<string[]>([]);
+  const [hintPending, setHintPending] = useState(false);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [dupAt, setDupAt] = useState<string | null>(null);
@@ -205,8 +208,22 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
     }
   }
 
-  function openHint(index: number) {
-    if (index !== openedHints) return;
+  async function openHint(index: number) {
+    if (index !== openedHints || hintPending) return;
+
+    // 원문은 서버에 있다. 받아오기 전에는 칸을 열지 않는다 — 열어 놓고 빈 줄을
+    // 보여 주면 잠금이 풀린 것처럼 보이면서 내용이 없다.
+    setHintPending(true);
+    const text = await revealHint(index);
+    if (!alive.current) return;
+    setHintPending(false);
+    if (text === null) return;
+
+    setHintTexts((prev) => {
+      const next = [...prev];
+      next[index] = text;
+      return next;
+    });
     setOpenedHints(index + 1);
     getAudio().unlock();
     if (!said.current.hint) {
@@ -582,18 +599,22 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
                   <summary>막혔나요? 관제소 자료 열람</summary>
                   <div className="hints-body">
                     <p className="memo">힌트는 순서대로만 열립니다. 열어봐도 추첨엔 지장 없어요 — 관제소</p>
-                    {HINTS.map((text, index) => {
+                    {HINT_MASKS.map((mask, index) => {
                       const opened = index < openedHints;
                       const unlocked = index === openedHints;
                       return (
                         <div className="hint-row" key={index}>
                           <span className="no">H-0{index + 1}</span>
                           <span className={`text${opened ? "" : " locked"}`}>
-                            {opened ? text : HINT_MASKS[index]}
+                            {opened ? hintTexts[index] : mask}
                           </span>
                           {!opened && (
-                            <button type="button" disabled={!unlocked} onClick={() => openHint(index)}>
-                              {unlocked ? "열람" : "잠김"}
+                            <button
+                              type="button"
+                              disabled={!unlocked || hintPending}
+                              onClick={() => openHint(index)}
+                            >
+                              {unlocked ? (hintPending ? "여는 중…" : "열람") : "잠김"}
                             </button>
                           )}
                         </div>

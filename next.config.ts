@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // ⚠️ 서버 액션 호출 로그를 끈다. 켜 두면 개발 서버가 인자를 그대로 터미널에 찍는데,
+  //    신청·조회·코드네임 액션은 전화번호를 인자로 받는다. 실제로 이전 개발 로그에
+  //    고객 번호가 평문으로 남아 있었다. 코드에서 phone_enc/phone_hash 로 암호화해도
+  //    로그로 새면 의미가 없다. (Next 16 의 logging.serverFunctions)
+  logging: {
+    serverFunctions: false,
+  },
+
   experimental: {
     serverActions: {
       // 포스터 업로드가 서버 액션으로 간다. 기본 1MB 라 2~3MB 짜리 포스터가

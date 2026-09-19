@@ -3,6 +3,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getClientIp, checkRateLimit, recordFailure } from "@/lib/loginRateLimit";
 import { CODENAME_LENGTH, currentRound } from "./content";
+import { HINTS } from "./hints";
 
 /**
  * 코드네임 이벤트 응모 저장.
@@ -29,6 +30,25 @@ export type SubmitInput = {
 };
 
 const PHONE_RE = /^01\d{8,9}$/;
+
+/**
+ * 힌트 한 줄을 내어 준다. 열람 버튼을 누를 때만 호출된다.
+ *
+ * ⚠️ 힌트 원문을 화면 코드(content.ts)에 두면 잠긴 힌트까지 브라우저 번들에 실려
+ *    개발자도구로 전부 읽힌다. 그래서 서버에서 한 줄씩 건네준다.
+ * 순서 강제는 화면이 한다 — 버튼을 세 번 누르면 어차피 다 열리는 값이라
+ *    서버가 진행도를 들고 있을 이유가 없다. 여기서는 범위만 확인한다.
+ */
+export async function revealHint(index: number): Promise<string | null> {
+  const key = `codename:${await getClientIp()}`;
+  if (checkRateLimit(key).blocked) return null;
+
+  if (!Number.isInteger(index) || index < 0 || index >= HINTS.length) {
+    recordFailure(key);
+    return null;
+  }
+  return HINTS[index];
+}
 
 /**
  * "이 번호로 이미 낸 적 있나" 만 확인한다. 봉인 버튼을 눌렀을 때 중복 안내를
