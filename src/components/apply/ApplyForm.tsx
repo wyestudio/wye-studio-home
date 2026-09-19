@@ -377,9 +377,29 @@ export function ApplyForm({
     nextId: string | null
   ) {
     setPreCheckConflictPhones(new Set());
-    const digitsOnly = rawValue.replace(/[^0-9]/g, "").slice(0, maxLength);
-    updateAttendee(index, field, digitsOnly);
-    if (nextId && digitsOnly.length === maxLength) {
+    const digits = rawValue.replace(/[^0-9]/g, "");
+    const current = attendees[index]?.[field] ?? "";
+
+    // 번호 전체가 한 칸에 통째로 들어오면(붙여넣기) 3-4-4 로 나눠 담는다.
+    // 칸에 maxLength 를 걸면 브라우저가 잘라버려 나머지 자리를 되살릴 수 없어서
+    // 여기서 자른다. 반대로 이미 꽉 찬 칸에 한 글자 더 친 것뿐이면 넘치는 글자를
+    // 버린다 — 타이핑이 옆 칸을 덮어쓰면 안 된다.
+    const typedOver =
+      digits.length === maxLength + 1 && current.length === maxLength && digits.startsWith(current);
+
+    if (digits.length > maxLength && !typedOver) {
+      const d = digits.slice(0, 11);
+      setAttendees((prev) =>
+        prev.map((a, i) =>
+          i === index ? { ...a, phone1: d.slice(0, 3), phone2: d.slice(3, 7), phone3: d.slice(7, 11) } : a
+        )
+      );
+      return;
+    }
+
+    const part = digits.slice(0, maxLength);
+    updateAttendee(index, field, part);
+    if (nextId && part.length === maxLength) {
       document.getElementById(nextId)?.focus();
     }
   }

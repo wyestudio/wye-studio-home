@@ -127,7 +127,6 @@ export function AttendeeCard({
               type="tel"
               inputMode="numeric"
               required
-              maxLength={3}
               placeholder="010"
               value={attendee.phone1}
               onChange={(e) => onPhoneSegmentChange("phone1", e.target.value, 3, `attendee-${index}-phone2`)}
@@ -139,7 +138,6 @@ export function AttendeeCard({
               type="tel"
               inputMode="numeric"
               required
-              maxLength={4}
               placeholder="0000"
               value={attendee.phone2}
               onKeyDown={(e) => onPhoneBackspace(e, `attendee-${index}-phone1`)}
@@ -152,7 +150,6 @@ export function AttendeeCard({
               type="tel"
               inputMode="numeric"
               required
-              maxLength={4}
               placeholder="0000"
               value={attendee.phone3}
               onKeyDown={(e) => onPhoneBackspace(e, `attendee-${index}-phone2`)}

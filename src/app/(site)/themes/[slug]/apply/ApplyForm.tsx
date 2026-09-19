@@ -77,6 +77,23 @@ function toPayload(a: AttendeeForm): AttendeeInput {
   };
 }
 
+/**
+ * 4+4 쿠폰 칸 중 한 칸에 들어온 값을 두 칸에 나눠 담는다.
+ *
+ * 붙여넣기는 onPaste 에서 잡지만, 앱 안에서 열린 웹뷰처럼 paste 이벤트가 오지 않는
+ * 브라우저에서는 8자가 한 칸에 통째로 들어온다. 그래서 onChange 에서도 4자를 넘는
+ * 값은 나눠 담는다(이 때문에 칸에 maxLength 를 걸지 않는다 — 걸면 브라우저가 4자로
+ * 잘라버려 뒷 4자를 되살릴 수 없다).
+ * 반대로 이미 4자가 찬 칸에 한 글자 더 친 것뿐이면 넘치는 글자를 버린다 —
+ * 타이핑이 옆 칸을 덮어쓰면 안 된다.
+ */
+function spreadCouponParts(prev: string[], half: number, raw: string): string[] {
+  const value = normalizeCouponCode(raw);
+  const typedOver = value.length === 5 && prev[half].length === 4 && value.startsWith(prev[half]);
+  if (value.length > 4 && !typedOver) return [value.slice(0, 4), value.slice(4, 8)];
+  return prev.map((p, i) => (i === half ? value.slice(0, 4) : p));
+}
+
 type FieldError = { field: string; message: string };
 
 /**
@@ -753,13 +770,13 @@ export function ApplyForm({
                         id={half === 0 ? "couponCode" : "couponCode2"}
                         className={`${field} text-center font-mono uppercase tracking-widest`}
                         value={couponParts[half]}
-                        maxLength={4}
                         placeholder="XXXX"
                         onChange={(e) => {
-                          const part = normalizeCouponCode(e.target.value).slice(0, 4);
-                          setCouponParts((prev) => prev.map((p, i) => (i === half ? part : p)));
+                          // maxLength 대신 여기서 자른다 — spreadCouponParts 주석 참고
+                          const next = spreadCouponParts(couponParts, half, e.target.value);
+                          setCouponParts(next);
                           setCouponError(null); // 새로 치는 중이니 이전 오류만 지운다
-                          if (part.length === 4 && half === 0) {
+                          if (next[half].length === 4 && half === 0) {
                             document.getElementById("couponCode2")?.focus();
                           }
                         }}

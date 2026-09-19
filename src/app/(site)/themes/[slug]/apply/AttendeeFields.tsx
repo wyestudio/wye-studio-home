@@ -45,6 +45,23 @@ export function splitPhone(digits: string): string[] {
 }
 
 /**
+ * 한 칸에 들어온 값을 3-4-4 칸에 나눠 담는다.
+ *
+ * 붙여넣기는 onPaste 에서 잡지만, 앱 안에서 열린 웹뷰처럼 paste 이벤트가 오지 않는
+ * 브라우저에서는 번호 전체가 한 칸에 통째로 들어온다. 그래서 onChange 에서도 칸
+ * 길이를 넘는 값은 나눠 담는다(이 때문에 칸에 maxLength 를 걸지 않는다 — 걸면
+ * 브라우저가 잘라버려 나머지 자리를 되살릴 수 없다).
+ * 반대로 이미 꽉 찬 칸에 한 글자 더 친 것뿐이면 넘치는 글자를 버린다 —
+ * 타이핑이 옆 칸을 덮어쓰면 안 된다.
+ */
+function spreadPhoneParts(prev: string[], si: number, raw: string, max: number): string[] {
+  const digits = raw.replace(/[^0-9]/g, "");
+  const typedOver = digits.length === max + 1 && prev[si].length === max && digits.startsWith(prev[si]);
+  if (digits.length > max && !typedOver) return splitPhone(digits);
+  return prev.map((p, i) => (i === si ? digits.slice(0, max) : p));
+}
+
+/**
  * 참여자 한 명의 입력칸.
  *
  * 배치는 이름/닉네임 → 휴대폰/출생연도 → 방탈출 경험/성별 2열.
@@ -77,6 +94,12 @@ export function AttendeeFields({
   onNicknameCheck: () => void;
 }) {
   const phoneInvalid = !!errors.phone || isConflict;
+
+  /** 전화번호 칸 포커스. 첫 칸만 id 규칙이 다르다(오류 안내가 이 id 를 쓴다). */
+  const focusPhoneSegment = (i: number) =>
+    document
+      .getElementById(i === 0 ? `attendee-${index}-phone` : `attendee-${index}-${PHONE_SEGMENTS[i].key}`)
+      ?.focus();
 
   return (
     <div
@@ -147,28 +170,20 @@ export function AttendeeFields({
                   id={si === 0 ? `attendee-${index}-phone` : `attendee-${index}-${seg.key}`}
                   className={`${phoneInvalid ? fieldInvalid : field} text-center`}
                   inputMode="numeric"
-                  maxLength={seg.max}
                   placeholder={seg.placeholder}
                   value={attendee.phoneParts[si] ?? ""}
                   onChange={(e) => {
-                    const digits = e.target.value.replace(/[^0-9]/g, "").slice(0, seg.max);
-                    const next = [...attendee.phoneParts];
-                    next[si] = digits;
+                    // maxLength 대신 여기서 자른다 — spreadPhoneParts 주석 참고
+                    const next = spreadPhoneParts(attendee.phoneParts, si, e.target.value, seg.max);
                     onChange({ phoneParts: next });
-                    // 한 칸을 다 채우면 다음 칸으로 넘어간다
-                    if (digits.length === seg.max && si < PHONE_SEGMENTS.length - 1) {
-                      document.getElementById(`attendee-${index}-${PHONE_SEGMENTS[si + 1].key}`)?.focus();
-                    }
+                    // 아직 덜 찬 칸이 뒤에 있으면 그리로 넘어간다
+                    const target = PHONE_SEGMENTS.findIndex((s, i) => next[i].length < s.max);
+                    if (target > si) focusPhoneSegment(target);
                   }}
                   onKeyDown={(e) => {
                     // 빈 칸에서 지우면 앞 칸으로 돌아간다
                     if (e.key === "Backspace" && e.currentTarget.value === "" && si > 0) {
-                      const prev = si - 1;
-                      document
-                        .getElementById(
-                          prev === 0 ? `attendee-${index}-phone` : `attendee-${index}-${PHONE_SEGMENTS[prev].key}`
-                        )
-                        ?.focus();
+                      focusPhoneSegment(si - 1);
                     }
                   }}
                   onPaste={(e) => {
