@@ -5,11 +5,12 @@ import { SCREEN_SECTION } from "@/components/contents/screenSection";
 
 export const metadata: Metadata = {
   title: "신청내역 조회",
-  // 검색 결과에 올리지 않는다. 홈과 테마 페이지만 색인하기로 했다(2026-09-13).
-  // 이 페이지들이 사이트링크로 딸려 나와 목록이 길어지는데, 정작 검색으로
-  // 찾아 들어올 이유는 없는 화면들이다.
-  // ⚠️ follow 는 살려둔다 — 크롤러가 여기 걸린 테마 링크는 계속 타고 가야 한다.
-  robots: { index: false, follow: true },
+  // ⚠️ 본문(LookupForm)은 클라이언트에서 그려져 서버 HTML 에는 푸터밖에 없다.
+  //    설명을 안 주면 구글이 옛 사이트 설명으로 떨어진다 — 9/13 에 지운
+  //    "로테이션 소개팅 … 베타 오픈. 8/22" 가 이 페이지 설명으로 계속 나갔다.
+  //    결과 페이지(/lookup/result)는 robots.ts 에서 막는다 — 개인정보가 뜬다.
+  description:
+    "우주이스케이프 신청내역 조회. 접수번호와 신청자 전화번호로 신청한 회차와 상태를 확인하세요.",
   openGraph: { title: "우주이스케이프 | 신청내역 조회" },
   twitter: { title: "우주이스케이프 | 신청내역 조회" },
 };

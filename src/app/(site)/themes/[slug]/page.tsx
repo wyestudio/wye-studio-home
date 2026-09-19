@@ -60,18 +60,37 @@ export async function generateMetadata({
   const title = theme.name;
   // 공유 카드 제목은 템플릿을 안 타므로 여기서 직접 브랜드를 붙인다.
   const socialTitle = `${theme.name} | 우주이스케이프`;
-  // 검색 결과와 공유 카드에 같이 쓰인다. 어드민의 '한 줄 소개'(tagline)가
-  // 먼저고, 없으면 시놉시스(description)로 떨어진다.
-  const description =
-    theme.tagline?.trim() ||
-    theme.description?.trim() ||
-    `${theme.name} — 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출`;
+  // 어드민의 '한 줄 소개'(tagline)가 먼저고, 없으면 시놉시스(description)로 떨어진다.
+  const synopsis = theme.tagline?.trim() || theme.description?.trim() || "";
+  const fallback = `${theme.name} — 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출`;
+
+  // 공유 카드(og)는 줄바꿈까지 적은 그대로 내보낸다 — 카카오톡 카드에서는
+  // 선택지 아트웍(`> [YES]  [NO]`)이 살아 있어야 한다.
+  const shareDescription = synopsis || fallback;
+
+  // ⚠️ 검색 결과용은 따로 만든다(2026-09-19). '한 줄 소개'는 실제로는 시놉시스라
+  //    "미남아, 소개팅 받아볼래?" 처럼 극중 대사로 시작한다. 그대로 내보내면
+  //    우리가 팔지 않는 소개팅을 파는 것처럼 읽혀서 앞에 '시놉시스'를 붙인다
+  //    (소개팅·커플매칭은 2026-09-13부터 운영하지 않는다 — layout.tsx 참고).
+  //    선택지 아트웍 줄은 검색에선 잡음이라 빼고, 줄바꿈은 한 칸으로 접는다.
+  //    ⚠️ 화면 문구는 건드리지 않는다. 페이지에는 적은 그대로 나가야 한다.
+  const searchBody = synopsis
+    .split("\n")
+    .filter((line) => !line.trim().startsWith(">"))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const searchDescription = searchBody ? `시놉시스 · ${searchBody}` : fallback;
 
   return {
     title,
-    description,
+    description: searchDescription,
     alternates: { canonical: `${SITE_URL}/themes/${theme.slug}` },
-    openGraph: { title: socialTitle, description, url: `${SITE_URL}/themes/${theme.slug}` },
+    openGraph: {
+      title: socialTitle,
+      description: shareDescription,
+      url: `${SITE_URL}/themes/${theme.slug}`,
+    },
     // 잠긴 테마·목록에서 뺀 테마는 색인하지 않는다. 사이트맵에서 빼는 것만으로는
     // 부족하다 — 어디선가 링크가 걸리면 크롤러가 그 길로 들어온다.
     ...(theme.is_locked || !theme.is_listed

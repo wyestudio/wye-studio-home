@@ -8,6 +8,11 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "컨텐츠",
+  // 검색 결과에 올리지 않는다(2026-09-19). 목록에 실테마가 하나뿐이라 구글이
+  // 긁을 본문이 없어, 잠긴 카드의 "아직 탐사되지 않은 행성입니다" 와 푸터
+  // 사업자등록번호가 사이트링크 설명으로 나갔다. 테마가 늘면 다시 켠다.
+  // ⚠️ follow 는 살려둔다 — 여기 걸린 테마 링크는 크롤러가 계속 타고 가야 한다.
+  robots: { index: false, follow: true },
   openGraph: { title: "우주이스케이프 | 컨텐츠" },
   twitter: { title: "우주이스케이프 | 컨텐츠" },
 };

@@ -5,11 +5,11 @@ import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 
 export const metadata: Metadata = {
   title: "Notice",
-  // 검색 결과에 올리지 않는다. 홈과 테마 페이지만 색인하기로 했다(2026-09-13).
-  // 이 페이지들이 사이트링크로 딸려 나와 목록이 길어지는데, 정작 검색으로
-  // 찾아 들어올 이유는 없는 화면들이다.
-  // ⚠️ follow 는 살려둔다 — 크롤러가 여기 걸린 테마 링크는 계속 타고 가야 한다.
-  robots: { index: false, follow: true },
+  // ⚠️ 본문(NoticeTabs)은 클라이언트에서 그려져 서버 HTML 에는 푸터밖에 없다.
+  //    설명을 안 주면 구글이 긁을 게 없어 옛 사이트 설명으로 떨어진다 — 9/13 에
+  //    지운 "로테이션 소개팅 … 베타 오픈" 이 그 뒤로도 검색에 계속 나갔다.
+  description:
+    "우주이스케이프 공지사항과 자주 묻는 질문. 참여 전 확인할 내용을 모았습니다.",
   openGraph: { title: "우주이스케이프 | Notice" },
   twitter: { title: "우주이스케이프 | Notice" },
 };
