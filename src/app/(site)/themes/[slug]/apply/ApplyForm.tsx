@@ -630,9 +630,9 @@ export function ApplyForm({
         {/* ══ 1. 정보입력 ══ */}
         {step === 0 && (
           <div className="space-y-4 sm:space-y-5">
-            <div className="flex gap-2 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm font-bold text-danger sm:px-5 sm:py-4 sm:text-base">
-              <span className="shrink-0" aria-hidden>⚠️</span>
-              <span>참여 시 신분증 검사가 진행됩니다. 정확한 정보를 입력해주세요.</span>
+            <div className="space-y-1.5 rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-muted sm:px-5 sm:py-4 sm:text-base">
+              <p>참여자 확인을 위해 정확한 정보를 입력해주세요.</p>
+              <p>연령 확인이 필요한 회차는 현장에서 신분증 확인이 진행될 수 있습니다.</p>
             </div>
 
             <div>
