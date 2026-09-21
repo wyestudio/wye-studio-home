@@ -123,6 +123,22 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       {
+        // 소모임 앱 단체 제휴용 짧은 링크. 단체방·운영자에게 DM 으로 보내므로
+        // 전달 방식은 utm_content=dm 에 담고, 매체는 WYE-89 1.1 의 social 을 쓴다
+        // (규칙 밖 값을 쓰면 GA4 가 '미분류' 로 집계한다).
+        source: "/somoim-group.go",
+        destination:
+          "/themes/baotalchul?utm_source=somoim&utm_medium=social&utm_campaign=2609_group_open&utm_content=dm",
+        permanent: false,
+      },
+      {
+        // 오픈카톡 단체 제휴용 짧은 링크.
+        source: "/okt-group.go",
+        destination:
+          "/themes/baotalchul?utm_source=openkakao&utm_medium=social&utm_campaign=2609_group_open&utm_content=dm",
+        permanent: false,
+      },
+      {
         // 틱톡 프로필용 짧은 링크.
         source: "/tiktok.go",
         destination:
