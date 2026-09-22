@@ -47,6 +47,7 @@
 | `supabase/migrations/`, 운영 DB 에 SQL 실행, `main` 브랜치 push(=운영 배포) | `wye-db-release` |
 | `src/lib/attribution*.ts`, `utmLinks.ts`, `shortLinks.ts`, `ga4.ts`, 어드민 유입경로 화면, `next.config.ts` 의 `redirects()` | `wye-marketing` |
 | `public/` 이미지, `theme-assets` 버킷, 공개 화면 문구, 공개 페이지 추가·수정, `src/app/sitemap.ts`·`robots.ts`, `"use client"` 파일이 import 하는 모듈에 감출 값을 적을 때 | `wye-customer-facing` |
+| `scripts/slack-cleanup-alerts.mjs` 실행, 슬랙 알림·테스트 신청 흔적 삭제 | `wye-cleanup` |
 | **`CLAUDE.md`, `.claude/skills/**`, `docs/` 의 규칙 문서를 고친다** | `~/.claude/CLAUDE.md` 의 「규칙·문서를 고칠 때」 여섯 절 |
 
 # 더 볼 곳
