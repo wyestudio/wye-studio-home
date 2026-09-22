@@ -96,9 +96,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, count: 0, message: "기한 넘긴 미입금 건이 없습니다." });
     }
 
-    const webhookUrl = process.env.SLACK_WEBHOOK_URL;
+    // 미입금 알림은 별도 채널로 뺀다. 새신청과 같은 채널로 보내면 15분마다
+    // 같은 건이 다시 올라오면서 새신청 메시지를 밀어내 안 보이게 만든다.
+    // 전용 웹훅이 없으면 기존 채널로 떨어진다 — 환경변수를 넣기 전에 알림이
+    // 통째로 멈추는 것보다 낫다.
+    const webhookUrl = process.env.SLACK_UNPAID_WEBHOOK_URL || process.env.SLACK_WEBHOOK_URL;
     if (!webhookUrl) {
-      console.warn("[cron] SLACK_WEBHOOK_URL 미설정 — 알림을 건너뜁니다.");
+      console.warn("[cron] SLACK_UNPAID_WEBHOOK_URL·SLACK_WEBHOOK_URL 미설정 — 알림을 건너뜁니다.");
       return NextResponse.json({ success: true, count: overdue.length, notified: false });
     }
 
