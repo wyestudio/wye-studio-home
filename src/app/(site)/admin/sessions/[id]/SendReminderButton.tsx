@@ -75,8 +75,8 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
           isPreviewLoading
             ? "발송 대상을 불러오는 중..."
             : preview
-              ? `확정+입금확인된 신청 중 아직 하루 전 안내를 받지 않은 대표 신청자 ${preview.total}명에게 문자가 발송됩니다.`
-              : "이 회차의 확정+입금확인된 신청 중 아직 하루 전 안내를 받지 않은 대표 신청자 전원에게 문자가 발송됩니다."
+              ? `확정+입금확인된 신청 중 아직 하루 전 안내를 받지 않은 참여자 ${preview.total}명(동행자 포함)에게 문자가 발송됩니다.`
+              : "이 회차의 확정+입금확인된 신청 중 아직 하루 전 안내를 받지 않은 참여자 전원(동행자 포함)에게 문자가 발송됩니다."
         }
         cancelLabel="아니요"
         confirmLabel="네, 발송"
