@@ -1,6 +1,9 @@
 -- 코드네임 맞히기 이벤트(/codename) 응모 기록
 --
--- 적용: test (2026-09-19 적용·이력 기록) / 운영 (미적용)
+-- 적용: test (2026-09-19 적용·이력 기록) / 운영 (2026-09-19 적용)
+-- ⚠️ 운영에는 이 파일과 다른 버전으로 기록돼 있다 —
+--    test = 20260919095742 / 운영 = 20260919141116 (둘 다 name 은 codename_event).
+--    내용은 같고 전부 if not exists · or replace 라 다시 밀어도 덮어쓰기만 된다.
 -- 되돌리기:
 --   drop function if exists public.submit_codename(smallint, text, text, text, boolean, boolean, boolean);
 --   drop function if exists public.codename_exists(text, smallint);

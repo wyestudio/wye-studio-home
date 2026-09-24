@@ -11,6 +11,8 @@ import { HINTS } from "./hints";
  * ⚠️ 정답은 브라우저로 내려보내지 않는다. 맞았는지 여부도 응답에 담지 않는다 —
  *    정답을 알려주는 화면이 아니고, 응답만 보면 정답을 맞춰볼 수 있게 된다.
  * ⚠️ 회차는 브라우저가 보낸 값을 쓰지 않고 서버에서 다시 구한다.
+ * ⚠️ 마감(round.closed)은 여기서도 막는다. 화면에서 폼을 치우는 것만으로는
+ *    막은 게 아니다 — 서버 액션은 주소만 알면 브라우저 없이도 호출된다.
  * ⚠️ 중복 판정·연락처 암호화·회차당 한 줄 보장은 전부 DB 함수(submit_codename)에 있다.
  *    여기서 "이미 있나" 를 조회하고 없으면 넣는 식으로 짜면 동시 제출에 두 줄이 생긴다.
  */
@@ -63,6 +65,10 @@ export async function checkExistingCodename(
   const key = `codename:${await getClientIp()}`;
   if (checkRateLimit(key).blocked) return { exists: false, at: null };
 
+  // 마감된 회차는 조회도 받지 않는다. 남의 번호를 넣어 "응모했는지" 를
+  // 확인하는 용도로만 남게 된다.
+  if (currentRound().closed) return { exists: false, at: null };
+
   const phone = (phoneInput ?? "").replace(/\D/g, "");
   if (!PHONE_RE.test(phone)) {
     recordFailure(key);
@@ -98,6 +104,13 @@ export async function submitCodename(input: SubmitInput): Promise<SubmitResult> 
     return { status: "error", message: `요청이 너무 많습니다. ${minutes}분 후 다시 시도해주세요.` };
   }
 
+  // ⚠️ 마감. 화면이 폼을 안 그려도 이 액션은 그대로 호출할 수 있으므로
+  //    여기서 거절해야 실제로 막힌다.
+  const round = currentRound();
+  if (round.closed) {
+    return { status: "error", message: "접수가 마감되었습니다." };
+  }
+
   const nickname = (input.nickname ?? "").trim();
   const codename = (input.codename ?? "").trim().toUpperCase();
   const phone = (input.phone ?? "").replace(/\D/g, "");
@@ -124,7 +137,7 @@ export async function submitCodename(input: SubmitInput): Promise<SubmitResult> 
   try {
     const supabase = createAdminClient();
     const { data, error } = await supabase.rpc("submit_codename", {
-      p_round: currentRound().roundNo,
+      p_round: round.roundNo,
       p_nickname: nickname,
       p_codename: codename,
       p_phone: phone,

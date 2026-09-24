@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createAudio } from "./audio";
 import { checkExistingCodename, revealHint, submitCodename } from "./actions";
-import { CERT_PHRASE, CODENAME_LENGTH, COMMS, HINT_MASKS, type Round } from "./content";
+import {
+  APPLY_URL,
+  CERT_PHRASE,
+  CLOSED,
+  CODENAME_LENGTH,
+  COMMS,
+  HINT_MASKS,
+  type Round,
+} from "./content";
 
 type Phase = "form" | "sealing" | "receipt";
 type FieldId = "nickname" | "codename" | "phone" | "consent";
@@ -92,7 +100,9 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
   const [cardShake, setCardShake] = useState(false);
 
   /* ---------- 관제소 통신(타이핑) ---------- */
-  const [shown, setShown] = useState<string>(COMMS.intro);
+  // 마감이면 관제소 첫 마디부터 다르다. 접수 중인 것처럼 말을 걸면 안 된다.
+  const opening = round.closed ? COMMS.closed : COMMS.intro;
+  const [shown, setShown] = useState<string>(opening);
   const [alert, setAlert] = useState(false);
   const [caret, setCaret] = useState(false);
   const typing = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -131,7 +141,7 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
 
     // 서버가 그린 문장을 그대로 다시 타이핑한다. 이펙트 안에서 바로 setState 하지
     // 않도록 한 틱 미룬다.
-    const introAt = setTimeout(() => say(COMMS.intro), 0);
+    const introAt = setTimeout(() => say(opening), 0);
     const stampAt = setTimeout(() => getAudio().stamp(), reduced.current ? 0 : 430);
     const closeAt = setTimeout(() => closeGate(), reduced.current ? 1100 : 2100);
 
@@ -462,7 +472,9 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
             <p className="lede">
               미남과 미녀의 첫 만남을 기록하던 중 발견된 인물.
               <br />
-              남겨진 단서에서 찾아낸 코드네임을 이곳에 적어주세요.
+              {round.closed
+                ? "이 사건의 접수는 종결되었습니다."
+                : "남겨진 단서에서 찾아낸 코드네임을 이곳에 적어주세요."}
             </p>
           </header>
 
@@ -502,7 +514,21 @@ export function CodenameReport({ round, dday }: { round: Round; dday: number | n
             </p>
           )}
 
-          {phase === "form" && (
+          {round.closed && (
+            <section className="closed-note" aria-live="polite">
+              <span className="closed-badge">{CLOSED.badge}</span>
+              <h2>{CLOSED.title}</h2>
+              <p>{CLOSED.body}</p>
+              <div className="closed-links">
+                <a className="closed-cta primary" href={APPLY_URL}>
+                  신청하러 가기
+                </a>
+              </div>
+              <p className="closed-next">{CLOSED.next}</p>
+            </section>
+          )}
+
+          {!round.closed && phase === "form" && (
             <form onSubmit={onSubmit} noValidate>
               <div className="field">
                 <div className="field-head">

@@ -16,5 +16,6 @@ export const revalidate = 60;
 
 export default function CodenamePage() {
   const round = currentRound();
-  return <CodenameReport round={round} dday={daysLeft(round)} />;
+  // 마감된 회차는 D-day 를 계산하지 않는다 — 남은 날이 없다.
+  return <CodenameReport round={round} dday={round.closed ? null : daysLeft(round)} />;
 }
