@@ -137,7 +137,7 @@ function ActionCell({
 }: {
   app: any;
   appAttendees: any[];
-  session: { id: string; session_type: string };
+  session: { id: string; session_type: string; min_age: number | null };
 }) {
   return (
     <td className="py-3 px-4 text-sm">
@@ -146,7 +146,7 @@ function ActionCell({
         sessionId={session.id}
         status={app.status}
         paymentStatus={app.payment_status}
-        isDatingSession={isDatingTheme(session.session_type)}
+        minAge={session.min_age ?? 16}
         depositorName={app.depositor_name}
         notes={app.notes}
         attendees={appAttendees.map((a: any) => ({

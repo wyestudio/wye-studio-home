@@ -74,7 +74,7 @@ export function ApplicationActionMenu({
   sessionId,
   status,
   paymentStatus,
-  isDatingSession,
+  minAge,
   depositorName,
   notes,
   attendees,
@@ -83,7 +83,7 @@ export function ApplicationActionMenu({
   sessionId: string;
   status: string;
   paymentStatus: string;
-  isDatingSession: boolean;
+  minAge: number;
   depositorName: string;
   notes: string | null;
   attendees: EditableAttendee[];
@@ -216,7 +216,7 @@ export function ApplicationActionMenu({
         onClose={() => setEditOpen(false)}
         applicationId={applicationId}
         sessionId={sessionId}
-        isDatingSession={isDatingSession}
+        minAge={minAge}
         depositorName={depositorName}
         notes={notes}
         attendees={attendees}

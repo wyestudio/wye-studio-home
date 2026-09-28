@@ -18,11 +18,7 @@ import { sendRefundNeededSlackAlertV2, sendBulkRefundNeededSlackAlertV2 } from "
 import { formatSessionDateTime } from "@/lib/format";
 import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
 import { isDatingTheme } from "@/lib/theme";
-import {
-  isEligibleBirthYear,
-  eligibleBirthYearRangeLabel,
-  isEligibleBirthYearForMinAge,
-} from "@/lib/eligibility";
+import { isEligibleBirthYearForMinAge } from "@/lib/eligibility";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { isValidKoreanName, isValidNickname, isValidExperienceRange, type ExperienceRange } from "@/lib/validation";
 import type { Application, Gender } from "@/types/domain";
@@ -891,7 +887,8 @@ export async function adminUpdateApplication(
     return { error: "세션 정보를 찾을 수 없습니다." };
   }
 
-  const isDatingSession = isDatingTheme(session.session_type);
+  // 새 구조 회차는 min_age 가 항상 채워져 있다. 옛 회차(null)만 만 16세로 본다.
+  const minAge = (session.min_age as number | null) ?? 16;
 
   const trimmedDepositorName = depositorName.trim();
   if (!trimmedDepositorName || !isValidKoreanName(trimmedDepositorName)) {
@@ -912,8 +909,10 @@ export async function adminUpdateApplication(
     if (!isValidPhoneDigits(phoneDigits(attendee.phone))) {
       return { error: "올바른 휴대폰 번호 형식이 아니에요." };
     }
-    if (!isEligibleBirthYear(attendee.birthYear, isDatingSession)) {
-      return { error: `참여자 출생년도는 ${eligibleBirthYearRangeLabel(isDatingSession)}만 가능합니다.` };
+    // 수동 등록과 같은 기준 — 회차의 min_age 다. 최종 판정은
+    // admin_update_application() 안의 is_eligible_birth_year() 가 한다.
+    if (!isEligibleBirthYearForMinAge(attendee.birthYear, minAge)) {
+      return { error: `이 회차는 만 ${minAge}세 이상만 참여할 수 있습니다.` };
     }
     if (!attendee.gender) {
       return { error: "모든 참여자의 성별을 선택해주세요." };

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { getEligibleBirthYearRange } from "@/lib/eligibility";
+import { maxBirthYearForMinAge } from "@/lib/eligibility";
 import type { ExperienceRange } from "@/lib/validation";
 import { AttendeeFormFields, attendeeInputClassName, type AttendeeFormValue } from "./AttendeeFormFields";
 import { adminUpdateApplication, type EditAttendeeInput } from "./actions";
@@ -38,7 +38,7 @@ export function EditApplicationDialog({
   onClose,
   applicationId,
   sessionId,
-  isDatingSession,
+  minAge,
   depositorName: initialDepositorName,
   notes: initialNotes,
   attendees: initialAttendees,
@@ -48,7 +48,7 @@ export function EditApplicationDialog({
   onClose: () => void;
   applicationId: string;
   sessionId: string;
-  isDatingSession: boolean;
+  minAge: number;
   depositorName: string;
   notes: string | null;
   attendees: EditableAttendee[];
@@ -62,10 +62,12 @@ export function EditApplicationDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { min: birthYearMin, max: birthYearMax } = getEligibleBirthYearRange(isDatingSession);
-  const birthYearOptions = Array.from({ length: birthYearMax - birthYearMin + 1 }, (_, i) => birthYearMax - i).map(
-    (y) => ({ value: String(y), label: `${y}년생` })
-  );
+  // 수동 등록·고객 신청과 같은 기준 — 회차의 min_age 로 매번 계산한다.
+  const birthYearMax = maxBirthYearForMinAge(minAge);
+  const birthYearOptions = Array.from({ length: 70 }, (_, i) => birthYearMax - i).map((y) => ({
+    value: String(y),
+    label: `${y}년생`,
+  }));
 
   function updateAttendee(index: number, patch: Partial<AttendeeFormValue>) {
     setAttendees((prev) => prev.map((a, i) => (i === index ? { ...a, ...patch } : a)));
