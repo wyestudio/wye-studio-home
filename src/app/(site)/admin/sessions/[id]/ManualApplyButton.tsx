@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { getEligibleBirthYearRange } from "@/lib/eligibility";
+import { maxBirthYearForMinAge } from "@/lib/eligibility";
 import { AttendeeFormFields, attendeeInputClassName, type AttendeeFormValue } from "./AttendeeFormFields";
 import { adminManualApply, type ManualAttendeeInput } from "./actions";
 
@@ -12,7 +12,15 @@ function emptyAttendeeRow(): AttendeeFormValue {
   return { name: "", phone: "", birthYear: "", nickname: "", gender: "", experienceRange: "" };
 }
 
-export function ManualApplyButton({ sessionId, isDatingSession }: { sessionId: string; isDatingSession: boolean }) {
+export function ManualApplyButton({
+  sessionId,
+  isDatingSession,
+  minAge,
+}: {
+  sessionId: string;
+  isDatingSession: boolean;
+  minAge: number;
+}) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +31,13 @@ export function ManualApplyButton({ sessionId, isDatingSession }: { sessionId: s
   const [notes, setNotes] = useState(DEFAULT_MANUAL_NOTE);
   const [attendees, setAttendees] = useState<AttendeeFormValue[]>([emptyAttendeeRow()]);
 
-  const { min: birthYearMin, max: birthYearMax } = getEligibleBirthYearRange(isDatingSession);
-  const birthYearOptions = Array.from({ length: birthYearMax - birthYearMin + 1 }, (_, i) => birthYearMax - i).map(
-    (y) => ({ value: String(y), label: `${y}년생` })
-  );
+  // 고객 신청 화면과 같은 기준 — 회차의 min_age 로 매번 계산한다.
+  // 연도를 상수로 박으면 해가 바뀔 때 사람이 고쳐야 한다.
+  const birthYearMax = maxBirthYearForMinAge(minAge);
+  const birthYearOptions = Array.from({ length: 70 }, (_, i) => birthYearMax - i).map((y) => ({
+    value: String(y),
+    label: `${y}년생`,
+  }));
 
   function resetForm() {
     setDepositorName("");

@@ -18,7 +18,11 @@ import { sendRefundNeededSlackAlertV2, sendBulkRefundNeededSlackAlertV2 } from "
 import { formatSessionDateTime } from "@/lib/format";
 import { sendSessionReminders, getSessionReminderPreview, type ReminderPreview } from "@/lib/reminderSms";
 import { isDatingTheme } from "@/lib/theme";
-import { isEligibleBirthYear, eligibleBirthYearRangeLabel } from "@/lib/eligibility";
+import {
+  isEligibleBirthYear,
+  eligibleBirthYearRangeLabel,
+  isEligibleBirthYearForMinAge,
+} from "@/lib/eligibility";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { isValidKoreanName, isValidNickname, isValidExperienceRange, type ExperienceRange } from "@/lib/validation";
 import type { Application, Gender } from "@/types/domain";
@@ -698,11 +702,19 @@ export type ManualAttendeeInput = {
 
 // 어드민 수동 등록 — 유선/현장 등으로 이미 참여 의사(+입금)를 확인한 사람을
 // 신청확인(문자1)/입금확인(문자6, 대기 전환 시) 문자 없이 등록하고 싶을 때 사용.
-// submit_application()은 anon/authenticated에만 execute 권한이 있어(service_role
+// submit_application_v3()은 anon/authenticated에만 execute 권한이 있어(service_role
 // 없음) 일반 클라이언트로 호출하고, "입금 확인 완료로 등록"을 고르면 그 뒤에
 // service_role로 payment_status만 직접 confirmed로 바꾼다(이 경로엔 SMS 발송 코드가
 // 없으므로 자연히 문자가 나가지 않는다). Slack 신규 신청 알림도 등록자 본인(어드민)이
 // 이미 알고 있는 내용이라 의도적으로 생략한다.
+//
+// ⚠️ 고객 신청과 **같은 함수**를 부른다 (2026-09-28). 예전엔 구 submit_application()을
+//    불렀는데, 그 함수는 배타 체크가 sessions.content_group 기준이라 새 구조의 회차
+//    (content_group 이 전부 null)에서는 `null = null` 이 참이 되지 않아 **같은 테마
+//    재참여가 전혀 걸리지 않았다.** 연령도 옛 출생년도 범위를 쓰고, headcount·
+//    unit_price_krw·amount_krw 를 아예 넣지 않아 금액이 NULL 인 신청이 만들어졌다.
+//    규칙을 두 벌로 두면 반드시 갈라지므로 판정은 v3 한 곳에만 둔다.
+//    쿠폰은 넘기지 않는다 — 어드민 수동 등록에는 쿠폰 입력 칸이 없다.
 export async function adminManualApply(
   sessionId: string,
   depositorName: string,
@@ -727,6 +739,8 @@ export async function adminManualApply(
   }
 
   const isDatingSession = isDatingTheme(session.session_type);
+  // 새 구조 회차는 min_age 가 항상 채워져 있다. 옛 회차(null)만 만 16세로 본다.
+  const minAge = (session.min_age as number | null) ?? 16;
 
   const trimmedDepositorName = depositorName.trim();
   if (!trimmedDepositorName || !isValidKoreanName(trimmedDepositorName)) {
@@ -750,8 +764,10 @@ export async function adminManualApply(
     if (!isValidPhoneDigits(phoneDigits(attendee.phone))) {
       return { error: "올바른 휴대폰 번호 형식이 아니에요." };
     }
-    if (!isEligibleBirthYear(attendee.birthYear, isDatingSession)) {
-      return { error: `참여자 출생년도는 ${eligibleBirthYearRangeLabel(isDatingSession)}만 가능합니다.` };
+    // 고객 신청과 같은 기준 — 회차의 min_age 다. 최종 판정은 v3 안의
+    // is_eligible_birth_year() 가 하고, 여기서는 먼저 걸러 안내만 한다.
+    if (!isEligibleBirthYearForMinAge(attendee.birthYear, minAge)) {
+      return { error: `이 회차는 만 ${minAge}세 이상만 참여할 수 있습니다.` };
     }
     if (!attendee.gender) {
       return { error: "모든 참여자의 성별을 선택해주세요." };
@@ -774,29 +790,31 @@ export async function adminManualApply(
   }
 
   const publicClient = await createClient();
-  const { data, error } = await publicClient
-    .rpc("submit_application", {
-      p_session_id: sessionId,
-      p_depositor_name: trimmedDepositorName,
-      p_consent_required: true,
-      p_consent_optional: false,
-      p_attendees: attendees.map((a) => ({
-        name: a.name.trim(),
-        phone: a.phone.trim(),
-        birth_year: a.birthYear,
-        nickname: a.nickname,
-        gender: a.gender,
-        experience_range: a.experienceRange,
-      })),
-      p_notes: notes?.trim() || null,
-    })
-    .single();
+  const { data, error } = await publicClient.rpc("submit_application_v3", {
+    p_session_id: sessionId,
+    p_depositor_name: trimmedDepositorName,
+    p_consent_required: true,
+    p_consent_optional: false,
+    p_attendees: attendees.map((a) => ({
+      name: a.name.trim(),
+      phone: a.phone.trim(),
+      birth_year: a.birthYear,
+      nickname: a.nickname,
+      gender: a.gender,
+      experience_range: a.experienceRange,
+    })),
+    p_notes: notes?.trim() || null,
+  });
 
   if (error) {
     return { error: error.message };
   }
 
-  const application = data as Application;
+  // v3 는 composite 행이 아니라 jsonb 를 돌려준다.
+  const application = data as Pick<
+    Application,
+    "id" | "confirmation_code" | "status"
+  >;
 
   if (markPaid) {
     const { error: updateError } = await adminClient

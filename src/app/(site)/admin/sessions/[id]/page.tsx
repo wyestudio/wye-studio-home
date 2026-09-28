@@ -303,7 +303,11 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                 label={formatDateTimeFull(session.start_at)}
                 size="md"
               />
-              <ManualApplyButton sessionId={session.id} isDatingSession={isDatingTheme(session.session_type)} />
+              <ManualApplyButton
+                sessionId={session.id}
+                isDatingSession={isDatingTheme(session.session_type)}
+                minAge={session.min_age ?? 16}
+              />
               <SendReminderButton sessionId={session.id} />
               <DeactivateSessionButton sessionId={session.id} />
             </div>
