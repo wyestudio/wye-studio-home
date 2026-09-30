@@ -26,7 +26,7 @@
 | 문서 | 내용 |
 |---|---|
 | [01-current-state-infrastructure.md](./01-current-state-infrastructure.md) | GitHub / Vercel / Supabase / 도메인 / 외부 서비스 / 환경변수 |
-| [02-current-state-database.md](./02-current-state-database.md) | 운영 DB 실측 구조 — 테이블·뷰·함수·권한·트리거·실데이터 |
+| [02-current-state-database.md](./02-current-state-database.md) | 운영 DB 구조 — 테이블·뷰·함수·권한·트리거·실데이터 (**2026-09-08 스냅샷**, 이후 갱신 안 됨) |
 | [03-current-state-application.md](./03-current-state-application.md) | 라우팅·화면·서버액션·관리자 기능 인벤토리 |
 | [04-drift-and-risks.md](./04-drift-and-risks.md) | 문서-코드-DB 불일치 + 보안·운영 리스크 (증거 포함) |
 | [05-redesign-gap-analysis.md](./05-redesign-gap-analysis.md) | 요구 변경사항 6건별 갭 분석 + 재설계 전 결정해야 할 항목 |

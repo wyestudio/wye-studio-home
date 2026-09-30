@@ -60,6 +60,6 @@
 | 스택 선택 이유, 보안 설계 | `docs/11-stack-and-security.md` |
 | 데이터 모델, 화면·라우팅 구조 | `docs/12-data-model-and-screens.md` |
 | 미구현 항목, 앞으로 할 일, 설계 변경 이력 | `docs/13-backlog.md` |
-| 운영 DB 실측 현황 | `docs/02-current-state-database.md` |
+| 운영 DB 구조 (**2026-09-08 스냅샷** — 현재와 다름, 최신은 라이브 조회) | `docs/02-current-state-database.md` |
 | 재설계 결정 기록 | `docs/06-decisions.md` |
 | 전체 문서 목록 | `docs/00-INDEX.md` |
