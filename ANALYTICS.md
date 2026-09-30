@@ -5,8 +5,8 @@
 > ⚠️ **2026-09-13에 고친 큰 구멍 두 개** — 같은 실수를 반복하지 않으려면 먼저 읽을 것.
 >
 > **(1) 테마 구조로 넘어오며 신청 퍼널 추적이 끊겨 있었다.**
-> `apply_start`/`apply_complete` 를 쏘는 코드가 **옛 신청폼**(`src/components/apply/ApplyForm.tsx`)에만
-> 있었고, 신규 폼(`src/app/(site)/themes/[slug]/apply/ApplyForm.tsx`)에는 없었다.
+> `apply_start`/`apply_complete` 를 쏘는 코드가 **옛 신청폼**(`src/components/apply/ApplyForm.tsx`,
+> 2026-09-30 삭제됨)에만 있었고, 신규 폼(`src/app/(site)/themes/[slug]/apply/ApplyForm.tsx`)에는 없었다.
 > GA4 기준 최근 7일 `/themes/baotalchul/apply` 조회 64회에 `apply_start` 는 **1건**이었다.
 > Slack 알림이 레거시 폼에만 붙어 있어 누락됐던 것과 **같은 종류의 구멍**이다 —
 > 화면을 새로 만들 때는 그 화면이 쏘던 이벤트·알림을 반드시 같이 옮겨야 한다.
@@ -35,20 +35,15 @@
 | `신청 제출단계` | `apply_step_submit` | 신청 폼 **3단계(제출·입금정보)에 처음 닿을 때**. 위와 같은 규칙 | `session_id`, `theme_label` |
 | `신청 완료` | `apply_complete` | 신청 서버 호출이 **성공**했을 때만 발생. 전화번호 중복·출생연도 범위 밖·정원 마감 등으로 서버가 거부하면 "신청 제출" 버튼을 눌러도 **찍히지 않음** | `session_id`, `theme_label`, `confirmation_code`, `birth_year`, `gender`(아래 참고) |
 
-**신청 이벤트 네 개를 쏘는 곳은 두 군데다** — 신규 폼이 실사용이고, 옛 폼은 옛 회차용으로 남아 있다.
+**신청 이벤트를 쏘는 곳은 `src/app/(site)/themes/[slug]/apply/ApplyForm.tsx` 한 곳이다.**
+(옛 폼 `src/components/apply/ApplyForm.tsx` 와 `/sessions/[slug]/apply` 라우트는 2026-09-30 에 삭제됐다.)
 
-| 폼 | 파일 | 쓰이는 주소 |
-|---|---|---|
-| **신규 (실사용)** | `src/app/(site)/themes/[slug]/apply/ApplyForm.tsx` | `/themes/[slug]/apply` |
-| 옛 (휴면) | `src/components/apply/ApplyForm.tsx` | `/sessions/[slug]/apply` — **아직 살아 있다.** 회차 상세 CTA·SMS 재신청 링크로 들어올 수 있어서 이벤트를 양쪽에 다 넣는다 (2026-09-22 확인: `next.config.ts` 의 리다이렉트는 `0829-meeting`·`0829-dating` 두 개뿐이고, 나머지 slug 는 옛 폼을 그대로 그린다) |
-
-⚠️ 신규 폼은 **dataLayer 이벤트명·키를 옛 폼과 똑같이** 쓴다(`신청 시작`/`신청 완료`, `sessionId`/`themeLabel`/…).
-GTM 트리거(`CE - 신청 시작`)와 변수(`DLV - sessionId` 등)가 그 이름에 묶여 있어서, 이름을 바꾸면
-**GTM 도 같이 고쳐야** 한다. 신규 폼에서 `themeLabel` 에 넣는 값은 테마명(예: `바-ㅇ탈출`)이다.
+⚠️ dataLayer 이벤트명·키를 바꾸면 **GTM 도 같이 고쳐야** 한다 — 트리거(`CE - 신청 시작` 등)와
+변수(`DLV - sessionId` 등)가 그 이름에 묶여 있다. `themeLabel` 에 넣는 값은 테마명(예: `바-ㅇ탈출`)이다.
 
 `apply_complete`의 `birth_year`/`gender`는 **대표 신청자(그룹의 0번 인덱스, `attendees[0]`)** 값만 보낸다. 비소개팅 그룹 신청은 동행자마다 출생년도가 다를 수 있어 대표자 값을 근사치로 쓰기로 결정함(2026-08-12, 사용자 확인 후 진행). 소개팅은 항상 1인 신청이라 정확히 일치. 비소개팅은 `gender` 자체를 안 받는 상품이라 이 경우 `gender`는 `null`.
 
-코드상 호출부: `pushDataLayerEvent("신청 시작", { sessionId, themeLabel })` / `pushDataLayerEvent("신청 완료", { sessionId, themeLabel, confirmationCode, birthYear, gender })` — 신규 폼과 옛 폼 양쪽에 있다(위 표 참고).
+코드상 호출부: `pushDataLayerEvent("신청 시작", { sessionId, themeLabel })` / `pushDataLayerEvent("신청 완료", { sessionId, themeLabel, confirmationCode, birthYear, gender })`. 단계 이벤트 이름은 `src/lib/analytics.ts` 의 `APPLY_STEP_EVENT` 에 있다.
 
 ## GTM 구성 요소
 

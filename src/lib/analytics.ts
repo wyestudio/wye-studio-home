@@ -21,11 +21,8 @@ export function pushDataLayerEvent(
  *   건지** 가를 수 없었다. 세 단계가 전부 같은 주소(`/themes/[slug]/apply`)라
  *   경로로도 못 가른다.
  *
- * ⚠️ 매개변수는 기존 것(`sessionId`/`themeLabel`)만 쓴다 — GTM 에 데이터 영역
- *    변수를 새로 만들지 않아도 되도록. 트리거와 태그는 새로 만들어야 한다
- *    (ANALYTICS.md 의 체크리스트).
- * ⚠️ **신청 폼이 두 개다**(신규 `/themes/…`, 옛 `/sessions/…`). 이름을 여기 모아
- *    두는 이유다 — 한쪽만 고치면 집계가 반쪽이 된다.
+ * ⚠️ 이름을 바꾸면 GTM 트리거(`CE - 신청 약관동의`·`CE - 신청 제출단계`)도 같이
+ *    바꿔야 한다. 한 글자만 달라도 에러 없이 안 잡힌다 — ANALYTICS.md 참고.
  */
 export const APPLY_STEP_EVENT: Record<number, string> = {
   1: "신청 약관동의",
