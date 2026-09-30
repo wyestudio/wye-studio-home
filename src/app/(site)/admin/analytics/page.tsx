@@ -557,10 +557,12 @@ export default function AnalyticsDashboard() {
                 </p>
               ) : (
                 <p className="mt-1 text-xs text-amber-400/80">
-                  신청 폼 안의 <strong>2·3단계는 아직 안 잡힙니다.</strong> 코드는 이벤트를
-                  보내지만 GTM 에 트리거·태그를 추가해야 GA4 까지 갑니다 — 절차는 저장소의{" "}
-                  <code>ANALYTICS.md</code> 에 적어뒀습니다. 게시한 뒤 하루 정도 지나면 이 자리에
-                  두 칸이 생깁니다.
+                  신청 폼 안의 <strong>2·3단계가 아직 안 보입니다.</strong> 이 두 칸만 GA4{" "}
+                  <strong>이벤트</strong>로 세는데(세 화면이 같은 주소라 경로로 못 가릅니다),
+                  이유는 둘 중 하나입니다 — <strong>①</strong> 코드·GTM 을 반영한 지 얼마 안 돼
+                  아직 데이터가 안 쌓였거나(하루 정도 걸립니다), <strong>②</strong> GTM 에
+                  트리거·태그가 빠졌거나. 확인 절차는 저장소의 <code>ANALYTICS.md</code> 에
+                  있습니다.
                 </p>
               )}
             </div>
