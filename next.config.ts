@@ -45,6 +45,20 @@ const nextConfig: NextConfig = {
         permanent: true,
       },
       {
+        // 옛 신청 페이지(`/sessions/[slug]/apply`)는 2026-09-30 에 지웠다.
+        // 두 회차 모두 closed 라 화면이 "마감되었습니다"만 띄우고 있었고, 그 안에서
+        // 부르던 구 submit_application 계열은 anon 권한을 이미 회수했다.
+        // 주소는 위 두 줄과 같은 이유로 살려 둔다 — 이미 SNS·문자에 나간 URL 이다.
+        source: "/sessions/0829-meeting/apply",
+        destination: "/themes/baotalchul",
+        permanent: true,
+      },
+      {
+        source: "/sessions/0829-dating/apply",
+        destination: "/themes/baotalchul",
+        permanent: true,
+      },
+      {
         // 후기 페이백 안내 페이지용 짧은 링크.
         source: "/review.go",
         destination: "/review-guide",

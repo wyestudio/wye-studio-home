@@ -1,6 +1,6 @@
 import "server-only";
 import type { Application, Session, ApplicationAttendee } from "@/types/domain";
-import type { AttendeeInput } from "@/app/(site)/sessions/[slug]/apply/actions";
+import type { AttendeeInput } from "@/types/domain";
 import { formatKrw, formatDateTimeDotted } from "@/lib/format";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { getSessionStats } from "@/lib/sessions";

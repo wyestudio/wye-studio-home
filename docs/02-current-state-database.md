@@ -200,26 +200,23 @@
 `headcount`·`amount_krw` 를 넣지 않는다. 즉 **REST 를 직접 때리면 현행 규칙을 우회한
 신청을 만들 수 있고, 그 건은 금액이 NULL 로 남는다.**
 
-### ⚠️ 그냥 지우면 안 된다 — 아직 부르는 코드가 있다
+### 부르는 코드는 이제 없다
 
-| 부르는 곳 | 함수 |
-|---|---|
-| `src/app/(site)/sessions/[slug]/apply/actions.ts:214` | `submit_application` (v1) |
-| `src/app/(site)/sessions/[slug]/apply/actions.ts:47` | `check_active_applications` (v1) |
-
-이건 **휴면 고객 경로**다(현행은 `/themes/[slug]/apply`). 라우트 자체는 빌드에 남아 있지만
-`sessions.slug` 가 있는 회차가 **프리오픈 2건뿐이고 둘 다 `closed`** 라 실제로는 닿지 않는다.
-
-순서는 이렇게 잡았고, 지금 2번까지 왔다:
+순서는 이렇게 잡았고, 지금 2번까지 끝났다:
 
 1. ~~권한 회수~~ **완료 (2026-09-30)** — 되돌릴 수 있는 조치부터
-2. `/sessions/[slug]` 계열 휴면 라우트 4개 파일 정리 ← **다음 차례**
-3. 함수 삭제는 그 뒤에 (2026-08-14 에 이 계열 함수를 잘못 지워 서비스가 마비된 적이 있다.
-   `wye-db-release` 의 증거 기반 절차를 따를 것)
+2. ~~휴면 라우트 `/sessions/[slug]` 정리~~ **완료 (2026-09-30)**
+   — 라우트 4개 파일과 옛 폼(`src/components/apply/ApplyForm.tsx`)을 지웠다.
+   이제 **옛 함수를 부르는 코드가 저장소에 하나도 없다.**
+   주소는 살려 뒀다(`next.config.ts` 에서 `/sessions/0829-*`·`/sessions/0829-*/apply` →
+   `/themes/baotalchul` 영구 리다이렉트) — 이미 SNS·문자에 나간 URL 이라서다.
+3. 함수 삭제 ← **다음 차례**. 2026-08-14 에 이 계열 함수를 잘못 지워 서비스가 마비된
+   적이 있으니 `wye-db-release` 의 증거 기반 절차를 따를 것. 급하지 않다 — 권한이
+   이미 회수돼 있어 밖에서는 부를 수 없다
 
-회수해도 프리오픈 회차 신청 경험은 달라지지 않는다 — 두 회차 모두 `closed` 라
-옛 화면이 "정원이 다 차서 마감되었습니다"만 그리고 **폼을 렌더하지 않는다**(운영 확인).
-프리오픈 참가자의 조회·취소도 `lookup_application_v4`·`cancel_application` 이 맡아 영향 없다.
+프리오픈 회차 신청 경험은 달라지지 않았다 — 두 회차 모두 `closed` 라 옛 화면도
+"정원이 다 차서 마감되었습니다"만 그리고 **폼을 렌더하지 않았다**(삭제 전 운영 확인).
+프리오픈 참가자의 조회·취소는 `lookup_application_v4`·`cancel_application` 이 맡아 영향 없다.
 
 ---
 

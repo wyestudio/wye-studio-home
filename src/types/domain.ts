@@ -107,6 +107,25 @@ export type ApplicationAttendee = {
 export type ExperienceRange = "0" | "1-50" | "50-100" | "100-200" | "200-500" | "500+" | "200+";
 
 /**
+ * 신청 폼이 넘기는 참여자 한 명.
+ *
+ * 원래 `/sessions/[slug]/apply/actions.ts` 에 있었는데, 그 휴면 라우트를 2026-09-30 에
+ * 지우면서 여기로 옮겼다. 문자·슬랙 본문 조립(`lib/sms.ts`·`lib/slack.ts`)과 완료 화면이
+ * 아직 이 모양을 쓴다.
+ *
+ * ⚠️ 현행 신청 경로(`/themes/[slug]/apply/actions.ts`)의 같은 이름 타입과 **모양이 다르다** —
+ *    이쪽은 camelCase, 저쪽은 DB 로 그대로 넘기는 snake_case 다. 합치지 말 것.
+ */
+export type AttendeeInput = {
+  name: string;
+  phone: string;
+  birthYear: number;
+  nickname: string | null;
+  gender: Gender | null;
+  experienceRange: ExperienceRange | null;
+};
+
+/**
  * 참여내역 조회(lookup_application_v2 RPC) 결과.
  *
  * 이 한 타입이 신·구 신청을 모두 담는다. DB 함수가 coalesce 로 양쪽에서
