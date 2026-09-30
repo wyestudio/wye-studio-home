@@ -1,263 +1,272 @@
-# 02. 운영 DB 현 상태 (2026-09-08 실측)
-
-> ⚠️ **2026-09-08 스냅샷이고 그 뒤로 갱신되지 않았다. 지금 운영과 많이 다르다.**
-> 2026-09-30 대조: 표 12→38, 뷰 5→11, 함수 16→47. 신청 핵심 함수는
-> `submit_application` → **`submit_application_v3`**, 사전확인은 **`check_active_applications_v2`**.
-> 쿠폰·정산·유입경로·테마 구조는 여기 아예 없다. 5장의 "`encrypt_pii` 등이 PUBLIC" 경고는
-> **이미 고쳐졌다**(전부 `postgres`/`service_role`, anon 실행 불가).
-> **지금 상태가 필요하면 이 파일 말고 라이브 DB 를 직접 조회할 것.**
+# 02. 운영 DB 현 상태 (2026-09-30 실측)
 
 대상: Supabase 운영 프로젝트 `jilghhbbtjyybzbgwdhq` / schema `public`.
-**아래는 2026-09-08 당시** 스키마 파일이 아니라 라이브 DB를 직접 조회한 결과다.
+**모든 수치는 스키마 파일이 아니라 라이브 DB 를 직접 조회한 결과다.**
+
+> 이 문서는 **스냅샷**이다. 바뀌면 낡는다. 쓰기 전에 날짜를 보고, 판단이 걸린 일이면
+> 라이브에 직접 물어볼 것. 권한은 `information_schema.role_table_grants` 말고
+> **`has_table_privilege()` / `has_function_privilege()`** 로 본다 — 전자는 내가 볼 수
+> 있는 ACL 을 전부 나열해서 "anon 에 열려 있다"로 오독하기 쉽다(2026-09-30 에 실제로 겪음).
+
+**한눈에**: 표 38 · 뷰 11 · 함수 47 · 기록된 마이그레이션 109(로컬 파일 69)
+회차 149 · 신청 73 · 참여자 102 · 활성 테마 1
 
 ---
 
-## 1. 테이블 전경
+## 1. 표 전경 (38개)
 
-| 테이블 | 행 수 | RLS | 성격 |
+권한은 `has_table_privilege` 기준. `S`=select `I`=insert `U`=update `D`=delete.
+**RLS 가 켜져 있고 정책이 0개면 grant 가 있어도 아무 행도 안 보인다** — 아래 대부분이 그렇다.
+
+### 예약 핵심
+
+| 표 | 행 | anon | auth | service_role | RLS/정책 |
+|---|---:|---|---|---|---|
+| `sessions` | 149 | S | S | SIUD | on / 1 |
+| `applications` | 73 | – | – | SU | on / 0 |
+| `application_attendees` | 102 | – | – | – | on / 0 |
+| `themes` | 2 | S | S | SIUD | on / 1 |
+| `theme_price_tiers` | 5 | S | S | SIUD | on / 1 |
+| `theme_categories` | 1 | S | S | SIUD | on / 1 |
+| `theme_schedules` | 1 | – | – | SIUD | on / 0 |
+| `venues` | 2 | – | – | SIUD | on / 0 |
+| `session_venues` | 2 | – | – | S | on / 0 |
+| `reparticipation_allowances` | 1 | – | – | – | on / 0 |
+
+`application_attendees` 와 `reparticipation_allowances` 는 **service_role 에도 grant 가 없다.**
+접근은 전부 `security definer` 함수를 통해서만 이뤄진다.
+
+### 쿠폰·정산
+
+| 표 | 행 | anon | auth | service_role | RLS/정책 |
+|---|---:|---|---|---|---|
+| `coupons` | 880 | – | – | SIUD | on / 0 |
+| `coupon_campaigns` | 4 | – | – | SIUD | on / 0 |
+| `application_coupons` | 4 | – | – | S | on / 0 |
+| `settlement_snapshots` | 0 | – | – | SI | on / 0 |
+| `bank_transactions` | 0 | – | – | SIUD | on / 0 |
+| `point_ledger` | 0 | – | – | SIUD | on / 1 |
+
+### 운영·콘텐츠
+
+| 표 | 행 | anon | auth | service_role | RLS/정책 |
+|---|---:|---|---|---|---|
+| `audit_logs` | 55 | – | – | SI | on / 0 |
+| `admin_users` | 0 | – | – | SIUD | on / 0 |
+| `utm_links` | 23 | – | – | SIUD | on / 0 |
+| `notices` | 6 | S | S | SIUD | on / 1 |
+| `faqs` | 7 | S | S | SIUD | on / 1 |
+| `sms_templates` | 7 | – | – | SU | on / 0 |
+| `slack_templates` | 4 | – | – | SU | on / 0 |
+| `site_settings` | 0 | – | – | SIUD | on / 0 |
+| `marketing_sms_optouts` | 0 | – | – | – | on / 0 |
+| `codename_submissions` | 87 | – | – | SIUD | on / 0 |
+
+### 신청 접수 (예약 외)
+
+| 표 | 행 | service_role | RLS/정책 |
 |---|---:|---|---|
-| `sessions` | 2 | on (공개 select 정책 1개) | 회차 |
-| `session_venues` | 2 | on (정책 0, grant 0) | 장소 — 완전 비공개 |
-| `applications` | 58 | on (정책 0) | 신청 건 |
-| `application_attendees` | 67 | on (정책 0) | 참여자 개인 |
-| `sms_templates` | 7 | on (정책 0, `service_role`만 grant) | **문자 템플릿 (DB 기반)** |
-| `sponsorship_group_applications` | 7 | on (정책 0) | 협찬 신청 (그룹) |
-| `sponsorship_dating_applications` | 2 | on (정책 0) | 협찬 신청 (소개팅) |
-| `review_payback_applications` | 2 | on (정책 0) | 후기 페이백 신청 |
-| `profiles` | 0 | on (본인 select/insert/update) | 휴면 로그인 |
-| `kakao_links` | 0 | on (본인 select) | 휴면 로그인 |
-| `naver_links` | 0 | on (본인 select) | 휴면 로그인 |
-| `_backup_applications_20260815` | **18** | on (정책 0) | **정리 안 된 백업 테이블** |
+| `sponsorship_group_applications` | 7 | – | on / 0 |
+| `sponsorship_dating_applications` | 2 | – | on / 0 |
+| `review_payback_applications` | 2 | – | on / 0 |
 
-**뷰 5종** (전부 `service_role`에만 SELECT grant, PII 복호화 포함):
-`admin_application_view`, `admin_attendee_view`, `admin_sponsorship_group_applications_view`, `admin_sponsorship_dating_applications_view`, `admin_review_payback_applications_view`
+### 휴면 (로그인 시스템)
 
----
+`profiles` 0 · `kakao_links` 0 · `naver_links` 0 — 전부 RLS on, 본인 한정 정책.
 
-## 2. `sessions` — 실제 컬럼
+### ⚠️ 정리 안 된 백업 표 6개
 
-```
-id                            uuid pk
-slug                          text unique          -- 고객 URL용 ('0829-meeting')
-event_date                    date
-slot                          text  CHECK IN ('afternoon','evening')     ← 하루 2슬롯 고정
-title                         text                 -- 트리거가 자동 생성
-theme_label                   text                 -- 트리거가 자동 생성
-theme_name                    text                 -- '바-ㅇ탈출'
-session_type                  text  CHECK IN ('그룹','소개팅')            ← 현행 분기 기준
-content_group                 text                 -- 크로스테마 배타 스코프
-difficulty                    smallint default 3 CHECK 1..5
-start_at / end_at             timestamptz
-venue_area                    text                 -- '서울 신림역 인근' (공개용 대략 위치)
-price_krw / original_price_krw integer
-capacity_min                  int default 16       -- 참고용, 로직에 미사용
-capacity_confirm_line         int default 24
-capacity_max                  int default 50
-capacity_confirm_line_male    int null             ┐
-capacity_confirm_line_female  int null             │ 소개팅 전용
-capacity_max_male             int null             │ (그룹은 전부 null)
-capacity_max_female           int null             │
-male_closed / female_closed   bool default false   ┘
-status                        text CHECK IN ('open','closed','cancelled')
-description                   text null
-created_at                    timestamptz
-```
+`_backup_applications_20260913`(8) · `_backup_application_attendees_20260913`(12) ·
+`_backup_theme_content_20260913b`(2) · `_backup_theme_content_20260914`(2) ·
+`_backup_theme_content_20260915`(1) · `_backup_theme_content_20260915b`(2)
 
-### ⚠️ `theme_label` → `session_type` 전환이 이미 끝났다
-
-CLAUDE.md는 "`theme_label`이 재참여 방지·분기 기준"이라고 적혀 있지만, **라이브 `submit_application()`은 전부 `v_session.session_type = '소개팅'` 으로 분기한다** (8곳). 프론트의 `src/lib/theme.ts`도 이미 `isDatingTheme(sessionType)`로 바뀌어 있다. `theme_label`은 표시용 문자열로만 남았다.
-
-### 트리거 `trg_sessions_generate_labels` (BEFORE INSERT)
-
-`theme_label`이 null이면 `theme_name + '(ver.소개팅|모임)'`으로, `title`이 null이면 `MM/DD(요일) 오후|저녁 · theme_label`로 자동 생성한다.
-→ **회차를 INSERT할 때 라벨/타이틀은 자동으로 채워진다.** 어드민 회차 등록 UI를 만들 때 이 트리거를 그대로 활용 가능.
-(단 이 함수만 `search_path`가 설정돼 있지 않다 — Supabase 린터 WARN.)
-
-### 현재 들어있는 회차 2건 (실데이터)
-
-| slug | type | 일시 | 가격 (정가) | 정원 | 상태 |
-|---|---|---|---|---|---|
-| `0829-meeting` | 그룹 | 2026-08-29 13:00~16:30 KST | **55,000** (79,000) | confirm 24 / max 50 | `closed` |
-| `0829-dating` | 소개팅 | 2026-08-29 19:00~23:30 KST | **65,000** (89,000) | 성별 confirm **10** / 성별 max 30 / 총 60 | `closed` |
-
-> CLAUDE.md의 "인당 6.9만원", "소개팅 즉시확정 12명"은 **둘 다 현행과 다르다.**
+**`_backup_application_attendees_20260913` 에는 암호화된 PII 가 들어 있다.**
+어느 역할에도 grant 가 없어 당장 새는 건 아니지만, 지울 시점을 정해야 한다.
+(2026-09-08 문서에 있던 `_backup_applications_20260815` 는 이미 삭제됨)
 
 ---
 
-## 3. `applications` — 실제 컬럼
+## 2. 뷰 11개
 
-```
-id, session_id
-depositor_name_enc            bytea        -- 암호화
-confirmation_code             text unique  -- 6자리 숫자
-status                        CHECK IN ('waiting','confirmed','cancelled')
-payment_status                CHECK IN ('pending','confirmed','cancelled')
-notes                         text CHECK len<=200
-agreed_terms                  bool         -- v20에서 대체됨, 잔존 컬럼
-consent_required              bool         -- 현행 필수동의
-consent_optional              bool         -- 현행 선택동의
-consent_photo / consent_marketing          bool
-consent_no_rebooking / consent_phone_collection / consent_proxy_for_group   -- 구버전 잔존
-refund_bank_name              text
-refund_account_number_enc     bytea
-refund_account_holder_enc     bytea
-refund_completed_at           timestamptz  -- 환불 완료 체크
-promoted_from_waiting_at      timestamptz  -- 대기→확정 승격 이력
-confirmation_sms_sent_at / payment_confirmed_sms_sent_at / reminder_sms_sent_at
-created_at
-```
+| 뷰 | anon | auth | service_role | 비고 |
+|---|---|---|---|---|
+| `session_view` | S | S | S | 회차 + 테마 조인 — **`submit_application_v3` 가 읽는다** |
+| `session_display` | – | – | S | 표시용(테마명·정원·장소·연령) 통일 |
+| `venue_public` | S | S | S | 공개용 장소 |
+| `theme_public_venue` | S | S | S | 테마별 공개 장소 |
+| `public_short_link` | S | S | S | 짧은 주소 |
+| `public_event_bubble` | S | S | S | 이벤트 배너 |
+| `admin_application_view` | – | – | S | **PII 복호화 포함** |
+| `admin_attendee_view` | – | – | S | **PII 복호화 포함** |
+| `admin_sponsorship_group_applications_view` | – | – | S | PII 복호화 포함 |
+| `admin_sponsorship_dating_applications_view` | – | – | S | PII 복호화 포함 |
+| `admin_review_payback_applications_view` | – | – | S | PII 복호화 포함 |
 
-### ⚠️ `waiting_number` 컬럼은 **존재하지 않는다**
-
-CLAUDE.md는 "v12에서 `applications.waiting_number` 컬럼 신설"이라고 적혀 있지만 실제 테이블에 그런 컬럼은 없다.
-대기 순번은 **`submit_application()` 반환값과 `lookup_application()` 조회 시점에 그때그때 계산**된다(같은 세션/같은 성별의 waiting 건수 + 1). 저장되지 않으므로 **순번은 조회 시점마다 달라질 수 있다** — 앞 순번이 취소되면 뒤 순번이 당겨진다. 재설계 시 "순번을 고정할지 실시간 계산할지"는 의도적으로 결정해야 할 항목이다.
-
-### 동의 컬럼 3세대가 공존
-
-`agreed_terms`(1세대) → `consent_no_rebooking`/`consent_phone_collection`/`consent_proxy_for_group`(2세대) → `consent_required`/`consent_optional`(3세대). 현재 쓰는 건 3세대뿐이고 나머지는 잔존 컬럼이다.
+`admin_*` 뷰 5종은 **anon/authenticated 에 권한이 없다**(소유자 postgres, `security_invoker` 미설정).
 
 ---
 
-## 4. `application_attendees`
+## 3. `sessions` — 옛 구조가 통째로 남아 있다
 
-```
-id, application_id, session_id
-is_representative   bool
-name_enc            bytea    -- 암호화
-phone_enc           bytea    -- 암호화
-phone_hash          text     -- HMAC, 매칭/중복판정 전용
-birth_year          int   CHECK between 1987 and 2007      ← 현행 나이 게이트
-nickname            text null  (session_id + nickname unique)
-gender              CHECK IN ('M','F')
-experience_range    CHECK IN ('0','1-50','50-100','100-200','200+')
-created_at
-```
+전체 149행 중 **값이 든 행 수**:
 
-**`phone_hash`가 사실상의 사용자 식별자다.** 계정이 없는 현 구조에서 "같은 사람"을 판정하는 유일한 키. 로그인을 부활시킬 때 계정 ↔ 기존 신청 연결의 축이 될 값.
+| 칼럼 | 채워진 행 | 뜻 |
+|---|---:|---|
+| `theme_id`, `min_age` | **149** | 현행 기준 |
+| `slug`·`event_date`·`slot`·`theme_label`·`content_group`·`session_type`·`theme_name`·`price_krw` | **2** | 8/29 프리오픈 2건에만 |
+| `capacity_max_male` 등 성별 정원 | 1 | 프리오픈 소개팅 1건 |
+| `legacy_format` | 0 | 안 쓰임 |
+
+**이게 오늘의 사고 원인이다.** 옛 함수들은 `content_group`·`session_type` 으로 분기하는데
+새 회차는 그 값이 전부 `null` 이라 `null = null` 이 참이 되지 않는다 → 재참여 배타가
+통째로 무력화됐었다. 경위는 [06-decisions.md](./06-decisions.md) D-02.
+
+정원·요금은 `theme_price_tiers` + `themes` 가 기준이고, 회차의
+`price_krw_override`·`capacity_*_override` 로 덮는다.
+
+### 트리거
+
+| 표 | 트리거 | 시점 | 함수 |
+|---|---|---|---|
+| `sessions` | `trg_sessions_generate_labels` | BEFORE INSERT | `sessions_generate_labels` |
+| `applications` | `applications_set_cancelled_at` | BEFORE UPDATE | `set_cancelled_at` |
+| `applications` | `applications_release_coupon_on_cancel` | AFTER UPDATE | `release_coupon_on_cancel` |
+| `application_attendees` | `application_attendees_nickname_unique` | BEFORE INSERT/UPDATE | `enforce_session_nickname_unique` |
 
 ---
 
-## 5. 함수 16종 (실측)
+## 4. `applications` 42칼럼 · `application_attendees` 13칼럼
 
-| 함수 | 실행 권한 | 역할 |
+`applications` 에서 눈여겨볼 것:
+
+- **금액**: `headcount` · `unit_price_krw` · `amount_krw` · `discount_krw`.
+  앞 셋은 **nullable** 이다 → 넣지 않는 경로가 있으면 조용히 NULL 로 들어간다
+  (실제로 구 `submit_application` 이 그랬다. 2026-09-28 에 어드민 경로를 v3 로 옮겨 막음)
+- **동의 3세대 공존**: `agreed_terms` / `consent_no_rebooking`·`consent_phone_collection`·
+  `consent_proxy_for_group` / `consent_required`·`consent_optional`·`consent_photo`·`consent_marketing`.
+  현행은 마지막 세대
+- **유입경로**: `utm_source`·`utm_medium`·`utm_campaign`·`utm_content`·`utm_term`·`referrer`·`landing_path`
+- **`is_internal`**: `/internal` 로 켠 우리 기기 신청 표시. 현재 0건
+- `waiting_number` 칼럼은 **없다** — 대기 순번은 조회 시점에 계산한다
+- `coupon_id` 는 폐기. 정산 기준은 `application_coupons`
+
+`application_attendees`: `name_enc`·`phone_enc` (암호화) + `phone_hash` (HMAC, 매칭 키) +
+`birth_year`·`nickname`·`gender`·`experience_range`·`reminder_sms_sent_at`.
+
+---
+
+## 5. 함수 47개 — 세대가 겹쳐 있다
+
+### 지금 쓰는 것
+
+| 함수 | 실행 | 역할 |
 |---|---|---|
-| `submit_application(uuid,text,bool,bool,jsonb,text,bool,bool)` | anon, authenticated | **신청 생성 (핵심)** |
-| `lookup_application(text,text)` | anon, authenticated | 전화번호+접수번호 조회 |
-| `cancel_application(text,text,text,text,text)` | anon, authenticated | 셀프 취소 + 환불계좌 저장 |
-| `get_session_stats(uuid)` | anon, authenticated | 공개 집계 (9개 카운트) |
-| `check_active_applications(text[],uuid)` | anon, authenticated | 제출 전 중복 사전확인 |
-| `check_nickname_available(uuid,text)` | anon, authenticated | 닉네임 사전확인 |
-| `submit_sponsorship_group_application(...)` | anon, authenticated | 협찬 신청 (그룹) |
-| `submit_sponsorship_dating_application(...)` | anon, authenticated | 협찬 신청 (소개팅) |
-| `submit_review_payback_application(...)` | anon, authenticated | 후기 페이백 신청 |
-| `admin_update_application(uuid,text,text,jsonb)` | **service_role만** | 어드민 신청/참여자 수정 |
-| `hash_phone(text)` | **postgres만** | HMAC 해시 |
-| `encrypt_pii(text)` | **⚠️ PUBLIC (기본 ACL)** | 암호화 |
-| `decrypt_pii(bytea)` | **⚠️ PUBLIC (기본 ACL)** | 복호화 |
-| `get_pii_key()` | **⚠️ PUBLIC (기본 ACL)** | Vault에서 키 반환 |
-| `rls_auto_enable()` | PUBLIC (이벤트 트리거용) | 신규 테이블 자동 RLS |
-| `sessions_generate_labels()` | (트리거) | 라벨 자동 생성 |
+| `submit_application_v3(…,text[])` | anon/auth/svc | **신청 생성 (현행)** |
+| `check_active_applications_v2(text[],uuid)` | anon/auth/svc | 제출 전 재참여 사전확인 |
+| `is_theme_participation_blocked(text,uuid)` | (내부) | **재참여 판정 — 여기 한 곳** |
+| `is_theme_participation_blocked(text,uuid,uuid)` | (내부) | 위 + 제외할 신청(수정 화면용) |
+| `preview_coupons(text[],uuid,int,int,text)` | anon/auth/svc | 쿠폰 여러 장 판정 |
+| `preview_coupon(text,uuid,int,int,text)` | anon/auth/svc | 쿠폰 한 장 판정 |
+| `lookup_application_v4(text,text)` | anon/auth/svc | 참여내역 조회 (현행) |
+| `check_nickname_available(uuid,text)` | anon/auth/svc | 닉네임 사전확인 |
+| `resolve_unit_price(uuid,int)` | anon/auth/svc | 인원별 단가 |
+| `is_eligible_birth_year(int,int)` | — | 회차 `min_age` 기준 연령 판정 |
+| `get_session_stats(uuid)` | anon/auth | 공개 집계 (정원·잔여) |
+| `admin_update_application(uuid,text,text,jsonb)` | svc | 어드민 신청·참여자 수정 |
+| `admin_search_applications(…)` | svc | 어드민 검색 |
 
-> `encrypt_pii` / `decrypt_pii` / `get_pii_key`의 `proacl`이 `NULL`이다 = Postgres 기본값 `PUBLIC=X`가 적용됨 = **anon이 REST로 호출 가능**. 반면 `hash_phone`은 `{postgres=X/postgres}`로 정확히 잠겨 있다. 상세와 실증은 [04-drift-and-risks.md](./04-drift-and-risks.md) §보안-A.
+### PII (전부 잠김 — anon 실행 불가)
 
-### `submit_application()` 로직 요약 (라이브 정의 기준)
+`hash_phone` · `encrypt_pii` · `get_pii_key` 는 `postgres` 만, `decrypt_pii` 는
+`postgres`+`service_role`. **2026-09-08 문서의 "PUBLIC 이라 anon 이 호출 가능" 경고는
+이미 해소됐다** (2026-09-30 재확인: `hash_phone` 직접 호출 시 `permission denied`).
 
-`sessions` 행을 `for update`로 잠근 뒤 순서대로 검증:
+### ⚠️ 옛 세대가 아직 anon 에 열려 있다
 
-1. 필수 약관 동의 여부
-2. 회차 존재 + `status = 'open'`
-3. 참여 인원 ≥ 1
-4. **소개팅이면** 그룹 크기 = 1 강제 + 성별 필수
-5. **출생년도**: 소개팅 `1990~2001` / 그룹 `1987~2007` (테마별 분기)
-6. 전 참여자 성별 필수
-7. 그룹 내부 전화번호 중복 금지
-8. **`content_group` 단위 배타** — 같은 컨텐츠에 취소되지 않은 신청이 이미 있으면 거부
-9. 정원 판정 — 소개팅은 성별별(`male_closed`/`female_closed`, `capacity_max_male/female`), 그룹은 인원 합계 vs `capacity_max`. **그룹 전체가 못 들어가면 신청 자체를 거부**(부분 확정 없음, `'정원마감:'` 접두사)
-10. 6자리 접수번호 생성 (최대 20회 재시도)
-11. `confirmed`/`waiting` 판정 → `applications` + `application_attendees` 삽입
-12. 정원 도달 시 `male_closed`/`female_closed`/`status='closed'` 갱신
-13. 대기면 순번 계산해서 반환값에만 포함
+| 함수 | 상태 |
+|---|---|
+| `submit_application(uuid,text,bool,bool,jsonb,text,bool,bool)` | **anon 호출 가능** |
+| `submit_application_v2(…)` 2종 | **anon 호출 가능** |
+| `check_active_applications(text[],uuid)` | **anon 호출 가능** |
+| `lookup_application` · `_v2` · `_v3` | **anon 호출 가능** |
 
-**자동 승격 로직 없음** — 대기자는 운영자가 어드민에서 수동 승격.
+2026-09-30 확인: anon 키로 `submit_application` 을 직접 호출하면 권한 오류가 아니라
+**로직 오류(`존재하지 않는 회차입니다.`)가 돌아온다** = 함수가 실제로 실행된다.
 
-### `get_session_stats()` 반환 (9개)
+**왜 문제인가** — anon 키는 클라이언트 번들에 들어 있어 공개값이다. 구 함수는
+`content_group` 기준이라 새 회차에서 재참여를 못 막고, 연령도 옛 출생년도 범위를 쓰며,
+`headcount`·`amount_krw` 를 넣지 않는다. 즉 **REST 를 직접 때리면 현행 규칙을 우회한
+신청을 만들 수 있고, 그 건은 금액이 NULL 로 남는다.**
 
-`confirmed_count`, `waiting_count`, `male_confirmed_count`, `male_waiting_count`, `female_confirmed_count`, `female_waiting_count`, **`paid_confirmed_count`, `male_paid_confirmed_count`, `female_paid_confirmed_count`**
+### ⚠️ 그냥 지우면 안 된다 — 아직 부르는 코드가 있다
 
-뒤 3개는 2026-08-28 마이그레이션(`get_session_stats_add_paid_confirmed_counts`)으로 추가됐다. 마감/마감임박 뱃지는 **입금 확인까지 끝난 인원** 기준으로 판정한다(확정만 되고 미입금인 자리를 마감으로 세지 않기 위해).
+| 부르는 곳 | 함수 |
+|---|---|
+| `src/app/(site)/sessions/[slug]/apply/actions.ts:214` | `submit_application` (v1) |
+| `src/app/(site)/sessions/[slug]/apply/actions.ts:47` | `check_active_applications` (v1) |
 
----
+이건 **휴면 고객 경로**다(현행은 `/themes/[slug]/apply`). 라우트 자체는 빌드에 남아 있지만
+`sessions.slug` 가 있는 회차가 **프리오픈 2건뿐이고 둘 다 `closed`** 라 실제로는 닿지 않는다.
 
-## 6. 권한 구조 (실측)
+그래서 순서는 이렇다:
 
-**설계 원칙**: 테이블 직접 접근은 전부 막고, `SECURITY DEFINER` RPC로만 통과시킨다. RLS 정책이 아니라 **GRANT 자체를 안 주는 방식**이 1차 방어선이다.
+1. `/sessions/[slug]` 계열 휴면 라우트를 정리하거나, 최소한 그 호출을 v3 로 옮긴다
+2. 그 다음 `revoke execute … from anon, authenticated`
+3. 삭제는 그 뒤에 (2026-08-14 에 이 계열 함수를 잘못 지워 서비스가 마비된 적이 있다.
+   `wye-db-release` 의 증거 기반 절차를 따를 것)
 
-```
-sessions        → anon/authenticated/service_role  SELECT  (+ RLS 공개 정책)
-session_venues  → service_role만 SELECT            (anon은 존재조차 모름)
-applications    → service_role  SELECT, UPDATE
-                  authenticated SELECT  ⚠️ 의도치 않은 grant (RLS 정책 0개라 실제로는 0행)
-application_attendees → 아무도 SELECT 없음
-sms_templates   → service_role  SELECT, UPDATE
-협찬/페이백 3종  → 아무도 SELECT 없음 (뷰를 통해 service_role만)
-admin_*_view 5종 → service_role  SELECT
-profiles        → authenticated SELECT/INSERT/UPDATE (+ 본인 RLS)
-kakao_links / naver_links → authenticated SELECT (+ 본인 RLS)
-```
-
-이벤트 트리거 `ensure_rls`(→`rls_auto_enable()`)가 신규 테이블에 자동으로 RLS를 켠다.
+**지금 당장은 손대지 않았다.**
 
 ---
 
-## 7. 마이그레이션 이력
+## 6. 마이그레이션 이력
 
-`supabase_migrations.schema_migrations`에 **26건**이 기록돼 있고, **가장 오래된 것이 `20260815074610`(2026-08-15)** 이다.
-→ **8/15 이전의 모든 스키마 변경(v1~v12 시대)은 마이그레이션 기록이 없다.** SQL Editor에서 직접 실행됐고, 유일한 흔적은 `supabase-schema.sql`의 서술형 로그뿐이다.
+- `supabase_migrations.schema_migrations` 에 **109건** (`20260815074610` ~ `20260928040102`)
+- `supabase/migrations/` 로컬 파일은 **69개** (`20260910065306` ~ `20260928033149`)
 
-최근 마이그레이션 흐름:
-```
-0815 v12_9 동의 분리 / v21 뷰 확장 / v22 grant / v23 content_group
-0816 check_active_applications (+grants)
-0817 v25 sms_templates / v26 nickname grant / v25b service_role grant
-0820 소개팅 출생년도 1990~2001 / v31 동시성 버그 2건 / prod 드리프트 2건 수정
-0821 sessions.difficulty / v32 consent_photo·marketing / 뷰 확장
-0826 v36 협찬 / sms_templates RLS / v37 출생년도·성별 / admin_update_application
-     / v38 소개팅협찬 여성전용 / v40 그룹 출생년도 2007
-0827 refund_completed_at / promoted_from_waiting_at / v39 후기페이백
-0828 get_session_stats 입금확인 카운트 추가
-```
+숫자가 다른 이유: 초기에는 SQL Editor 에서 손으로 실행하고 기록만 남긴 건이 많다.
+**"무엇이 빠졌는지"는 파일 목록이 아니라 DB 에 물어볼 것** — `wye-db-release` 참고.
+
+> `supabase-schema.sql` 은 갱신이 끊겼다. `submit_application_v3`·`preview_coupons`·
+> `theme_id`·`min_age` 등이 전부 없다. **기록처는 `supabase/migrations/` 다.**
 
 ---
 
-## 8. 실데이터 현황 (프리오픈 결과)
+## 7. 실데이터 (2026-09-30)
 
-신청 기간: **2026-08-20 ~ 2026-08-28**
+| 상태 | 건 | 인원 | 금액 합 |
+|---|---:|---:|---:|
+| 확정 (confirmed) | 46 | 67 | 3,857,000원 |
+| 취소 (cancelled) | 27 | 35 | 2,130,000원 |
+| **합계** | **73** | **102** | |
 
-| | 신청 건 | 참여 인원 |
-|---|---:|---:|
-| 확정 (confirmed) | 36 | 40 |
-| 대기 (waiting) | 1 | 1 |
-| 취소 (cancelled) | 21 | 26 |
-| **합계** | **58** | **67** |
+- 입금 확인 완료 46건 · 내부 테스트 표시(`is_internal`) 0건 · 사용된 쿠폰 4장 (발행 880장)
+- 활성 테마 1개(바-ㅇ탈출). 열린 미래 회차 **139개**, 2026-10-03 ~ 2027-03-13
+- 재참여 예외(`reparticipation_allowances`) 1건 — 프리오픈 미참여자 1명, [D-02](./06-decisions.md) 참고
 
-입금 확인 완료: 35건
+---
 
-### 회차별
+## 8. 이 문서를 다시 뽑을 때
 
-| 회차 | 상태 | 건 | 인원 | 남 | 여 |
-|---|---|---:|---:|---:|---:|
-| `0829-meeting` (그룹) | confirmed·paid | 16 | **20** | 12 | 8 |
-| `0829-meeting` | cancelled | 8 | 13 | 4 | 9 |
-| `0829-dating` (소개팅) | confirmed·paid | 19 | **19** | 10 | 9 |
-| `0829-dating` | confirmed·미입금 | 1 | 1 | 0 | 1 |
-| `0829-dating` | waiting | 1 | 1 | 1 | 0 |
-| `0829-dating` | cancelled | 13 | 13 | 9 | 4 |
+```sql
+-- 표/뷰 권한 (role_table_grants 말고 이걸로)
+select c.relname, c.relkind,
+       has_table_privilege('anon', c.oid, 'SELECT') as anon_s,
+       has_table_privilege('service_role', c.oid, 'SELECT') as svc_s,
+       c.relrowsecurity, (select count(*) from pg_policy p where p.polrelid=c.oid)
+  from pg_class c join pg_namespace n on n.oid=c.relnamespace
+ where n.nspname='public' and c.relkind in ('r','v') order by 2 desc, 1;
 
-관찰:
-- **취소율이 높다** — 67명 중 26명(39%)이 취소. 소개팅 쪽은 남성 취소가 9/13으로 두드러진다.
-- 그룹은 16건→20명으로 **그룹 신청(동행자 포함)이 실제로 쓰였다**(평균 1.25명/건). 소개팅은 정책상 전부 1인 1건.
-- 닉네임 입력: 67명 중 48명. 경험치(`experience_range`): 67명 전원.
-- 부가 파이프라인 실적: 협찬 그룹 7건, 협찬 소개팅 2건, 후기 페이백 2건.
-- `auth.users` = **0건** — 로그인 시스템은 실제로 한 번도 쓰이지 않았다.
+-- 함수 권한
+select p.oid::regprocedure, p.prosecdef,
+       has_function_privilege('anon', p.oid, 'EXECUTE') as anon_x
+  from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+ where n.nspname='public' order by 1;
 
-> **이 데이터는 실제 고객 데이터다.** 소개팅 버전을 제거할 때 `session_type='소개팅'` 관련 스키마를 삭제하면 33건의 신청 이력이 함께 무의미해진다. 삭제가 아니라 **아카이빙 전략**이 필요하다.
+-- 표별 행 수
+select c.relname,
+       (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', c.relname),
+        false, true, '')))[1]::text::int as rows
+  from pg_class c join pg_namespace n on n.oid=c.relnamespace
+ where n.nspname='public' and c.relkind='r' order by 1;
+```
