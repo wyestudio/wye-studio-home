@@ -39,15 +39,16 @@
 
 # ⚠️ 작업 전 먼저 읽을 것
 
-아래 파일을 건드리면 해당 스킬을 **먼저** 읽는다. 한 작업이 여러 개에 걸리면 전부 읽는다.
+아래 파일을 건드리면 오른쪽 것을 **먼저** 읽는다. 한 작업이 여러 개에 걸리면 전부 읽는다.
 
-| 건드리는 것 | 읽을 스킬 |
+| 건드리는 것 | 읽을 것 |
 |---|---|
 | `src/lib/settlement.ts`, `src/lib/coupon*.ts`, `src/lib/sms*.ts`, 어드민 쿠폰·정산 화면, `preview_coupons()`·`submit_application*()` | `wye-money` |
 | `supabase/migrations/`, 운영 DB 에 SQL 실행, `main` 브랜치 push(=운영 배포) | `wye-db-release` |
 | `src/lib/attribution*.ts`, `utmLinks.ts`, `shortLinks.ts`, `ga4.ts`, 어드민 유입경로 화면, `next.config.ts` 의 `redirects()` | `wye-marketing` |
 | `public/` 이미지, `theme-assets` 버킷, 공개 화면 문구, 공개 페이지 추가·수정, `src/app/sitemap.ts`·`robots.ts`, `"use client"` 파일이 import 하는 모듈에 감출 값을 적을 때 | `wye-customer-facing` |
 | `scripts/slack-cleanup-alerts.mjs` 실행, 슬랙 알림·테스트 신청 흔적 삭제 | `wye-cleanup` |
+| `is_theme_participation_blocked()`, `admin_update_application()`, `check_active_applications_v2()`, `reparticipation_allowances` 표 — 같은 테마 재참여 판정 | `docs/06-decisions.md` D-02 ← 판정이 네 경로(고객 제출·화면 사전안내·어드민 등록·어드민 수정)에 걸쳐 있다. 한 곳만 고치면 "화면엔 안 된다는데 신청은 되는" 상태가 된다 |
 | **`CLAUDE.md`, `.claude/skills/**`, `docs/` 의 규칙 문서를 고친다** | `~/.claude/CLAUDE.md` 의 「규칙·문서를 고칠 때」 여섯 절 |
 
 # 더 볼 곳

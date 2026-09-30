@@ -32,8 +32,17 @@ description: 운영 DB 와 배포. 마이그레이션 파일을 만들거나 적
    - 추측이 아닌 **검증 결과**를 사용자에게 보여주기
 
 3. **ad-hoc 함수 방지**:
-   - 프로덕션 DB에 만든 새 함수는 반드시 `supabase-schema.sql`에 기록해 코드로 추적 가능하게 할 것
+   - 운영 DB 에 만든 새 함수·표는 반드시 `supabase/migrations/` 에 파일로 남긴다
+     ← **`supabase-schema.sql` 은 갱신이 끊겼다.** `submit_application_v3` ·
+       `preview_coupons` · `application_coupons` · `theme_id` · `min_age` 가 전부 없다
+       (2026-09-28 확인). 거기 덧붙이면 반쪽짜리 파일이 두 벌로 갈린다
    - 향후 삭제 시 git 히스토리에서 원본을 복구할 수 있도록
+
+4. **기존 함수를 교체할 때는 운영 정의를 받아 바꿀 부분만 고친다**
+   - `pg_get_functiondef(...)` 로 운영 정의를 뽑아 그 텍스트에서 필요한 블록만 바꾼다
+   - 적용한 뒤 **바꾼 블록을 원래대로 되돌려 md5 가 변경 전과 같은지 대조**한다
+     ← 이러면 "나머지는 한 글자도 안 건드렸다"를 증명할 수 있다 (2026-09-28 에 이 방법으로
+       `submit_application_v3` 를 고쳤다)
 
 ---
 
