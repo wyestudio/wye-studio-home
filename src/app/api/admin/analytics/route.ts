@@ -7,6 +7,7 @@ import {
   getLandingPages,
   getDailyTraffic,
   getPathFunnel,
+  getStepFunnel,
   getTestDeviceSessions,
 } from "@/lib/ga4";
 import {
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
       landingPages,
       dailyTraffic,
       funnel,
+      stepFunnel,
       appStats,
       appSources,
       appByCampaign,
@@ -64,6 +66,9 @@ export async function GET(request: NextRequest) {
       getDailyTraffic(startDate).catch(named("dailyTraffic", [])),
       getPathFunnel(startDate).catch(
         named("pathFunnel", { sessions: 0, themeSessions: 0, applySessions: 0 })
+      ),
+      getStepFunnel(startDate).catch(
+        named("stepFunnel", { consentSessions: 0, submitSessions: 0 })
       ),
       getApplicationStats(days).catch(
         named("applicationStats", {
@@ -85,6 +90,7 @@ export async function GET(request: NextRequest) {
       landingPages,
       dailyTraffic,
       funnel,
+      stepFunnel,
       applications: appStats,
       applicationSources: appSources,
       applicationsByCampaign: appByCampaign,

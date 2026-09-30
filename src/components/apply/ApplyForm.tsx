@@ -11,7 +11,7 @@ import { applyAction, checkNicknameAvailability, checkActiveApplicationConflicts
 import { ATTRIBUTION_FIELD, readAttribution } from "@/lib/attribution";
 import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import { formatKrw } from "@/lib/format";
-import { pushDataLayerEvent } from "@/lib/analytics";
+import { APPLY_STEP_EVENT, pushDataLayerEvent } from "@/lib/analytics";
 import { isDatingTheme } from "@/lib/theme";
 import { handlePointerFillOrigin } from "@/lib/pointerFillOrigin";
 import {
@@ -327,6 +327,15 @@ export function ApplyForm({
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
+
+  // 단계 진입은 한 번씩만 쏜다(돌아갔다 다시 와도 재발송 안 함) — 신규 폼과 같은 규칙.
+  const stepEventSent = useRef(new Set<number>());
+  useEffect(() => {
+    const name = APPLY_STEP_EVENT[currentStep];
+    if (!name || stepEventSent.current.has(currentStep)) return;
+    stepEventSent.current.add(currentStep);
+    pushDataLayerEvent(name, { sessionId, themeLabel: sessionType });
+  }, [currentStep, sessionId, sessionType]);
 
   useEffect(() => {
     if (state.application) {

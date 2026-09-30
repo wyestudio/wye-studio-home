@@ -362,3 +362,59 @@ export async function getPathFunnel(startDate: string): Promise<PathFunnel> {
 
   return { sessions, themeSessions, applySessions: Math.min(themeSessions, applySessions) };
 }
+
+// ─────────────────────────────────────────────────────────────────
+// 2026-09-22 추가 — 신청 폼 안의 단계별 이탈
+//
+// 위 getPathFunnel() 은 "신청 폼을 열었다" 까지밖에 못 본다. 3단계가 전부 같은
+// 주소라 경로로는 더 쪼갤 수 없어서, 여기만 **이벤트**로 잰다.
+//
+// ⚠️ 그래서 이 두 칸은 GTM 설정에 매달린다. 코드가 dataLayer 로 밀어도 GTM 에
+//    트리거·태그가 없으면 GA4 까지 가지 않고 조용히 0 이 된다(이 프로젝트에서
+//    실제로 두 번 겪었다 — ANALYTICS.md 맨 위 경고). 화면에서도 0 일 때는
+//    "끊긴 것일 수 있다" 고 알린다.
+// ─────────────────────────────────────────────────────────────────
+
+/** GTM 태그에 넣을 GA4 이벤트 이름. 바꾸면 GTM 태그도 같이 바꾼다. */
+const STEP_EVENT_CONSENT = "apply_step_consent";
+const STEP_EVENT_SUBMIT = "apply_step_submit";
+
+export interface StepFunnel {
+  /** 2단계(약관동의)까지 간 세션 */
+  consentSessions: number;
+  /** 3단계(제출)까지 간 세션 */
+  submitSessions: number;
+}
+
+/**
+ * 신청 폼 단계별 도달 세션.
+ *
+ * 이벤트 수가 아니라 **세션 수**로 센다. 한 사람이 단계를 오가도 한 번으로
+ * 세어져야 앞뒤 칸과 같은 단위가 된다(앞 칸들은 전부 세션 수다).
+ */
+export async function getStepFunnel(startDate: string): Promise<StepFunnel> {
+  const [res] = await analyticsDataClient.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate, endDate: "today" }],
+    dimensions: [{ name: "eventName" }],
+    metrics: [{ name: "sessions" }],
+    dimensionFilter: realOnly({
+      filter: {
+        fieldName: "eventName",
+        inListFilter: { values: [STEP_EVENT_CONSENT, STEP_EVENT_SUBMIT] },
+      },
+    }),
+  });
+
+  const byName = new Map<string, number>();
+  for (const row of res.rows || []) {
+    const name = row.dimensionValues?.[0]?.value;
+    if (name) byName.set(name, parseInt(row.metricValues?.[0]?.value || "0", 10));
+  }
+
+  const consentSessions = byName.get(STEP_EVENT_CONSENT) || 0;
+  // 제출 단계는 약관을 지나야만 닿는다. 깔때기가 뒤집혀 보이면 안 된다.
+  const submitSessions = Math.min(consentSessions, byName.get(STEP_EVENT_SUBMIT) || 0);
+
+  return { consentSessions, submitSessions };
+}

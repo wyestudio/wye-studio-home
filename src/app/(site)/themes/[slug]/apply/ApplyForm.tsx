@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { formatKrw } from "@/lib/format";
 import { PriceTable } from "@/components/contents/PriceTable";
 import { resolveUnitPrice, type ThemePriceTier } from "@/types/catalog";
@@ -35,7 +35,7 @@ import {
   type ConsentState,
 } from "./ConsentStep";
 import { ApplyComplete } from "./ApplyComplete";
-import { pushDataLayerEvent } from "@/lib/analytics";
+import { APPLY_STEP_EVENT, pushDataLayerEvent } from "@/lib/analytics";
 
 // 넓은 화면에서 칸·글자를 키운다(테마 상세 비율). 모바일 크기는 그대로.
 const field =
@@ -311,6 +311,22 @@ export function ApplyForm({
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
+
+  /*
+    단계 진입을 한 번씩만 쏜다.
+
+    ⚠️ 지나온 단계로 돌아갔다 다시 오는 건 새 도달이 아니다. 다시 쏘면
+       "약관 단계 도달" 이 실제 사람 수보다 부풀어 이탈률이 작아 보인다.
+       퍼널은 세션 수로 세지만(GA4 가 알아서 합침), 이벤트 수로 보는 날이
+       와도 숫자가 맞도록 여기서 한 번으로 막는다.
+  */
+  const stepEventSent = useRef(new Set<number>());
+  useEffect(() => {
+    const name = APPLY_STEP_EVENT[step];
+    if (!name || stepEventSent.current.has(step)) return;
+    stepEventSent.current.add(step);
+    pushDataLayerEvent(name, { sessionId, themeLabel: themeName });
+  }, [step, sessionId, themeName]);
 
   /**
    * 오류가 난 칸으로 데려간다.

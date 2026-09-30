@@ -19,6 +19,7 @@ import type {
   LandingPage,
   DailyTraffic,
   PathFunnel,
+  StepFunnel,
 } from "@/lib/ga4";
 import type { ApplicationStats, ApplicationSourceStat } from "@/lib/adminStats";
 import { sourceLabel, isUnknownSource, pathLabel } from "@/lib/analyticsLabels";
@@ -58,13 +59,15 @@ const GUIDE_ITEMS: GuideItem[] = [
       "좌측 메뉴에서 '탐색(Explore)' 클릭",
       "템플릿 갤러리에서 '유입경로 탐색' 선택",
       "우측 '단계' 패널에서 '+' 눌러 단계별 조건 추가:",
-      "  · 1단계: page_view (페이지 경로에 /sessions/ 포함)",
-      "  · 2단계: eventName = '신청 시작'",
-      "  · 3단계: eventName = '신청 완료'",
+      "  · 1단계: page_view (페이지 경로에 /themes/ 포함)",
+      "  · 2단계: eventName = apply_start (신청 폼 열람 = 정보입력 단계)",
+      "  · 3단계: eventName = apply_step_consent (약관동의 단계)",
+      "  · 4단계: eventName = apply_step_submit (제출·입금정보 단계)",
+      "  · 5단계: eventName = apply_complete (신청 완료)",
       "저장하면 막대 사이 꺾쇠에 '이탈 X%' 표시됨",
     ],
     example:
-      "예시: 1단계→2단계 사이에 '이탈 65%'라고 뜨면, 상세페이지를 본 사람 중 65%가 신청 폼도 안 열어본 것입니다.",
+      "예시: 3단계→4단계 사이에 '이탈 40%'라고 뜨면, 약관동의 화면까지 온 사람 중 40%가 제출 화면으로 안 넘어간 것입니다. 그러면 고칠 화면은 약관동의입니다.",
     href: "https://analytics.google.com/analytics/web/",
   },
   {
@@ -137,6 +140,7 @@ type ApiPayload = {
   landingPages: LandingPage[];
   dailyTraffic: DailyTraffic[];
   funnel: PathFunnel;
+  stepFunnel: StepFunnel;
   applications: ApplicationStats;
   applicationSources: ApplicationSourceStat[];
   /** 이 기간 테스트 기기에서 넣어 신청 숫자에서 뺀 건수 */
@@ -255,6 +259,16 @@ export default function AnalyticsDashboard() {
 
   const sessions = data?.funnel.sessions ?? 0;
   const totals = data?.applications.totals;
+
+  /*
+    신청 폼 안의 2·3단계는 GTM 태그가 있어야 잡힌다(경로가 전부 같은 주소라
+    이벤트로만 잴 수 있다). 태그가 없거나 어긋나면 0 만 온다 — 그때 칸을
+    그려 두면 "아무도 약관까지 안 갔다" 로 잘못 읽히므로, 아예 접고 왜
+    안 보이는지 알린다.
+  */
+  const stepFunnel = data?.stepFunnel;
+  const stepTracked =
+    (stepFunnel?.consentSessions ?? 0) > 0 || (stepFunnel?.submitSessions ?? 0) > 0;
 
   // 1위가 '출처 불명' 이면 요약으로 쓸모가 없다 — 뜻이 있는 값 중 1위를 뽑는다.
   const topSource = (data?.trafficSources ?? []).find((s) => !isUnknownSource(s.source));
@@ -494,12 +508,35 @@ export default function AnalyticsDashboard() {
                 value={data.funnel.applySessions}
                 top={sessions}
                 prev={data.funnel.themeSessions}
+                hint="(1단계 정보입력)"
               />
+              {stepTracked && stepFunnel && (
+                <>
+                  <FunnelRow
+                    label="약관동의 단계 도달"
+                    value={stepFunnel.consentSessions}
+                    top={sessions}
+                    prev={data.funnel.applySessions}
+                    hint="(2단계)"
+                  />
+                  <FunnelRow
+                    label="제출 단계 도달"
+                    value={stepFunnel.submitSessions}
+                    top={sessions}
+                    prev={stepFunnel.consentSessions}
+                    hint="(3단계 입금정보)"
+                  />
+                </>
+              )}
               <FunnelRow
                 label="신청 완료"
                 value={totals?.applications ?? 0}
                 top={sessions}
-                prev={data.funnel.applySessions}
+                prev={
+                  stepTracked && stepFunnel
+                    ? stepFunnel.submitSessions
+                    : data.funnel.applySessions
+                }
                 hint="(우리 DB)"
               />
               <FunnelRow
@@ -513,6 +550,19 @@ export default function AnalyticsDashboard() {
                 앞 세 단계는 GA4 의 <strong>페이지 경로</strong>로 셉니다 — 이벤트 태그에 기대면
                 GTM 설정이 어긋날 때 조용히 0이 되는데, 경로는 페이지가 열리기만 하면 잡힙니다.
               </p>
+              {stepTracked ? (
+                <p className="mt-1 text-xs text-muted">
+                  신청 폼 안의 2·3단계는 세 화면이 같은 주소라 경로로 못 가릅니다. 여기만{" "}
+                  <strong>GA4 이벤트</strong>로 셉니다.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-amber-400/80">
+                  신청 폼 안의 <strong>2·3단계는 아직 안 잡힙니다.</strong> 코드는 이벤트를
+                  보내지만 GTM 에 트리거·태그를 추가해야 GA4 까지 갑니다 — 절차는 저장소의{" "}
+                  <code>ANALYTICS.md</code> 에 적어뒀습니다. 게시한 뒤 하루 정도 지나면 이 자리에
+                  두 칸이 생깁니다.
+                </p>
+              )}
             </div>
 
             {/* ── 신청까지 온 유입경로 (우리 DB) ── */}
