@@ -1,6 +1,6 @@
 ---
 name: wye-marketing
-description: 유입 측정이 어긋나면 어느 홍보가 먹혔는지 알 수 없게 되는 작업. UTM 링크·짧은 주소·리다이렉트·GA4 집계를 건드릴 때 먼저 읽는다. src/lib/attribution.ts, src/lib/attributionServer.ts, src/lib/utmLinks.ts, src/lib/shortLinks.ts, src/lib/ga4.ts, src/lib/analytics.ts, src/app/(site)/admin/utm/, src/app/(site)/go/, next.config.ts 의 redirects(), 그리고 GTM 컨테이너의 트리거·태그가 대상. GTM 트리거 하나에 GA4 와 Meta Pixel 태그가 같이 물려 있어 한쪽만 보고 고치면 광고 전환 추적이 조용히 깨진다.
+description: 유입 측정이 어긋나면 어느 홍보가 먹혔는지 알 수 없게 되는 작업. UTM 링크·짧은 주소·리다이렉트·GA4 집계를 건드릴 때 먼저 읽는다. src/lib/attribution.ts, src/lib/attributionServer.ts, src/lib/utmLinks.ts, src/lib/shortLinks.ts, src/lib/ga4.ts, src/lib/analytics.ts, src/app/(site)/admin/utm/, src/app/(site)/go/, next.config.ts 의 redirects(), GTM 컨테이너의 트리거·태그가 대상.
 ---
 
 링크에 붙은 값이 한 글자만 틀려도 그 유입은 별개 채널로 집계되어 통계에서 사라진다.
@@ -15,18 +15,13 @@ description: 유입 측정이 어긋나면 어느 홍보가 먹혔는지 알 수
 
 ---
 
-## ⚠️ GTM 트리거 하나에 GA4 와 Meta 가 같이 물려 있다 (2026-09-30)
+## ⚠️ GTM 트리거는 GA4 와 Meta 가 나눠 쓴다
 
-`CE - 신청 시작` · `CE - 신청 완료` 트리거에는 **GA4 태그와 Meta Pixel 태그가 둘 다** 걸려 있다.
-GA4 만 보고 트리거의 이벤트 이름이나 실행 조건을 고치면 **광고 전환 추적이 조용히 깨진다** —
-Meta 쪽은 에러를 내지 않고 그냥 안 들어온다.
-
-**트리거를 건드리기 전에 그 트리거를 참조하는 태그 목록을 먼저 본다**(트리거 상세 화면
-아래쪽 "이 트리거를 참조한 항목"). 구성 전체는 `ANALYTICS.md` 에 있다.
-
-**코드가 push 하는 dataLayer 이벤트 이름과 GTM 트리거의 이벤트 이름은 한 글자도 달라선
-안 된다**(띄어쓰기 포함). 다르면 에러 없이 그냥 안 잡힌다 — 눈으로 비교하지 말고 코드포인트로
-대조한다.
+- **트리거를 고치기 전에 "이 트리거를 참조한 항목" 을 먼저 본다** ← `CE - 신청 시작`·
+  `CE - 신청 완료` 에 GA4 태그와 Meta Pixel 태그가 함께 걸려 있어, 한쪽만 보고 고치면
+  광고 전환 추적이 조용히 깨진다(Meta 는 에러를 안 낸다)
+- **코드가 push 하는 이벤트 이름과 트리거의 이벤트 이름을 코드포인트로 대조한다**
+  ← 한 글자만 달라도 에러 없이 안 잡힌다. 구성 전체는 `ANALYTICS.md`
 
 ---
 
