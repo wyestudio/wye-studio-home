@@ -38,8 +38,9 @@
 /                          홈 — Hero(회차 카드) + ConceptCards + ProcessSteps + FaqSection, 기존 형태 그대로 유지(사용자 요청)
 /about                     About — 브랜드/회사 소개(ConceptCards, 회사 소개 문구는 아직 "준비 중") — 홈에도 동일 컴포넌트가 중복 노출됨(의도됨), NEXT_PUBLIC_ABOUT_ENABLED 환경변수로 배포 시 폐쇄
 /contents                  Contents — 진행 방식(ProcessSteps) + 회차 카드 그리드(회차 상품 목록 허브) — 홈에도 동일 컴포넌트가 중복 노출됨(의도됨)
-/sessions/[slug]           상품 소개 상세 (누구나 조회 가능, slug 기반 URL — 예: `/sessions/0829-meeting`)
-/sessions/[slug]/apply     참가 신청 폼 (로그인 불필요. 비소개팅은 인원 선택+그룹 신청, 소개팅은 1인+성별 선택만)
+/themes/[slug]             테마 상세 + 날짜(회차) 선택 (누구나 조회 가능, slug 기반 URL — 예: `/themes/baotalchul`)
+/themes/[slug]/apply       참가 신청 폼 (로그인 불필요. 3단계 — 정보입력 / 약관동의 / 제출. `?session=<id>` 로 회차를 받는다)
+                           ※ 옛 `/sessions/[slug]` 계열은 2026-09-30 삭제, 테마 페이지로 리다이렉트된다
 /lookup                    Check(참여내역 조회) — 전화번호 + 접수번호로 신청 내역 확인. 네비 라벨만 영문화, URL은 유지
 /notice                    Notice — 공지사항(NoticeSection) + FAQ(FaqSection) 한 페이지에 통합 — 홈에도 FaqSection이 동일하게 중복 노출됨(의도됨)
 /admin/login      어드민 로그인 — 비밀번호 입력 (ADMIN_PASSWORD 환경변수), 성공 시 admin_auth 쿠키 발급(24시간, httpOnly)

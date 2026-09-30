@@ -42,6 +42,11 @@
 | `/notice` | 공지 + FAQ |
 | `/terms`, `/privacy` | 약관 / 개인정보처리방침 |
 
+> ⚠️ **이 표는 2026-09-08 시점이다.** `/sessions/[slug]` 계열 3개와 옛 신청 폼
+> (`src/components/apply/ApplyForm.tsx`)은 **2026-09-30 에 삭제**됐다. 현행은
+> `/themes/[slug]` · `/themes/[slug]/apply?session=<id>` 이고, 옛 주소는 테마 페이지로
+> 리다이렉트된다.
+
 ### 공개 화면 (`src/app/` 루트 — `(site)` 레이아웃 밖)
 
 | 경로 | 설명 |
@@ -87,9 +92,9 @@
 
 | 액션 | 파일 | 호출 RPC |
 |---|---|---|
-| `applyAction` | `sessions/[slug]/apply/actions.ts` | `submit_application` |
+| `applyAction` | `sessions/[slug]/apply/actions.ts` — **2026-09-30 삭제**, 현행은 `themes/[slug]/apply/actions.ts` | `submit_application` → 현행 `submit_application_v3` |
 | `checkNicknameAvailability` | 〃 | `check_nickname_available` |
-| `checkActiveApplicationConflicts` | 〃 | `check_active_applications` |
+| `checkActiveApplicationConflicts` | 〃 | `check_active_applications` → 현행 `_v2` |
 | `lookupAction` | `lookup/actions.ts` | `lookup_application` |
 | `cancelApplicationAction` | 〃 | `cancel_application` |
 
