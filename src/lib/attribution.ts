@@ -107,16 +107,10 @@ export function readAttribution(): Attribution {
 }
 
 /**
- * 옛 신청 폼은 FormData 로 넘어온다. 히든 필드에 담긴 JSON 을 서버에서 푼다.
- *
- * ⚠️ 폼 값은 사용자가 마음대로 바꿀 수 있다. 문자열만 받고, 길이를 자르고,
- *    모르는 키는 버린다.
- */
-/**
  * 밖에서 들어온 값을 믿을 수 있는 모양으로 만든다.
  *
- * ⚠️ 서버 액션 인자든 폼 히든 필드든 전부 사용자가 바꿀 수 있다.
- *    문자열만 받고, 길이를 자르고, 모르는 키는 버린다.
+ * ⚠️ 서버 액션 인자는 사용자가 바꿀 수 있다. 문자열만 받고, 길이를 자르고,
+ *    모르는 키는 버린다.
  *    전부 비어 있으면(직접 방문) null 을 돌려준다 — 빈 칸이 곧 '직접 방문' 이다.
  */
 export function sanitizeAttribution(raw: unknown): Attribution | null {
@@ -137,16 +131,3 @@ export function sanitizeAttribution(raw: unknown): Attribution | null {
   };
   return Object.values(next).some(Boolean) ? next : null;
 }
-
-/** 옛 신청 폼은 FormData 로 넘어온다. 히든 필드에 담긴 JSON 을 서버에서 푼다. */
-export function parseAttributionJson(raw: unknown): Attribution | null {
-  if (typeof raw !== "string" || !raw.trim()) return null;
-  try {
-    return sanitizeAttribution(JSON.parse(raw));
-  } catch {
-    return null;
-  }
-}
-
-/** 옛 폼용 히든 필드 이름. 클라이언트와 서버가 같은 이름을 봐야 한다. */
-export const ATTRIBUTION_FIELD = "attribution";
