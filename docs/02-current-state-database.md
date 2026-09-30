@@ -181,19 +181,21 @@
 `postgres`+`service_role`. **2026-09-08 문서의 "PUBLIC 이라 anon 이 호출 가능" 경고는
 이미 해소됐다** (2026-09-30 재확인: `hash_phone` 직접 호출 시 `permission denied`).
 
-### ⚠️ 옛 세대가 아직 anon 에 열려 있다
+### 옛 세대 — anon 권한 회수됨 (2026-09-30)
 
-| 함수 | 상태 |
-|---|---|
-| `submit_application(uuid,text,bool,bool,jsonb,text,bool,bool)` | **anon 호출 가능** |
-| `submit_application_v2(…)` 2종 | **anon 호출 가능** |
-| `check_active_applications(text[],uuid)` | **anon 호출 가능** |
-| `lookup_application` · `_v2` · `_v3` | **anon 호출 가능** |
+`submit_application`(v1) · `submit_application_v2` 2종 · `check_active_applications`(v1) ·
+`lookup_application` · `_v2` · `_v3` — **총 7종. anon/authenticated/PUBLIC 실행 권한을 회수했다.**
+함수 본체는 그대로 두었으므로 문제가 생기면 `grant execute` 한 줄로 되돌린다.
 
-2026-09-30 확인: anon 키로 `submit_application` 을 직접 호출하면 권한 오류가 아니라
-**로직 오류(`존재하지 않는 회차입니다.`)가 돌아온다** = 함수가 실제로 실행된다.
+⚠️ **`anon` 만 회수하면 안 막히는 경우가 있다.** `lookup_application` 은 `proacl` 이
+`{=X/postgres,…}` 로 **PUBLIC(=X)** 를 품고 있어서, `revoke … from anon` 뒤에도
+`has_function_privilege('anon', …)` 가 계속 `true` 였다. `public` 까지 회수해야 막힌다.
 
-**왜 문제인가** — anon 키는 클라이언트 번들에 들어 있어 공개값이다. 구 함수는
+**회수 전에는** anon 키로 `submit_application` 을 직접 호출하면 권한 오류가 아니라
+로직 오류(`존재하지 않는 회차입니다.`)가 돌아왔다 = 함수가 실제로 실행됐다.
+**지금은 `permission denied for function submit_application` 이 돌아온다**(운영 확인).
+
+**왜 막았나** — anon 키는 클라이언트 번들에 들어 있어 공개값이다. 구 함수는
 `content_group` 기준이라 새 회차에서 재참여를 못 막고, 연령도 옛 출생년도 범위를 쓰며,
 `headcount`·`amount_krw` 를 넣지 않는다. 즉 **REST 를 직접 때리면 현행 규칙을 우회한
 신청을 만들 수 있고, 그 건은 금액이 NULL 로 남는다.**
@@ -208,14 +210,16 @@
 이건 **휴면 고객 경로**다(현행은 `/themes/[slug]/apply`). 라우트 자체는 빌드에 남아 있지만
 `sessions.slug` 가 있는 회차가 **프리오픈 2건뿐이고 둘 다 `closed`** 라 실제로는 닿지 않는다.
 
-그래서 순서는 이렇다:
+순서는 이렇게 잡았고, 지금 2번까지 왔다:
 
-1. `/sessions/[slug]` 계열 휴면 라우트를 정리하거나, 최소한 그 호출을 v3 로 옮긴다
-2. 그 다음 `revoke execute … from anon, authenticated`
-3. 삭제는 그 뒤에 (2026-08-14 에 이 계열 함수를 잘못 지워 서비스가 마비된 적이 있다.
+1. ~~권한 회수~~ **완료 (2026-09-30)** — 되돌릴 수 있는 조치부터
+2. `/sessions/[slug]` 계열 휴면 라우트 4개 파일 정리 ← **다음 차례**
+3. 함수 삭제는 그 뒤에 (2026-08-14 에 이 계열 함수를 잘못 지워 서비스가 마비된 적이 있다.
    `wye-db-release` 의 증거 기반 절차를 따를 것)
 
-**지금 당장은 손대지 않았다.**
+회수해도 프리오픈 회차 신청 경험은 달라지지 않는다 — 두 회차 모두 `closed` 라
+옛 화면이 "정원이 다 차서 마감되었습니다"만 그리고 **폼을 렌더하지 않는다**(운영 확인).
+프리오픈 참가자의 조회·취소도 `lookup_application_v4`·`cancel_application` 이 맡아 영향 없다.
 
 ---
 
