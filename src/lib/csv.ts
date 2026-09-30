@@ -84,3 +84,38 @@ export function parseCsv(text: string): string[][] {
 
   return rows.filter((r) => r.some((c) => c.trim() !== ""));
 }
+
+/**
+ * 골라온(또는 끌어다 놓은) CSV 파일을 문자열로 읽는다.
+ *
+ * ⚠️ 엑셀에서 「CSV (쉼표로 분리)」로 저장하면 UTF-8 이 아니라 CP949 로 나온다.
+ *    UTF-8 로 읽어 한글이 깨지면(U+FFFD) euc-kr 로 다시 읽는다. 코드·인스타
+ *    아이디는 영문이라 깨진 채로도 반영은 되지만, 메모가 깨진 것을 보고
+ *    잘못 올린 줄 알고 되돌리는 일이 없게 한다.
+ *
+ * BOM 은 parseCsv 가 떼므로 여기서 건드리지 않는다.
+ */
+export async function readCsvFile(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  const utf8 = new TextDecoder("utf-8").decode(buf);
+  if (!utf8.includes("\uFFFD")) return utf8; // U+FFFD = 깨진 글자
+  try {
+    return new TextDecoder("euc-kr").decode(buf);
+  } catch {
+    return utf8; // euc-kr 를 모르는 브라우저
+  }
+}
+
+/**
+ * 발송 기록 CSV 의 「코드」·「인스타아이디」 칸 위치.
+ *
+ * ⚠️ 화면 미리보기와 서버 반영이 **같은 규칙**을 써야 한다. 따로 두면
+ *    "11건 반영된다"고 보여주고 실제로는 다른 칸을 읽는 일이 생긴다.
+ */
+export function findIssueColumns(header: string[]): { codeAt: number; handleAt: number } {
+  const h = header.map((x) => x.trim());
+  return {
+    codeAt: h.findIndex((x) => x.includes("코드")),
+    handleAt: h.findIndex((x) => x.includes("아이디")),
+  };
+}

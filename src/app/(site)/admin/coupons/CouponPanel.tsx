@@ -6,7 +6,7 @@ import { CampaignEditor, type CampaignRow } from "./CampaignEditor";
 import { issueCoupons, importIssuedHandles } from "./actions";
 import { formatCouponCode } from "@/lib/coupon";
 import { formatKrw, formatDateFull } from "@/lib/format";
-import { toCsv, downloadCsv, kstStamp } from "@/lib/csv";
+import { toCsv, downloadCsv, kstStamp, parseCsv, readCsvFile, findIssueColumns } from "@/lib/csv";
 
 const field = "rounded border border-border bg-background px-3 py-2 text-sm";
 
@@ -29,6 +29,25 @@ function discountLabel(c: CampaignRow): string {
   // ⚠️ 새 할인 방식을 추가하면 여기도 같이 고쳐야 한다 — 안 그러면 정률로 잘못 표시된다.
   if (c.discount_type === "per_head") return `1인당 ${formatKrw(c.discount_value)} 할인${cap}`;
   return `${c.discount_value}% 할인${cap}`;
+}
+
+/**
+ * 올린 CSV 를 반영 전에 요약한다.
+ *
+ * 줄 수만 보여주면 안 된다 — 발송 기록에는 「미발송」 줄이 섞여 있어(아이디가 비어 있다)
+ * 300줄짜리 파일에서 실제로 반영되는 건 11건뿐인 일이 흔하다. 그 차이를 미리 보여줘야
+ * 반영 결과를 보고 "덜 들어갔다"고 놀라지 않는다.
+ */
+function summarizeCsv(text: string): { rows: number; withHandle: number } | null {
+  const parsed = parseCsv(text);
+  if (parsed.length < 2) return null;
+  const { codeAt, handleAt } = findIssueColumns(parsed[0]);
+  if (codeAt < 0 || handleAt < 0) return null;
+  const body = parsed.slice(1);
+  return {
+    rows: body.length,
+    withHandle: body.filter((r) => (r[codeAt] ?? "").trim() && (r[handleAt] ?? "").trim()).length,
+  };
 }
 
 function periodLabel(c: CampaignRow): string {
@@ -60,8 +79,11 @@ export function CouponPanel({
   const [error, setError] = useState<string | null>(null);
   // 발송 기록 CSV 반영 (캠페인별로 따로 들고 있는다)
   const [csvInputs, setCsvInputs] = useState<Record<string, string>>({});
+  const [csvNames, setCsvNames] = useState<Record<string, string>>({});
   const [csvResult, setCsvResult] = useState<Record<string, string>>({});
   const [busyCsv, setBusyCsv] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [showPaste, setShowPaste] = useState<string | null>(null);
 
   async function issue(campaignId: string) {
     setBusy(true);
@@ -71,6 +93,57 @@ export function CouponPanel({
     setBusy(false);
     if ("error" in result) return setError(result.error);
     setIssued(result.codes);
+    router.refresh();
+  }
+
+  /** 골라온 / 끌어다 놓은 파일을 읽어 반영 대기 상태로 만든다. */
+  async function loadCsvFile(campaignId: string, file: File) {
+    setCsvResult((p) => ({ ...p, [campaignId]: "" }));
+    if (!/\.csv$/i.test(file.name)) {
+      setCsvResult((p) => ({ ...p, [campaignId]: "⚠️ CSV 파일만 올릴 수 있어요." }));
+      return;
+    }
+    const text = await readCsvFile(file);
+    if (!text.trim()) {
+      setCsvResult((p) => ({ ...p, [campaignId]: "⚠️ 파일이 비어 있어요." }));
+      return;
+    }
+    setCsvInputs((p) => ({ ...p, [campaignId]: text }));
+    setCsvNames((p) => ({ ...p, [campaignId]: file.name }));
+  }
+
+  function clearCsv(campaignId: string) {
+    setCsvInputs((p) => ({ ...p, [campaignId]: "" }));
+    setCsvNames((p) => ({ ...p, [campaignId]: "" }));
+    setCsvResult((p) => ({ ...p, [campaignId]: "" }));
+  }
+
+  /** 들고 있는 CSV 내용을 반영한다. 파일·붙여넣기 두 경로가 이 함수를 같이 쓴다. */
+  async function applyCsv(campaignId: string, campaignKey: string) {
+    setBusyCsv(campaignId);
+    setCsvResult((p) => ({ ...p, [campaignId]: "" }));
+    const res = await importIssuedHandles(campaignKey, csvInputs[campaignId] ?? "");
+    setBusyCsv(null);
+    if ("error" in res) {
+      setCsvResult((p) => ({ ...p, [campaignId]: `⚠️ ${res.error}` }));
+    } else {
+      // 건수는 전체를 쓰고, 뒤에 붙는 목록은 예시일 뿐이다(서버가 10개로 자른다).
+      const 예시 = (전체: number, 목록: string[]) =>
+        목록.length ? ` — ${목록.join(", ")}${전체 > 목록.length ? " …" : ""}` : "";
+      const 부분 = [`반영 ${res.applied}건`, `이미 반영됨 ${res.unchanged}건`];
+      if (res.notFoundCount)
+        부분.push(`없는 코드 ${res.notFoundCount}건${예시(res.notFoundCount, res.notFound)}`);
+      if (res.conflictCount)
+        부분.push(`충돌 ${res.conflictCount}건${예시(res.conflictCount, res.conflicts)}`);
+      if (res.duplicateHandleCount)
+        부분.push(
+          `중복 아이디 ${res.duplicateHandleCount}건${예시(res.duplicateHandleCount, res.duplicateHandles)}`
+        );
+      setCsvResult((p) => ({ ...p, [campaignId]: 부분.join(" · ") }));
+      // 반영된 내용은 비운다 — 남겨두면 같은 파일을 또 누르게 된다.
+      setCsvInputs((p) => ({ ...p, [campaignId]: "" }));
+      setCsvNames((p) => ({ ...p, [campaignId]: "" }));
+    }
     router.refresh();
   }
 
@@ -225,50 +298,113 @@ export function CouponPanel({
                       <div className="mb-3 rounded border border-border bg-background/40 p-3">
                         <p className="text-xs font-semibold">발송 기록 CSV 반영</p>
                         <p className="mt-1 text-[11px] text-muted">
-                          외부 발송 도구에서 내보낸 CSV 를 붙여넣으면 「받아간 계정」에 반영됩니다.
-                          같은 CSV 를 여러 번 넣어도 안전해요. 이미 다른 아이디가 적힌 코드는
-                          덮어쓰지 않고 알려드립니다.
+                          외부 발송 도구에서 내보낸 CSV 파일을 그대로 올리면 「받아간 계정」에
+                          반영됩니다. 같은 파일을 여러 번 올려도 안전해요. 이미 다른 아이디가 적힌
+                          코드는 덮어쓰지 않고 알려드립니다.
                           <br />
                           ⚠️ <strong className="text-foreground">이 쿠폰은 외부 도구에서만 발급합니다.</strong>{" "}
                           여기서 따로 발급하면 같은 코드가 두 사람에게 갈 수 있어요.
                         </p>
-                        <textarea
-                          className="mt-2 h-24 w-full rounded border border-border bg-background p-2 font-mono text-[11px]"
-                          placeholder={'"코드","메모","발송여부","인스타아이디","발송일시"\n"E01Y-07TY",...'}
-                          value={csvInputs[c.id] ?? ""}
-                          onChange={(e) => setCsvInputs((p) => ({ ...p, [c.id]: e.target.value }))}
-                        />
+
+                        {/*
+                          파일을 끌어다 놓거나 골라서 올린다.
+                          예전에는 CSV 를 편집기로 열어 텍스트로 붙여넣어야 했다 —
+                          붙여넣기 칸은 아래에 접어서 남겨둔다(엑셀에서 몇 줄만 복사할 때 쓴다).
+                        */}
+                        <div
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            setDragOver(c.id);
+                          }}
+                          onDragLeave={() => setDragOver(null)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setDragOver(null);
+                            const f = e.dataTransfer.files?.[0];
+                            if (f) void loadCsvFile(c.id, f);
+                          }}
+                          className={`mt-2 flex flex-col items-center gap-2 rounded border border-dashed px-3 py-5 text-center ${
+                            dragOver === c.id ? "border-glow bg-glow/5" : "border-border"
+                          }`}
+                        >
+                          <p className="text-[11px] text-muted">CSV 파일을 여기에 끌어다 놓으세요</p>
+                          <label className="cursor-pointer rounded border border-border px-3 py-1.5 text-xs hover:bg-muted/30">
+                            파일 고르기
+                            <input
+                              type="file"
+                              accept=".csv,text/csv"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) void loadCsvFile(c.id, f);
+                                e.target.value = ""; // 같은 파일을 다시 골라도 이벤트가 나게 한다
+                              }}
+                            />
+                          </label>
+                        </div>
+
+                        {(csvInputs[c.id] ?? "").trim() &&
+                          (() => {
+                            const 요약 = summarizeCsv(csvInputs[c.id] ?? "");
+                            return (
+                              <p className="mt-2 rounded bg-glow/10 px-3 py-2 text-xs">
+                                <strong>{csvNames[c.id] || "붙여넣은 내용"}</strong>
+                                <span className="ml-2 text-muted">
+                                  {요약
+                                    ? `${요약.rows}줄 중 아이디가 적힌 ${요약.withHandle}건이 반영 대상입니다 — 아래 「CSV 반영」을 누르세요`
+                                    : "「코드」·「인스타아이디」 칸을 찾지 못했어요. 파일을 확인해주세요."}
+                                </span>
+                              </p>
+                            );
+                          })()}
+
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <button
                             type="button"
                             disabled={busyCsv === c.id || !(csvInputs[c.id] ?? "").trim()}
-                            onClick={async () => {
-                              setBusyCsv(c.id);
-                              setCsvResult((p) => ({ ...p, [c.id]: "" }));
-                              const res = await importIssuedHandles(c.key!, csvInputs[c.id] ?? "");
-                              setBusyCsv(null);
-                              if ("error" in res) {
-                                setCsvResult((p) => ({ ...p, [c.id]: `⚠️ ${res.error}` }));
-                              } else {
-                                const 부분 = [`반영 ${res.applied}건`, `이미 반영됨 ${res.unchanged}건`];
-                                if (res.notFound.length) 부분.push(`없는 코드 ${res.notFound.length}건`);
-                                if (res.conflicts.length)
-                                  부분.push(`충돌 ${res.conflicts.length}건 — ${res.conflicts.join(", ")}`);
-                                if (res.duplicateHandles.length)
-                                  부분.push(`중복 아이디 ${res.duplicateHandles.length}건 — ${res.duplicateHandles.join(", ")}`);
-                                setCsvResult((p) => ({ ...p, [c.id]: 부분.join(" · ") }));
-                                setCsvInputs((p) => ({ ...p, [c.id]: "" }));
-                              }
-                              router.refresh();
-                            }}
+                            onClick={() => void applyCsv(c.id, c.key!)}
                             className="rounded border border-border px-3 py-2 text-xs hover:bg-muted/30 disabled:opacity-40"
                           >
                             {busyCsv === c.id ? "반영 중…" : "CSV 반영"}
                           </button>
+                          {(csvInputs[c.id] ?? "").trim() && (
+                            <button
+                              type="button"
+                              onClick={() => clearCsv(c.id)}
+                              className="rounded border border-border px-3 py-2 text-xs text-muted hover:bg-muted/30"
+                            >
+                              비우기
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowPaste(showPaste === c.id ? null : c.id)}
+                            className="text-[11px] text-muted underline"
+                          >
+                            {showPaste === c.id ? "붙여넣기 칸 접기" : "직접 붙여넣기"}
+                          </button>
                           {csvResult[c.id] && (
-                            <span className="text-xs text-glow">{csvResult[c.id]}</span>
+                            <span
+                              className={`text-xs ${
+                                csvResult[c.id].startsWith("⚠️") ? "text-red-400" : "text-glow"
+                              }`}
+                            >
+                              {csvResult[c.id]}
+                            </span>
                           )}
                         </div>
+
+                        {showPaste === c.id && (
+                          <textarea
+                            className="mt-2 h-24 w-full rounded border border-border bg-background p-2 font-mono text-[11px]"
+                            placeholder={'"코드","메모","발송여부","인스타아이디","발송일시"\n"E01Y-07TY",...'}
+                            value={csvInputs[c.id] ?? ""}
+                            onChange={(e) => {
+                              setCsvInputs((p) => ({ ...p, [c.id]: e.target.value }));
+                              setCsvNames((p) => ({ ...p, [c.id]: "" }));
+                            }}
+                          />
+                        )}
                       </div>
                     )}
 

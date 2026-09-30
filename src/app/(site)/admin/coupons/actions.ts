@@ -5,7 +5,7 @@ import { EVENT_BUBBLE_TAG } from "@/lib/siteSettings";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
 import { generateUniqueCodes, isValidCouponPrefix, FORBIDDEN_PREFIXES } from "@/lib/couponCode";
-import { parseCsv } from "@/lib/csv";
+import { parseCsv, findIssueColumns } from "@/lib/csv";
 
 /**
  * 쿠폰 캠페인·코드 관리.
@@ -165,11 +165,19 @@ export type ImportResult =
       applied: number;
       /** 이미 같은 값으로 들어 있던 건 (다시 넣어도 안전하다) */
       unchanged: number;
-      /** 코드가 이 캠페인에 없어 건너뛴 건 */
+      /**
+       * 건너뛴 건의 **전체 건수**.
+       * ⚠️ 아래 목록은 화면이 감당할 만큼만 잘라 보내므로 길이로 세면 안 된다 —
+       *    11건 빠졌는데 "10건"이라고 보고하면 대표님이 다 들어간 줄 안다.
+       */
+      notFoundCount: number;
+      conflictCount: number;
+      duplicateHandleCount: number;
+      /** 코드가 이 캠페인에 없어 건너뛴 건 (앞 10개 예시) */
       notFound: string[];
-      /** 같은 코드에 다른 아이디가 이미 있어 건드리지 않은 건 */
+      /** 같은 코드에 다른 아이디가 이미 있어 건드리지 않은 건 (앞 10개 예시) */
       conflicts: string[];
-      /** 한 아이디가 여러 코드에 걸려 있어 건너뛴 건 */
+      /** 한 아이디가 여러 코드에 걸려 있어 건너뛴 건 (앞 10개 예시) */
       duplicateHandles: string[];
     }
   | { error: string };
@@ -196,9 +204,7 @@ export async function importIssuedHandles(
     const rows = parseCsv(csvText);
     if (rows.length < 2) return { error: "CSV 내용이 비어 있어요." };
 
-    const header = rows[0].map((h) => h.trim());
-    const codeAt = header.findIndex((h) => h.includes("코드"));
-    const handleAt = header.findIndex((h) => h.includes("아이디"));
+    const { codeAt, handleAt } = findIssueColumns(rows[0]);
     if (codeAt < 0 || handleAt < 0) {
       return { error: "CSV 에 '코드' 와 '인스타아이디' 칸이 있어야 해요." };
     }
@@ -267,6 +273,9 @@ export async function importIssuedHandles(
       success: true as const,
       applied: toUpdate.length,
       unchanged,
+      notFoundCount: notFound.length,
+      conflictCount: conflicts.length,
+      duplicateHandleCount: duplicateHandles.length,
       notFound: notFound.slice(0, 10),
       conflicts: conflicts.slice(0, 10),
       duplicateHandles: duplicateHandles.slice(0, 10),
