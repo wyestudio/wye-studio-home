@@ -13,8 +13,7 @@ import type { Popup } from "@/types/popup";
  *   - 배경을 눌러도 닫힌다. Esc 로도 닫힌다
  *   - '오늘 하루 보지 않기' 가 닫기 버튼과 같은 줄에 있다 — 체크하러 따로
  *     움직이지 않아도 된다
- *   - 모바일은 가운데 띄우지 않고 **아래에서 올라온다.** 가운데 모달은
- *     닫기 버튼이 엄지에서 제일 먼 자리에 놓인다
+ *   - 화면 폭과 무관하게 **가운데**에 띄운다(2026-10-01 요청)
  *
  * ⚠️ 페이지가 그려지자마자 띄우지 않는다. 화면이 안정된 뒤(250ms) 부드럽게
  *    올라와야 "잘못 눌렀나" 싶은 느낌이 덜하다.
@@ -86,7 +85,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
   const content = (
     <>
       {hasImage && (
-        <div className="relative w-full overflow-hidden rounded-t-2xl bg-surface">
+        <div className="relative w-full overflow-hidden bg-surface">
           {/*
             비율을 모르는 이미지라 높이를 정해 두고 contain 으로 넣는다.
             cover 로 채우면 운영자가 올린 문구 윗줄이 잘려 나간다.
@@ -116,7 +115,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
 
   return (
     <div
-      className="animate-fade-in fixed inset-0 z-[60] flex items-end justify-center sm:items-center"
+      className="animate-fade-in fixed inset-0 z-[60] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-label="이벤트 안내"
@@ -129,9 +128,14 @@ export function SitePopup({ popup }: { popup: Popup }) {
         className="absolute inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-[2px]"
       />
 
+      {/*
+        ⚠️ 높이를 화면의 90% 로 묶고 **내용만** 스크롤시킨다. 가운데 모달은 길어지면
+           위아래가 동시에 잘리는데, 그때 잘려 나가는 게 하필 '닫기' 줄이다.
+           닫을 수 없는 팝업이 제일 나쁘므로 아래 줄은 스크롤 밖에 붙박이로 둔다.
+      */}
       <div
-        className="animate-scale-in relative z-10 w-full max-w-[26rem] overflow-hidden rounded-t-2xl
-                   border border-white/15 bg-background shadow-2xl sm:rounded-2xl"
+        className="animate-scale-in relative z-10 flex max-h-[90dvh] w-full max-w-[26rem] flex-col
+                   overflow-hidden rounded-2xl border border-white/15 bg-background shadow-2xl"
       >
         {/* 닫기 X. 글자가 아니라 SVG 다 — 본문 글꼴에 없는 기호를 쓰면 기기마다 다르게 보인다. */}
         <button
@@ -151,6 +155,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
           </svg>
         </button>
 
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
         {popup.link_url ? (
           <Link href={popup.link_url} onClick={close} className="block">
             {content}
@@ -172,12 +177,14 @@ export function SitePopup({ popup }: { popup: Popup }) {
             </Link>
           </div>
         )}
+        </div>
 
         {/*
           하단 줄. '오늘 하루 보지 않기' 와 '닫기' 를 한 줄에 둔다.
           체크만 하고 닫지 않는 사람이 없도록, 체크박스를 눌러도 닫히지는 않는다.
+          ⚠️ 위 스크롤 영역 **바깥**이다 — 내용이 길어도 항상 보여야 한다.
         */}
-        <div className="mt-4 flex items-center justify-between border-t border-white/10 px-4 py-3">
+        <div className="flex shrink-0 items-center justify-between border-t border-white/10 px-4 py-3">
           <label className="flex cursor-pointer select-none items-center gap-2 py-1 pr-2 text-xs text-muted sm:text-sm">
             <input
               type="checkbox"
