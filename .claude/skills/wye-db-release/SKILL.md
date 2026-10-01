@@ -71,6 +71,18 @@ values ('20260915100000', 'p29_application_utm')
 on conflict (version) do nothing;
 ```
 
+**테스트에서 만든 데이터를 운영으로 옮길 때, 파일 주소가 테스트를 가리키지 않는지
+확인한다.** 어드민에서 올린 이미지는 **그 환경의 스토리지**에 저장되므로, 행만 복사하면
+운영이 테스트 버킷을 바라본 채로 돌아간다 ← 테스트 프로젝트를 정리하는 날 운영 화면이
+깨진다. 파일은 운영 버킷에 새로 올리고 그 주소로 바꿔 넣는다.
+
+```sql
+-- 운영에 넣기 전후로 돌려본다. 한 줄이라도 나오면 아직 테스트를 가리키고 있다.
+select 'popups' as 표, id, image_url from popups where image_url like '%ksjyfcafhlmqirfeksrp%'
+union all
+select 'themes', id, hero_image_path from themes where hero_image_path like '%ksjyfcafhlmqirfeksrp%';
+```
+
 **계기 (2026-09-15 운영 장애)**
   테마 상세 재작업을 운영에 올리면서 내가 만든 마이그레이션 3개(p31b·p32·p33)만
   적용하고, 같은 날 다른 세션이 만든 2개(p30 genres, p31 theme_categories
