@@ -3,11 +3,21 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
-import { PriceTable } from "@/components/contents/PriceTable";
+import { PriceTable, PriceTableEarlyBirdNote, type PriceTablePromo } from "@/components/contents/PriceTable";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import { VenueCard } from "@/components/contents/VenueCard";
 import { THEME_BLOCK_LABELS, type ThemeBlock, type ThemePriceTier, type PublicVenue } from "@/types/catalog";
 import { SCREEN_BODY, SCREEN_INNER, SCREEN_SECTION } from "@/components/contents/screenSection";
+
+/**
+ * 가격표 블록이 쓸 프로모션. 켜져 있지 않으면 null 이고, 그때는 표가
+ * 예전 2칸 그대로다. 숫자는 블록이 아니라 프로모션이 들고 있다 —
+ * 가격을 두 곳에 적어두면 반드시 한쪽만 고치는 날이 온다.
+ */
+export type ThemeBlocksPromo = PriceTablePromo & {
+  /** 표 아래 한 줄 안내의 오른쪽 단서. 예: '쿠폰 중복 적용 가능' */
+  note: string | null;
+};
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
@@ -29,6 +39,7 @@ export function ThemeBlocks({
   tiers = [],
   maxGroupSize = null,
   venue = null,
+  promo = null,
 }: {
   blocks: ThemeBlock[];
   accent: string;
@@ -37,6 +48,8 @@ export function ThemeBlocks({
   maxGroupSize?: number | null;
   /** 장소 블록이 쓸 공개용 장소 정보. 이것도 테마가 들고 있는 값이다. */
   venue?: PublicVenue | null;
+  /** 켜져 있는 프로모션. 가격표 블록에만 쓰인다. */
+  promo?: ThemeBlocksPromo | null;
 }) {
   // 숨긴 블록은 고객 화면에서만 빠진다. 어드민에는 그대로 남아 있다.
   // 요금 구간이 하나도 없는 테마의 가격표 블록은 제목만 덩그러니 남으므로 뺀다. 장소도 같다.
@@ -78,6 +91,7 @@ export function ThemeBlocks({
                     tiers={tiers}
                     maxGroupSize={maxGroupSize}
                     venue={venue}
+                    promo={promo}
                   />
                 </div>
               ))}
@@ -107,12 +121,14 @@ export function ThemeBlockView({
   tiers = [],
   maxGroupSize = null,
   venue = null,
+  promo = null,
 }: {
   block: ThemeBlock;
   accent: string;
   tiers?: ThemePriceTier[];
   maxGroupSize?: number | null;
   venue?: PublicVenue | null;
+  promo?: ThemeBlocksPromo | null;
 }) {
   // 제목은 전부 가운데. 블록마다 왼쪽/가운데가 섞이면 시선이 계속 튄다.
   // included 도 라벨·제목을 달 수 있다. 다만 기본은 비워 두는 쪽이다 —
@@ -137,7 +153,22 @@ export function ThemeBlockView({
       */}
       {block.type === "price" && (
         <div className="mx-auto w-full max-w-3xl">
-          <PriceTable tiers={tiers} maxGroupSize={maxGroupSize} accent={accent} size="lg" />
+          <PriceTable
+            tiers={tiers}
+            maxGroupSize={maxGroupSize}
+            accent={accent}
+            size="lg"
+            promo={promo}
+          />
+          {/* 안내 줄은 **테마 상세의 가격표 아래에만** 둔다. 신청 3단계에는
+              이미 고른 회차가 있어서 "얼리버드 표시된 회차" 를 다시 찾을 일이 없다. */}
+          {promo && (
+            <PriceTableEarlyBirdNote
+              badgeLabel={promo.label}
+              note={promo.note}
+              accent={promo.accentColor}
+            />
+          )}
         </div>
       )}
 

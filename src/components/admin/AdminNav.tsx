@@ -30,6 +30,7 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
   {
     label: "마케팅",
     items: [
+      { href: "/promotions", label: "프로모션" },
       { href: "/sponsorships", label: "협찬 신청" },
       { href: "/review-paybacks", label: "후기 페이백" },
       { href: "/coupons", label: "쿠폰" },
@@ -41,7 +42,10 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
   },
   {
     label: "콘텐츠",
-    items: [{ href: "/content", label: "공지·FAQ" }],
+    items: [
+      { href: "/content", label: "공지·FAQ" },
+      { href: "/popups", label: "접속 팝업" },
+    ],
   },
   {
     label: "설정",

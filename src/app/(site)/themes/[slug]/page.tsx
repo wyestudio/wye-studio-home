@@ -9,6 +9,9 @@ import {
   isBookable,
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
+import { SitePopupMount } from "@/components/promo/SitePopupMount";
+import { getActivePromotion, promotionTiersForTheme } from "@/lib/promotions";
+import { isEarlyBirdSession, maxDiscountLabel, promotionUnitPrice } from "@/lib/promotion";
 import { ThemeSpecTiles, ThemeGenreTile } from "@/components/contents/ThemeSpecs";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -114,11 +117,48 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   const rawSessions = await getUpcomingSessionsForTheme(theme.id);
   const withStats = await attachStats(rawSessions);
 
+  /*
+    프로모션(얼리버드).
+
+    ⚠️ 어느 회차가 대상인지는 **여기 서버에서** 판정해 화면에 내려준다.
+       브라우저에서 다시 계산하면 시계가 틀어진 기기에서 "화면엔 얼리버드,
+       제출하면 기본가" 가 된다. 실제 청구액은 신청 순간 DB 가 또 한 번
+       판정한다(submit_application_v3 → resolve_promotion_price).
+  */
+  const activePromo = await getActivePromotion();
+  const promoTiers = promotionTiersForTheme(activePromo, theme.id);
+  const now = new Date();
+
   const sessions: PickerSession[] = withStats.map((s) => ({
     ...s,
     remaining: remainingSeats(s, s.stats),
     bookable: isBookable(s, s.stats),
+    earlyBird:
+      activePromo !== null &&
+      promoTiers.length > 0 &&
+      isEarlyBirdSession(activePromo.promo, s.start_at, now),
   }));
+
+  /*
+    실제로 **지금 얼리버드로 신청할 수 있는 회차가 하나라도 있을 때만** 프로모션
+    화면을 켠다. 기간은 열려 있는데 남은 회차가 전부 7일 안쪽이면, 받을 수 없는
+    할인가를 표에 세워 두는 꼴이 된다.
+  */
+  const promoUsable =
+    activePromo !== null && promoTiers.length > 0 && sessions.some((s) => s.earlyBird && s.bookable);
+
+  // 배너의 '최대 N% OFF'. 운영자가 문구를 직접 적었으면 그게 이긴다.
+  const promoHighlight = promoUsable
+    ? maxDiscountLabel(
+        activePromo!.promo,
+        theme.tiers
+          .map((t) => ({
+            base: t.unit_price_krw,
+            promo: promotionUnitPrice(promoTiers, t.min_headcount),
+          }))
+          .filter((p): p is { base: number; promo: number } => p.promo !== null)
+      )
+    : null;
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
   // 조인 결과라 타입에 없다. 없으면 카테고리 줄을 통째로 생략한다.
@@ -318,6 +358,18 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               accentColor={accent}
               accepting={acceptingApplications}
               openingDate={theme.opening_date}
+              promo={
+                promoUsable
+                  ? {
+                      badgeLabel: activePromo!.promo.badge_label,
+                      accentColor: activePromo!.promo.accent_color,
+                      bannerTitle: activePromo!.promo.banner_title || activePromo!.promo.name,
+                      bannerBody: activePromo!.promo.banner_body,
+                      bannerHighlight: promoHighlight,
+                      bannerNote: activePromo!.promo.banner_note,
+                    }
+                  : null
+              }
             />
           </Suspense>
         </div>
@@ -337,6 +389,16 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           tiers={theme.tiers}
           maxGroupSize={theme.max_group_size}
           venue={theme.venue}
+          promo={
+            promoUsable
+              ? {
+                  label: activePromo!.promo.badge_label,
+                  accentColor: activePromo!.promo.accent_color,
+                  tiers: promoTiers,
+                  note: activePromo!.promo.banner_note,
+                }
+              : null
+          }
         />
       </div>
 
@@ -364,6 +426,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}
       <KakaoChannelButton />
+
+      {/* 접속 팝업. 운영자가 이 화면을 노출 대상으로 고른 팝업만 뜬다. */}
+      <SitePopupMount page="theme_detail" />
     </main>
   );
 }

@@ -61,6 +61,14 @@ export type AuditAction =
   // 유입경로 링크 (분석·홍보용 — 신청·정산에 영향 없음)
   | "utm_link.saved"
   | "utm_link.status"
+  // 프로모션 (금액이 바뀐다 — "그때 얼마였나" 를 되짚을 수 있어야 한다)
+  | "promotion.saved"
+  | "promotion.deleted"
+  | "promotion.activated"
+  | "promotion.deactivated"
+  // 접속 팝업 (고객 전원에게 바로 노출된다)
+  | "popup.saved"
+  | "popup.deleted"
   // 광고 문자 (정보통신망법 — 누구에게 언제 보냈는지, 거부를 언제 받았는지 남긴다)
   | "marketing_sms.sent"
   | "marketing_optout.added"
@@ -81,7 +89,9 @@ export type AuditTargetType =
   | "slack_template"
   | "site_setting"
   | "utm_link"
-  | "marketing_sms";
+  | "marketing_sms"
+  | "promotion"
+  | "popup";
 
 /** 요청한 브라우저의 IP·UA. 공유 계정이라 이거라도 남겨야 구분이 된다. */
 async function requestContext(): Promise<{ ip: string | null; ua: string | null }> {

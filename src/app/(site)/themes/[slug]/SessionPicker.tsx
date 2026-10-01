@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 import { BookingCalendar } from "@/components/booking/BookingCalendar";
+import { EarlyBirdBanner } from "@/components/promo/EarlyBirdBanner";
 import { scrollToBooking } from "./scrollToBooking";
 import { DETAIL_EVENT, pushGa4Event } from "@/lib/analytics";
 
@@ -12,6 +13,14 @@ export type PickerSession = SessionView & {
   stats: SessionStats | null;
   remaining: number | null;
   bookable: boolean;
+  /**
+   * 얼리버드 대상 회차인가.
+   *
+   * ⚠️ **서버가 판정해서 내려준다.** 여기서 브라우저 시각으로 다시 계산하면,
+   *    시계가 틀어진 기기에서 화면엔 얼리버드로 보이는데 제출하면 기본가가
+   *    청구되는 일이 생긴다(판정 기준은 src/lib/promotion.ts 주석 참고).
+   */
+  earlyBird: boolean;
 };
 
 const kstDate = (iso: string) =>
@@ -46,6 +55,15 @@ const kstTime = (iso: string) =>
  * 예전에는 포스터 옆 칸에 있었는데(2026-09-15 까지), 그 자리를 난이도·시간·
  * 장르·시놉시스에 내주고 상세 설명 블록처럼 아래 섹션으로 내려왔다.
  */
+export type PickerPromotion = {
+  badgeLabel: string;
+  accentColor: string;
+  bannerTitle: string;
+  bannerBody: string | null;
+  bannerHighlight: string | null;
+  bannerNote: string | null;
+};
+
 export function SessionPicker({
   themeSlug,
   themeName,
@@ -53,6 +71,7 @@ export function SessionPicker({
   accentColor,
   accepting,
   openingDate,
+  promo = null,
 }: {
   themeSlug: string;
   /** GA4 에 실어 보낼 테마명. 다른 이벤트들과 같은 값(theme.name)이어야 한다. */
@@ -63,6 +82,11 @@ export function SessionPicker({
   openingDate: string | null;
   /** 테마가 '신청 받기' 상태인가. false 면 회차가 있어도 신청할 수 없다. */
   accepting: boolean;
+  /**
+   * 켜져 있는 프로모션. 없으면 배너·색·배지가 통째로 빠지고 예전 화면 그대로다.
+   * 어느 회차가 대상인지는 각 회차의 earlyBird 가 들고 있다(서버 판정).
+   */
+  promo?: PickerPromotion | null;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -79,8 +103,14 @@ export function SessionPicker({
   }, [sessions]);
 
   const dateStatus = useMemo(() => {
-    const map = new Map<string, { hasOpen: boolean }>();
-    for (const [d, list] of byDate) map.set(d, { hasOpen: list.some((s) => s.bookable) });
+    const map = new Map<string, { hasOpen: boolean; hasEarlyBird: boolean }>();
+    for (const [d, list] of byDate)
+      map.set(d, {
+        hasOpen: list.some((s) => s.bookable),
+        // 하루 안에서 회차마다 갈리지는 않는다(판정 기준이 날짜라서). 그래도
+        // some 으로 보는 건, 마감된 회차만 남은 날도 색은 유지돼야 해서다.
+        hasEarlyBird: list.some((s) => s.earlyBird),
+      });
     return map;
   }, [byDate]);
 
@@ -137,6 +167,8 @@ export function SessionPicker({
           accentColor={accentColor}
           openingDate={openingDate}
           onSelect={selectDate}
+          promoColor={promo?.accentColor ?? null}
+          promoLabel={promo?.badgeLabel ?? "얼리버드"}
         />
       </div>
 
@@ -157,11 +189,16 @@ export function SessionPicker({
             이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
           </p>
         ) : (
-          /* 시각만 크게. 고를 수 없는 회차에만 '마감' 을 덧붙인다 —
-             모두 예약 가능한 날에 '예약 가능' 이 반복되면 읽을 게 없다. */
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          /*
+            회차는 **한 줄에 하나씩** 쌓는다(2026-10-01). 예전에는 2~3열 격자였는데,
+            칸이 좁아 시각 말고는 아무것도 못 붙였다. 한 줄을 다 쓰면 왼쪽에 시각,
+            오른쪽에 상태(얼리버드·마감)를 두는 자리가 생긴다.
+            '예약 가능' 은 적지 않는다 — 모두 가능한 날엔 읽을 게 없는 줄이 된다.
+          */
+          <div className="flex flex-col gap-2">
             {daySessions.map((s) => {
               const isActive = s.id === selectedId;
+              const showEarlyBird = Boolean(promo && s.earlyBird && s.bookable);
               return (
                 <button
                   key={s.id}
@@ -186,20 +223,22 @@ export function SessionPicker({
                   //    클릭 자체를 삼켜서 '마감을 눌러봤다' 를 잴 방법이 없다.
                   //    고를 수 없는 건 위 onClick 이 early return 으로 막는다.
                   aria-disabled={!s.bookable}
-                  className={`relative rounded-lg border py-3 text-center transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-40 lg:py-4 ${
+                  className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-40 lg:px-5 lg:py-4 ${
                     isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
                   }`}
                   style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
                 >
+                  <p className="text-base font-bold tabular-nums lg:text-lg">{kstTime(s.start_at)}</p>
+
                   {/*
-                    회차 태그(sessions.badge). 쇼핑몰 상품 목록의 'BEST' 처럼 **칸 모서리에 걸친**
-                    작은 알약이다(2026-09-16). 회차가 여럿 열려 있으면 "아무도 신청 안 했나?" 싶어
-                    망설인다는 의견이 있어, 사람이 몰리는 시각을 눈에 띄게 한다.
+                    회차 태그(sessions.badge). 회차가 여럿 열려 있으면 "아무도 신청
+                    안 했나?" 싶어 망설인다는 의견이 있어, 사람이 몰리는 시각을
+                    눈에 띄게 한다(2026-09-16).
                     ⚠️ 고른 칸은 배경이 강조색이라 같은 색 알약은 묻힌다 — 그때는 어두운 알약으로 뒤집는다.
                   */}
                   {s.badge && s.bookable && (
                     <span
-                      className={`absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-extrabold leading-tight shadow-sm sm:text-[11px] ${
+                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-extrabold leading-tight sm:text-[11px] ${
                         isActive ? "bg-[#0a0a12] text-white" : ""
                       }`}
                       style={isActive ? undefined : { backgroundColor: accentColor, color: "#0a0a12" }}
@@ -207,11 +246,41 @@ export function SessionPicker({
                       {s.badge}
                     </span>
                   )}
-                  <p className="text-base font-bold lg:text-lg">{kstTime(s.start_at)}</p>
-                  {!s.bookable && <p className="mt-0.5 text-xs text-muted">마감</p>}
+
+                  <span className="ml-auto flex items-center gap-2">
+                    {/*
+                      얼리버드 배지. 고른 칸에서도 **분홍 그대로** 둔다 — 달력과
+                      같은 색이어야 "분홍 = 얼리버드" 가 한 가지 뜻으로 읽힌다.
+                    */}
+                    {showEarlyBird && (
+                      <span
+                        className="whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-tight sm:text-xs"
+                        style={{ backgroundColor: promo!.accentColor, color: "#0a0a12" }}
+                      >
+                        {promo!.badgeLabel}
+                      </span>
+                    )}
+                    {!s.bookable && <span className="text-xs text-muted">마감</span>}
+                  </span>
                 </button>
               );
             })}
+          </div>
+        )}
+
+        {/*
+          얼리버드 안내. 회차 목록 **아래**에 둔다 — 배지를 먼저 본 뒤에 "저게
+          뭐지" 로 내려오는 순서다. 위에 두면 아직 못 본 배지를 설명하게 된다.
+        */}
+        {promo && (
+          <div className="mt-3">
+            <EarlyBirdBanner
+              title={promo.bannerTitle}
+              body={promo.bannerBody}
+              highlight={promo.bannerHighlight}
+              note={promo.bannerNote}
+              accent={promo.accentColor}
+            />
           </div>
         )}
 

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { formatKrw } from "@/lib/format";
-import { PriceTable } from "@/components/contents/PriceTable";
+import { PriceTable, type PriceTablePromo } from "@/components/contents/PriceTable";
+import { discountPercent, promotionUnitPrice } from "@/lib/promotion";
 import { resolveUnitPrice, type ThemePriceTier } from "@/types/catalog";
 import { Select } from "@/components/ui/Select";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
@@ -118,6 +119,7 @@ export function ApplyForm({
   initialCouponCode,
   categoryName,
   backHref,
+  promo = null,
 }: {
   sessionId: string;
   themeId: string;
@@ -132,6 +134,12 @@ export function ApplyForm({
   maxGroupSize: number | null;
   tiers: ThemePriceTier[];
   accentColor: string;
+  /**
+   * 이 회차에 적용되는 프로모션. **서버가 "이 회차는 얼리버드다" 까지 판정해
+   * 내려준다** — null 이면 얼리버드가 아닌 회차이고, 화면은 예전 가격표
+   * 그대로다(2026-10-01 요청).
+   */
+  promo?: PriceTablePromo | null;
 }) {
   const [step, setStep] = useState(0);
   const [attendees, setAttendees] = useState<AttendeeForm[]>([emptyAttendee()]);
@@ -192,10 +200,29 @@ export function ApplyForm({
     [maxBirthYear]
   );
 
-  const unitPrice = resolveUnitPrice(tiers, headcount);
+  /*
+    금액.
+
+    ⚠️ 여기 숫자는 **보여주기용**이다. 실제 청구액은 submit_application_v3() 가
+       신청 순간에 다시 계산한다. 그래서 두 곳의 순서가 같아야 한다:
+         기본가 → (얼리버드면) 프로모션가 → 쿠폰 할인
+       쿠폰은 **프로모션이 적용된 금액 위에** 얹힌다(중복 적용 가능).
+  */
+  const baseUnitPrice = resolveUnitPrice(tiers, headcount);
+  const promoUnitPrice = promo ? promotionUnitPrice(promo.tiers, headcount) : null;
+  // 프로모션가가 기본가보다 싸지 않으면 쓰지 않는다 — DB 도 같은 조건으로 거른다.
+  const promoApplied =
+    baseUnitPrice !== null && promoUnitPrice !== null && promoUnitPrice < baseUnitPrice;
+
+  const unitPrice = promoApplied ? promoUnitPrice! : baseUnitPrice;
   const total = unitPrice !== null ? unitPrice * headcount : null;
+  const baseTotal = baseUnitPrice !== null ? baseUnitPrice * headcount : null;
+  const promoDiscount = promoApplied && baseTotal !== null && total !== null ? baseTotal - total : 0;
   const appliedDiscount = applied?.discountKrw ?? 0;
   const payable = total !== null ? Math.max(0, total - appliedDiscount) : null;
+  // 기본가 대비 전체 할인율(얼리버드 + 쿠폰). 올림하지 않는다 — 과장이 된다.
+  const totalOffPercent =
+    baseTotal !== null && payable !== null ? discountPercent(baseTotal, payable) : 0;
 
   // ── 검사 ──────────────────────────────────────────────────
   const validateStep1 = useCallback((): FieldError[] => {
@@ -725,45 +752,116 @@ export function ApplyForm({
             */}
             {tiers.length > 0 && (
               <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
-                <p className="mb-3 text-sm font-bold sm:mb-4 sm:text-base">인원별 참가비</p>
-                <PriceTable tiers={tiers} maxGroupSize={maxGroupSize} accent={accentColor} />
+                <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
+                  <p className="text-sm font-bold sm:text-base">인원별 참가비</p>
+                  {/*
+                    얼리버드 회차임을 여기서 한 번 더 알린다. 얼리버드가 아닌 회차를
+                    고른 사람에게는 promo 가 null 이라 이 배지도, 아래 얼리버드 칸도
+                    나오지 않는다 — 기본 가격표 그대로다(2026-10-01 요청).
+                  */}
+                  {promo && (
+                    <span
+                      className="whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-tight sm:text-xs"
+                      style={{ backgroundColor: promo.accentColor, color: "#0a0a12" }}
+                    >
+                      {promo.label} 적용 회차
+                    </span>
+                  )}
+                </div>
+                <PriceTable
+                  tiers={tiers}
+                  maxGroupSize={maxGroupSize}
+                  accent={accentColor}
+                  promo={promo}
+                />
               </div>
             )}
 
             <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
-              {unitPrice !== null && total !== null && payable !== null ? (
-                <>
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-sm text-muted sm:text-base lg:text-lg">
-                      {headcount}명 × {formatKrw(unitPrice)}
-                    </span>
-                    <span
-                      className={
-                        appliedDiscount > 0
-                          ? "text-sm text-muted line-through sm:text-base"
-                          : "text-2xl font-extrabold sm:text-3xl lg:text-4xl"
-                      }
-                      style={appliedDiscount > 0 ? undefined : { color: accentColor }}
-                    >
-                      {formatKrw(total)}
-                    </span>
-                  </div>
+              {/*
+                최종 금액.
 
-                  {appliedDiscount > 0 && (
+                할인이 하나도 없으면 예전 그대로 한 줄이다. 할인이 붙으면 그때만
+                줄이 늘어난다 — 기본가(취소선) → 할인 항목들 → 입금하실 금액.
+                ⚠️ 할인 **이유를 항목마다 적는다.** 합계만 보여주면 "왜 깎였지" 를
+                   묻게 되고, 쿠폰을 넣었는데 왜 이 금액인지도 확인할 수 없다.
+              */}
+              {unitPrice !== null && total !== null && payable !== null && baseTotal !== null ? (
+                (() => {
+                  const hasDiscount = promoDiscount > 0 || appliedDiscount > 0;
+                  return (
                     <>
-                      <div className="mt-1.5 flex items-baseline justify-between text-sm sm:mt-2 sm:text-base lg:text-lg">
-                        <span className="text-muted">쿠폰 할인</span>
-                        <span className="text-glow">- {formatKrw(appliedDiscount)}</span>
-                      </div>
-                      <div className="mt-2 flex items-baseline justify-between border-t border-white/10 pt-2 sm:mt-3 sm:pt-3">
-                        <span className="text-sm font-semibold sm:text-base lg:text-lg">입금하실 금액</span>
-                        <span className="text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
-                          {formatKrw(payable)}
+                      <div className="flex items-baseline justify-between gap-3">
+                        <span className="text-sm text-muted sm:text-base lg:text-lg">
+                          {headcount}명 × {formatKrw(baseUnitPrice!)}
+                        </span>
+                        <span
+                          className={
+                            hasDiscount
+                              ? "text-sm text-muted line-through sm:text-base"
+                              : "text-2xl font-extrabold sm:text-3xl lg:text-4xl"
+                          }
+                          style={hasDiscount ? undefined : { color: accentColor }}
+                        >
+                          {formatKrw(baseTotal)}
                         </span>
                       </div>
+
+                      {promoDiscount > 0 && promo && (
+                        <div className="mt-1.5 flex items-baseline justify-between gap-3 text-sm sm:mt-2 sm:text-base lg:text-lg">
+                          <span className="flex items-center gap-1.5 text-muted">
+                            <span
+                              className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-extrabold leading-tight"
+                              style={{ backgroundColor: promo.accentColor, color: "#0a0a12" }}
+                            >
+                              {promo.label}
+                            </span>
+                            <span className="text-xs text-muted sm:text-sm">
+                              1인 {formatKrw(unitPrice)}
+                            </span>
+                          </span>
+                          <span style={{ color: promo.accentColor }}>
+                            - {formatKrw(promoDiscount)}
+                          </span>
+                        </div>
+                      )}
+
+                      {appliedDiscount > 0 && (
+                        <div className="mt-1.5 flex items-baseline justify-between gap-3 text-sm sm:mt-2 sm:text-base lg:text-lg">
+                          <span className="text-muted">쿠폰 할인</span>
+                          <span className="text-glow">- {formatKrw(appliedDiscount)}</span>
+                        </div>
+                      )}
+
+                      {hasDiscount && (
+                        <div className="mt-2 flex items-baseline justify-between gap-3 border-t border-white/10 pt-2 sm:mt-3 sm:pt-3">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold sm:text-base lg:text-lg">
+                              입금하실 금액
+                            </span>
+                            {totalOffPercent > 0 && (
+                              <span
+                                className="whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-extrabold leading-tight sm:text-xs"
+                                style={{
+                                  backgroundColor: promoDiscount > 0 ? promo!.accentColor : accentColor,
+                                  color: "#0a0a12",
+                                }}
+                              >
+                                {totalOffPercent}% 할인
+                              </span>
+                            )}
+                          </span>
+                          <span
+                            className="text-2xl font-extrabold sm:text-3xl lg:text-4xl"
+                            style={{ color: accentColor }}
+                          >
+                            {formatKrw(payable)}
+                          </span>
+                        </div>
+                      )}
                     </>
-                  )}
-                </>
+                  );
+                })()
               ) : (
                 <p className="text-sm text-muted sm:text-base">요금 정보를 불러올 수 없습니다.</p>
               )}

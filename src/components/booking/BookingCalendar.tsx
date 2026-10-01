@@ -50,19 +50,27 @@ function monthCells(monthYmd: string): (string | null)[] {
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 export function BookingCalendar({
-  /** 회차가 있는 날짜 → 신청 가능 여부 */
+  /** 회차가 있는 날짜 → 신청 가능 여부 · 얼리버드 여부 */
   dateStatus,
   selected,
   onSelect,
   accentColor,
   openingDate,
+  promoColor = null,
+  promoLabel = "얼리버드",
 }: {
-  dateStatus: Map<string, { hasOpen: boolean }>;
+  dateStatus: Map<string, { hasOpen: boolean; hasEarlyBird?: boolean }>;
   selected: string;
   onSelect: (ymd: string) => void;
   accentColor: string;
   /** 이 날짜 아래에 '오픈' 이라고 적는다(정식 오픈 안내). 없으면 표시 안 함. */
   openingDate: string | null;
+  /**
+   * 얼리버드 날짜를 칠할 색. 프로모션이 꺼져 있으면 null 이고, 그때는
+   * 범례도 통째로 안 그린다 — 뜻이 하나뿐인 달력에 범례는 잡음이다.
+   */
+  promoColor?: string | null;
+  promoLabel?: string;
 }) {
   const today = kstYmd(new Date());
 
@@ -127,6 +135,10 @@ export function BookingCalendar({
           const status = dateStatus.get(ymd);
           const day = Number(ymd.slice(8));
           const isSelected = ymd === selected;
+          // 얼리버드인 날은 **고른 뒤에도** 같은 색으로 남는다. 색이 곧 뜻이라
+          // (분홍 = 얼리버드), 선택했다고 색이 바뀌면 그 뜻이 사라진다.
+          const earlyBird = Boolean(promoColor && status?.hasEarlyBird);
+          const dayColor = earlyBird ? promoColor! : accentColor;
           const isToday = ymd === today;
           // 칸이 작아서 둘 다 붙일 자리는 없다. 오픈일이 더 알릴 값어치가 있다.
           const note = ymd === openingDate ? "오픈" : isToday ? "오늘" : null;
@@ -140,20 +152,20 @@ export function BookingCalendar({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(ymd)}
-              aria-label={`${Number(m)}월 ${day}일${note ? ` ${note}` : ""}`}
+              aria-label={`${Number(m)}월 ${day}일${earlyBird ? ` ${promoLabel}` : ""}${note ? ` ${note}` : ""}`}
               aria-pressed={isSelected}
               className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-sm transition-colors
                 ${disabled ? "text-white/20" : "hover:bg-white/10"}
                 ${isSelected ? "font-bold" : ""}
                 ${isToday && !isSelected ? "ring-1 ring-white/25" : ""}`}
-              style={isSelected ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
+              style={isSelected ? { backgroundColor: dayColor, color: "#0a0a12" } : undefined}
             >
               <span className={note ? "leading-none" : ""}>{day}</span>
 
               {note && (
                 <span
                   className="mt-0.5 text-[9px] leading-none"
-                  style={isSelected ? undefined : { color: accentColor }}
+                  style={isSelected ? undefined : { color: dayColor }}
                 >
                   {note}
                 </span>
@@ -164,7 +176,7 @@ export function BookingCalendar({
                 <span
                   className="absolute bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
                   style={{
-                    backgroundColor: accentColor,
+                    backgroundColor: dayColor,
                     opacity: status.hasOpen ? 1 : 0.3,
                   }}
                 />
@@ -173,6 +185,40 @@ export function BookingCalendar({
           );
         })}
       </div>
+
+      {/*
+        범례. 색이 두 가지 뜻을 갖게 된 순간부터는 설명이 없으면 분홍이 그냥
+        '다른 색' 으로만 보인다. 프로모션이 꺼져 있으면(promoColor 없음) 색이
+        한 가지뿐이라 범례를 그리지 않는다.
+      */}
+      {promoColor && (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-white/10 pt-2.5">
+          <LegendDot color={promoColor} label={promoLabel} />
+          <LegendDot color={accentColor} label="일반" />
+          <LegendDot color={accentColor} label="마감" opacity={0.3} />
+        </div>
+      )}
     </div>
+  );
+}
+
+function LegendDot({
+  color,
+  label,
+  opacity = 1,
+}: {
+  color: string;
+  label: string;
+  opacity?: number;
+}) {
+  return (
+    <span className="flex items-center gap-1.5 text-[11px] text-muted">
+      <span
+        aria-hidden="true"
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ backgroundColor: color, opacity }}
+      />
+      {label}
+    </span>
   );
 }

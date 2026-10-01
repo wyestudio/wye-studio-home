@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ThemeShowcase, type ThemeCardData } from "@/components/contents/ThemeShowcase";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
+import { SitePopupMount } from "@/components/promo/SitePopupMount";
 import { getListedThemes, getUpcomingSessionsForTheme } from "@/lib/themes";
 
 // 캐시는 데이터 쪽에 있다(src/lib/themes.ts). 아래 주석은 page.tsx 와 같은 이유.
@@ -37,6 +38,8 @@ export default async function ContentsPage() {
     <>
       <ThemeShowcase themes={cards} />
       <KakaoChannelButton />
+      {/* 접속 팝업. 운영자가 이 화면을 노출 대상으로 고른 팝업만 뜬다. */}
+      <SitePopupMount page="themes" />
     </>
   );
 }
