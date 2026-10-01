@@ -69,7 +69,13 @@ function emptyInput(): PromotionInput {
     banner_body: "",
     banner_highlight: "",
     banner_note: "",
-    accent_color: "#ff73b4",
+    /*
+      새 프로모션의 기본 강조색.
+      ⚠️ 10월 얼리버드를 **노란색으로 확정**해서 기본값도 같이 맞춰 뒀다
+         (2026-10-01, 테스트 어드민에서 고른 값). 운영에 프로모션을 만들 때도
+         손대지 않으면 이 색으로 들어간다. 바꾸려면 어드민에서 고르면 된다.
+    */
+    accent_color: "#f4ff64",
     tiers: [],
   };
 }
@@ -310,8 +316,16 @@ export function PromotionEditor({
               쓰입니다. <strong>구간을 하나도 넣지 않은 테마는 기본가 그대로</strong>입니다.
             </p>
 
+            {/*
+              ⚠️ 보여주는 순서만 **인원이 많은 쪽부터** 뒤집는다(고객 가격표와 같은 순서).
+                 배열 자체는 그대로 둔다 — 뒤집으면 '구간 추가'(at(-1) 기준)와
+                 삭제 인덱스가 어긋난다. 그래서 원래 인덱스(i)를 들고 다닌다.
+            */}
             <div className="space-y-2">
-              {editing.tiers.map((t, i) => {
+              {editing.tiers
+                .map((t, i) => ({ t, i }))
+                .sort((a, b) => b.t.min_headcount - a.t.min_headcount)
+                .map(({ t, i }) => {
                 const theme = themes.find((x) => x.id === t.theme_id);
                 const base = baseUnitPrice(theme, t.min_headcount);
                 const off = base !== null ? discountPercent(base, t.unit_price_krw) : 0;

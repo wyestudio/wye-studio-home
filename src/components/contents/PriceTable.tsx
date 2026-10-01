@@ -39,7 +39,13 @@ export function PriceTable({
 
   // 마지막 구간부터는 단가가 같으므로 "N인 이상" 한 줄로 묶는다.
   const lastTierFrom = Math.max(...tiers.map((t) => t.min_headcount));
-  const rows = Array.from({ length: lastTierFrom }, (_, i) => i + 1).map((n) => ({
+  /*
+    인원이 **많은 쪽부터** 보여준다(2026-10-01 요청). 싼 금액이 맨 위에 오므로
+    "여럿이 오면 이만큼" 이 먼저 읽히고, 아래로 갈수록 비싸진다.
+    ⚠️ 'N인 이상' 판정(isLast)은 순서와 무관하게 lastTierFrom 으로 한다 —
+       배열을 뒤집는다고 그 줄이 바뀌면 안 된다.
+  */
+  const rows = Array.from({ length: lastTierFrom }, (_, i) => lastTierFrom - i).map((n) => ({
     n,
     unit: resolveUnitPrice(tiers, n),
     promoUnit: promo ? promotionUnitPrice(promo.tiers, n) : null,
