@@ -157,7 +157,29 @@ export function SessionPicker({
     }
   }
 
+  /*
+    고른 회차가 얼리버드면 **고른 표시(배경·버튼)까지 분홍**으로 간다.
+    달력 칸이 이미 분홍이라, 거기서 이어지는 회차 칸과 신청 버튼만 테마색이면
+    같은 선택을 두 색으로 말하는 꼴이 된다(2026-10-01 요청).
+  */
+  const selectedIsEarlyBird = Boolean(promo && selected?.earlyBird);
+  const ctaColor = selectedIsEarlyBird ? promo!.accentColor : accentColor;
+  /** 고른 회차 칸의 배경색. 얼리버드 회차만 분홍이고 나머지는 테마 강조색이다. */
+  const activeColor = (s: PickerSession) =>
+    promo && s.earlyBird ? promo.accentColor : accentColor;
+
+  const banner = promo ? (
+    <EarlyBirdBanner
+      title={promo.bannerTitle}
+      body={promo.bannerBody}
+      highlight={promo.bannerHighlight}
+      note={promo.bannerNote}
+      accent={promo.accentColor}
+    />
+  ) : null;
+
   return (
+    <div className="flex flex-col gap-5 md:gap-6">
     <div className="flex flex-col gap-5 md:flex-row md:items-stretch md:gap-8">
       <div className="md:w-[19rem] md:shrink-0 lg:w-[23rem]">
         <p className="mb-2 text-xs font-bold text-muted lg:text-sm">날짜 선택</p>
@@ -226,7 +248,11 @@ export function SessionPicker({
                   className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-40 lg:px-5 lg:py-4 ${
                     isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
                   }`}
-                  style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
+                  style={
+                    isActive
+                      ? { backgroundColor: activeColor(s), color: "#0a0a12" }
+                      : undefined
+                  }
                 >
                   <p className="text-base font-bold tabular-nums lg:text-lg">{kstTime(s.start_at)}</p>
 
@@ -249,13 +275,20 @@ export function SessionPicker({
 
                   <span className="ml-auto flex items-center gap-2">
                     {/*
-                      얼리버드 배지. 고른 칸에서도 **분홍 그대로** 둔다 — 달력과
-                      같은 색이어야 "분홍 = 얼리버드" 가 한 가지 뜻으로 읽힌다.
+                      얼리버드 배지.
+                      ⚠️ 고른 칸은 배경이 이미 분홍이라 같은 색 알약이 묻힌다 —
+                         그때만 어두운 알약으로 뒤집는다(인기 태그와 같은 규칙).
                     */}
                     {showEarlyBird && (
                       <span
-                        className="whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-tight sm:text-xs"
-                        style={{ backgroundColor: promo!.accentColor, color: "#0a0a12" }}
+                        className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-tight sm:text-xs ${
+                          isActive ? "bg-[#0a0a12] text-white" : ""
+                        }`}
+                        style={
+                          isActive
+                            ? undefined
+                            : { backgroundColor: promo!.accentColor, color: "#0a0a12" }
+                        }
                       >
                         {promo!.badgeLabel}
                       </span>
@@ -269,32 +302,34 @@ export function SessionPicker({
         )}
 
         {/*
-          얼리버드 안내. 회차 목록 **아래**에 둔다 — 배지를 먼저 본 뒤에 "저게
-          뭐지" 로 내려오는 순서다. 위에 두면 아직 못 본 배지를 설명하게 된다.
+          얼리버드 안내 — **좁은 화면 전용 자리.**
+          회차 목록 바로 아래다. 배지를 먼저 본 뒤 "저게 뭐지" 로 내려오는 순서라
+          위에 두면 아직 못 본 배지를 설명하게 된다.
+          넓은 화면에서는 달력+시간 묶음 **아래로** 빠진다(아래 md 전용 자리).
         */}
-        {promo && (
-          <div className="mt-3">
-            <EarlyBirdBanner
-              title={promo.bannerTitle}
-              body={promo.bannerBody}
-              highlight={promo.bannerHighlight}
-              note={promo.bannerNote}
-              accent={promo.accentColor}
-            />
-          </div>
-        )}
+        {banner && <div className="mt-3 md:hidden">{banner}</div>}
 
         <div className="mt-auto pt-5">
           <BookingCta
             accepting={accepting}
             href={selected ? `/themes/${themeSlug}/apply?session=${selected.id}` : null}
             label={ctaLabel}
-            accentColor={accentColor}
+            accentColor={ctaColor}
             themeName={themeName}
             selectedId={selected?.id ?? null}
           />
         </div>
       </div>
+    </div>
+
+    {/*
+      얼리버드 안내 — **넓은 화면 전용 자리.**
+      달력 | 시간선택(신청 버튼 포함) 두 칸을 가로질러 한 줄로 깔린다.
+      시간 칸 안에 두면 오른쪽 절반 폭에 갇혀 배너가 접히고, 신청 버튼을
+      아래로 밀어 달력 아래끝과 어긋난다(2026-10-01 요청).
+      ⚠️ 같은 배너를 두 번 그리는 대신 자리만 둘로 나눴다 — 보이는 건 언제나 하나다.
+    */}
+    {banner && <div className="hidden md:block">{banner}</div>}
     </div>
   );
 }
