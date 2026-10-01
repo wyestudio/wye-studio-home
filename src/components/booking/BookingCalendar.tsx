@@ -49,6 +49,17 @@ function monthCells(monthYmd: string): (string | null)[] {
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
+/*
+  달 넘기는 화살표.
+  ⚠️ 예전에는 text-muted 아이콘만 덩그러니 있어서 "눌리는 것"으로 안 보였다
+     (2026-10-01 제보). 테두리 있는 칸 + 밝은 아이콘으로 바꿔 누를 자리를
+     먼저 보이게 하고, 더 갈 곳이 없을 때만 흐려진다.
+*/
+const ARROW_BUTTON =
+  "flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 " +
+  "text-white/85 transition-colors hover:border-white/45 hover:bg-white/10 hover:text-white " +
+  "disabled:border-white/10 disabled:text-white/20 disabled:hover:bg-transparent";
+
 export function BookingCalendar({
   /** 회차가 있는 날짜 → 신청 가능 여부 · 얼리버드 여부 */
   dateStatus,
@@ -88,8 +99,14 @@ export function BookingCalendar({
   const [month, setMonth] = useState(() => monthStart(selected || firstMonth));
 
   const cells = monthCells(month);
-  const canPrev = month > firstMonth;
-  const canNext = month < lastMonth;
+  /*
+    회차가 있는 달의 **앞뒤 한 달까지** 넘길 수 있다(2026-10-01 요청).
+    회차가 없는 달도 열어 두는 이유: 달력이 그 달에 갇혀 있으면 "다음 달은
+    아직 안 열렸나" 를 확인할 방법이 없어, 없는 걸 확인하러 문의가 온다.
+    빈 달은 날짜가 전부 눌리지 않는 상태로 보이므로 그 자체가 답이 된다.
+  */
+  const canPrev = month > addMonths(firstMonth, -1);
+  const canNext = month < addMonths(lastMonth, 1);
 
   const [y, m] = month.split("-");
 
@@ -101,9 +118,9 @@ export function BookingCalendar({
           onClick={() => setMonth(addMonths(month, -1))}
           disabled={!canPrev}
           aria-label="이전 달"
-          className="rounded px-3 py-1.5 text-lg leading-none text-muted disabled:opacity-25"
+          className={ARROW_BUTTON}
         >
-          <Chevron dir="left" />
+          <Chevron dir="left" className="h-5 w-5" />
         </button>
         <p className="font-bold">
           {Number(y)}년 {Number(m)}월
@@ -113,9 +130,9 @@ export function BookingCalendar({
           onClick={() => setMonth(addMonths(month, 1))}
           disabled={!canNext}
           aria-label="다음 달"
-          className="rounded px-3 py-1.5 text-lg leading-none text-muted disabled:opacity-25"
+          className={ARROW_BUTTON}
         >
-          <Chevron dir="right" />
+          <Chevron dir="right" className="h-5 w-5" />
         </button>
       </div>
 
@@ -136,7 +153,7 @@ export function BookingCalendar({
           const day = Number(ymd.slice(8));
           const isSelected = ymd === selected;
           // 얼리버드인 날은 **고른 뒤에도** 같은 색으로 남는다. 색이 곧 뜻이라
-          // (분홍 = 얼리버드), 선택했다고 색이 바뀌면 그 뜻이 사라진다.
+          // (프로모션 색 = 얼리버드), 선택했다고 색이 바뀌면 그 뜻이 사라진다.
           const earlyBird = Boolean(promoColor && status?.hasEarlyBird);
           const dayColor = earlyBird ? promoColor! : accentColor;
           const isToday = ymd === today;
@@ -187,7 +204,7 @@ export function BookingCalendar({
       </div>
 
       {/*
-        범례. 색이 두 가지 뜻을 갖게 된 순간부터는 설명이 없으면 분홍이 그냥
+        범례. 색이 두 가지 뜻을 갖게 된 순간부터는 설명이 없으면 프로모션 색이 그냥
         '다른 색' 으로만 보인다. 프로모션이 꺼져 있으면(promoColor 없음) 색이
         한 가지뿐이라 범례를 그리지 않는다.
       */}

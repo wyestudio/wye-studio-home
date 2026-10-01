@@ -158,13 +158,15 @@ export function SessionPicker({
   }
 
   /*
-    고른 회차가 얼리버드면 **고른 표시(배경·버튼)까지 분홍**으로 간다.
-    달력 칸이 이미 분홍이라, 거기서 이어지는 회차 칸과 신청 버튼만 테마색이면
+    고른 회차가 얼리버드면 **고른 표시(배경·버튼)까지 프로모션 색**으로 간다.
+    달력 칸이 이미 그 색이라, 거기서 이어지는 회차 칸과 신청 버튼만 테마색이면
     같은 선택을 두 색으로 말하는 꼴이 된다(2026-10-01 요청).
+    ⚠️ 색 자체는 어드민에서 고르는 값이다(promotions.accent_color) — 주석에도
+       코드에도 특정 색을 박지 않는다.
   */
   const selectedIsEarlyBird = Boolean(promo && selected?.earlyBird);
   const ctaColor = selectedIsEarlyBird ? promo!.accentColor : accentColor;
-  /** 고른 회차 칸의 배경색. 얼리버드 회차만 분홍이고 나머지는 테마 강조색이다. */
+  /** 고른 회차 칸의 배경색. 얼리버드 회차만 프로모션 색이고 나머지는 테마 강조색이다. */
   const activeColor = (s: PickerSession) =>
     promo && s.earlyBird ? promo.accentColor : accentColor;
 
@@ -276,7 +278,7 @@ export function SessionPicker({
                   <span className="ml-auto flex items-center gap-2">
                     {/*
                       얼리버드 배지.
-                      ⚠️ 고른 칸은 배경이 이미 분홍이라 같은 색 알약이 묻힌다 —
+                      ⚠️ 고른 칸은 배경이 이미 프로모션 색이라 같은 색 알약이 묻힌다 —
                          그때만 어두운 알약으로 뒤집는다(인기 태그와 같은 규칙).
                     */}
                     {showEarlyBird && (
