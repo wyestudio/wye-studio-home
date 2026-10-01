@@ -51,13 +51,19 @@ export function PriceTable({
     promo && rows.some((r) => r.unit !== null && r.promoUnit !== null && r.promoUnit < r.unit)
   );
 
-  const cellX = lg ? "px-4 sm:px-7" : "px-4 sm:px-5";
+  /*
+    ⚠️ 좁은 화면의 좌우 여백을 넉넉히 두면 세 칸(인원·기본가·얼리버드)이
+       화면을 넘어 금액이 잘린다(390px 에서 실측). 여백·글씨·배지는 모바일에서만
+       줄이고 넓은 화면은 그대로 둔다.
+  */
+  const cellX = lg ? "px-2 sm:px-7" : "px-2 sm:px-5";
   const cellY = lg ? "py-3 sm:py-6" : "py-3 sm:py-5";
   const headY = lg ? "py-2.5 sm:py-4" : "py-2.5 sm:py-3.5";
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/15">
-      <table className={`w-full ${lg ? "text-base sm:text-lg lg:text-xl" : "text-sm sm:text-base"}`}>
+      {/* ⚠️ 모바일 글씨는 한 단계 낮다 — 세 칸을 390px 안에 넣기 위해서다. */}
+      <table className={`w-full ${lg ? "text-sm sm:text-lg lg:text-xl" : "text-xs sm:text-base"}`}>
         <thead>
           <tr
             className={`border-b border-white/12 bg-white/[0.04] text-muted ${lg ? "text-xs sm:text-sm" : "text-xs"}`}
@@ -127,8 +133,8 @@ export function PriceTable({
                     <span>{n}인{isLast && maxGroupSize === null ? " 이상" : ""}</span>
                     {best && (
                       <span
-                        className={`whitespace-nowrap rounded-full px-2 py-0.5 font-extrabold leading-tight ${
-                          lg ? "text-[11px] sm:text-xs" : "text-[10px] sm:text-[11px]"
+                        className={`whitespace-nowrap rounded-full px-1.5 py-0.5 font-extrabold leading-tight sm:px-2 ${
+                          lg ? "text-[9px] sm:text-xs" : "text-[9px] sm:text-[11px]"
                         }`}
                         style={{ backgroundColor: accent, color: "#0a0a12" }}
                       >
@@ -154,12 +160,15 @@ export function PriceTable({
                       /*
                         할인율 배지와 금액을 한 묶음으로. 배지를 금액 **앞**에 두는
                         이유는, 줄을 훑을 때 "몇 % 싸지나" 가 먼저 걸려야 금액이
-                        크게 느껴지기 때문이다. 좁은 화면에서는 위아래로 접힌다.
+                        크게 느껴지기 때문이다.
+                        ⚠️ 좁은 화면에서도 **한 줄**로 둔다(2026-10-01 요청). 위아래로
+                           접으면 그 줄만 키가 커져서, 왼쪽의 인원·기본가가 할인가와
+                           다른 높이에 놓인다 — 같은 줄의 숫자인데 눈높이가 어긋난다.
                       */
-                      <span className="inline-flex flex-col items-end gap-0.5 sm:flex-row sm:items-center sm:gap-2">
+                      <span className="inline-flex items-center justify-end gap-1 sm:gap-2">
                         <span
-                          className={`whitespace-nowrap rounded-full px-2 py-0.5 font-extrabold leading-tight ${
-                            lg ? "text-[11px] sm:text-xs" : "text-[10px] sm:text-[11px]"
+                          className={`whitespace-nowrap rounded-full px-1.5 py-0.5 font-extrabold leading-tight sm:px-2 ${
+                            lg ? "text-[10px] sm:text-xs" : "text-[9px] sm:text-[11px]"
                           }`}
                           style={{ backgroundColor: promo!.accentColor, color: "#0a0a12" }}
                         >
@@ -167,7 +176,7 @@ export function PriceTable({
                         </span>
                         <span
                           className={`whitespace-nowrap font-extrabold ${
-                            lg ? "text-lg sm:text-2xl lg:text-[1.75rem]" : "text-base sm:text-xl"
+                            lg ? "text-base sm:text-2xl lg:text-[1.75rem]" : "text-sm sm:text-xl"
                           }`}
                           style={{ color: promo!.accentColor }}
                         >
