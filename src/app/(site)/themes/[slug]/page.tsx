@@ -141,8 +141,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
 
   /*
     실제로 **지금 얼리버드로 신청할 수 있는 회차가 하나라도 있을 때만** 프로모션
-    화면을 켠다. 기간은 열려 있는데 남은 회차가 전부 7일 안쪽이면, 받을 수 없는
-    할인가를 표에 세워 두는 꼴이 된다.
+    화면을 켠다. 기간은 열려 있는데 남은 회차가 전부 마감일(days_before) 안쪽이면,
+    받을 수 없는 할인가를 표에 세워 두는 꼴이 된다.
   */
   const promoUsable =
     activePromo !== null && promoTiers.length > 0 && sessions.some((s) => s.earlyBird && s.bookable);

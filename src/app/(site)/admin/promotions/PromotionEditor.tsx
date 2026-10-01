@@ -63,7 +63,12 @@ function emptyInput(): PromotionInput {
     applies_until: "",
     session_from: "",
     session_to: "",
-    days_before: 7,
+    /*
+      새 프로모션의 기본 '며칠 전까지'.
+      ⚠️ 10월 얼리버드를 **5일 전까지로 확정**해서 기본값도 맞춰 뒀다(2026-10-01).
+         운영에 만들 때 손대지 않으면 이 값으로 들어간다.
+    */
+    days_before: 5,
     badge_label: "얼리버드",
     banner_title: "",
     banner_body: "",
@@ -434,7 +439,7 @@ export function PromotionEditor({
               <textarea
                 className={`${field} h-16`}
                 value={editing.banner_body}
-                placeholder="진행일 7일 전까지 신청하면 인원별 얼리버드 할인가가 자동 적용됩니다."
+                placeholder="진행일 5일 전까지 신청하면 인원별 얼리버드 할인가가 자동 적용됩니다."
                 onChange={(e) => patch({ banner_body: e.target.value })}
               />
             </div>
