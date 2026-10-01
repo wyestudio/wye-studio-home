@@ -63,7 +63,15 @@ export function PriceTable({
             className={`border-b border-white/12 bg-white/[0.04] text-muted ${lg ? "text-xs sm:text-sm" : "text-xs"}`}
           >
             <th className={`${cellX} ${headY} text-left font-medium`}>인원</th>
-            <th className={`${cellX} ${headY} text-right font-medium`}>
+            {/*
+              기본가 열 제목도 **자기 열의 색**으로 맞춘다(2026-10-01 요청).
+              얼리버드 제목만 색이 있으면 그쪽만 '진짜 가격' 처럼 읽힌다.
+              ⚠️ 프로모션이 없을 때는 비교할 열이 없으므로 예전처럼 흐린 제목 그대로 둔다.
+            */}
+            <th
+              className={`${cellX} ${headY} text-right ${hasPromoColumn ? "font-bold" : "font-medium"}`}
+              style={hasPromoColumn ? { color: accent } : undefined}
+            >
               {hasPromoColumn ? "기본가" : "1인당"}
             </th>
             {hasPromoColumn && (
@@ -82,10 +90,25 @@ export function PriceTable({
             const off =
               hasPromoColumn && promoUnit !== null ? discountPercent(unit, promoUnit) : 0;
             const discounted = off > 0 && promoUnit !== null;
+            // '가장 합리적인 가격' 줄. 배지와 같은 조건으로 묶어 둘이 따로 놀지 않게 한다.
+            const best = isLast && rows.length > 1;
 
             return (
-              <tr key={n} className="border-b border-white/8 last:border-0">
-                <td className={`${cellX} ${cellY}`}>
+              /*
+                마지막 구간 줄 강조.
+                ⚠️ 배경을 강조색으로 깔지 않는다 — 이 표에서 색은 이미 뜻을 갖고 있어서
+                   (초록 = 기본가, 프로모션 색 = 얼리버드) 줄 배경까지 색을 쓰면
+                   그 위의 배지가 묻히고 색의 뜻도 흐려진다.
+                   그래서 배경은 **중립(헤더와 같은 톤)**, 왼쪽 띠만 강조색으로 둔다.
+              */
+              <tr
+                key={n}
+                className={`border-b border-white/8 last:border-0 ${best ? "bg-white/[0.045]" : ""}`}
+              >
+                <td
+                  className={`${cellX} ${cellY}`}
+                  style={best ? { boxShadow: `inset 3px 0 0 0 ${accent}` } : undefined}
+                >
                   {/*
                     마지막 구간에 '가장 합리적인 가격' 을 붙인다(2026-10-01 요청).
                     ⚠️ 구간이 하나뿐이면 달지 않는다 — 비교할 줄이 없는데 '가장' 이라고
@@ -95,7 +118,7 @@ export function PriceTable({
                   */}
                   <span className="inline-flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                     <span>{n}인{isLast && maxGroupSize === null ? " 이상" : ""}</span>
-                    {isLast && rows.length > 1 && (
+                    {best && (
                       <span
                         className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-bold leading-tight ${
                           lg ? "text-[11px] sm:text-xs" : "text-[10px] sm:text-[11px]"
