@@ -9,8 +9,8 @@ import { discountPercent, promotionUnitPrice, type PromotionPriceTier } from "@/
  * 표가 넓어지기만 하고, "인원이 많을수록 싸진다" 는 표를 보면 바로 읽힌다.
  *
  * 프로모션이 켜져 있으면 **얼리버드 칸이 하나 더 붙는다**(2026-10-01).
- * 그때는 기본가를 작게·취소선으로 눌러 두고 얼리버드가를 크게 세운다 —
- * 두 숫자가 같은 크기면 어느 쪽을 내는 건지 읽는 사람이 판단해야 한다.
+ * 기본가 칸은 그대로 두고 오른쪽에 'N% OFF' 배지와 할인가를 세운다 —
+ * 어느 쪽을 내는지는 열 제목과 배지가 말해 준다.
  */
 export type PriceTablePromo = {
   /** 열 제목. 보통 '얼리버드'. */
@@ -39,13 +39,7 @@ export function PriceTable({
 
   // 마지막 구간부터는 단가가 같으므로 "N인 이상" 한 줄로 묶는다.
   const lastTierFrom = Math.max(...tiers.map((t) => t.min_headcount));
-  /*
-    인원이 **많은 쪽부터** 보여준다(2026-10-01 요청). 싼 금액이 맨 위에 오므로
-    "여럿이 오면 이만큼" 이 먼저 읽히고, 아래로 갈수록 비싸진다.
-    ⚠️ 'N인 이상' 판정(isLast)은 순서와 무관하게 lastTierFrom 으로 한다 —
-       배열을 뒤집는다고 그 줄이 바뀌면 안 된다.
-  */
-  const rows = Array.from({ length: lastTierFrom }, (_, i) => lastTierFrom - i).map((n) => ({
+  const rows = Array.from({ length: lastTierFrom }, (_, i) => i + 1).map((n) => ({
     n,
     unit: resolveUnitPrice(tiers, n),
     promoUnit: promo ? promotionUnitPrice(promo.tiers, n) : null,
@@ -92,21 +86,35 @@ export function PriceTable({
             return (
               <tr key={n} className="border-b border-white/8 last:border-0">
                 <td className={`${cellX} ${cellY}`}>
-                  {n}인{isLast && maxGroupSize === null ? " 이상" : ""}
+                  {/*
+                    마지막 구간에 '가장 합리적인 가격' 을 붙인다(2026-10-01 요청).
+                    ⚠️ 구간이 하나뿐이면 달지 않는다 — 비교할 줄이 없는데 '가장' 이라고
+                       적으면 빈말이 된다.
+                    ⚠️ 색은 **기본가 열과 같은 강조색**이다. 얼리버드(프로모션 색)와
+                       겹치면 색이 뜻을 두 개 갖게 되어 둘 다 안 읽힌다.
+                  */}
+                  <span className="inline-flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <span>{n}인{isLast && maxGroupSize === null ? " 이상" : ""}</span>
+                    {isLast && rows.length > 1 && (
+                      <span
+                        className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-bold leading-tight ${
+                          lg ? "text-[11px] sm:text-xs" : "text-[10px] sm:text-[11px]"
+                        }`}
+                        style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
+                      >
+                        가장 합리적인 가격
+                      </span>
+                    )}
+                  </span>
                 </td>
 
                 {/*
-                  기본가. 할인이 붙은 줄에서는 **작게·취소선·흐리게** 눌러 둔다.
-                  같은 크기로 두면 두 숫자 중 어느 쪽을 내는지 눈으로 판단해야 한다.
+                  기본가. 얼리버드 칸이 붙어도 **모양을 바꾸지 않는다** — 운영에 나가 있는
+                  표와 같은 굵기·크기·강조색 그대로다(2026-10-01 요청).
+                  취소선으로 눌러 봤지만, 정가가 흐려지면 표가 '할인 안내문'처럼 읽히고
+                  기본가가 얼마인지도 잘 안 보였다.
                 */}
-                <td
-                  className={`${cellX} ${cellY} text-right ${
-                    discounted
-                      ? `font-medium text-muted line-through ${lg ? "text-sm sm:text-base" : "text-xs sm:text-sm"}`
-                      : "font-bold"
-                  }`}
-                  style={discounted ? undefined : { color: accent }}
-                >
+                <td className={`${cellX} ${cellY} text-right font-bold`} style={{ color: accent }}>
                   {formatKrw(unit)}
                 </td>
 

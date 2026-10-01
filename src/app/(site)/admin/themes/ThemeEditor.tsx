@@ -475,17 +475,8 @@ export function ThemeEditor({
                 예를 들어 4인 구간이 마지막이면 5인·6인도 4인 가격이 적용됩니다.
               </p>
 
-              {/*
-                ⚠️ 보여주는 순서만 **인원이 많은 쪽부터** 뒤집는다(2026-10-01 요청,
-                   고객 가격표와 같은 순서). 배열 자체는 그대로 둔다 —
-                   순서를 뒤집으면 아래 '구간 추가'(at(-1) 기준)와 삭제 인덱스가
-                   어긋난다. 그래서 원래 인덱스(i)를 들고 다닌다.
-              */}
               <div className="space-y-2">
-                {editing.tiers
-                  .map((t, i) => ({ t, i }))
-                  .sort((a, b) => b.t.min_headcount - a.t.min_headcount)
-                  .map(({ t, i }) => (
+                {editing.tiers.map((t, i) => (
                   <div key={i} className="flex flex-wrap items-end gap-2">
                     <div className="w-20">
                       <label className={label}>인원 이상</label>
@@ -554,7 +545,7 @@ export function ThemeEditor({
 
               <div className="rounded bg-muted/10 p-3 text-xs">
                 <p className="mb-1 font-medium">미리보기</p>
-                {[6, 5, 4, 3, 2, 1].map((n) => {
+                {[1, 2, 3, 4, 5, 6].map((n) => {
                   const unit = resolveUnitPrice(
                     editing.tiers.map((t) => ({ ...t, theme_id: "" })),
                     n
