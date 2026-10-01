@@ -96,18 +96,25 @@ export function PriceTable({
             return (
               /*
                 마지막 구간 줄 강조.
-                ⚠️ 배경을 강조색으로 깔지 않는다 — 이 표에서 색은 이미 뜻을 갖고 있어서
-                   (초록 = 기본가, 프로모션 색 = 얼리버드) 줄 배경까지 색을 쓰면
-                   그 위의 배지가 묻히고 색의 뜻도 흐려진다.
-                   그래서 배경은 **중립(헤더와 같은 톤)**, 왼쪽 띠만 강조색으로 둔다.
+                ⚠️ 바탕을 **왼쪽만 진하게** 깔고 오른쪽으로 흘려 보낸다. 줄 전체를
+                   강조색으로 채우면 오른쪽 금액 칸에서 'N% OFF'(프로모션 색) 배지와
+                   색이 부딪혀 둘 다 안 읽힌다. 왼쪽은 '추천 줄' 표시, 오른쪽은
+                   금액이 읽히는 자리로 역할을 갈라 둔 것이다.
               */
               <tr
                 key={n}
-                className={`border-b border-white/8 last:border-0 ${best ? "bg-white/[0.045]" : ""}`}
+                className="border-b border-white/8 last:border-0"
+                style={
+                  best
+                    ? {
+                        backgroundImage: `linear-gradient(90deg, ${accent}24, ${accent}0f 45%, transparent)`,
+                      }
+                    : undefined
+                }
               >
                 <td
-                  className={`${cellX} ${cellY}`}
-                  style={best ? { boxShadow: `inset 3px 0 0 0 ${accent}` } : undefined}
+                  className={`${cellX} ${cellY} ${best ? "font-bold" : ""}`}
+                  style={best ? { boxShadow: `inset 4px 0 0 0 ${accent}` } : undefined}
                 >
                   {/*
                     마지막 구간에 '가장 합리적인 가격' 을 붙인다(2026-10-01 요청).
@@ -120,10 +127,10 @@ export function PriceTable({
                     <span>{n}인{isLast && maxGroupSize === null ? " 이상" : ""}</span>
                     {best && (
                       <span
-                        className={`whitespace-nowrap rounded-full border px-2 py-0.5 font-bold leading-tight ${
+                        className={`whitespace-nowrap rounded-full px-2 py-0.5 font-extrabold leading-tight ${
                           lg ? "text-[11px] sm:text-xs" : "text-[10px] sm:text-[11px]"
                         }`}
-                        style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
+                        style={{ backgroundColor: accent, color: "#0a0a12" }}
                       >
                         가장 합리적인 가격
                       </span>
