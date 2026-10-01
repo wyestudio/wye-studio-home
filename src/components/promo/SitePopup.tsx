@@ -133,9 +133,17 @@ export function SitePopup({ popup }: { popup: Popup }) {
            위아래가 동시에 잘리는데, 그때 잘려 나가는 게 하필 '닫기' 줄이다.
            닫을 수 없는 팝업이 제일 나쁘므로 아래 줄은 스크롤 밖에 붙박이로 둔다.
       */}
+      {/*
+        ⚠️ 바탕·테두리는 **이미지가 없을 때만** 깐다(2026-10-01 요청).
+           이미지 팝업은 그림이 카드를 끝까지 채우므로 바탕이 보이는 자리가
+           아래 조작 줄뿐인데, 거기 어두운 띠가 깔리면 그림에 받침대를 댄 꼴이 된다.
+           반대로 문구만 있는 팝업을 투명하게 두면 글자가 배경 위에 떠서 안 읽힌다.
+      */}
       <div
-        className="animate-scale-in relative z-10 flex max-h-[90dvh] w-full max-w-[26rem] flex-col
-                   overflow-hidden rounded-2xl border border-white/15 bg-background shadow-2xl"
+        className={`animate-scale-in relative z-10 flex max-h-[90dvh] w-full max-w-[26rem] flex-col
+                    overflow-hidden rounded-2xl shadow-2xl ${
+                      hasImage ? "" : "border border-white/15 bg-background"
+                    }`}
       >
         {/* 닫기 X. 글자가 아니라 SVG 다 — 본문 글꼴에 없는 기호를 쓰면 기기마다 다르게 보인다. */}
         <button
@@ -155,7 +163,9 @@ export function SitePopup({ popup }: { popup: Popup }) {
           </svg>
         </button>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-4">
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto overscroll-contain ${hasImage ? "" : "pb-4"}`}
+        >
         {popup.link_url ? (
           <Link href={popup.link_url} onClick={close} className="block">
             {content}
@@ -165,7 +175,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
         )}
 
         {popup.link_url && popup.link_label?.trim() && (
-          <div className="px-5 pt-4">
+          <div className={`px-5 pt-4 ${hasImage ? "bg-black/55 pb-1 backdrop-blur" : ""}`}>
             {/* ⚠️ 글자색에 text-glow-foreground 를 쓰지 않는다 — 그 이름의 색 토큰이
                 없어 아무 색도 안 먹는다(어드민에 남아 있는 건 무효인 채 굴러가는 것). */}
             <Link
@@ -184,7 +194,11 @@ export function SitePopup({ popup }: { popup: Popup }) {
           체크만 하고 닫지 않는 사람이 없도록, 체크박스를 눌러도 닫히지는 않는다.
           ⚠️ 위 스크롤 영역 **바깥**이다 — 내용이 길어도 항상 보여야 한다.
         */}
-        <div className="flex shrink-0 items-center justify-between border-t border-white/10 px-4 py-3">
+        <div
+          className={`flex shrink-0 items-center justify-between px-4 py-3 ${
+            hasImage ? "bg-black/55 backdrop-blur" : "border-t border-white/10"
+          }`}
+        >
           <label className="flex cursor-pointer select-none items-center gap-2 py-1 pr-2 text-xs text-muted sm:text-sm">
             <input
               type="checkbox"
