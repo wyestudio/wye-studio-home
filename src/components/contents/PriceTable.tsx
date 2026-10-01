@@ -12,18 +12,6 @@ import { discountPercent, promotionUnitPrice, type PromotionPriceTier } from "@/
  * 기본가 칸은 그대로 두고 오른쪽에 'N% OFF' 배지와 할인가를 세운다 —
  * 어느 쪽을 내는지는 열 제목과 배지가 말해 준다.
  */
-/**
- * '가장 합리적인 가격' 줄에만 쓰는 강조색.
- *
- * 테마 강조색(accent)이나 프로모션 색을 쓰지 않는 이유: 이 표에서 그 둘은 이미
- * **금액의 뜻**을 갖고 있다(기본가 / 얼리버드). 줄 강조까지 같은 색을 쓰면 어느
- * 색이 무엇을 말하는지 흐려진다. 셋째 색을 따로 둬서 '이 줄이 추천' 만 말하게 한다.
- *
- * 값은 사이트 팔레트의 빨강(globals.css --danger)과 같다. 다만 **변수를 공유하지
- * 않는다** — 그쪽은 오류·삭제용이라, 나중에 그 색을 바꾸면 가격표까지 따라 바뀐다.
- */
-const BEST_ROW_COLOR = "#ff6b6b";
-
 export type PriceTablePromo = {
   /** 열 제목. 보통 '얼리버드'. */
   label: string;
@@ -109,9 +97,9 @@ export function PriceTable({
               /*
                 마지막 구간 줄 강조.
                 ⚠️ 바탕을 **왼쪽만 진하게** 깔고 오른쪽으로 흘려 보낸다. 줄 전체를
-                   채우면 오른쪽 금액 칸에서 'N% OFF'(프로모션 색) 배지와 색이 부딪혀
-                   둘 다 안 읽힌다. 왼쪽은 '추천 줄' 표시, 오른쪽은 금액이 읽히는
-                   자리로 역할을 갈라 둔 것이다.
+                   강조색으로 채우면 오른쪽 금액 칸에서 'N% OFF'(프로모션 색) 배지와
+                   색이 부딪혀 둘 다 안 읽힌다. 왼쪽은 '추천 줄' 표시, 오른쪽은
+                   금액이 읽히는 자리로 역할을 갈라 둔 것이다.
               */
               <tr
                 key={n}
@@ -119,20 +107,21 @@ export function PriceTable({
                 style={
                   best
                     ? {
-                        backgroundImage: `linear-gradient(90deg, ${BEST_ROW_COLOR}2e, ${BEST_ROW_COLOR}14 45%, transparent)`,
+                        backgroundImage: `linear-gradient(90deg, ${accent}24, ${accent}0f 45%, transparent)`,
                       }
                     : undefined
                 }
               >
                 <td
                   className={`${cellX} ${cellY} ${best ? "font-bold" : ""}`}
-                  style={best ? { boxShadow: `inset 4px 0 0 0 ${BEST_ROW_COLOR}` } : undefined}
+                  style={best ? { boxShadow: `inset 4px 0 0 0 ${accent}` } : undefined}
                 >
                   {/*
                     마지막 구간에 '가장 합리적인 가격' 을 붙인다(2026-10-01 요청).
                     ⚠️ 구간이 하나뿐이면 달지 않는다 — 비교할 줄이 없는데 '가장' 이라고
                        적으면 빈말이 된다.
-                    색은 BEST_ROW_COLOR — 그 주석에 왜 셋째 색인지 적어 두었다.
+                    ⚠️ 색은 **기본가 열과 같은 강조색**이다. 얼리버드(프로모션 색)와
+                       겹치면 색이 뜻을 두 개 갖게 되어 둘 다 안 읽힌다.
                   */}
                   <span className="inline-flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
                     <span>{n}인{isLast && maxGroupSize === null ? " 이상" : ""}</span>
@@ -141,7 +130,7 @@ export function PriceTable({
                         className={`whitespace-nowrap rounded-full px-2 py-0.5 font-extrabold leading-tight ${
                           lg ? "text-[11px] sm:text-xs" : "text-[10px] sm:text-[11px]"
                         }`}
-                        style={{ backgroundColor: BEST_ROW_COLOR, color: "#0a0a12" }}
+                        style={{ backgroundColor: accent, color: "#0a0a12" }}
                       >
                         가장 합리적인 가격
                       </span>
