@@ -2,6 +2,7 @@
 
 import { Chevron } from "@/components/ui/Chevron";
 import { scrollToBooking } from "./scrollToBooking";
+import { DETAIL_EVENT, pushGa4Event } from "@/lib/analytics";
 
 /**
  * 첫 화면(테마 소개) 아래의 '신청하기' 버튼. 누르면 날짜 선택으로 부드럽게 내려간다.
@@ -12,10 +13,13 @@ import { scrollToBooking } from "./scrollToBooking";
  */
 export function ScrollToBookingButton({
   accent,
+  themeName,
   direction = "down",
   className = "mt-10 md:mt-12",
 }: {
   accent: string;
+  /** GA4 에 실어 보낼 테마명. 다른 이벤트들과 같은 값(theme.name)이어야 한다. */
+  themeName: string;
   /** 회차 선택이 버튼보다 위에 있으면 up — 화살표 방향만 바뀐다(페이지 맨 아래 버튼). */
   direction?: "down" | "up";
   className?: string;
@@ -23,7 +27,12 @@ export function ScrollToBookingButton({
   return (
     <a
       href="#booking"
-      onClick={scrollToBooking}
+      onClick={(e) => {
+        // 소개를 읽고 회차 선택으로 내려갔다. 여기까지 온 사람과 그냥 스크롤로
+        // 지나간 사람을 갈라 보면 이 버튼이 실제로 일하는지 알 수 있다.
+        pushGa4Event(DETAIL_EVENT.bookingScroll, { themeLabel: themeName });
+        scrollToBooking(e);
+      }}
       className={`group mx-auto hidden w-fit items-center gap-2 rounded-full border px-6 py-3 text-base font-bold transition-colors sm:flex lg:px-8 lg:py-4 lg:text-lg ${className}`}
       style={{ borderColor: `${accent}80`, color: accent }}
     >

@@ -20,6 +20,8 @@ import type {
   DailyTraffic,
   PathFunnel,
   StepFunnel,
+  DetailFunnel,
+  SectionReach,
 } from "@/lib/ga4";
 import type { ApplicationStats, ApplicationSourceStat } from "@/lib/adminStats";
 import { sourceLabel, isUnknownSource, pathLabel } from "@/lib/analyticsLabels";
@@ -141,6 +143,8 @@ type ApiPayload = {
   dailyTraffic: DailyTraffic[];
   funnel: PathFunnel;
   stepFunnel: StepFunnel;
+  detailFunnel: DetailFunnel;
+  sectionReach: SectionReach[];
   applications: ApplicationStats;
   applicationSources: ApplicationSourceStat[];
   /** 이 기간 테스트 기기에서 넣어 신청 숫자에서 뺀 건수 */
@@ -269,6 +273,15 @@ export default function AnalyticsDashboard() {
   const stepFunnel = data?.stepFunnel;
   const stepTracked =
     (stepFunnel?.consentSessions ?? 0) > 0 || (stepFunnel?.submitSessions ?? 0) > 0;
+
+  // 상세 페이지 안의 행동·블록 도달. 단계 이벤트와 같은 이유로 0 이면 "아무도 안
+  // 했다" 가 아니라 "추적이 안 붙었다" 일 수 있어 구분해 알린다.
+  const detailFunnel = data?.detailFunnel;
+  const detailTracked =
+    (detailFunnel?.bookingSessions ?? 0) > 0 ||
+    (detailFunnel?.pickSessions ?? 0) > 0 ||
+    (detailFunnel?.applyClickSessions ?? 0) > 0;
+  const sectionReach = data?.sectionReach ?? [];
 
   // 1위가 '출처 불명' 이면 요약으로 쓸모가 없다 — 뜻이 있는 값 중 1위를 뽑는다.
   const topSource = (data?.trafficSources ?? []).find((s) => !isUnknownSource(s.source));
@@ -503,11 +516,40 @@ export default function AnalyticsDashboard() {
                 top={sessions}
                 prev={sessions}
               />
+              {detailTracked && detailFunnel && (
+                <>
+                  <FunnelRow
+                    label="회차 선택까지 내려옴"
+                    value={detailFunnel.bookingSessions}
+                    top={sessions}
+                    prev={data.funnel.themeSessions}
+                    hint="(상세 안)"
+                  />
+                  <FunnelRow
+                    label="회차를 고름"
+                    value={detailFunnel.pickSessions}
+                    top={sessions}
+                    prev={detailFunnel.bookingSessions}
+                    hint="(상세 안)"
+                  />
+                  <FunnelRow
+                    label="신청하기 누름"
+                    value={detailFunnel.applyClickSessions}
+                    top={sessions}
+                    prev={detailFunnel.pickSessions}
+                    hint="(상세 안)"
+                  />
+                </>
+              )}
               <FunnelRow
                 label="신청 폼 열람"
                 value={data.funnel.applySessions}
                 top={sessions}
-                prev={data.funnel.themeSessions}
+                prev={
+                  detailTracked && detailFunnel
+                    ? detailFunnel.applyClickSessions
+                    : data.funnel.themeSessions
+                }
                 hint="(1단계 정보입력)"
               />
               {stepTracked && stepFunnel && (
@@ -546,10 +588,34 @@ export default function AnalyticsDashboard() {
                 prev={totals?.applications ?? 0}
                 hint="(우리 DB)"
               />
+              {detailTracked && detailFunnel && detailFunnel.soldOutSessions > 0 && (
+                <p className="mt-3 rounded border border-amber-400/25 bg-amber-400/5 px-3 py-2 text-sm">
+                  이 기간에 <strong>{detailFunnel.soldOutSessions.toLocaleString()}명</strong>이{" "}
+                  <strong>마감된 회차를 눌러</strong> 봤습니다. 이 사람들은 화면이 어려워서가
+                  아니라 <strong>원하는 날짜가 없어서</strong> 빠진 쪽입니다 — 문구가 아니라 회차
+                  편성을 봐야 합니다.
+                </p>
+              )}
               <p className="mt-3 text-xs text-muted">
-                앞 세 단계는 GA4 의 <strong>페이지 경로</strong>로 셉니다 — 이벤트 태그에 기대면
-                GTM 설정이 어긋날 때 조용히 0이 되는데, 경로는 페이지가 열리기만 하면 잡힙니다.
+                <strong>사이트 방문 · 테마 상세 조회 · 신청 폼 열람 · 신청/입금</strong>은 GA4 의{" "}
+                <strong>페이지 경로</strong>와 우리 DB 로 셉니다 — 이벤트 태그에 기대면 GTM 설정이
+                어긋날 때 조용히 0이 되는데, 경로는 페이지가 열리기만 하면 잡힙니다.
               </p>
+              {detailTracked ? (
+                <p className="mt-1 text-xs text-muted">
+                  <strong>(상세 안)</strong> 표시가 붙은 칸은 전부 한 주소(테마 상세) 안에서
+                  일어나는 일이라 경로로 못 가릅니다. 여기만 <strong>GA4 이벤트</strong>로 셉니다.
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-amber-400/80">
+                  <strong>테마 상세 안에서 무슨 일이 있었는지가 아직 안 보입니다.</strong> 이
+                  칸들은 GA4 <strong>이벤트</strong>로 세는데(전부 한 주소 안이라 경로로 못
+                  가릅니다), 이유는 둘 중 하나입니다 — <strong>①</strong> 코드·GTM 을 반영한 지
+                  얼마 안 돼 아직 데이터가 안 쌓였거나(하루 정도 걸립니다), <strong>②</strong> GTM
+                  에 범용 태그(<code>CE - WYE GA4</code>)가 빠졌거나. 확인 절차는 저장소의{" "}
+                  <code>ANALYTICS.md</code> 에 있습니다.
+                </p>
+              )}
               {stepTracked ? (
                 <p className="mt-1 text-xs text-muted">
                   신청 폼 안의 2·3단계는 세 화면이 같은 주소라 경로로 못 가릅니다. 여기만{" "}
@@ -565,6 +631,50 @@ export default function AnalyticsDashboard() {
                   있습니다.
                 </p>
               )}
+            </div>
+
+            {/* ── 상세 페이지에서 어디까지 읽나 ── */}
+            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+              <h2 className="mb-1 text-lg font-semibold">상세에서 어디까지 읽나</h2>
+              <p className="mb-4 text-sm text-muted">
+                테마 상세의 블록이 화면에 들어온 세션 수입니다. 위에서 아래로 줄어드는 게
+                정상이고, <strong className="text-foreground">유난히 크게 꺾이는 칸</strong>이
+                사람들이 읽기를 그만두는 자리입니다. 회차 선택이 그 아래에 있으면 신청까지 가는
+                길이 막혀 있다는 뜻입니다.
+              </p>
+              {sectionReach.length > 0 ? (
+                <div className="space-y-6">
+                  {sectionReach.map((theme) => {
+                    const top = theme.sections[0]?.sessions ?? 0;
+                    return (
+                      <div key={theme.themeLabel}>
+                        <p className="mb-2 text-sm font-semibold">{theme.themeLabel}</p>
+                        {theme.sections.map((sec, i) => (
+                          <FunnelRow
+                            key={`${sec.key}-${sec.index}`}
+                            label={sec.label}
+                            value={sec.sessions}
+                            top={top}
+                            prev={i > 0 ? theme.sections[i - 1].sessions : undefined}
+                            hint={sec.key === "booking" ? "(회차 선택)" : undefined}
+                          />
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted">
+                  아직 데이터가 없습니다. 코드·GTM 을 반영한 직후라면 하루 정도 기다려 주세요 —
+                  그 뒤에도 비어 있으면 <code>ANALYTICS.md</code> 의 확인 절차를 따라가시면
+                  됩니다.
+                </p>
+              )}
+              <p className="mt-3 text-xs text-muted">
+                테마마다 블록 구성이 달라서 <strong>합치지 않고 따로</strong> 보여드립니다. 순서는
+                기록된 그 시점의 화면 순서라, 기간 중에 블록 순서를 바꾸셨으면 같은 블록이 두 줄로
+                갈릴 수 있습니다.
+              </p>
             </div>
 
             {/* ── 신청까지 온 유입경로 (우리 DB) ── */}

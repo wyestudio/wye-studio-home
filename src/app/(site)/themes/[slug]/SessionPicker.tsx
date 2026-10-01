@@ -6,6 +6,7 @@ import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 import { BookingCalendar } from "@/components/booking/BookingCalendar";
 import { scrollToBooking } from "./scrollToBooking";
+import { DETAIL_EVENT, pushGa4Event } from "@/lib/analytics";
 
 export type PickerSession = SessionView & {
   stats: SessionStats | null;
@@ -47,12 +48,15 @@ const kstTime = (iso: string) =>
  */
 export function SessionPicker({
   themeSlug,
+  themeName,
   sessions,
   accentColor,
   accepting,
   openingDate,
 }: {
   themeSlug: string;
+  /** GA4 에 실어 보낼 테마명. 다른 이벤트들과 같은 값(theme.name)이어야 한다. */
+  themeName: string;
   sessions: PickerSession[];
   accentColor: string;
   /** 달력에 '오픈' 으로 표시할 날짜. */
@@ -161,9 +165,28 @@ export function SessionPicker({
               return (
                 <button
                   key={s.id}
-                  onClick={() => setSelectedId(s.id)}
-                  disabled={!s.bookable}
-                  className={`relative rounded-lg border py-3 text-center transition-colors disabled:cursor-not-allowed disabled:opacity-40 lg:py-4 ${
+                  onClick={() => {
+                    if (!s.bookable) {
+                      // 고를 수는 없지만 **눌렀다는 건 센다.** 마감 회차만 눌러보고
+                      // 나간 사람은 화면이 어려운 게 아니라 원하는 날짜가 없는 것이다
+                      // — 고칠 곳이 카피가 아니라 회차 편성이라는 뜻이라 갈라 놔야 한다.
+                      pushGa4Event(DETAIL_EVENT.soldOutClick, {
+                        themeLabel: themeName,
+                        appSessionId: s.id,
+                      });
+                      return;
+                    }
+                    setSelectedId(s.id);
+                    pushGa4Event(DETAIL_EVENT.sessionPick, {
+                      themeLabel: themeName,
+                      appSessionId: s.id,
+                    });
+                  }}
+                  // ⚠️ disabled 가 아니라 aria-disabled 다. disabled 버튼은 브라우저가
+                  //    클릭 자체를 삼켜서 '마감을 눌러봤다' 를 잴 방법이 없다.
+                  //    고를 수 없는 건 위 onClick 이 early return 으로 막는다.
+                  aria-disabled={!s.bookable}
+                  className={`relative rounded-lg border py-3 text-center transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-40 lg:py-4 ${
                     isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
                   }`}
                   style={isActive ? { backgroundColor: accentColor, color: "#0a0a12" } : undefined}
@@ -198,6 +221,8 @@ export function SessionPicker({
             href={selected ? `/themes/${themeSlug}/apply?session=${selected.id}` : null}
             label={ctaLabel}
             accentColor={accentColor}
+            themeName={themeName}
+            selectedId={selected?.id ?? null}
           />
         </div>
       </div>
@@ -217,11 +242,15 @@ function BookingCta({
   href,
   label,
   accentColor,
+  themeName,
+  selectedId,
 }: {
   accepting: boolean;
   href: string | null;
   label: string;
   accentColor: string;
+  themeName: string;
+  selectedId: string | null;
 }) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
@@ -238,6 +267,13 @@ function BookingCta({
     return () => io.disconnect();
   }, []);
 
+  // 두 버튼(제자리 · 모바일 하단 고정)이 같은 동작이라 한 곳에서 기록한다.
+  const trackApplyClick = () =>
+    pushGa4Event(DETAIL_EVENT.applyClick, {
+      themeLabel: themeName,
+      appSessionId: selectedId,
+    });
+
   const inner = !accepting ? (
     <div className="rounded-lg border border-white/15 bg-white/5 px-6 py-4 text-center">
       <p className="font-semibold">현재 신청을 받고 있지 않습니다.</p>
@@ -246,6 +282,7 @@ function BookingCta({
   ) : href ? (
     <a
       href={href}
+      onClick={trackApplyClick}
       className="block rounded-lg px-6 py-4 text-center text-base font-bold transition-opacity hover:opacity-90"
       style={{ backgroundColor: accentColor, color: "#0a0a12" }}
     >
@@ -274,6 +311,7 @@ function BookingCta({
           {href ? (
             <a
               href={href}
+              onClick={trackApplyClick}
               className="block rounded-lg px-6 py-3.5 text-center text-base font-bold"
               style={{ backgroundColor: accentColor, color: "#0a0a12" }}
             >
@@ -286,7 +324,12 @@ function BookingCta({
             */
             <a
               href="#booking"
-              onClick={scrollToBooking}
+              onClick={(e) => {
+                // 신청 의사는 있는데 회차를 아직 안 골랐다. 위 apply 클릭과 갈라
+                // 둬야 '버튼을 못 찾은 것' 과 '고를 회차가 없는 것' 이 구분된다.
+                pushGa4Event(DETAIL_EVENT.bookingScroll, { themeLabel: themeName });
+                scrollToBooking(e);
+              }}
               className="block rounded-lg border px-6 py-3.5 text-center text-base font-bold"
               style={{ borderColor: accentColor, color: accentColor }}
             >

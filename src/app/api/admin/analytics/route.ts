@@ -8,6 +8,8 @@ import {
   getDailyTraffic,
   getPathFunnel,
   getStepFunnel,
+  getDetailFunnel,
+  getSectionReach,
   getTestDeviceSessions,
 } from "@/lib/ga4";
 import {
@@ -54,6 +56,8 @@ export async function GET(request: NextRequest) {
       dailyTraffic,
       funnel,
       stepFunnel,
+      detailFunnel,
+      sectionReach,
       appStats,
       appSources,
       appByCampaign,
@@ -70,6 +74,15 @@ export async function GET(request: NextRequest) {
       getStepFunnel(startDate).catch(
         named("stepFunnel", { consentSessions: 0, submitSessions: 0 })
       ),
+      getDetailFunnel(startDate).catch(
+        named("detailFunnel", {
+          bookingSessions: 0,
+          pickSessions: 0,
+          applyClickSessions: 0,
+          soldOutSessions: 0,
+        })
+      ),
+      getSectionReach(startDate).catch(named("sectionReach", [])),
       getApplicationStats(days).catch(
         named("applicationStats", {
           daily: [],
@@ -91,6 +104,8 @@ export async function GET(request: NextRequest) {
       dailyTraffic,
       funnel,
       stepFunnel,
+      detailFunnel,
+      sectionReach,
       applications: appStats,
       applicationSources: appSources,
       applicationsByCampaign: appByCampaign,

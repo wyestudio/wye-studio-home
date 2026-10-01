@@ -418,3 +418,182 @@ export async function getStepFunnel(startDate: string): Promise<StepFunnel> {
 
   return { consentSessions, submitSessions };
 }
+
+// ─────────────────────────────────────────────────────────────────
+// 2026-09-30 추가 — 테마 상세 **안에서** 어디서 떨어지나
+//
+// getPathFunnel() 은 "상세를 봤다 → 신청 폼을 열었다" 사이가 통째로 비어 있다.
+// 거기가 퍼널에서 가장 크게 빠지는 칸인데, 그 안에서 무슨 일이 있었는지를 못 봤다.
+//
+// 이 구간은 전부 한 주소(`/themes/[slug]`) 안에서 일어나므로 경로로는 못 가른다.
+// 신청 폼 2·3단계와 같은 이유로 **여기만 이벤트**로 잰다.
+//
+// ⚠️ 그래서 이 숫자들도 GTM 에 매달린다. 다만 범용 태그 하나(`CE - WYE GA4`)만
+//    살아 있으면 전부 잡힌다 — 이벤트마다 태그를 만들던 방식보다 끊길 구멍이 적다.
+//    그래도 0 이면 "아무도 안 했다" 가 아니라 "끊겼다" 일 수 있어, 화면에서 구분해
+//    알린다(ANALYTICS.md).
+// ─────────────────────────────────────────────────────────────────
+
+/** GTM 범용 태그가 보내는 GA4 이벤트 이름. `src/lib/analytics.ts` 의 DETAIL_EVENT 와 짝이다. */
+const DETAIL_SECTION_VIEW = "detail_section_view";
+const DETAIL_SESSION_PICK = "detail_session_pick";
+const DETAIL_SOLD_OUT_CLICK = "detail_sold_out_click";
+const DETAIL_APPLY_CLICK = "detail_apply_click";
+
+/** 회차 선택 블록의 집계용 키. `src/app/(site)/themes/[slug]/page.tsx` 의 data-section-key. */
+const BOOKING_SECTION_KEY = "booking";
+
+export interface DetailFunnel {
+  /** 회차 선택 블록까지 내려온 세션 */
+  bookingSessions: number;
+  /** 회차(시각)를 고른 세션 */
+  pickSessions: number;
+  /** 신청하기를 누른 세션 */
+  applyClickSessions: number;
+  /**
+   * 마감된 회차를 눌러 본 세션. 퍼널 칸이 아니라 **곁다리 지표**다 —
+   * 이 숫자가 크면 화면이 아니라 회차 편성이 문제다.
+   */
+  soldOutSessions: number;
+}
+
+/**
+ * 테마 상세 안의 행동 퍼널.
+ *
+ * 이벤트 수가 아니라 **세션 수**로 센다 — 앞뒤 칸(경로 기반)과 단위를 맞춘다.
+ */
+export async function getDetailFunnel(startDate: string): Promise<DetailFunnel> {
+  const range = [{ startDate, endDate: "today" }];
+  const eventIs = (name: string) => ({
+    filter: { fieldName: "eventName", stringFilter: { matchType: "EXACT" as const, value: name } },
+  });
+
+  const [booking, rest] = await Promise.all([
+    // 회차 선택 블록 도달 — 섹션 이벤트 중 그 블록만 골라낸다.
+    analyticsDataClient.runReport({
+      property: `properties/${propertyId}`,
+      dateRanges: range,
+      metrics: [{ name: "sessions" }],
+      dimensionFilter: realOnly({
+        andGroup: {
+          expressions: [
+            eventIs(DETAIL_SECTION_VIEW),
+            {
+              filter: {
+                fieldName: "customEvent:section_key",
+                stringFilter: { matchType: "EXACT" as const, value: BOOKING_SECTION_KEY },
+              },
+            },
+          ],
+        },
+      }),
+    }),
+    analyticsDataClient.runReport({
+      property: `properties/${propertyId}`,
+      dateRanges: range,
+      dimensions: [{ name: "eventName" }],
+      metrics: [{ name: "sessions" }],
+      dimensionFilter: realOnly({
+        filter: {
+          fieldName: "eventName",
+          inListFilter: {
+            values: [DETAIL_SESSION_PICK, DETAIL_SOLD_OUT_CLICK, DETAIL_APPLY_CLICK],
+          },
+        },
+      }),
+    }),
+  ]);
+
+  const bookingSessions = parseInt(
+    booking[0]?.rows?.[0]?.metricValues?.[0]?.value || "0",
+    10
+  );
+
+  const byName = new Map<string, number>();
+  for (const row of rest[0].rows || []) {
+    const name = row.dimensionValues?.[0]?.value;
+    if (name) byName.set(name, parseInt(row.metricValues?.[0]?.value || "0", 10));
+  }
+
+  // 깔때기가 뒤집혀 보이면 안 된다 — 회차를 고르려면 그 블록을 지나야 하고,
+  // 신청하기는 회차를 고른 뒤에만 눌린다.
+  const pickSessions = Math.min(bookingSessions, byName.get(DETAIL_SESSION_PICK) || 0);
+  const applyClickSessions = Math.min(pickSessions, byName.get(DETAIL_APPLY_CLICK) || 0);
+
+  return {
+    bookingSessions,
+    pickSessions,
+    applyClickSessions,
+    // 곁다리 지표라 위 칸들과 대소를 맞추지 않는다.
+    soldOutSessions: byName.get(DETAIL_SOLD_OUT_CLICK) || 0,
+  };
+}
+
+export interface SectionReachItem {
+  /** 집계용 키 (intro · booking · block-review …) */
+  key: string;
+  /** 화면에 보여줄 이름. 운영자가 어드민에서 정한 블록 이름이다. */
+  label: string;
+  /** 상세 페이지에서의 순서(0부터). */
+  index: number;
+  /** 그 블록까지 내려온 세션 수 */
+  sessions: number;
+}
+
+export interface SectionReach {
+  themeLabel: string;
+  sections: SectionReachItem[];
+}
+
+/**
+ * 테마별로 "상세의 어느 블록까지 내려가고 멈췄나".
+ *
+ * ⚠️ **테마를 합치지 않는다.** 테마마다 블록 구성·순서가 달라서, 합치면 3번 블록이
+ *    어떤 테마에서는 가격표이고 어떤 테마에서는 후기인 채로 한 칸에 뭉친다.
+ *
+ * ⚠️ 순서(index)는 기록된 **그 시점의 DOM 순서**다. 기간 중에 어드민에서 블록
+ *    순서를 바꿨으면 같은 블록이 두 줄로 갈린다. 그때는 이름으로 읽으면 된다.
+ */
+export async function getSectionReach(startDate: string): Promise<SectionReach[]> {
+  const [res] = await analyticsDataClient.runReport({
+    property: `properties/${propertyId}`,
+    dateRanges: [{ startDate, endDate: "today" }],
+    dimensions: [
+      { name: "customEvent:theme_label" },
+      { name: "customEvent:section_key" },
+      { name: "customEvent:section_label" },
+      { name: "customEvent:section_index" },
+    ],
+    metrics: [{ name: "sessions" }],
+    dimensionFilter: realOnly({
+      filter: {
+        fieldName: "eventName",
+        stringFilter: { matchType: "EXACT", value: DETAIL_SECTION_VIEW },
+      },
+    }),
+    limit: 250,
+  });
+
+  const byTheme = new Map<string, SectionReachItem[]>();
+  for (const row of res.rows || []) {
+    const [theme, key, label, index] = (row.dimensionValues || []).map((d) => d.value || "");
+    if (!key) continue;
+    const themeLabel = blankIfEmpty(theme) || "(테마 미상)";
+    const list = byTheme.get(themeLabel) ?? [];
+    list.push({
+      key,
+      label: blankIfEmpty(label) || key,
+      index: parseInt(index || "0", 10),
+      sessions: parseInt(row.metricValues?.[0]?.value || "0", 10),
+    });
+    byTheme.set(themeLabel, list);
+  }
+
+  return [...byTheme.entries()]
+    .map(([themeLabel, sections]) => ({
+      themeLabel,
+      sections: sections.sort((a, b) => a.index - b.index),
+    }))
+    // 사람이 많이 본 테마부터.
+    .sort((a, b) => (b.sections[0]?.sessions ?? 0) - (a.sections[0]?.sessions ?? 0));
+}

@@ -32,6 +32,7 @@ import { SectionNav } from "./SectionNav";
 import { screenFitInlineScript } from "./screenFitScript";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
+import { SectionViewTracker } from "./SectionViewTracker";
 import { posterFitInlineScript } from "./posterFitScript";
 
 /*
@@ -166,6 +167,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         suppressHydrationWarning
         data-screen
         data-nav-label="테마 소개"
+        // 어디까지 읽고 나가는지 세는 집계용 키(SectionViewTracker). 라벨과 달리 안 바뀐다.
+        data-section-key="intro"
         className={INTRO_SCREEN_SECTION}
       >
       <div className={SCREEN_BODY}>
@@ -280,7 +283,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <noscript>
         <style>{`#intro [data-poster]{opacity:1!important}`}</style>
       </noscript>
-      <ScrollToBookingButton accent={accent} />
+      <ScrollToBookingButton accent={accent} themeName={theme.name} />
       </div>
       </div>
       {/* 노트북처럼 낮은 화면에서 소개 블록을 한 화면에 맞춘다(screenFitScript.ts). 포스터를 맞춘 뒤에. */}
@@ -292,6 +295,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         id="booking"
         data-screen
         data-nav-label="회차 선택"
+        // 퍼널의 '회차 선택까지 내려옴' 칸이 이 키를 센다. 바꾸면 ga4.ts 도 같이.
+        data-section-key="booking"
         className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}
       >
         <div className={SCREEN_BODY}>
@@ -308,6 +313,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
             <SessionPicker
               themeSlug={theme.slug}
+              themeName={theme.name}
               sessions={sessions}
               accentColor={accent}
               accepting={acceptingApplications}
@@ -339,7 +345,12 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         (ScrollToBookingButton 이 sm 이상에서만 보인다).
       */}
       <div className="flex justify-center pb-16 sm:pb-24">
-        <ScrollToBookingButton accent={accent} direction="up" className="mt-0 md:mt-0" />
+        <ScrollToBookingButton
+          accent={accent}
+          themeName={theme.name}
+          direction="up"
+          className="mt-0 md:mt-0"
+        />
       </div>
 
       {/* 휠 한 번에 다음 화면 블록으로([data-screen]) */}
@@ -348,6 +359,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <ScreenFit />
       {/* 넓은 화면 왼쪽 목차 — 지금 보는 블록 표시 + 눌러서 이동 */}
       <SectionNav accent={accent} />
+      {/* 어느 블록까지 내려가고 멈추는지 기록한다(화면에 아무것도 그리지 않는다) */}
+      <SectionViewTracker themeLabel={theme.name} />
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}
       <KakaoChannelButton />

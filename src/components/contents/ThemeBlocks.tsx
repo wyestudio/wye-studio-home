@@ -62,6 +62,9 @@ export function ThemeBlocks({
           data-screen
           // 데스크톱 목차(SectionNav)가 읽는 이름
           data-nav-label={navLabelOf(group[0])}
+          // 어디까지 읽고 나가는지 세는 집계용 키(SectionViewTracker).
+          // 라벨은 운영자가 바꿀 수 있어 집계 기준으로 못 쓴다 — 종류로 센다.
+          data-section-key={`block-${group[0].type}`}
           className={SCREEN_SECTION}
         >
           <div className={SCREEN_BODY}>

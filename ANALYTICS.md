@@ -45,6 +45,75 @@
 
 코드상 호출부: `pushDataLayerEvent("신청 시작", { sessionId, themeLabel })` / `pushDataLayerEvent("신청 완료", { sessionId, themeLabel, confirmationCode, birthYear, gender })`. 단계 이벤트 이름은 `src/lib/analytics.ts` 의 `APPLY_STEP_EVENT` 에 있다.
 
+## 범용 GA4 태그 (2026-09-30 추가) — 새 이벤트는 여기에 얹는다
+
+위 4개는 **이벤트 하나에 트리거 1개 + 태그 1개**를 손으로 만드는 방식이다. 그 수작업이
+이 문서 맨 위 사고 두 건의 원인이었다. 그래서 이후 이벤트는 **태그 하나로 모은다.**
+
+- 코드는 `src/lib/analytics.ts` 의 `pushGa4Event(name, params)` 를 쓴다.
+- dataLayer 이벤트 이름은 **항상 `wye_ga4`** 로 고정되고, 실제 GA4 이벤트 이름은
+  `ga4Event` 값으로 넘어간다.
+- **새 이벤트를 추가할 때 GTM 은 건드리지 않는다.** 아래 슬롯 안에서 해결되는 한.
+
+| GTM 항목 | 값 |
+|---|---|
+| 트리거 `CE - WYE GA4` | 맞춤 이벤트, 이벤트 이름 `wye_ga4`, 모든 맞춤 이벤트 |
+| 태그 `GA4 이벤트 - 범용` | 유형 `Google 애널리틱스: GA4 이벤트`, 측정 ID `G-EG7FHGECVK`(Google 태그에서 자동 발견), **이벤트 이름 `{{DLV - ga4Event}}`** |
+
+태그의 이벤트 매개변수(슬롯) — 코드의 dataLayer 키와 GA4 매개변수 이름이 다르다.
+`DLV - themeLabel` 은 **이미 있는 변수를 그대로 쓴다**(2026-09-30 실측). 나머지 5개는 새로 만든다:
+
+| GTM 변수 | dataLayer 키 | GA4 매개변수 | 상태 |
+|---|---|---|---|
+| `DLV - ga4Event` | `ga4Event` | (이벤트 이름으로 씀) | 새로 만들 것 |
+| `DLV - sectionKey` | `sectionKey` | `section_key` | 새로 만들 것 |
+| `DLV - sectionLabel` | `sectionLabel` | `section_label` | 새로 만들 것 |
+| `DLV - sectionIndex` | `sectionIndex` | `section_index` | 새로 만들 것 |
+| `DLV - appSessionId` | `appSessionId` | `app_session_id` | 새로 만들 것 |
+| `DLV - themeLabel` | `themeLabel` | `theme_label` | **이미 있음 — 재사용** |
+
+⚠️ **`session_id` 가 아니라 `app_session_id` 다.** `session_id` 는 GA4 예약어라 맞춤
+측정기준 등록이 거부된다(위 「GA4 맞춤 정의」 참고).
+
+⚠️ **기존 4개 태그와 중복되지 않는다.** 그쪽은 `ga4Event` 키를 보내지 않으므로 이 태그의
+트리거(`wye_ga4`)에 걸리지 않는다. `CE - 신청 시작`·`CE - 신청 완료` 에는 Meta Pixel 도
+걸려 있으니 **그 넷은 건드리지 않는다.**
+
+⚠️ **슬롯은 매번 전부 채워 보낸다**(안 쓰는 칸은 `undefined`). dataLayer 는 push 한 값이
+누적돼서, 앞 이벤트의 `sectionLabel` 을 지우지 않으면 뒤 이벤트에 그대로 따라붙는다.
+`pushGa4Event` 가 그 일을 한다 — **직접 `pushDataLayerEvent` 로 `wye_ga4` 를 쏘지 말 것.**
+
+### 이 태그로 나가는 이벤트 — 테마 상세 안 (2026-09-30)
+
+퍼널의 "테마 상세 조회 → 신청 폼 열람" 한 칸이 가장 크게 빠지는데 그 안이 통째로
+깜깜했다. 전부 한 주소(`/themes/[slug]`) 안이라 경로로는 못 가른다.
+
+| GA4 이벤트 | 언제 | 매개변수 |
+|---|---|---|
+| `detail_section_view` | 상세의 블록이 화면에 **처음 들어올 때**. 블록마다 페이지 방문당 한 번 | `theme_label`, `section_key`, `section_label`, `section_index` |
+| `detail_session_pick` | 회차(시각)를 고를 때 | `theme_label`, `app_session_id` |
+| `detail_sold_out_click` | **마감된 회차를 눌러 볼 때** | `theme_label`, `app_session_id` |
+| `detail_apply_click` | 신청하기를 눌러 신청 폼으로 넘어갈 때 | `theme_label`, `app_session_id` |
+| `detail_booking_scroll` | 회차를 안 고른 채 신청하기를 눌러 회차 선택으로 되돌아갈 때 | `theme_label` |
+
+쏘는 곳: `SectionViewTracker.tsx`(섹션) · `SessionPicker.tsx`(회차·신청) ·
+`ScrollToBookingButton.tsx`(되돌아가기). 이름은 `src/lib/analytics.ts` 의 `DETAIL_EVENT`
+한 곳에 모여 있고, 읽는 쪽은 `src/lib/ga4.ts` 의 `getDetailFunnel()`·`getSectionReach()` 다.
+
+**`section_key` 는 집계용, `section_label` 은 표시용이다.** 라벨은 운영자가 어드민에서
+바꿀 수 있어서 집계 기준으로 쓰면 이름을 고친 날 통계가 두 갈래로 갈린다. 키는
+`intro` · `booking` · `block-<블록종류>` 이고, 화면의 `data-section-key` 속성에서 읽는다.
+
+⚠️ **한 테마에 같은 종류 블록이 둘 이상 올 수 있다**(목록 블록 두 개 등). 그래서 키가
+겹치고, 구분은 `section_index`(화면 순서)가 한다. 어드민 화면도 키가 아니라 순서로 줄을
+가른다. 코드에서 "이미 센 블록" 을 기억하는 기준도 키가 아니라 **순서**다 — 키로 기억하면
+둘째 블록부터 영영 안 세어진다(2026-09-30 에 실제로 그랬다).
+
+⚠️ **마감 회차 버튼은 `disabled` 가 아니라 `aria-disabled` 다.** `disabled` 버튼은 브라우저가
+클릭 자체를 삼켜서 "마감을 눌러 봤다" 를 잴 방법이 없다. 고를 수 없게 막는 일은
+`onClick` 의 early return 이 한다 — **`disabled` 로 되돌리면 `detail_sold_out_click` 이
+조용히 0 이 된다.**
+
 ## GTM 구성 요소
 
 **변수** (전부 "데이터 영역 변수" 유형, `DLV - ` 접두사로 dataLayer 키와 매핑):
@@ -90,6 +159,18 @@
 | 출생년도 | `birth_year` |
 | 성별 | `gender` |
 
+**등록이 필요한 것** (2026-09-30 GA4 화면에서 실측 — 아래 넷은 **아직 없다**):
+
+| 측정기준 이름 | 이벤트 매개변수 | 없으면 |
+|---|---|---|
+| 상세 블록 키 | `section_key` | 퍼널의 '회차 선택까지 내려옴' 칸이 0 이 된다 |
+| 상세 블록 이름 | `section_label` | '상세에서 어디까지 읽나' 가 키만 보인다 |
+| 상세 블록 순서 | `section_index` | 블록 순서가 뒤섞여 보인다 |
+| 회차 ID | `app_session_id` | 회차별로 쪼개 볼 수 없다(퍼널 숫자에는 영향 없음) |
+
+⚠️ 이 넷을 등록하지 않으면 **어드민 분석 화면의 새 칸들이 조용히 0** 이 된다. GA4 Data API
+가 맞춤 측정기준을 이름으로 찾는데, 등록 전에는 그 이름이 없기 때문이다.
+
 **`session_id`는 등록 불가** — GA4가 세션 추적용으로 내부적으로 이미 쓰는 예약어라 맞춤 측정기준 생성 UI에서 즉시 거부됨("이 범위에는 매개변수 이름이 허용되지 않습니다"). 다른 이름들(`confirmation_code`, `birth_year` 등)은 문제없이 등록됨 — `session_id`라는 이름 자체만의 문제. 세션ID를 리포트에서 쓰고 싶어지면 GTM 변수/태그 매개변수 이름을 `session_id` → 예: `app_session_id`로 바꿔서 다시 등록해야 함(코드 변경 불필요, GTM 태그의 매개변수 키만 바꾸면 됨). 지금은 우선순위 낮아 보류.
 
 등록해도 실제 리포트/탐색 분석에 뜨기까진 **24~48시간** 소요(등록 직후엔 실시간 이벤트 상세에서만 값 확인 가능).
@@ -124,6 +205,7 @@
 |---|---|
 | 방문(세션)·유입 채널·랜딩 페이지·퍼널 앞 3단계 | GA4 페이지 경로 (`getPathFunnel()`) |
 | 퍼널의 신청 폼 **2·3단계** | GA4 이벤트 (`getStepFunnel()`) |
+| 퍼널의 **테마 상세 안 3칸** + '상세에서 어디까지 읽나' | GA4 이벤트 (`getDetailFunnel()`·`getSectionReach()`) |
 | 신청·입금·매출·취소 | 우리 DB (`src/lib/adminStats.ts`) |
 
 기간은 **오늘 / 최근 7일 / 최근 28일**. 날짜는 전부 KST 기준으로 자른다(GA4 속성 시간대도 서울).
@@ -133,6 +215,13 @@
 **퍼널 앞 단계를 이벤트가 아니라 페이지 경로로 센다.**
 이벤트는 GTM 설정·태그 게시에 의존해서 조용히 끊기기 쉽다(실제로 그랬다 — 위 경고 참고).
 경로는 페이지가 열리기만 하면 잡히므로 더 튼튼하다. `getPathFunnel()` 참고.
+
+**테마 상세 안의 3칸도 이벤트로 센다 (2026-09-30).**
+"테마 상세 조회 → 신청 폼 열람" 이 퍼널에서 가장 크게 빠지는 칸인데 그 안이 통째로
+깜깜했다. 상세 → 회차 선택 → 회차 고름 → 신청하기 클릭 이 전부 한 주소 안에서 일어나
+경로로는 못 가른다. 0 일 때 칸을 그리지 않고 "추적이 안 붙었다" 고 알리는 규칙은
+아래 신청 폼 단계와 같다. **마감 회차 클릭**은 퍼널 칸이 아니라 곁다리 지표로 따로
+보여준다 — 그 사람들은 화면이 아니라 회차 편성 때문에 빠진 쪽이라 섞으면 안 된다.
 
 **신청 폼 안의 단계만 예외로 이벤트로 센다 (2026-09-22).**
 세 단계가 전부 같은 주소(`/themes/[slug]/apply`)라 경로로는 못 가른다. 그래서 여기만
