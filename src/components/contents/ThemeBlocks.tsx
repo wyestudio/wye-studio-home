@@ -31,7 +31,7 @@ export type ThemeBlocksPromo = PriceTablePromo & {
  *    말고 literal 로 적는다(groupBooking.ts 주석 참고).
  */
 const GROUP_LINK_CLASS =
-  "font-extrabold text-[#FDC5FF] underline underline-offset-4 hover:text-[#FFE0FF]";
+  "font-extrabold text-[#f082f4] underline underline-offset-4 hover:text-[#f6a8f9]";
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];

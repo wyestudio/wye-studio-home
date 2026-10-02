@@ -25,11 +25,11 @@ export const GROUP_PAGE_LABEL = "단체 예약 안내";
 /**
  * 안내 페이지 강조색.
  *
- * ⚠️ Tailwind 클래스(`bg-[#FDC5FF]`)는 **소스에 적힌 문자열을 훑어** 만들어진다.
+ * ⚠️ Tailwind 클래스(`bg-[#f082f4]`)는 **소스에 적힌 문자열을 훑어** 만들어진다.
  *    이 상수로 클래스 이름을 조립하면 그 클래스가 생성되지 않는다. 클래스는 literal
  *    로 적고, 이 값은 inline style 이나 SVG stroke 처럼 런타임 값에만 쓴다.
  */
-export const GROUP_ACCENT = "#FDC5FF";
+export const GROUP_ACCENT = "#f082f4";
 
 /**
  * 단체 예약 링크를 띄울 테마.
