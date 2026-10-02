@@ -25,6 +25,7 @@
 - **get_session_stats(session_id)** (v7 재작성, v9에서 성별 카운트, v12에서 대기 구조 유지) — "신청 건수"가 아니라 "참여 인원 합계" 기준으로 confirmed/waiting 카운트 + 성별별 카운트. 비로그인 방문자도 볼 수 있는 공개 집계.
 - **lookup_application(phone_digits, confirmation_code)** (v7 신규, v8에서 해시 매칭+복호화 반영) — 로그인 없이 참여내역을 조회. 접수번호는 **6자리 숫자**(100000~999999, 중복 시 재생성). 상세는 HISTORY.md 참고.
 - **cancel_application(phone_digits, confirmation_code, refund_bank_name?, refund_account_number?, refund_account_holder?)** (v13-2 신규, v18에서 환불계좌 파라미터 추가) — 로그인 없이 참여자 본인이 `/lookup` 화면에서 셀프 취소. 상태를 `cancelled`로 바꾸고 환불계좌 정보를 저장(암호화). 환불 비율(48시간 전 100% / 24시간 전 50% / 이후 0%)은 `src/lib/format.ts`의 `calculateRefundAmount()`가 클라이언트에서 계산해 화면에 보여주고, 결제 확인된 취소 건은 `sendCancellationSlackAlert`로 `SLACK_REFUND_WEBHOOK_URL`에 환불 알림이 감. **지금까지 이 문서에 전혀 기록돼 있지 않던 기능**이었음(2026-08-15 WYE-73 문서 대조 중 발견) — `/lookup` 결과 화면(`LookupResult.tsx`)에 취소 버튼과 `RefundInfoDialog`가 이미 구현돼 있었음.
+- **group_booking_inquiries** (2026-10-02 신규) — 단체 예약(10~24명) **견적 신청 접수함**. `applications` 와 별개 테이블이다: 고를 회차도 정원도 결제도 없고, 접수 뒤 일정 협의와 예약금 30% 입금을 거쳐야 예약이 된다(섞으면 정원·퍼널·정산 집계가 흔들린다). 연락처는 전화번호/카카오톡 ID/이메일 중 하나라 `contact_enc`(encrypt_pii)로만 저장하고, 평문 칸을 두지 않는다. 유입경로(utm_*·referrer·landing_path)는 접수 시점에 같이 넣는다(신청과 달리 사후 UPDATE 안 함). `status`는 `new → contacted → quoted → booked / dropped`. 넣는 길은 `submit_group_booking_inquiry()`(SECURITY DEFINER, anon 실행 가능) 하나뿐이고, 읽는 길은 `admin_group_booking_inquiries_view`(복호화, service_role 전용)뿐이다. 어드민 화면은 `/admin/group-bookings`.
 - `reviews`, 관리자 대시보드는 이번 스키마에 없음(Phase 2).
 - **~~profiles / kakao_links / naver_links / find_account_by_email / find_account_by_phone~~** — 휴면 처리된 로그인 시스템이 쓰던 테이블/함수. 삭제하지 않고 스키마에 그대로 남아있음.
 
@@ -41,6 +42,10 @@
 /themes/[slug]             테마 상세 + 날짜(회차) 선택 (누구나 조회 가능, slug 기반 URL — 예: `/themes/baotalchul`)
 /themes/[slug]/apply       참가 신청 폼 (로그인 불필요. 3단계 — 정보입력 / 약관동의 / 제출. `?session=<id>` 로 회차를 받는다)
                            ※ 옛 `/sessions/[slug]` 계열은 2026-09-30 삭제, 테마 페이지로 리다이렉트된다
+/group                     단체 예약 안내(10~24명) + 견적 신청 폼. 헤더 네비에는 없고 테마 상세 네 곳에서만 들어온다
+                           (PRICE 표 아래 카드 / 신청 1단계 인원 선택 아래 / 상세 FAQ / 상세 FOR YOU 4번째 카드).
+                           진입 지점은 `?from=` 로 구분해 GA4 에 쌓는다 — 값과 배경은 ANALYTICS.md, 상수는 src/lib/groupBooking.ts
+/admin/group-bookings      단체 예약 문의 접수함 — 연락처(복호화) + 진행 상태·메모
 /lookup                    Check(참여내역 조회) — 전화번호 + 접수번호로 신청 내역 확인. 네비 라벨만 영문화, URL은 유지
 /notice                    Notice — 공지사항(NoticeSection) + FAQ(FaqSection) 한 페이지에 통합 — 홈에도 FaqSection이 동일하게 중복 노출됨(의도됨)
 /admin/login      어드민 로그인 — 비밀번호 입력 (ADMIN_PASSWORD 환경변수), 성공 시 admin_auth 쿠키 발급(24시간, httpOnly)
