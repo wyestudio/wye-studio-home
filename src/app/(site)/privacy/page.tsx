@@ -21,7 +21,12 @@ export default function PrivacyPage() {
         <h1 className="mb-2 text-3xl font-extrabold sm:mb-3 sm:text-4xl lg:text-5xl">개인정보처리방침</h1>
         <p className="text-sm text-muted sm:text-base">
           wouldyouescape (우주이스케이프)<br />
-          시행일자: 2026년 8월 14일
+          {/*
+            ⚠️ 수집 항목·보유기간을 고치면 이 날짜도 같이 고친다. 내용은 바뀌었는데
+               날짜가 예전 그대로면 "언제부터 이 내용이었나" 를 증명할 수 없다.
+               2026-10-02: 단체 예약 견적 신청(제2조 4항·제4조) 추가.
+          */}
+          시행일자: 2026년 10월 2일
         </p>
       </div>
 
@@ -147,6 +152,25 @@ export default function PrivacyPage() {
               </ul>
               <p className="mt-2 text-xs sm:text-sm">위 정보는 예약 상담 및 고객 문의 대응, 서비스 개선 목적으로만 이용됩니다. 카카오톡 채널 자체의 이용에는 카카오가 제공하는 별도의 개인정보처리방침이 적용될 수 있습니다.</p>
             </div>
+
+            {/*
+              단체 예약 견적 신청(/group) — 2026-10-02 추가.
+
+              ⚠️ 여기 적힌 항목은 **실제로 받는 칸과 같아야 한다.**
+                 받는 칸은 src/lib/groupBooking.ts 와 /group 의 견적 폼이고, 저장되는
+                 칸은 group_booking_inquiries 표다. 폼에 칸을 더하면 이 목록도 같이
+                 고친다 — 적어두지 않은 항목을 받으면 그 자체로 문제가 된다.
+            */}
+            <div>
+              <p className="font-semibold">4. 단체 예약 견적 신청</p>
+              <p className="mb-2">단체 예약 안내 페이지에서 견적을 신청하는 경우 다음 정보가 수집·처리됩니다.</p>
+              <ul className="ml-4 list-disc space-y-1 text-muted">
+                <li>연락처(전화번호 · 카카오톡 ID · 이메일 중 신청자가 선택한 한 가지)</li>
+                <li>희망 일시, 예상 참여 인원, 모임 성격</li>
+                <li>기타 문의 및 요청사항(선택)</li>
+              </ul>
+              <p className="mt-2 text-xs sm:text-sm">위 정보는 단체 예약 상담 및 견적 안내 목적으로만 이용되며, 예약이 확정되면 예약자·참여자 정보는 제1항에 따라 별도로 수집합니다.</p>
+            </div>
           </div>
         </div>
 
@@ -193,6 +217,11 @@ export default function PrivacyPage() {
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">카카오톡 채널 문의·상담 기록</td>
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">문의 처리 완료 후 1년</td>
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">고객 문의 대응 및 서비스 개선</td>
+                </tr>
+                <tr>
+                  <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">단체 예약 견적 신청 정보(연락처, 희망 일시, 예상 인원, 모임 성격, 요청사항)</td>
+                  <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">상담 종료 후 1년</td>
+                  <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">단체 예약 상담 대응 및 재문의 응대</td>
                 </tr>
                 <tr>
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">입금자명, 환불 계좌번호 등 결제 확인 정보</td>
