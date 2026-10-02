@@ -300,22 +300,35 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           <p className="text-sm leading-relaxed text-muted sm:text-base">
             파티형 방탈출 <strong className="text-foreground">바-ㅇ탈출</strong>은 방에 갇히는
             방탈출이 아니라, 여러 팀이 한 공간에서 동시에 문제를 풀며 경쟁하는 팀 대항
-            방탈출이에요. 진행은 운영진이 처음부터 끝까지 맡으니, 방탈출이 처음인 분이 섞여
+            방탈출이에요. 진행은 운영진이 처음부터 끝까지 상주하니, 방탈출이 처음인 분이 섞여
             있어도 괜찮아요.
           </p>
           <div className="grid grid-cols-3 gap-2.5">
             {PROGRAM_SPECS.map((s) => (
               <div
                 key={s.label}
-                className="rounded-xl border border-panel-border bg-panel px-2 py-3.5 text-center"
+                // px-2: 320px 폭 폰에서 '(조정 가능)' 이 카드를 6px 넘친다(실측).
+                className="rounded-xl border border-panel-border bg-panel px-2 py-4 text-center sm:px-3"
               >
-                <p className="text-xs text-muted">{s.label}</p>
-                <p className="mt-0.5 font-bold">{s.value}</p>
-                {s.note && (
-                  <p className="text-xs" style={{ color: GROUP_ACCENT }}>
-                    {s.note}
-                  </p>
-                )}
+                {/*
+                  글자 크기는 아래 '소셜 프로그램' 카드와 맞춘다 — 같은 섹션 안에서
+                  이 칸만 작으면 스펙이 곁다리로 읽힌다(2026-10-02 요청).
+                */}
+                <p className="text-sm text-muted sm:text-base">
+                  {s.label}
+                  {/* 단서는 값 아래가 아니라 **라벨 옆**에 둔다. 아래에 두면 '4 / 5'
+                      라는 숫자에 붙은 말처럼 보여서 무엇이 조정 가능한지 흐려진다. */}
+                  {/* nowrap: 좁은 폭에서 '(조정' / '가능)' 으로 괄호가 쪼개진다. */}
+                  {s.note && (
+                    <span
+                      className="ml-1 whitespace-nowrap font-bold"
+                      style={{ color: GROUP_ACCENT }}
+                    >
+                      ({s.note})
+                    </span>
+                  )}
+                </p>
+                <p className="mt-1 text-base font-extrabold sm:text-lg">{s.value}</p>
               </div>
             ))}
           </div>
