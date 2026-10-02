@@ -656,3 +656,109 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     opacity: 0.8;
   }
 }
+
+/*
+  인쇄(= PDF 로 뽑기).
+
+  왜 필요한가
+    개인정보처리방침은 **사이트 화면이면서 동시에 보관·제출용 문서**다. 지금까지는
+    문서를 따로 만들어 왔는데(PDF v1), 그러면 같은 글이 두 벌이 되어 한쪽만 고치는
+    날이 온다. 화면을 그대로 인쇄해 문서를 만들면 출처가 하나로 유지된다.
+
+  ⚠️ 떠다니는 것(별 배경·헤더·카카오 버튼·팝업)은 display 로 하나씩 집어내기
+     어렵다 — 대부분 position:fixed 라 선택자로 모으기 힘들다. 그래서 **전부 숨기고
+     `#print-doc` 안쪽만 다시 보이게** 한다(인쇄 영역 한정 기법).
+
+  ⚠️ 화면 색은 어두운 바탕 기준이다. 그대로 인쇄하면 글자가 흰색이라 백지가 나온다.
+     인쇄할 때만 글자·테두리 색을 종이용으로 덮는다.
+
+  ⚠️ 규칙 전체를 `:has(#print-doc)` 으로 한정한다. 안 그러면 **이 표시가 없는 다른
+     화면을 인쇄할 때 백지가 나온다**(전부 숨기고 다시 보일 것이 없으므로).
+     `:has()` 를 모르는 브라우저에서는 규칙이 안 걸려 예전처럼 그냥 인쇄된다.
+*/
+@media print {
+  /*
+    ⚠️ 화면 글자·여백은 **읽기 편하라고 크게** 잡혀 있다(2026-09-15). 그대로 인쇄하면
+       8쪽이 나온다. Tailwind 의 여백은 전부 rem 이라 **뿌리 글자 크기만 줄이면
+       글자와 여백이 같은 비율로 함께 줄어든다** — 규칙을 하나씩 덮을 필요가 없다.
+  */
+  html:has(#print-doc) {
+    font-size: 10px;
+  }
+
+  html:has(#print-doc),
+  body:has(#print-doc) {
+    background: #fff !important;
+  }
+
+  body:has(#print-doc) * {
+    visibility: hidden;
+  }
+
+  /*
+    ⚠️ 숨김 규칙(`body:has(#print-doc) *`)은 :has() 안의 id 때문에 우선순위가
+       (1,0,1) 이다. 여기를 그냥 `#print-doc *`(1,0,0) 로 쓰면 숨김이 이겨서
+       **백지가 나온다**(2026-10-02 에 실제로 그랬다). 앞에 body:has() 를 붙여
+       우선순위를 넘긴다.
+  */
+  body:has(#print-doc) #print-doc,
+  body:has(#print-doc) #print-doc * {
+    visibility: visible;
+  }
+
+  #print-doc {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: none;
+    padding: 0;
+  }
+
+  #print-doc * {
+    color: #111 !important;
+    background: transparent !important;
+    border-color: #ccc !important;
+    text-shadow: none !important;
+  }
+
+  /* 표는 칸이 구분돼야 읽힌다 — 본문 테두리보다 진하게. */
+  #print-doc table,
+  #print-doc th,
+  #print-doc td {
+    border-color: #999 !important;
+  }
+
+  #print-doc th {
+    background: #f1f1f1 !important;
+  }
+
+  /* 조항 제목 왼쪽 막대는 문서에서도 조항 시작을 알려준다. */
+  #print-doc h2 {
+    border-color: #111 !important;
+  }
+
+  /* 제목만 페이지 끝에 남고 본문이 다음 장으로 넘어가지 않게. */
+  #print-doc h1,
+  #print-doc h2 {
+    break-after: avoid;
+  }
+
+  /*
+    소제목('2. 선택 항목' 등)만 페이지 끝에 남고 내용이 다음 장으로 넘어가지 않게.
+    이 문서에서 굵은 한 줄짜리 문단은 전부 소제목이다.
+  */
+  #print-doc p:where(.font-semibold) {
+    break-after: avoid;
+  }
+
+  #print-doc tr,
+  #print-doc li,
+  #print-doc ul {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 14mm 12mm;
+  }
+}

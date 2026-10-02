@@ -12,21 +12,31 @@ export const metadata: Metadata = {
   twitter: { title: "우주이스케이프 | 개인정보처리방침" },
 };
 
+/**
+ * 시행일자.
+ *
+ * ⚠️ 머리말과 부칙 **두 곳**에 나온다. 상수로 묶어 두지 않으면 한쪽만 고치게 된다 —
+ *    2026-10-02 에 실제로 머리말만 10월 2일로 바꾸고 부칙은 8월 14일로 남았다.
+ * ⚠️ 수집 항목(제2조)·보유기간(제4조)을 고치면 이 날짜도 같이 고친다. 내용은
+ *    바뀌었는데 날짜가 예전 그대로면 "언제부터 이 내용이었나" 를 증명할 수 없다.
+ *
+ * 2026-10-02: 단체 예약 견적 신청(제2조 4항·제4조) 추가.
+ */
+const EFFECTIVE_DATE = "2026년 10월 2일";
+
 export default function PrivacyPage() {
   // 긴 문서라 가운데 정렬 대신 읽기 편한 크기로만 키운다(테마 상세 비율에 맞춤, 2026-09-15).
   // 모바일은 그대로, 넓은 화면에서 본문·조항 제목·표 글씨를 한 단계씩.
   return (
-    <div className="mx-auto max-w-3xl px-5 py-12 sm:py-16 lg:max-w-4xl lg:py-20">
+    // id="print-doc": 인쇄하면 이 안쪽만 종이에 나간다(globals.css 의 @media print).
+    // 방침은 화면이면서 보관·제출용 문서이기도 해서, 문서를 따로 만들지 않고
+    // 이 화면을 그대로 PDF 로 뽑는다 — 글이 두 벌이 되면 한쪽만 고치는 날이 온다.
+    <div id="print-doc" className="mx-auto max-w-3xl px-5 py-12 sm:py-16 lg:max-w-4xl lg:py-20">
       <div className="mb-12 text-center sm:mb-16">
         <h1 className="mb-2 text-3xl font-extrabold sm:mb-3 sm:text-4xl lg:text-5xl">개인정보처리방침</h1>
         <p className="text-sm text-muted sm:text-base">
           wouldyouescape (우주이스케이프)<br />
-          {/*
-            ⚠️ 수집 항목·보유기간을 고치면 이 날짜도 같이 고친다. 내용은 바뀌었는데
-               날짜가 예전 그대로면 "언제부터 이 내용이었나" 를 증명할 수 없다.
-               2026-10-02: 단체 예약 견적 신청(제2조 4항·제4조) 추가.
-          */}
-          시행일자: 2026년 10월 2일
+          시행일자: {EFFECTIVE_DATE}
         </p>
       </div>
 
@@ -533,7 +543,7 @@ export default function PrivacyPage() {
         {/* 부칙 */}
         <div className="pt-6 sm:pt-8">
           <p className="text-center text-xs text-muted sm:text-sm">
-            wouldyouescape (우주이스케이프) · 본 방침은 2026년 8월 14일부터 시행됩니다.
+            wouldyouescape (우주이스케이프) · 본 방침은 {EFFECTIVE_DATE}부터 시행됩니다.
           </p>
         </div>
       </div>
