@@ -37,6 +37,7 @@ import {
 } from "./ConsentStep";
 import { ApplyComplete } from "./ApplyComplete";
 import { APPLY_STEP_EVENT, pushDataLayerEvent } from "@/lib/analytics";
+import { GROUP_ENTRY, GROUP_HEADCOUNT_MIN, groupBookingHref } from "@/lib/groupBooking";
 
 // 넓은 화면에서 칸·글자를 키운다(테마 상세 비율). 모바일 크기는 그대로.
 const field =
@@ -120,10 +121,13 @@ export function ApplyForm({
   categoryName,
   backHref,
   promo = null,
+  groupBooking = false,
 }: {
   sessionId: string;
   themeId: string;
   initialCouponCode: string;
+  /** 이 테마가 단체 예약을 받는가. 받으면 인원 선택 아래에 안내 링크가 붙는다. */
+  groupBooking?: boolean;
   /** 테마명 옆 알약 배지. 없으면 배지를 안 그린다. */
   categoryName: string | null;
   /** 날짜 다시 선택 링크. 제출이 끝나면 감춘다. */
@@ -686,18 +690,23 @@ export function ApplyForm({
                   label: `${n}명`,
                 }))}
               />
-              <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
-                ※ 10인 이상 단체 문의는{" "}
-                <a
-                  href="http://pf.kakao.com/_EGNBX"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-                >
-                  카카오톡 채널
-                </a>
-                로 문의바랍니다.
-              </p>
+              {/*
+                10명 이상은 이 폼으로 신청할 수 없다(인원 선택 상한이 그보다 낮다).
+                예전에는 카카오톡 채널로 보냈는데, 거기서는 조건·금액·절차를 운영자가
+                매번 손으로 설명해야 했다. 안내 페이지로 보낸다.
+              */}
+              {groupBooking && (
+                <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
+                  ※ {GROUP_HEADCOUNT_MIN}명 이상 단체는{" "}
+                  <a
+                    href={groupBookingHref(GROUP_ENTRY.applyStep1)}
+                    className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+                  >
+                    단체 예약 안내
+                  </a>
+                  를 확인해주세요.
+                </p>
+              )}
             </div>
 
             <AttendeeTabs

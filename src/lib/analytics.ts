@@ -104,3 +104,32 @@ export const DETAIL_EVENT = {
   /** 회차를 안 고른 채 신청하기를 눌러 회차 선택으로 되돌아갔다. */
   bookingScroll: "detail_booking_scroll",
 } as const;
+
+/**
+ * 단체 예약 안내 페이지(`/group`) 에서 재는 이벤트들.
+ *
+ * 왜 필요한가
+ *   이 페이지는 들어오는 길이 네 군데(PRICE 카드 · 신청 1단계 · FAQ · FOR YOU)인데,
+ *   어느 길로 몇 명이 들어와 **어느 블록에서 멈추는지** 모르면 네 군데를 늘릴지
+ *   줄일지, 페이지의 어느 블록을 고칠지 판단할 수 없다. 견적 신청은 접수 건수만
+ *   보면 "폼까지 왔는데 막혔는지" 와 "폼에 닿지도 못했는지" 가 안 갈린다.
+ *
+ * 슬롯 재사용 규칙(GA4_PARAM_SLOTS 안에서 해결해야 GTM 을 안 건드린다):
+ *   sectionKey   블록 키(블록 열람) / 진입 지점(GROUP_ENTRY) / 눌린 버튼 자리
+ *   sectionLabel 블록 이름, 또는 폼이 막힌 항목 이름
+ *   sectionIndex 블록 순서
+ */
+export const GROUP_EVENT = {
+  /** 상세 페이지의 네 군데 링크 중 하나를 눌렀다. sectionKey = GROUP_ENTRY 값. */
+  entryClick: "group_entry_click",
+  /** 안내 페이지의 블록 하나가 화면에 들어왔다. 블록마다 페이지 방문당 한 번. */
+  sectionView: "group_section_view",
+  /** 페이지 안의 '견적 신청하기' 버튼으로 폼까지 내려갔다. */
+  ctaClick: "group_cta_click",
+  /** 견적 폼의 칸을 처음 건드렸다 — 읽기만 하고 나간 사람과 가른다. */
+  quoteStart: "group_quote_start",
+  /** 견적 신청이 접수됐다. */
+  quoteSubmit: "group_quote_submit",
+  /** 제출했는데 막혔다. sectionLabel = 막힌 항목 — 폼이 어디서 사람을 떨구는지. */
+  quoteError: "group_quote_error",
+} as const;

@@ -20,6 +20,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   routes.push(
     { url: `${BASE_URL}/notice`, changeFrequency: "weekly", priority: 0.5 },
     { url: `${BASE_URL}/lookup`, changeFrequency: "monthly", priority: 0.5 },
+    // 단체 예약 안내. "단체 방탈출" 로 검색해 바로 들어오는 길이 필요하다 —
+    // 테마 상세를 거쳐야만 닿으면 단체를 찾는 사람은 애초에 들어오지 않는다.
+    { url: `${BASE_URL}/group`, changeFrequency: "monthly", priority: 0.7 },
     // 잠긴 테마는 싣지 않는다. 아직 안 연 것을 검색 결과로 먼저 만나면
     // "들어갔더니 자물쇠" 가 된다.
     ...themes

@@ -4,6 +4,7 @@ import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import { PriceTable, PriceTableEarlyBirdNote, type PriceTablePromo } from "@/components/contents/PriceTable";
+import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import { VenueCard } from "@/components/contents/VenueCard";
 import { THEME_BLOCK_LABELS, type ThemeBlock, type ThemePriceTier, type PublicVenue } from "@/types/catalog";
@@ -40,6 +41,7 @@ export function ThemeBlocks({
   maxGroupSize = null,
   venue = null,
   promo = null,
+  groupBooking = false,
 }: {
   blocks: ThemeBlock[];
   accent: string;
@@ -50,6 +52,12 @@ export function ThemeBlocks({
   venue?: PublicVenue | null;
   /** 켜져 있는 프로모션. 가격표 블록에만 쓰인다. */
   promo?: ThemeBlocksPromo | null;
+  /**
+   * 이 테마가 단체 예약(10명 이상)을 받는가. 받으면 가격표 아래에 안내 카드가 붙는다.
+   * 판정은 부르는 쪽에서 `hasGroupBooking()` 으로 한다 — 안내 페이지 내용이
+   * 테마별로 다르므로 아무 테마에나 붙으면 안 되는 안내다.
+   */
+  groupBooking?: boolean;
 }) {
   // 숨긴 블록은 고객 화면에서만 빠진다. 어드민에는 그대로 남아 있다.
   // 요금 구간이 하나도 없는 테마의 가격표 블록은 제목만 덩그러니 남으므로 뺀다. 장소도 같다.
@@ -92,6 +100,7 @@ export function ThemeBlocks({
                     maxGroupSize={maxGroupSize}
                     venue={venue}
                     promo={promo}
+                    groupBooking={groupBooking}
                   />
                 </div>
               ))}
@@ -122,6 +131,7 @@ export function ThemeBlockView({
   maxGroupSize = null,
   venue = null,
   promo = null,
+  groupBooking = false,
 }: {
   block: ThemeBlock;
   accent: string;
@@ -129,6 +139,7 @@ export function ThemeBlockView({
   maxGroupSize?: number | null;
   venue?: PublicVenue | null;
   promo?: ThemeBlocksPromo | null;
+  groupBooking?: boolean;
 }) {
   // 제목은 전부 가운데. 블록마다 왼쪽/가운데가 섞이면 시선이 계속 튄다.
   // included 도 라벨·제목을 달 수 있다. 다만 기본은 비워 두는 쪽이다 —
@@ -169,6 +180,8 @@ export function ThemeBlockView({
               accent={promo.accentColor}
             />
           )}
+          {/* 표에 자기 칸이 없는 10명 이상에게 다른 길을 알려준다. */}
+          {groupBooking && <GroupBookingCta />}
         </div>
       )}
 
@@ -289,8 +302,11 @@ export function ThemeBlockView({
                 <div>
                   <p className="font-bold text-foreground sm:text-lg lg:text-xl">{card.title}</p>
                   {card.desc && (
+                    // 설명은 RichText 로 그린다 — 운영자가 **굵게** 와 [문구](주소)
+                    // 링크를 쓸 수 있어야 한다(FOR YOU 카드에서 단체 예약으로 보냄).
+                    // 링크 없는 설명은 전과 똑같이 보인다.
                     <p className="mt-1 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">
-                      {card.desc}
+                      <RichText text={card.desc} />
                     </p>
                   )}
                 </div>

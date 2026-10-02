@@ -17,6 +17,7 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
     items: [
       { href: "/", label: "대시보드" },
       { href: "/applications", label: "신청" },
+      { href: "/group-bookings", label: "단체 예약 문의" },
       { href: "/sessions", label: "회차" },
     ],
   },

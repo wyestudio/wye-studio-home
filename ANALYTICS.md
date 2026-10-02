@@ -114,6 +114,37 @@
 `onClick` 의 early return 이 한다 — **`disabled` 로 되돌리면 `detail_sold_out_click` 이
 조용히 0 이 된다.**
 
+### 이 태그로 나가는 이벤트 — 단체 예약 안내 `/group` (2026-10-02)
+
+들어오는 길이 네 군데(상세 PRICE 카드 · 신청 1단계 · 상세 FAQ · 상세 FOR YOU 카드)다.
+어느 길로 몇 명이 들어와 어느 블록에서 멈추는지 모르면 네 군데를 늘릴지 줄일지,
+페이지의 어느 블록을 고칠지 판단할 수 없다.
+
+| GA4 이벤트 | 언제 | 매개변수 |
+|---|---|---|
+| `group_entry_click` | 안내 페이지에 **도착했을 때**, 주소의 `?from=` 값으로 | `theme_label`, `section_key`(진입 지점) |
+| `group_section_view` | 안내 페이지의 블록이 화면에 **처음 들어올 때**. 블록마다 방문당 한 번 | `theme_label`, `section_key`, `section_label`, `section_index` |
+| `group_cta_click` | 페이지 안의 '견적 신청하기' 버튼으로 폼까지 내려갈 때 | `theme_label`, `section_key`(누른 자리) |
+| `group_quote_start` | 견적 폼의 칸을 **처음 건드렸을 때**. 방문당 한 번 | `theme_label` |
+| `group_quote_submit` | 견적 신청이 접수됐을 때(서버 성공) | `theme_label` |
+| `group_quote_error` | 제출했는데 막혔을 때 | `theme_label`, `section_key`=`quote`, `section_label`(막힌 항목) |
+
+쏘는 곳: `GroupEntryTracker.tsx`(진입) · `components/analytics/SectionViewTracker.tsx`(블록) ·
+`GroupQuoteCta.tsx`(버튼) · `QuoteForm.tsx`(폼). 이름은 `src/lib/analytics.ts` 의
+`GROUP_EVENT` 한 곳에 모여 있다.
+
+**`theme_label` 에는 테마명이 아니라 `단체 예약 안내` 가 들어간다**(`GROUP_PAGE_LABEL`).
+비워 두면 GA4 에서 `(not set)` 으로 섞여 어느 화면의 블록 열람인지 못 가른다.
+
+**진입 지점은 클릭 핸들러가 아니라 주소(`?from=`)로 잰다.** 네 곳 중 둘(FAQ · FOR YOU
+카드)은 **어드민이 적는 문구 안의 링크**라 자바스크립트를 끼울 자리가 없다. 값은
+`src/lib/groupBooking.ts` 의 `GROUP_ENTRY`(`detail_price` · `apply_step1` · `detail_faq` ·
+`detail_for_you`)이고, 주소는 `groupBookingHref()` 가 만든다. 받는 쪽에서 `isGroupEntry()`
+로 거르므로 **모르는 값은 집계되지 않는다**(주소는 누구나 바꿀 수 있다).
+
+⚠️ 어드민 문구의 링크 주소를 고칠 때 `?from=` 을 빼면, 그 자리에서 들어온 사람이
+`group_entry_click` 없이 조용히 사라진다. 에러는 안 난다.
+
 ## GTM 구성 요소
 
 **변수** (전부 "데이터 영역 변수" 유형, `DLV - ` 접두사로 dataLayer 키와 매핑):

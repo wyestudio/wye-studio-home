@@ -9,6 +9,7 @@ import { formatDateTimeFull } from "@/lib/format";
 import { ApplyForm } from "./ApplyForm";
 import { getActivePromotion, promotionTiersForTheme } from "@/lib/promotions";
 import { isEarlyBirdSession } from "@/lib/promotion";
+import { hasGroupBooking } from "@/lib/groupBooking";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,7 @@ export default async function ApplyPage({
           (theme as { theme_categories?: { name: string } | null }).theme_categories?.name ?? null
         }
         backHref={`/themes/${slug}`}
+        groupBooking={hasGroupBooking(slug)}
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={formatDateTimeFull(target.start_at)}

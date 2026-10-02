@@ -99,6 +99,58 @@ async function buildCurrentHeadcountLines(session: Session): Promise<string[]> {
   });
 }
 
+/**
+ * 단체 예약 견적 신청 알림.
+ *
+ * ⚠️ 연락처(전화번호·카카오톡 ID·이메일)는 **싣지 않는다.** 슬랙 채널은 지난
+ *    메시지가 계속 남고 워크스페이스 구성원 전원이 읽는다. 누가 접수했는지는
+ *    어드민 목록(연락처 복호화 뷰)에서 보면 된다.
+ *
+ * 전용 웹훅이 없으면 기본 채널로 보낸다 — 알림이 안 가는 쪽이 더 나쁘다.
+ */
+export async function sendGroupBookingInquirySlackAlert({
+  headcount,
+  preferredDate,
+  preferredTime,
+  groupKind,
+  contactMethod,
+}: {
+  headcount: number;
+  preferredDate: string | null;
+  preferredTime: string;
+  groupKind: string;
+  contactMethod: string;
+}): Promise<void> {
+  const webhookUrl =
+    process.env.SLACK_GROUP_BOOKING_WEBHOOK_URL || process.env.SLACK_WEBHOOK_URL;
+  if (!webhookUrl) {
+    console.warn("[slack] 웹훅이 설정되지 않아 단체 예약 견적 신청 알림을 건너뜁니다.");
+    return;
+  }
+
+  const text = [
+    "[단체예약] 새 견적 신청",
+    `인원: ${headcount}명`,
+    `희망: ${preferredDate ?? "날짜 미정"} ${preferredTime}`,
+    `모임: ${groupKind}`,
+    `연락 수단: ${contactMethod}`,
+    "연락처는 어드민 > 단체 예약 문의에서 확인",
+  ].join("\n");
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      console.error(`[slack] 단체 예약 견적 신청 알림 전송 실패: ${res.status} ${await res.text()}`);
+    }
+  } catch (err) {
+    console.error("[slack] 단체 예약 견적 신청 알림 전송 중 에러", err);
+  }
+}
+
 const SPONSORSHIP_TAG: Record<"group" | "dating", string> = {
   group: "[그룹]",
   dating: "[소개팅-여성]",

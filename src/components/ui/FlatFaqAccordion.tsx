@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RichText } from "@/components/ui/RichText";
 
 export type FaqItem = { q: string; a: string };
 
@@ -25,15 +26,17 @@ function FaqRow({ item, lg }: { item: FaqItem; lg: boolean }) {
         </span>
       </button>
       {open && (
-        <p
+        // 답변은 RichText 로 그린다 — 운영자가 **굵게** 와 [문구](주소) 링크를
+        // 쓸 수 있어야 한다. 링크 없는 답변은 전과 똑같이 보인다.
+        <div
           className={
             lg
               ? "px-5 pb-4 text-sm leading-relaxed text-muted sm:px-7 sm:pb-6 sm:text-base"
               : "px-5 pb-4 text-sm text-muted"
           }
         >
-          {item.a}
-        </p>
+          <RichText text={item.a} />
+        </div>
       )}
     </div>
   );
