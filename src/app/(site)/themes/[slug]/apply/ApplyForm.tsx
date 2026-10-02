@@ -37,7 +37,8 @@ import {
 } from "./ConsentStep";
 import { ApplyComplete } from "./ApplyComplete";
 import { APPLY_STEP_EVENT, pushDataLayerEvent } from "@/lib/analytics";
-import { GROUP_ENTRY, GROUP_HEADCOUNT_MIN, groupBookingHref } from "@/lib/groupBooking";
+import { GROUP_ENTRY, GROUP_HEADCOUNT_MIN } from "@/lib/groupBooking";
+import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 
 // 넓은 화면에서 칸·글자를 키운다(테마 상세 비율). 모바일 크기는 그대로.
 const field =
@@ -694,18 +695,17 @@ export function ApplyForm({
                 10명 이상은 이 폼으로 신청할 수 없다(인원 선택 상한이 그보다 낮다).
                 예전에는 카카오톡 채널로 보냈는데, 거기서는 조건·금액·절차를 운영자가
                 매번 손으로 설명해야 했다. 안내 페이지로 보낸다.
+
+                ⚠️ 한 줄짜리 작은 글씨(`※ …`)였는데 눈에 안 띈다는 지적을 받아
+                   (2026-10-02) 가격표 아래와 같은 안내 카드로 바꿨다.
               */}
               {groupBooking && (
-                <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
-                  ※ {GROUP_HEADCOUNT_MIN}명 이상 단체는{" "}
-                  <a
-                    href={groupBookingHref(GROUP_ENTRY.applyStep1)}
-                    className="underline decoration-dotted underline-offset-2 hover:text-foreground"
-                  >
-                    단체 예약 안내
-                  </a>
-                  를 확인해주세요.
-                </p>
+                <GroupBookingCta
+                  entry={GROUP_ENTRY.applyStep1}
+                  size="sm"
+                  title={`${GROUP_HEADCOUNT_MIN}명 이상 단체이신가요?`}
+                  desc="이 폼으로는 신청할 수 없어요. 단체 예약 안내 보기"
+                />
               )}
             </div>
 

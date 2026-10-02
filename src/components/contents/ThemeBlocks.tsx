@@ -20,6 +20,19 @@ export type ThemeBlocksPromo = PriceTablePromo & {
   note: string | null;
 };
 
+/**
+ * 단체 예약으로 보내는 링크 모양.
+ *
+ * 운영자가 적은 문구 안의 링크(FOR YOU 카드 설명 · FAQ 답변)는 기본 모양이면
+ * 본문 색 그대로라 **눈에 안 띈다**(2026-10-02 지적). 단체 예약을 받는 테마에서만
+ * 안내 페이지 강조색으로 띄운다.
+ *
+ * ⚠️ Tailwind 는 소스에 적힌 클래스 문자열을 훑어 만든다 — GROUP_ACCENT 로 조립하지
+ *    말고 literal 로 적는다(groupBooking.ts 주석 참고).
+ */
+const GROUP_LINK_CLASS =
+  "font-extrabold text-[#FDC5FF] underline underline-offset-4 hover:text-[#FFE0FF]";
+
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
 
@@ -306,7 +319,10 @@ export function ThemeBlockView({
                     // 링크를 쓸 수 있어야 한다(FOR YOU 카드에서 단체 예약으로 보냄).
                     // 링크 없는 설명은 전과 똑같이 보인다.
                     <p className="mt-1 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">
-                      <RichText text={card.desc} />
+                      <RichText
+                        text={card.desc}
+                        linkClassName={groupBooking ? GROUP_LINK_CLASS : undefined}
+                      />
                     </p>
                   )}
                 </div>
@@ -360,7 +376,11 @@ export function ThemeBlockView({
 
       {block.type === "faq" && (
         <div className="mx-auto w-full max-w-4xl">
-          <FlatFaqAccordion items={block.items} size="lg" />
+          <FlatFaqAccordion
+            items={block.items}
+            size="lg"
+            linkClassName={groupBooking ? GROUP_LINK_CLASS : undefined}
+          />
         </div>
       )}
 

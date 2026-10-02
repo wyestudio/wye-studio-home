@@ -31,7 +31,14 @@ const IS_BOLD = /^\*\*[^*]+\*\*$/;
 const LINK_SPLIT = /(\[[^\]\n]+\]\((?:https?:\/\/|\/)[^\s)]*\))/g;
 const LINK_PARTS = /^\[([^\]\n]+)\]\(((?:https?:\/\/|\/)[^\s)]*)\)$/;
 
-const LINK_CLASS = "underline underline-offset-2 hover:text-foreground";
+/**
+ * 링크 기본 모양.
+ *
+ * ⚠️ 밑줄만 그으면 **본문과 같은 색이라 눈에 안 띈다**(2026-10-02 지적 — 상세 FOR YOU
+ *    카드 안의 단체 예약 링크를 아무도 못 봤다). 굵게까지 준다. 색을 바꿔야 하는
+ *    자리는 `linkClassName` 으로 통째로 갈아끼운다.
+ */
+const LINK_CLASS = "font-bold underline underline-offset-2 hover:text-foreground";
 
 /** 굵게만 처리한 조각들. 링크 안쪽 문구에도 그대로 쓴다. */
 function withBold(text: string) {
@@ -47,10 +54,10 @@ function withBold(text: string) {
 }
 
 /** 맨 URL 을 링크로. 그 밖의 글자는 굵게 처리로 넘긴다. */
-function withUrlsAndBold(text: string) {
+function withUrlsAndBold(text: string, linkClass: string) {
   return text.split(URL_SPLIT).map((part, i) =>
     IS_URL.test(part) ? (
-      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
+      <a key={i} href={part} target="_blank" rel="noopener noreferrer" className={linkClass}>
         {part.replace(/^https?:\/\//, "")}
       </a>
     ) : (
@@ -59,25 +66,39 @@ function withUrlsAndBold(text: string) {
   );
 }
 
-export function RichText({ text, className = "" }: { text: string; className?: string }) {
+export function RichText({
+  text,
+  className = "",
+  linkClassName,
+}: {
+  text: string;
+  className?: string;
+  /**
+   * 링크 모양을 통째로 갈아끼운다. 그 블록의 링크가 **본문에 묻히면 안 될 때**만 쓴다
+   * (예: 단체 예약으로 보내는 링크는 안내 페이지 강조색으로 띄운다).
+   */
+  linkClassName?: string;
+}) {
+  const linkClass = linkClassName ?? LINK_CLASS;
+
   return (
     <span className={`whitespace-pre-line ${className}`}>
       {text.split(LINK_SPLIT).map((part, i) => {
         const link = LINK_PARTS.exec(part);
-        if (!link) return <Fragment key={i}>{withUrlsAndBold(part)}</Fragment>;
+        if (!link) return <Fragment key={i}>{withUrlsAndBold(part, linkClass)}</Fragment>;
 
         const [, label, href] = link;
         // 사이트 안 링크는 새 탭으로 열지 않는다 — 같은 창에서 이어 읽는 흐름이다.
         // 그리고 Link 로 보낸다: 맨 <a> 면 페이지를 통째로 다시 받아 와 느리다.
         if (!IS_URL.test(href)) {
           return (
-            <Link key={i} href={href} className={LINK_CLASS}>
+            <Link key={i} href={href} className={linkClass}>
               {withBold(label)}
             </Link>
           );
         }
         return (
-          <a key={i} href={href} target="_blank" rel="noopener noreferrer" className={LINK_CLASS}>
+          <a key={i} href={href} target="_blank" rel="noopener noreferrer" className={linkClass}>
             {withBold(label)}
           </a>
         );

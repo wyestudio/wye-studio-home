@@ -22,8 +22,8 @@ export function GroupQuoteCta({
     "flex min-h-[52px] w-full items-center justify-center rounded-full px-6 text-center text-base font-extrabold transition sm:text-lg";
   const skin =
     variant === "solid"
-      ? "bg-[#FFD84D] text-[#141414] hover:bg-[#FFE680]"
-      : "border border-[#FFD84D] text-[#FFD84D] hover:bg-[#FFD84D]/10";
+      ? "bg-[#FDC5FF] text-[#141414] hover:bg-[#FFE0FF]"
+      : "border border-[#FDC5FF] text-[#FDC5FF] hover:bg-[#FDC5FF]/10";
 
   return (
     <a

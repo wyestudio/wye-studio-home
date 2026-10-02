@@ -16,7 +16,7 @@ import {
 } from "@/lib/groupBooking";
 
 const field =
-  "w-full rounded-lg border border-white/20 bg-white/5 px-3.5 py-3 text-base outline-none focus:border-[#FFD84D] sm:py-3.5";
+  "w-full rounded-lg border border-white/20 bg-white/5 px-3.5 py-3 text-base outline-none focus:border-[#FDC5FF] sm:py-3.5";
 
 /** 고르는 칸(알약 버튼) 한 줄. 손가락으로 누르는 크기(44px) 를 지킨다. */
 function ChipGroup({
@@ -40,7 +40,7 @@ function ChipGroup({
             onClick={() => onPick(o.code)}
             className={`min-h-[44px] rounded-full px-4 text-sm transition ${
               on
-                ? "bg-[#FFD84D] font-bold text-[#141414]"
+                ? "bg-[#FDC5FF] font-bold text-[#141414]"
                 : "border border-white/20 bg-white/5 text-foreground hover:border-white/40"
             }`}
           >
@@ -184,7 +184,7 @@ export function QuoteForm() {
           height="56"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="#FFD84D"
+          stroke="#FDC5FF"
           strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -311,7 +311,7 @@ export function QuoteForm() {
           type="button"
           onClick={submit}
           disabled={sending}
-          className="min-h-[52px] rounded-full bg-[#FFD84D] px-6 text-base font-extrabold text-[#141414] transition hover:bg-[#FFE680] disabled:opacity-60 sm:text-lg"
+          className="min-h-[52px] rounded-full bg-[#FDC5FF] px-6 text-base font-extrabold text-[#141414] transition hover:bg-[#FFE0FF] disabled:opacity-60 sm:text-lg"
         >
           {sending ? "접수 중…" : "견적 신청하기"}
         </button>

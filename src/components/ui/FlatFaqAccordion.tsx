@@ -5,7 +5,7 @@ import { RichText } from "@/components/ui/RichText";
 
 export type FaqItem = { q: string; a: string };
 
-function FaqRow({ item, lg }: { item: FaqItem; lg: boolean }) {
+function FaqRow({ item, lg, linkClassName }: { item: FaqItem; lg: boolean; linkClassName?: string }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -35,7 +35,7 @@ function FaqRow({ item, lg }: { item: FaqItem; lg: boolean }) {
               : "px-5 pb-4 text-sm text-muted"
           }
         >
-          <RichText text={item.a} />
+          <RichText text={item.a} linkClassName={linkClassName} />
         </div>
       )}
     </div>
@@ -43,12 +43,21 @@ function FaqRow({ item, lg }: { item: FaqItem; lg: boolean }) {
 }
 
 /** size="lg" 는 테마 상세(한 화면에 블록 하나)용. 다른 페이지는 기본 크기 그대로. */
-export function FlatFaqAccordion({ items, size = "md" }: { items: FaqItem[]; size?: "md" | "lg" }) {
+export function FlatFaqAccordion({
+  items,
+  size = "md",
+  linkClassName,
+}: {
+  items: FaqItem[];
+  size?: "md" | "lg";
+  /** 답변 안 링크 모양. 본문에 묻히면 안 되는 블록에서만 넘긴다(RichText 참고). */
+  linkClassName?: string;
+}) {
   const lg = size === "lg";
   return (
     <div className={`flex flex-col ${lg ? "gap-3 sm:gap-4" : "gap-3"}`}>
       {items.map((item) => (
-        <FaqRow key={item.q} item={item} lg={lg} />
+        <FaqRow key={item.q} item={item} lg={lg} linkClassName={linkClassName} />
       ))}
     </div>
   );
