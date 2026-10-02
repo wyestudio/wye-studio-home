@@ -127,9 +127,11 @@ function pickSlackWebhook(name: string): string | null {
 /**
  * 단체 예약 견적 신청 알림.
  *
- * ⚠️ 연락처(전화번호·카카오톡 ID·이메일)는 **싣지 않는다.** 슬랙 채널은 지난
- *    메시지가 계속 남고 워크스페이스 구성원 전원이 읽는다. 누가 접수했는지는
- *    어드민 목록(연락처 복호화 뷰)에서 보면 된다.
+ * 연락처까지 싣는다 — 알림만 보고 바로 연락할 수 있어야 한다(2026-10-02 요청).
+ * 신청 알림(`slackV2.ts`)이 이미 이름·전화번호를 싣고 있어 기준도 같다.
+ *
+ * ⚠️ 그래도 **요청사항(note)은 싣지 않는다.** 길어서 채널을 덮기도 하고, 본인
+ *    사정이 적히는 칸이라 더 민감하다. 전체 내용은 어드민 목록에서 본다.
  *
  * 전용 웹훅이 없으면 기본 채널로 보낸다 — 알림이 안 가는 쪽이 더 나쁘다.
  *
@@ -145,12 +147,14 @@ export async function sendGroupBookingInquirySlackAlert({
   preferredTime,
   groupKind,
   contactMethod,
+  contact,
 }: {
   headcount: number;
   preferredDate: string | null;
   preferredTime: string;
   groupKind: string;
   contactMethod: string;
+  contact: string;
 }): Promise<void> {
   const webhookUrl =
     pickSlackWebhook("SLACK_GROUP_BOOKING_WEBHOOK_URL") ?? pickSlackWebhook("SLACK_WEBHOOK_URL");
@@ -166,8 +170,7 @@ export async function sendGroupBookingInquirySlackAlert({
     `인원: ${headcount}명`,
     `희망: ${preferredDate ?? "날짜 미정"} ${preferredTime}`,
     `모임: ${groupKind}`,
-    `연락 수단: ${contactMethod}`,
-    "연락처는 어드민 > 단체 예약 문의에서 확인",
+    `연락: ${contactMethod} ${contact}`,
   ].join("\n");
 
   try {

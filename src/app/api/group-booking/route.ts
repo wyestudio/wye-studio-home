@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
         preferredTime: preferredTimeLabel(preferredTime),
         groupKind: groupKindLabel(groupKind),
         contactMethod: contactMethodLabel(contactMethod),
+        contact,
       });
     } catch (err) {
       console.error("[group-booking] 슬랙 알림 처리 중 에러", err);
