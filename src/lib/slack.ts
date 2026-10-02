@@ -100,6 +100,31 @@ async function buildCurrentHeadcountLines(session: Session): Promise<string[]> {
 }
 
 /**
+ * 환경변수에서 **슬랙 웹훅 주소로 쓸 수 있는 값만** 꺼낸다. 아니면 null.
+ *
+ * 왜 검사하는가
+ *   값이 주소가 아니어도 코드는 그대로 돌아가고 `fetch` 안에서야 터진다. 알림은
+ *   조용히 안 오고 로그에만 남아서, 밖에서 보면 "등록했는데 왜 안 오지" 가 된다.
+ *   2026-10-02 에 Vercel 환경변수의 **값 칸에 변수 이름**(`SLACK_GROUP_BOOKING_WEBHOOK_URL`)
+ *   이 들어가 있어 실제로 그렇게 됐다.
+ *
+ *   비어 있지 않다는 것만 보면 그 값이 폴백(기본 채널)까지 막아버린다. 모양을 보고
+ *   아니면 버려서 **기본 채널로라도 가게** 한다 — 알림이 아예 안 오는 쪽이 더 나쁘다.
+ */
+function pickSlackWebhook(name: string): string | null {
+  const raw = process.env[name]?.trim();
+  if (!raw) return null;
+  if (!raw.startsWith("https://hooks.slack.com/")) {
+    console.error(
+      `[slack] ${name} 의 값이 슬랙 웹훅 주소가 아니라 무시합니다. ` +
+        `Vercel 환경변수의 '값' 칸에 https://hooks.slack.com/services/... 를 넣었는지 확인하세요.`
+    );
+    return null;
+  }
+  return raw;
+}
+
+/**
  * 단체 예약 견적 신청 알림.
  *
  * ⚠️ 연락처(전화번호·카카오톡 ID·이메일)는 **싣지 않는다.** 슬랙 채널은 지난
@@ -128,9 +153,9 @@ export async function sendGroupBookingInquirySlackAlert({
   contactMethod: string;
 }): Promise<void> {
   const webhookUrl =
-    process.env.SLACK_GROUP_BOOKING_WEBHOOK_URL || process.env.SLACK_WEBHOOK_URL;
+    pickSlackWebhook("SLACK_GROUP_BOOKING_WEBHOOK_URL") ?? pickSlackWebhook("SLACK_WEBHOOK_URL");
   if (!webhookUrl) {
-    console.warn("[slack] 웹훅이 설정되지 않아 단체 예약 견적 신청 알림을 건너뜁니다.");
+    console.warn("[slack] 쓸 수 있는 웹훅이 없어 단체 예약 견적 신청 알림을 건너뜁니다.");
     return;
   }
 
