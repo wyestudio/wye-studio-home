@@ -107,6 +107,12 @@ async function buildCurrentHeadcountLines(session: Session): Promise<string[]> {
  *    어드민 목록(연락처 복호화 뷰)에서 보면 된다.
  *
  * 전용 웹훅이 없으면 기본 채널로 보낸다 — 알림이 안 가는 쪽이 더 나쁘다.
+ *
+ * ⚠️ 테스트 환경(`test.wouldyouescape.com`)도 **운영과 같은 슬랙 웹훅**을 쓴다.
+ *    그래서 테스트에서 눌러 본 접수가 진짜 접수처럼 채널에 올라간다. 신청 알림은
+ *    테스트에서 아예 안 보내지만(apply/actions.ts), 이쪽은 문자처럼 돈이 들지도
+ *    고객에게 가지도 않아서 **[테스트] 를 붙여 보낸다** — 알림이 실제로 오는지
+ *    테스트에서 확인할 수 있어야 한다.
  */
 export async function sendGroupBookingInquirySlackAlert({
   headcount,
@@ -128,8 +134,10 @@ export async function sendGroupBookingInquirySlackAlert({
     return;
   }
 
+  const testPrefix = process.env.NEXT_PUBLIC_IS_TEST_ENV === "true" ? "[테스트] " : "";
+
   const text = [
-    "[단체예약] 새 견적 신청",
+    `${testPrefix}[단체예약] 새 견적 신청`,
     `인원: ${headcount}명`,
     `희망: ${preferredDate ?? "날짜 미정"} ${preferredTime}`,
     `모임: ${groupKind}`,
