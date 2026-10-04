@@ -52,16 +52,32 @@ export function PriceTable({
   );
 
   /*
-    ⚠️ 좁은 화면의 좌우 여백을 넉넉히 두면 세 칸(인원·기본가·얼리버드)이
-       화면을 넘어 금액이 잘린다(390px 에서 실측). 여백·글씨·배지는 모바일에서만
-       줄이고 넓은 화면은 그대로 둔다.
+    모바일은 **2열**(인원 | 참가비)이고 넓은 화면은 3열(인원 | 기본가 | 얼리버드)이다.
+    아래 '얼리버드 칸' 주석 참고.
+
+    ⚠️ 예전에는 모바일에서도 3열이라 여백을 8px 까지 줄여야 했고, 그래도 좁은
+       기기에서 금액이 잘렸다(360px 에서 39px 초과 — 2026-10-04 제보).
+       2열로 접고 나서 12px 로 되돌렸다.
   */
-  const cellX = lg ? "px-2 sm:px-7" : "px-2 sm:px-5";
+  /*
+    ⚠️ 360px 미만(구형 아이폰 SE 등)에서는 12px 여백이 14px 모자란다.
+       거기서만 8px 로 줄인다 — 그보다 넓은 기기는 12px 그대로.
+  */
+  const cellX = lg
+    ? "px-2 min-[360px]:px-3 sm:px-7"
+    : "px-2 min-[360px]:px-3 sm:px-5";
   const cellY = lg ? "py-3 sm:py-6" : "py-3 sm:py-5";
   const headY = lg ? "py-2.5 sm:py-4" : "py-2.5 sm:py-3.5";
 
+  /*
+    ⚠️ overflow-hidden 이 아니라 **overflow-x-auto** 다.
+       hidden 이면 좁은 화면에서 얼리버드 금액이 **소리 없이 잘려 나간다** —
+       360px 기기에서 '55,000원' 의 '원' 이 사라졌다(2026-10-04 제보).
+       가로 스크롤은 보기 좋지 않지만, 가격이 사라지는 것보다는 낫다.
+       열이 화면에 들어가게 만드는 것이 먼저고, 이건 마지막 안전망이다.
+  */
   return (
-    <div className="overflow-hidden rounded-xl border border-white/15">
+    <div className="overflow-x-auto rounded-xl border border-white/15">
       {/* ⚠️ 모바일 글씨는 한 단계 낮다 — 세 칸을 390px 안에 넣기 위해서다. */}
       <table className={`w-full ${lg ? "text-body sm:text-lg lg:text-xl" : "text-body"}`}>
         <thead>
@@ -73,9 +89,12 @@ export function PriceTable({
               기본가 열 제목도 **자기 열의 색**으로 맞춘다(2026-10-01 요청).
               얼리버드 제목만 색이 있으면 그쪽만 '진짜 가격' 처럼 읽힌다.
               ⚠️ 프로모션이 없을 때는 비교할 열이 없으므로 예전처럼 흐린 제목 그대로 둔다.
+
+              ⚠️ 프로모션이 있을 때 **모바일에서는 이 칸을 감추고** 아래 얼리버드
+                 칸이 두 금액을 함께 맡는다. 머리글도 거기서 '참가비' 로 바뀐다.
             */}
             <th
-              className={`${cellX} ${headY} text-right ${hasPromoColumn ? "font-bold" : "font-medium"}`}
+              className={`${cellX} ${headY} text-right ${hasPromoColumn ? "hidden font-bold sm:table-cell" : "font-medium"}`}
               style={hasPromoColumn ? { color: accent } : undefined}
             >
               {hasPromoColumn ? "기본가" : "1인당"}
@@ -85,7 +104,9 @@ export function PriceTable({
                 className={`${cellX} ${headY} text-right font-bold`}
                 style={{ color: promo!.accentColor }}
               >
-                {promo!.label}
+                {/* 모바일은 두 금액을 한 칸에 담으므로 '참가비' 로 아우른다. */}
+                <span className="sm:hidden" style={{ color: accent }}>참가비</span>
+                <span className="hidden sm:inline">{promo!.label}</span>
               </th>
             )}
           </tr>
@@ -150,7 +171,11 @@ export function PriceTable({
                   취소선으로 눌러 봤지만, 정가가 흐려지면 표가 '할인 안내문'처럼 읽히고
                   기본가가 얼마인지도 잘 안 보였다.
                 */}
-                <td className={`${cellX} ${cellY} text-right font-bold`} style={{ color: accent }}>
+                {/* ⚠️ 프로모션이 있으면 모바일에서는 감춘다 — 아래 칸이 두 금액을 함께 보여준다. */}
+                <td
+                  className={`${cellX} ${cellY} text-right font-bold ${hasPromoColumn ? "hidden sm:table-cell" : ""}`}
+                  style={{ color: accent }}
+                >
                   {formatKrw(unit)}
                 </td>
 
@@ -165,7 +190,21 @@ export function PriceTable({
                            접으면 그 줄만 키가 커져서, 왼쪽의 인원·기본가가 할인가와
                            다른 높이에 놓인다 — 같은 줄의 숫자인데 눈높이가 어긋난다.
                       */
-                      <span className="inline-flex items-center justify-end gap-1 sm:gap-2">
+                      <span className="flex flex-col items-end gap-0.5 sm:inline-flex sm:flex-row sm:items-center sm:gap-2">
+                        {/*
+                          모바일 전용 기본가 줄. 세 칸이 좁은 화면을 넘어가서 2열로
+                          접은 결과다(2026-10-04).
+                          ⚠️ 흐리게 만들지 말 것 — 기본가가 안 보이면 표가 '할인
+                             안내문' 처럼 읽힌다(2026-10-01 요청). 열 제목과 같은
+                             강조색·굵기를 그대로 쓴다.
+                        */}
+                        <span
+                          className="font-bold sm:hidden"
+                          style={{ color: accent }}
+                        >
+                          {formatKrw(unit)}
+                        </span>
+                        <span className="inline-flex items-center justify-end gap-1 sm:contents">
                         <span
                           // 위 '가장 합리적인 가격' 배지와 같은 크기로 묶는다(text-micro).
                           className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-micro font-extrabold leading-tight sm:px-2"
@@ -180,6 +219,7 @@ export function PriceTable({
                           style={{ color: promo!.accentColor }}
                         >
                           {formatKrw(promoUnit!)}
+                        </span>
                         </span>
                       </span>
                     ) : (
