@@ -217,7 +217,7 @@ export function ConsentStep({
               href={it.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline sm:text-sm"
+              className="shrink-0 whitespace-nowrap text-body-sm text-muted underline-offset-2 hover:text-foreground hover:underline"
             >
               보기 <Chevron dir="right" className="ml-0.5 inline h-3 w-3 align-middle" />
             </a>
@@ -226,7 +226,7 @@ export function ConsentStep({
               type="button"
               onClick={() => toggleExpand(it.id)}
               aria-expanded={expanded.has(it.id)}
-              className="shrink-0 whitespace-nowrap text-xs text-muted underline-offset-2 hover:text-foreground hover:underline sm:text-sm"
+              className="shrink-0 whitespace-nowrap text-body-sm text-muted underline-offset-2 hover:text-foreground hover:underline"
             >
               {expanded.has(it.id) ? (
                 <>닫기 <Chevron dir="up" className="ml-0.5 inline h-3 w-3 align-middle" /></>
@@ -238,7 +238,7 @@ export function ConsentStep({
         </div>
 
         {it.detail && expanded.has(it.id) && (
-          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-white/10 bg-white/[0.03] p-3 text-xs leading-relaxed text-muted sm:max-h-44 sm:p-4 sm:text-sm">
+          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-white/10 bg-white/[0.03] p-3 text-body-sm leading-relaxed text-muted sm:max-h-44 sm:p-4">
             {it.detail}
           </div>
         )}
@@ -253,7 +253,7 @@ export function ConsentStep({
         <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-white/10 pb-2.5 sm:mb-4 sm:pb-3">
           <span className="text-sm font-bold sm:text-base lg:text-lg">{title}</span>
           <span
-            className={`rounded px-1.5 py-0.5 text-[11px] font-bold sm:px-2 sm:text-xs ${
+            className={`rounded px-1.5 py-0.5 text-micro font-bold sm:px-2 ${
               tone === "required"
                 ? "bg-[var(--glow)]/15 text-glow"
                 : "bg-white/10 text-muted"
@@ -277,7 +277,7 @@ export function ConsentStep({
           className="h-5 w-5 shrink-0 accent-[var(--glow)] lg:h-6 lg:w-6"
         />
         <span className="text-sm font-bold sm:text-base lg:text-lg">전체 동의합니다</span>
-        <span className="text-xs text-muted sm:text-sm">필수·선택 항목에 모두 동의합니다.</span>
+        <span className="text-body-sm text-muted">필수·선택 항목에 모두 동의합니다.</span>
       </label>
 
       {group("필수 동의", "required", items.filter((it) => it.required))}

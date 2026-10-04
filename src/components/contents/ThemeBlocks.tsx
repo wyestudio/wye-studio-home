@@ -199,7 +199,7 @@ export function ThemeBlockView({
           <VenueCard venue={venue} accent={accent} />
         ) : (
           // 고객 화면에서는 위 filter 가 이미 뺀다. 여기 오는 건 어드민 미리보기뿐이다.
-          <p className="text-center text-xs text-muted">연결된 장소에 공개용 위치가 없습니다.</p>
+          <p className="text-center text-body-sm text-muted">연결된 장소에 공개용 위치가 없습니다.</p>
         ))}
 
       {/* 짧은 주석 한 줄로 쓰이는 자리라 제목들과 같이 가운데로 둔다. */}
@@ -254,7 +254,7 @@ export function ThemeBlockView({
                 )}
                 <p className="font-bold text-foreground sm:text-lg lg:text-xl">{item.title}</p>
                 {item.desc && (
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">
+                  <p className="mt-1.5 text-body text-muted sm:mt-2">
                     {item.desc}
                   </p>
                 )}
@@ -272,7 +272,7 @@ export function ThemeBlockView({
           )}
 
           {block.footnote && (
-            <p className="mt-4 text-[11px] leading-relaxed text-muted sm:text-xs lg:text-sm">{block.footnote}</p>
+            <p className="mt-4 text-body-sm leading-relaxed text-muted">{block.footnote}</p>
           )}
         </div>
       )}
@@ -286,13 +286,13 @@ export function ThemeBlockView({
                 key={i}
                 className="relative rounded-xl border border-panel-border bg-panel p-5 pt-6 sm:p-7 sm:pt-8"
               >
-                <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-[11px] font-extrabold text-brand-foreground">
+                <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-micro font-extrabold text-brand-foreground">
                   STEP {i + 1}
                 </span>
                 <p className="mb-2 font-bold text-foreground sm:text-lg lg:text-xl">
                   {step.emoji} {step.title}
                 </p>
-                <p className="text-xs leading-relaxed text-muted sm:text-sm lg:text-base">{step.desc}</p>
+                <p className="text-body text-muted">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -314,7 +314,7 @@ export function ThemeBlockView({
                     // 설명은 RichText 로 그린다 — 운영자가 **굵게** 와 [문구](주소)
                     // 링크를 쓸 수 있어야 한다(FOR YOU 카드에서 단체 예약으로 보냄).
                     // 링크 없는 설명은 전과 똑같이 보인다.
-                    <p className="mt-1 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">
+                    <p className="mt-1 text-body text-muted sm:mt-2">
                       <RichText
                         text={card.desc}
                         linkClassName={groupBooking ? GROUP_LINK_CLASS : undefined}
@@ -336,12 +336,12 @@ export function ThemeBlockView({
                 {i < block.items.length - 1 ? <div className="mt-1 w-px flex-1 bg-border" /> : null}
               </div>
               <div className="pb-1">
-                <p className="text-xs font-extrabold sm:text-sm" style={{ color: accent }}>
+                <p className="text-label font-extrabold" style={{ color: accent }}>
                   {i + 1}
                 </p>
                 <p className="mt-0.5 font-bold text-foreground sm:mt-1 sm:text-xl lg:text-2xl">{t.title}</p>
                 {t.desc && (
-                  <p className="mt-1 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">{t.desc}</p>
+                  <p className="mt-1 text-body text-muted sm:mt-2">{t.desc}</p>
                 )}
               </div>
             </div>
@@ -356,13 +356,13 @@ export function ThemeBlockView({
               key={i}
               className="flex gap-4 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-6 lg:p-7"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-xs font-bold text-danger sm:h-9 sm:w-9 sm:text-sm">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-bold text-danger sm:h-9 sm:w-9">
                 {i + 1}
               </span>
               <div className="flex flex-col gap-1 sm:gap-1.5">
                 <p className="font-bold text-foreground sm:text-lg">{p.title}</p>
                 {p.desc && (
-                  <p className="text-xs leading-relaxed text-muted sm:text-sm lg:text-base">{p.desc}</p>
+                  <p className="text-body text-muted">{p.desc}</p>
                 )}
               </div>
             </div>
@@ -425,7 +425,7 @@ function ReviewsBlock({
                 {s.value}
               </p>
               <p className="mt-2.5 text-sm font-bold text-foreground sm:mt-3 sm:text-base">{s.label}</p>
-              {s.note && <p className="mt-1 text-[11px] leading-relaxed text-muted">{s.note}</p>}
+              {s.note && <p className="mt-1 text-body-sm leading-relaxed text-muted">{s.note}</p>}
             </div>
           ))}
         </div>
@@ -450,7 +450,7 @@ function ReviewsBlock({
                 {q.text}
               </blockquote>
               {q.meta && (
-                <figcaption className="mt-3 text-[11px] text-muted sm:text-xs">{q.meta}</figcaption>
+                <figcaption className="mt-3 text-body-sm text-muted">{q.meta}</figcaption>
               )}
             </figure>
           ))}
@@ -467,7 +467,7 @@ function ReviewsBlock({
       {block.footnote && (
         <RichText
           text={block.footnote}
-          className="-mt-2 block text-center text-xs leading-relaxed text-muted sm:text-sm"
+          className="-mt-2 block text-center text-body-sm text-muted"
         />
       )}
     </div>

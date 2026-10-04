@@ -211,7 +211,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
         </span>
         <div className="min-w-0">
           <p className="truncate text-[13px] font-bold text-foreground">{link.author || "네이버 블로그"}</p>
-          {link.date && <p className="text-[11px] text-muted">{link.date}</p>}
+          {link.date && <p className="text-micro text-muted">{link.date}</p>}
         </div>
       </div>
 

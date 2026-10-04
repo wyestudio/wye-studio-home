@@ -15,7 +15,7 @@ import type { Session, SessionStats } from "@/types/domain";
 function SessionCardField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] font-medium text-muted">{label}</p>
+      <p className="text-micro font-semibold text-muted">{label}</p>
       <p className="text-sm font-semibold text-foreground">{value}</p>
     </div>
   );

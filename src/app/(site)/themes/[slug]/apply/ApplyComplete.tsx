@@ -28,7 +28,7 @@ function CopyIcon() {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0 sm:py-2.5">
-      <span className="shrink-0 text-xs text-muted sm:text-sm">{label}</span>
+      <span className="shrink-0 text-label text-muted">{label}</span>
       <span className="text-right text-sm sm:text-base lg:text-lg">{value}</span>
     </div>
   );
@@ -102,7 +102,7 @@ export function ApplyComplete({
 
       {/* ── 접수번호 ── */}
       <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center sm:p-8 lg:p-10">
-        <p className="text-xs text-muted sm:text-sm">접수번호</p>
+        <p className="text-label text-muted">접수번호</p>
         <div className="mt-1 flex items-center justify-center gap-2 sm:mt-2 sm:gap-3">
           <p className="text-3xl font-extrabold tracking-wider sm:text-4xl lg:text-5xl" style={{ color: accentColor }}>
             {result.confirmationCode}
@@ -111,17 +111,17 @@ export function ApplyComplete({
             type="button"
             onClick={copy}
             aria-label="접수번호 복사"
-            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-xs text-muted transition-colors hover:border-white/40 hover:text-foreground sm:px-3 sm:py-2 sm:text-sm"
+            className="flex h-11 shrink-0 items-center gap-1 rounded-lg border border-white/20 px-3 text-body-sm text-muted transition-colors hover:border-white/40 hover:text-foreground"
           >
             {copied ? <>복사됨</> : <CopyIcon />}
           </button>
         </div>
-        <p className="mt-2 text-xs text-muted sm:mt-3 sm:text-sm lg:text-base">참여 내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
+        <p className="mt-2 text-body text-muted sm:mt-3">참여 내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
 
         {isWaiting && (
           <p className="mt-4 text-sm text-amber-300 sm:text-base lg:text-lg">
             현재 대기 {result.waitingNumber ?? "-"}번입니다. 자리가 나면 개별 연락드립니다.
-            <span className="mt-1 block text-xs text-muted sm:text-sm">
+            <span className="mt-1 block text-body-sm text-muted">
               앞선 신청이 취소되면 순번은 앞당겨질 수 있습니다.
             </span>
           </p>
@@ -138,19 +138,19 @@ export function ApplyComplete({
           </p>
           <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 sm:gap-4">
             <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
-              <p className="text-xs text-muted sm:text-sm">입금액</p>
+              <p className="text-label text-muted">입금액</p>
               <p className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
                 {formatKrw(result.amountKrw)}
               </p>
             </div>
             <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
-              <p className="text-xs text-muted sm:text-sm">입금자명</p>
+              <p className="text-label text-muted">입금자명</p>
               <p className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
                 {depositorName}
               </p>
             </div>
           </div>
-          <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-xs text-amber-200 sm:mt-5 sm:p-5 sm:text-sm lg:text-base">
+          <div className="mt-4 space-y-1.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-body text-amber-200 sm:mt-5 sm:p-5">
             <p>⚠️ 입금자명이 다르면 처리가 늦어질 수 있습니다.</p>
             <p>⏱ 시간 내 미입금 시 자동으로 취소될 수 있습니다.</p>
             {/* 계좌가 문자에만 있으므로, 문자가 안 오면 입금할 방법이 없어진다. */}
@@ -172,19 +172,19 @@ export function ApplyComplete({
             result.discountKrw > 0 ? (
               <>
                 {formatKrw(result.amountKrw)}
-                <span className="ml-1.5 text-xs text-muted">
+                <span className="ml-1.5 text-body-sm text-muted">
                   ({result.headcount}명 × {formatKrw(result.unitPriceKrw)} ={" "}
                   {formatKrw(result.baseAmountKrw)}
                 </span>
-                <span className="text-xs text-glow">
+                <span className="text-body-sm text-glow">
                   {" "}- 쿠폰 {formatKrw(result.discountKrw)}
                 </span>
-                <span className="text-xs text-muted">)</span>
+                <span className="text-body-sm text-muted">)</span>
               </>
             ) : (
               <>
                 {formatKrw(result.amountKrw)}
-                <span className="ml-1.5 text-xs text-muted">
+                <span className="ml-1.5 text-body-sm text-muted">
                   ({result.headcount}명 × {formatKrw(result.unitPriceKrw)})
                 </span>
               </>
@@ -195,7 +195,7 @@ export function ApplyComplete({
         <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
           {attendees.map((a, i) => (
             <div key={i} className="rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:p-5">
-              <p className="mb-1 text-xs font-bold text-muted sm:text-sm">
+              <p className="mb-1 text-label font-bold text-muted">
                 {i === 0 ? (attendees.length > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${i}`}
               </p>
               <Row

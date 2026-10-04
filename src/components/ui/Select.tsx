@@ -22,8 +22,11 @@ export function Select({
   /** glass = 반투명 카드 위에 올리는 신청 폼용. surface = 기존 화면용. */
   variant?: "surface" | "glass";
   /**
-   * lg = 넓은 화면에서 칸·글자를 키운다(신청 폼). 테마 상세 비율에 맞춘 것이다.
+   * lg = 넓은 화면에서 칸 높이를 키운다(신청 폼). 테마 상세 비율에 맞춘 것이다.
    * 어드민 등 다른 곳은 기본(md) 그대로.
+   *
+   * ⚠️ 글자 크기는 size 와 무관하게 `text-input`(16px 고정)이다. 그보다 작으면
+   *    아이폰이 포커스될 때 화면을 확대한다(2026-10-04 UX 진단 P0).
    */
   size?: "md" | "lg";
 }) {
@@ -77,8 +80,8 @@ export function Select({
             handleArrowKey("up");
           }
         }}
-        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2.5 text-sm text-foreground outline-none transition-shadow ${
-          size === "lg" ? "sm:py-3.5 sm:text-base lg:py-4 lg:text-lg" : ""
+        className={`flex min-h-12 w-full items-center justify-between rounded-lg border px-3 py-2.5 text-input text-foreground outline-none transition-shadow ${
+          size === "lg" ? "sm:py-3.5 lg:py-4" : ""
         } ${
           variant === "glass" ? "bg-white/5" : "bg-surface px-4"
         } ${
@@ -112,8 +115,8 @@ export function Select({
                 onChange(option.value);
                 setIsOpen(false);
               }}
-              className={`block w-full px-4 py-2.5 text-left text-sm transition-colors ${
-                size === "lg" ? "sm:py-3 sm:text-base lg:text-lg" : ""
+              className={`block w-full px-4 py-3 text-left text-input transition-colors ${
+                size === "lg" ? "sm:py-3.5" : ""
               } ${
                 value === option.value
                   ? "bg-brand text-brand-foreground font-medium"

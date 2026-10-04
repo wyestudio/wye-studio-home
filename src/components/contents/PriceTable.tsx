@@ -63,10 +63,10 @@ export function PriceTable({
   return (
     <div className="overflow-hidden rounded-xl border border-white/15">
       {/* ⚠️ 모바일 글씨는 한 단계 낮다 — 세 칸을 390px 안에 넣기 위해서다. */}
-      <table className={`w-full ${lg ? "text-sm sm:text-lg lg:text-xl" : "text-xs sm:text-base"}`}>
+      <table className={`w-full ${lg ? "text-body sm:text-lg lg:text-xl" : "text-body"}`}>
         <thead>
           <tr
-            className={`border-b border-white/12 bg-white/[0.04] text-muted ${lg ? "text-xs sm:text-sm" : "text-xs"}`}
+            className="border-b border-white/12 bg-white/[0.04] text-label text-muted"
           >
             <th className={`${cellX} ${headY} text-left font-medium`}>인원</th>
             {/*
@@ -133,9 +133,9 @@ export function PriceTable({
                     <span>{n}인{isLast && maxGroupSize === null ? " 이상" : ""}</span>
                     {best && (
                       <span
-                        className={`whitespace-nowrap rounded-full px-1.5 py-0.5 font-extrabold leading-tight sm:px-2 ${
-                          lg ? "text-[9px] sm:text-xs" : "text-[9px] sm:text-[11px]"
-                        }`}
+                        // 배지는 12px(text-micro) 아래로 내리지 않는다 — 9px 이었다
+                        // (2026-10-04 UX 진단: 화면에서 가장 작은 글자였다).
+                        className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-micro font-extrabold leading-tight sm:px-2"
                         style={{ backgroundColor: accent, color: "#0a0a12" }}
                       >
                         가장 합리적인 가격
@@ -167,9 +167,8 @@ export function PriceTable({
                       */
                       <span className="inline-flex items-center justify-end gap-1 sm:gap-2">
                         <span
-                          className={`whitespace-nowrap rounded-full px-1.5 py-0.5 font-extrabold leading-tight sm:px-2 ${
-                            lg ? "text-[10px] sm:text-xs" : "text-[9px] sm:text-[11px]"
-                          }`}
+                          // 위 '가장 합리적인 가격' 배지와 같은 크기로 묶는다(text-micro).
+                          className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-micro font-extrabold leading-tight sm:px-2"
                           style={{ backgroundColor: promo!.accentColor, color: "#0a0a12" }}
                         >
                           {off}% OFF
@@ -186,7 +185,7 @@ export function PriceTable({
                     ) : (
                       // 할인이 없는 구간. '-' 는 '모른다' 는 뜻으로만 쓰므로
                       // 여기서는 기본가와 같다는 걸 글자로 적는다.
-                      <span className="text-xs text-muted sm:text-sm">기본가와 동일</span>
+                      <span className="text-body-sm text-muted">기본가와 동일</span>
                     )}
                   </td>
                 )}
@@ -216,7 +215,7 @@ export function PriceTableEarlyBirdNote({
   accent: string;
 }) {
   return (
-    <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-white/75 sm:flex-row sm:items-center sm:justify-between sm:text-sm">
+    <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-body-sm text-white/75 sm:flex-row sm:items-center sm:justify-between">
       <p>
         <span aria-hidden="true">🚀</span> 회차가{" "}
         <strong className="font-bold" style={{ color: accent }}>

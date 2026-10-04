@@ -230,7 +230,7 @@ function LegendDot({
   opacity?: number;
 }) {
   return (
-    <span className="flex items-center gap-1.5 text-[11px] text-muted">
+    <span className="flex items-center gap-1.5 text-micro text-muted">
       <span
         aria-hidden="true"
         className="h-1.5 w-1.5 rounded-full"

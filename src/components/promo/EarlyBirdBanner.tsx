@@ -77,14 +77,14 @@ export function EarlyBirdBanner({
               </span>
             )}
             {note && (
-              <span className="whitespace-nowrap text-[11px] text-white/70 lg:text-xs">{note}</span>
+              <span className="whitespace-nowrap text-micro text-white/70">{note}</span>
             )}
           </div>
         )}
 
         {/* 좁은 화면에서는 단서가 아래로 내려간다. 위 알약과 중복되지 않게 갈라 둔다. */}
         {note && (
-          <p className="text-[11px] text-white/70 sm:hidden">{note}</p>
+          <p className="text-micro text-white/70 sm:hidden">{note}</p>
         )}
       </div>
     </div>

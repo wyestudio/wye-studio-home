@@ -249,7 +249,7 @@ export function LookupResult() {
           <h2 className="font-bold sm:text-xl lg:text-2xl">{result.theme_name}</h2>
           {result.category_name && (
             <span
-              className="rounded-full border px-2 py-0.5 text-[11px] font-bold sm:px-2.5 sm:py-1 sm:text-xs"
+              className="rounded-full border px-2 py-0.5 text-micro font-bold sm:px-2.5 sm:py-1"
               style={{
                 color: accent,
                 borderColor: `${accent}59`,
@@ -261,7 +261,7 @@ export function LookupResult() {
           )}
           {/* 옛 회차만 그룹/소개팅 구분이 있다. 신규 회차는 카테고리로 대신한다. */}
           {result.format_label && (
-            <span className="rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-muted sm:text-xs">
+            <span className="rounded bg-white/10 px-1.5 py-0.5 text-micro text-muted">
               {result.format_label}
             </span>
           )}

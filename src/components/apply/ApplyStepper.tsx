@@ -61,7 +61,7 @@ export function ApplyStepper({
                 />
                 <span className="flex items-center gap-1.5 sm:gap-2">
                   <span
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[10px] font-bold leading-none sm:h-5 sm:w-5 sm:text-xs lg:h-6 lg:w-6 ${
+                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-micro font-bold leading-none lg:h-6 lg:w-6 ${
                       reached ? "text-[#0a0a12]" : "border border-border text-muted"
                     }`}
                     style={reached ? { backgroundColor: to } : undefined}
@@ -77,7 +77,7 @@ export function ApplyStepper({
                     )}
                   </span>
                   <span
-                    className={`text-xs font-semibold transition-colors sm:text-sm lg:text-base ${
+                    className={`text-label font-semibold transition-colors ${
                       done
                         ? "underline decoration-dotted underline-offset-4 group-hover:decoration-solid group-hover:text-foreground"
                         : current

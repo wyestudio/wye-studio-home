@@ -6,7 +6,7 @@ import { Chevron } from "@/components/ui/Chevron";
 function attendeeTabClassName(isActive: boolean, hasError: boolean) {
   // 넓은 화면에서 한 단계씩 키운다(테마 상세 비율).
   const base =
-    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-all sm:h-10 sm:w-10 sm:text-sm lg:h-11 lg:w-11 lg:text-base";
+    "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border text-body-sm font-bold transition-all";
   if (hasError) {
     return `${base} ${isActive ? "border-danger bg-danger text-foreground" : "border-danger bg-danger-soft text-danger"}`;
   }
