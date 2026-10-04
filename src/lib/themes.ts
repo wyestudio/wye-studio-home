@@ -112,7 +112,7 @@ async function _getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
 
 /**
  * 해당 테마에서 **고객 화면에 보일** 회차들. 취소된 회차와 아직 공개 시각이
- * 안 된 회차만 뺀다 — 지난 회차는 '종료' 로 남긴다.
+ * 안 된 회차만 뺀다 — 지난 회차는 '마감' 으로 남긴다.
  * session_view 를 쓰는 이유는 가격·정원·장소의 override 규칙이 그 안에만
  * 존재하기 때문이다 (sessions 테이블을 직접 읽지 않는다).
  *
@@ -163,7 +163,7 @@ async function _attachStats(
   const supabase = createPublicClient();
   return Promise.all(
     sessions.map(async (s) => {
-      // 지난 회차는 집계를 묻지 않는다. 화면에는 '종료' 로만 나가 잔여석이 쓰이지
+      // 지난 회차는 집계를 묻지 않는다. 화면에는 '마감' 으로만 나가 잔여석이 쓰이지
       // 않는데, 집계는 회차 수만큼 RPC 를 친다 — 지난 회차는 지우지 않으니
       // 계속 쌓이기만 한다.
       // ⚠️ 그래서 지난 회차의 stats 는 항상 null 이다. stats 가 null 이면

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getThemeBySlug, getPublicSessionsForTheme, attachStats, isBookable, isPastSession } from "@/lib/themes";
+import { getThemeBySlug, getPublicSessionsForTheme, attachStats, isBookable } from "@/lib/themes";
 // 날짜 형식은 완료 화면·참여내역 조회와 같아야 한다. 한 화면 안에서 회차 일시와
 // 신청일이 다른 모양이면 같은 종류의 값으로 읽히지 않는다.
 import { formatDateTimeFull } from "@/lib/format";
@@ -59,13 +59,9 @@ export default async function ApplyPage({
     ⚠️ 지난 회차도 목록에 들어 있다(테마 상세 달력에 이력으로 남기기 때문).
        그래서 여기 도달하는 경로가 늘었다 — 지난 회차 주소를 북마크해 뒀거나,
        달력에서 지난 회차를 본 뒤 주소만 바꿔 들어오는 경우다.
-       isBookable 이 시각으로 먼저 끊으므로 신청까지 가지는 않지만,
-       "마감" 이라고만 하면 빈자리를 기다리는 사람이 생긴다.
+       **지난 회차는 isBookable 이 시각으로 먼저 끊는다** — 그 판정이 사라지면
+       status 가 'open' 인 채 지나간 회차에 신청이 들어간다(lib/themes.ts 참고).
   */
-  if (isPastSession(target.start_at)) {
-    return <Fallback slug={slug} accent={accent} message="선택하신 회차는 이미 종료되었습니다. 다른 날짜를 골라주세요." />;
-  }
-
   if (!isBookable(target, target.stats)) {
     return <Fallback slug={slug} accent={accent} message="선택하신 회차는 마감되었습니다. 다른 날짜를 골라주세요." />;
   }

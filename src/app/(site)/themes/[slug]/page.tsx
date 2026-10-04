@@ -135,8 +135,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
     ...s,
     remaining: remainingSeats(s, s.stats),
     bookable: isBookable(s, s.stats),
-    // '종료' 와 '마감' 을 가르는 값. 둘 다 못 고르지만 뜻이 달라서 — 마감은
-    // 다음 회차를 권할 자리고, 종료는 이미 지나간 이력이다.
+    // 화면에는 자리가 없는 회차와 똑같이 '마감' 으로 나간다. 이 값이 따로
+    // 필요한 건 마감 클릭 지표에서 빼기 위해서다(SessionPicker 의 onClick).
     past: isPastSession(s.start_at),
     earlyBird:
       activePromo !== null &&
