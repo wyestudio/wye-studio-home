@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/Select";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
 import { AttendeeTabs } from "@/components/apply/AttendeeTabs";
 import { ValidationToast } from "@/components/apply/ValidationToast";
-import { isValidPhoneDigits } from "@/lib/phone";
+import { isValidPhoneDigits, phoneDigits } from "@/lib/phone";
 import {
   getValidationErrorMessage,
   isValidKoreanName,
@@ -41,11 +41,17 @@ import { GROUP_ENTRY, GROUP_HEADCOUNT_MIN } from "@/lib/groupBooking";
 import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 
 // 넓은 화면에서 칸·글자를 키운다(테마 상세 비율). 모바일 크기는 그대로.
+/*
+  ⚠️ 입력칸 글자는 `text-input`(16px 고정)이다. 14px 이었을 때 아이폰에서 칸을
+     누를 때마다 화면이 확대됐다(2026-10-04 UX 진단 P0). 16px 아래로 내리지 말 것.
+     AttendeeFields.tsx 의 같은 상수와 **크기가 어긋나면 안 된다** — 한 화면에
+     나란히 놓인다.
+*/
 const field =
-  "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50 sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
+  "h-12 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-input outline-none focus:border-white/50 sm:h-14 lg:text-lg";
 const fieldInvalid =
-  "w-full rounded-lg border border-danger bg-danger-soft px-3 py-2.5 text-sm text-danger outline-none sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
-const label = "block text-xs font-medium text-muted mb-1.5 sm:text-sm lg:mb-2 lg:text-base";
+  "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 lg:text-lg";
+const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
 
 /** 인원 선택 상한. 테마에 max_group_size 가 있으면 그쪽이 우선이다. */
 const DEFAULT_MAX_ATTENDEES = 8;
@@ -53,26 +59,28 @@ const DEFAULT_MAX_ATTENDEES = 8;
 /**
  * 폼에서 쓰는 참여자 상태.
  *
- * 전화번호는 칸(3-4-4)별로 들고 있다가 보낼 때만 이어붙인다. 이어붙인 한 줄만
- * 들고 자를 경우, 가운데 칸을 비우면 뒷 칸이 앞으로 당겨진다.
+ * `phoneInput` 은 **화면에 보이는 그대로**다(하이픈 포함, 예: 010-1234-5678).
+ * 서버로 보낼 때는 숫자만 남긴다(toPayload).
+ *
+ * 예전에는 3-4-4 세 칸으로 나눠 받았다. 2026-10-04 에 한 칸으로 합쳤다 —
+ * 붙여넣기·자동완성이 안 되고(`autocomplete="tel"` 을 주면 세 칸에 각각 전체
+ * 번호가 들어간다), 칸 사이를 오가는 포커스 처리가 필요했다(UX 진단 P1).
+ * 하이픈은 조회 폼과 같은 함수(formatPhoneInput)로 타이핑 중에 자동으로 붙인다.
  */
-export type AttendeeForm = AttendeeInput & { phoneParts: string[] };
+export type AttendeeForm = AttendeeInput & { phoneInput: string };
 
 function emptyAttendee(): AttendeeForm {
   return {
     name: "", phone: "", birth_year: 0, nickname: "", gender: "", experience_range: "",
-    phoneParts: ["", "", ""],
+    phoneInput: "",
   };
 }
-
-/** 칸별 값 → 서버로 보낼 한 줄 */
-const joinPhone = (parts: string[]) => parts.join("").replace(/[^0-9]/g, "");
 
 /** 폼 상태에서 서버로 보낼 모양만 남긴다. */
 function toPayload(a: AttendeeForm): AttendeeInput {
   return {
     name: a.name,
-    phone: joinPhone(a.phoneParts),
+    phone: phoneDigits(a.phoneInput),
     birth_year: a.birth_year,
     nickname: a.nickname,
     gender: a.gender,
@@ -240,7 +248,7 @@ export function ApplyForm({
         errors.push({ field: `attendee-${i}-name`, message: getValidationErrorMessage("name", "invalid") });
       }
 
-      const digits = joinPhone(a.phoneParts);
+      const digits = phoneDigits(a.phoneInput);
       if (!digits) {
         errors.push({ field: `attendee-${i}-phone`, message: getValidationErrorMessage("phone", "required") });
       } else if (!isValidPhoneDigits(digits)) {
@@ -271,11 +279,11 @@ export function ApplyForm({
     // 그룹 안 전화번호 중복
     const phoneCount = new Map<string, number>();
     for (const a of attendees) {
-      const d = joinPhone(a.phoneParts);
+      const d = phoneDigits(a.phoneInput);
       if (d) phoneCount.set(d, (phoneCount.get(d) ?? 0) + 1);
     }
     attendees.forEach((a, i) => {
-      const d = joinPhone(a.phoneParts);
+      const d = phoneDigits(a.phoneInput);
       if (d && (phoneCount.get(d) ?? 0) > 1) {
         errors.push({
           field: `attendee-${i}-phone`,
@@ -329,7 +337,7 @@ export function ApplyForm({
       if (m) set.add(Number(m[1]));
     }
     attendees.forEach((a, i) => {
-      if (conflictPhones.has(joinPhone(a.phoneParts))) set.add(i);
+      if (conflictPhones.has(phoneDigits(a.phoneInput))) set.add(i);
     });
     return set;
   }, [step1Errors, attendees, conflictPhones]);
@@ -391,7 +399,7 @@ export function ApplyForm({
   function patchAttendee(i: number, patch: Partial<AttendeeForm>) {
     setAttendees((cur) => cur.map((a, idx) => (idx === i ? { ...a, ...patch } : a)));
     if ("nickname" in patch) setNicknameChecks((prev) => ({ ...prev, [i]: "idle" }));
-    if ("phoneParts" in patch) setConflictPhones(new Set());
+    if ("phoneInput" in patch) setConflictPhones(new Set());
   }
 
   async function runNicknameCheck(i: number) {
@@ -416,7 +424,7 @@ export function ApplyForm({
       themeId,
       headcount,
       baseAmountKrw: total,
-      phone: attendees[0] ? joinPhone(attendees[0].phoneParts) : "",
+      phone: attendees[0] ? phoneDigits(attendees[0].phoneInput) : "",
     });
     setCouponChecking(false);
     if (result.ok) {
@@ -444,7 +452,7 @@ export function ApplyForm({
       themeId,
       headcount,
       baseAmountKrw: total,
-      phone: attendees[0] ? joinPhone(attendees[0].phoneParts) : "",
+      phone: attendees[0] ? phoneDigits(attendees[0].phoneInput) : "",
     });
     setCouponChecking(false);
     if (result.ok) setApplied({ items: result.items, discountKrw: result.discountKrw });
@@ -521,14 +529,14 @@ export function ApplyForm({
 
       // 같은 테마 중복 신청은 제출 전에 미리 걸러준다.
       setCheckingConflicts(true);
-      const result = await checkThemeConflicts(attendees.map((a) => joinPhone(a.phoneParts)), sessionId);
+      const result = await checkThemeConflicts(attendees.map((a) => phoneDigits(a.phoneInput)), sessionId);
       setCheckingConflicts(false);
 
       if (!("error" in result) && result.conflictPhones.length > 0) {
         setConflictPhones(new Set(result.conflictPhones));
         setSubmitAttempted(true);
         setToast("같은 테마에 이미 신청하신 분이 포함되어 있어요.");
-        const idx = attendees.findIndex((a) => result.conflictPhones.includes(joinPhone(a.phoneParts)));
+        const idx = attendees.findIndex((a) => result.conflictPhones.includes(phoneDigits(a.phoneInput)));
         if (idx !== -1) {
           setActiveIndex(idx);
           focusField(`attendee-${idx}-phone`);
@@ -656,7 +664,7 @@ export function ApplyForm({
             <p className="font-semibold sm:text-lg lg:text-xl">{themeName}</p>
             {categoryName && (
               <span
-                className="rounded-full border px-2 py-0.5 text-[11px] font-bold sm:px-2.5 sm:text-xs"
+                className="rounded-full border px-2 py-0.5 text-micro font-bold sm:px-2.5"
                 style={{
                   color: accentColor,
                   borderColor: `${accentColor}59`,
@@ -723,7 +731,7 @@ export function ApplyForm({
                 attendeeCount={headcount}
                 birthYears={birthYears}
                 minAge={minAge}
-                isConflict={conflictPhones.has(joinPhone(attendees[activeIndex].phoneParts))}
+                isConflict={conflictPhones.has(phoneDigits(attendees[activeIndex].phoneInput))}
                 conflictReason={conflictPhones.size > 0 ? "theme" : null}
                 nicknameCheckState={nicknameChecks[activeIndex] ?? "idle"}
                 errors={{
@@ -770,7 +778,7 @@ export function ApplyForm({
                   */}
                   {promo && (
                     <span
-                      className="whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-tight sm:text-xs"
+                      className="whitespace-nowrap rounded-full px-2.5 py-1 text-micro font-extrabold leading-tight"
                       style={{ backgroundColor: promo.accentColor, color: "#0a0a12" }}
                     >
                       {promo.label} 적용 회차
@@ -820,12 +828,12 @@ export function ApplyForm({
                         <div className="mt-1.5 flex items-baseline justify-between gap-3 text-sm sm:mt-2 sm:text-base lg:text-lg">
                           <span className="flex items-center gap-1.5 text-muted">
                             <span
-                              className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-extrabold leading-tight"
+                              className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-micro font-extrabold leading-tight"
                               style={{ backgroundColor: promo.accentColor, color: "#0a0a12" }}
                             >
                               {promo.label}
                             </span>
-                            <span className="text-xs text-muted sm:text-sm">
+                            <span className="text-body-sm text-muted">
                               1인 {formatKrw(unitPrice)}
                             </span>
                           </span>
@@ -850,7 +858,7 @@ export function ApplyForm({
                             </span>
                             {totalOffPercent > 0 && (
                               <span
-                                className="whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-extrabold leading-tight sm:text-xs"
+                                className="whitespace-nowrap rounded-full px-2 py-0.5 text-micro font-extrabold leading-tight"
                                 style={{
                                   backgroundColor: promoDiscount > 0 ? promo!.accentColor : accentColor,
                                   color: "#0a0a12",
@@ -887,6 +895,7 @@ export function ApplyForm({
                       <input
                         id={half === 0 ? "couponCode" : "couponCode2"}
                         className={`${field} text-center font-mono uppercase tracking-widest`}
+                        autoComplete="off"
                         value={couponParts[half]}
                         placeholder="XXXX"
                         onChange={(e) => {
@@ -933,21 +942,21 @@ export function ApplyForm({
                         key={it.code}
                         className="flex items-center justify-between gap-2 rounded-lg border border-glow/25 bg-glow/5 px-3 py-2"
                       >
-                        <span className="min-w-0 text-xs sm:text-sm">
+                        <span className="min-w-0 text-body-sm">
                           <span className="text-glow">✓ {it.campaignName}</span>
-                          <span className="ml-1.5 font-mono text-[11px] text-muted">
+                          <span className="ml-1.5 font-mono text-micro text-muted">
                             {formatCouponCode(it.code)}
                           </span>
                         </span>
                         <span className="flex shrink-0 items-center gap-2">
-                          <span className="text-xs text-glow sm:text-sm">
+                          <span className="text-body-sm text-glow">
                             -{formatKrw(it.discountKrw)}
                           </span>
                           <button
                             type="button"
                             onClick={() => removeCoupon(it.code)}
                             disabled={couponChecking}
-                            className="rounded border border-white/20 px-2 py-0.5 text-[11px] text-muted disabled:opacity-40"
+                            className="rounded border border-white/20 px-2 py-0.5 text-micro text-muted disabled:opacity-40"
                           >
                             빼기
                           </button>
@@ -958,9 +967,9 @@ export function ApplyForm({
                 )}
 
                 {couponError ? (
-                  <p className="mt-1.5 text-xs text-amber-400 sm:mt-2 sm:text-sm">{couponError}</p>
+                  <p className="mt-1.5 text-body-sm text-amber-400 sm:mt-2">{couponError}</p>
                 ) : (
-                  <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
+                  <p className="mt-1.5 text-body-sm text-muted sm:mt-2">
                     쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요.
                     {" "}쿠폰에 따라 여러 장을 함께 쓸 수 있어요.
                   </p>
@@ -973,21 +982,22 @@ export function ApplyForm({
                 <input
                   id="depositorName"
                   className={errOf(step3Errors, "depositorName") ? fieldInvalid : field}
+                  autoComplete="name"
                   value={depositorName}
                   onChange={(e) => setDepositorName(e.target.value)}
                   placeholder="실제로 입금하실 분의 성함"
                 />
                 {errOf(step3Errors, "depositorName") && (
-                  <p className="mt-1 text-[11px] text-danger sm:text-xs lg:text-sm">{errOf(step3Errors, "depositorName")}</p>
+                  <p className="mt-1 text-body-sm text-danger">{errOf(step3Errors, "depositorName")}</p>
                 )}
-                <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200 sm:mt-3 sm:px-4 sm:py-3 sm:text-sm">
+                <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-body-sm text-amber-200 sm:mt-3 sm:px-4 sm:py-3">
                   <p className="font-semibold">⚠️ 실제로 입금하실 분의 성함과 정확히 일치해야 합니다.</p>
                   <p className="mt-1 opacity-90">이름이 다르면 처리가 늦어질 수 있어요.</p>
                 </div>
                 {depositorName.trim() &&
                   attendees[0]?.name.trim() &&
                   depositorName.trim() !== attendees[0].name.trim() && (
-                    <p className="mt-2 text-xs text-amber-300 sm:text-sm">
+                    <p className="mt-2 text-body-sm text-amber-300">
                       신청자({attendees[0].name})와 입금자명({depositorName})이 다릅니다. 맞나요?
                     </p>
                   )}

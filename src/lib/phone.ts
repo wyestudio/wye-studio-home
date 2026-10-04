@@ -17,8 +17,9 @@ export function formatPhoneDigits(phone: string) {
   return digits;
 }
 
-// 사용자가 타이핑 중인 입력값에 하이픈을 자동으로 삽입
-// AttendeeCard의 3분할 방식과 다르게, 단일 input에서 타이핑하면서 실시간으로 포맷
+// 사용자가 타이핑 중인 입력값에 하이픈을 자동으로 삽입한다.
+// 신청 폼(AttendeeFields)과 조회 폼(LookupForm)이 같이 쓴다 — 두 화면의 전화번호
+// 칸이 똑같이 동작해야 한다.
 export function formatPhoneInput(value: string) {
   const digits = phoneDigits(value).slice(0, 11);
   if (digits.length <= 3) return digits;
