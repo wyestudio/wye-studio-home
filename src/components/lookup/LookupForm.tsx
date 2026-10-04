@@ -10,8 +10,11 @@ import { lookupAction, type LookupState } from "@/app/(site)/lookup/actions";
 
 const initialState: LookupState = {};
 
-/** 입력칸 크기. 공용 Input 기본값(작은 글씨) 위에 큰 화면에서만 덧씌운다. */
-const INPUT_SIZE = "sm:py-3.5 sm:text-base lg:py-4 lg:text-lg";
+/**
+ * 입력칸 크기. 공용 Input(높이 48px · 글자 16px) 위에 큰 화면에서만 덧씌운다.
+ * ⚠️ 글자를 16px 아래로 내리지 말 것 — 아이폰이 포커스 때 화면을 확대한다.
+ */
+const INPUT_SIZE = "sm:h-14 lg:text-lg";
 
 export function LookupForm() {
   const router = useRouter();
@@ -82,6 +85,9 @@ export function LookupForm() {
               inputMode="numeric"
               maxLength={6}
               required
+              // 접수번호는 브라우저가 채울 수 있는 값이 아니다. 끄지 않으면
+              // 엉뚱한 과거 입력이 뜬다.
+              autoComplete="off"
               placeholder="123456"
               className={INPUT_SIZE}
               invalid={!!confirmationCodeError}
@@ -100,6 +106,8 @@ export function LookupForm() {
               inputMode="numeric"
               maxLength={13}
               required
+              // 한 칸으로 받으므로 브라우저 자동완성이 그대로 들어맞는다.
+              autoComplete="tel"
               placeholder="010-0000-0000"
               className={INPUT_SIZE}
               invalid={!!phoneError}

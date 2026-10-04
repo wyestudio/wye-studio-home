@@ -21,6 +21,8 @@ import type { Popup } from "@/types/popup";
 
 /** 하루 숨김은 이 브라우저에만 남는다. 기기가 바뀌면 다시 보이는 게 맞다. */
 const STORAGE_PREFIX = "wye_popup_hide_";
+/** 이번 방문 숨김. 탭을 닫으면 사라진다 — 다음 방문에는 다시 보이는 게 맞다. */
+const SESSION_PREFIX = "wye_popup_closed_";
 
 function hiddenUntil(id: string): number {
   try {
@@ -39,6 +41,32 @@ function hideForADay(id: string) {
   }
 }
 
+/*
+  한 번 닫으면 **이번 방문 동안은 다시 띄우지 않는다**(2026-10-04 UX 진단 P0).
+
+  예전에는 '오늘 하루 보지 않기' 를 체크하지 않고 닫으면, 홈 → 테마 목록 →
+  테마 상세로 옮길 때마다 다시 떴다. 이미 신청하러 들어온 사람에게도 똑같이
+  막아서는 게 가장 비싼 마찰이었다.
+
+  sessionStorage 라서 탭을 닫으면 지워진다 — '하루 숨김'(localStorage)과 역할이
+  다르다. 둘 중 하나만 걸려 있어도 띄우지 않는다.
+*/
+function closedThisVisit(id: string): boolean {
+  try {
+    return sessionStorage.getItem(SESSION_PREFIX + id) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markClosedThisVisit(id: string) {
+  try {
+    sessionStorage.setItem(SESSION_PREFIX + id, "1");
+  } catch {
+    // 저장이 막혀 있으면 다음 화면에서 또 뜬다. 막을 방법이 없다.
+  }
+}
+
 export function SitePopup({ popup }: { popup: Popup }) {
   // 처음에는 아무것도 그리지 않는다. 서버에는 localStorage 가 없어서
   // 띄운 채로 그리면 '하루 보지 않기' 를 누른 사람에게도 한 번 깜빡인다.
@@ -47,6 +75,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
 
   useEffect(() => {
     if (Date.now() < hiddenUntil(popup.id)) return;
+    if (closedThisVisit(popup.id)) return;
     const t = setTimeout(() => setOpen(true), 250);
     return () => clearTimeout(t);
   }, [popup.id]);
@@ -73,6 +102,8 @@ export function SitePopup({ popup }: { popup: Popup }) {
 
   function close() {
     if (dontShow) hideForADay(popup.id);
+    // 체크를 안 했어도 이번 방문 동안은 다시 띄우지 않는다.
+    markClosedThisVisit(popup.id);
     setOpen(false);
   }
 

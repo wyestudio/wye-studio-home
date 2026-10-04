@@ -133,22 +133,41 @@ export function SessionPicker({
   /*
     처음 열렸을 때 고를 날짜.
 
+    ⚠️ 링크로 받은 날짜(?d=)가 **이미 마감이면 그 날을 열지 않는다.** 공유된
+       링크를 뒤늦게 누른 사람에게 시간 세 개가 전부 '마감' 인 첫 화면이
+       보였다(2026-10-04 UX 진단 P0). 신청 가능한 날로 옮기고 왜 옮겼는지
+       알려 준다(missedDate).
+
     ⚠️ 마지막 보루가 dates[0] 이면 **제일 오래된 지난 회차**로 떨어진다
        (지난 회차가 목록에 들어온 뒤부터). 신청 가능한 날 → 아직 안 지난 날 →
        그래도 없으면 제일 최근 날 순으로 내려간다. 달력은 이 날짜가 있는 달부터
        펼쳐지므로, 여기서 과거로 떨어지면 첫 화면이 지난 달이 된다.
   */
-  const initialDate = (() => {
-    const q = params.get("d");
-    if (q && byDate.has(q)) return q;
+  const { initialDate, missedDate } = (() => {
     const bookable = dates.find((d) => byDate.get(d)!.some((s) => s.bookable));
-    if (bookable) return bookable;
-    const upcoming = dates.find((d) => byDate.get(d)!.some((s) => !s.past));
-    return upcoming ?? dates[dates.length - 1] ?? "";
+    const fallback = (() => {
+      if (bookable) return bookable;
+      const upcoming = dates.find((d) => byDate.get(d)!.some((s) => !s.past));
+      return upcoming ?? dates[dates.length - 1] ?? "";
+    })();
+
+    const q = params.get("d");
+    if (!q || !byDate.has(q)) return { initialDate: fallback, missedDate: null };
+    // 링크가 가리킨 날에 아직 신청할 수 있는 회차가 있으면 그대로 연다.
+    if (byDate.get(q)!.some((s) => s.bookable)) return { initialDate: q, missedDate: null };
+    // 마감된 날이다. 옮겨 갈 곳이 없으면(전 회차 마감) 안내 없이 그 날을 보여준다.
+    if (!bookable) return { initialDate: q, missedDate: null };
+    return { initialDate: bookable, missedDate: q };
   })();
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /*
+    안내는 한 번만 보여준다. 사용자가 달력에서 다른 날을 고르면 지운다 —
+    이미 스스로 날짜를 옮긴 사람에게 "선택하신 날은 마감됐어요" 가 계속
+    붙어 있으면 지금 고른 날이 마감인 줄 안다.
+  */
+  const [missedNotice, setMissedNotice] = useState(missedDate);
 
   const daySessions = byDate.get(selectedDate) ?? [];
   const selected = daySessions.find((s) => s.id === selectedId) ?? null;
@@ -171,6 +190,8 @@ export function SessionPicker({
   function selectDate(d: string) {
     setSelectedDate(d);
     setSelectedId(null);
+    // 스스로 날짜를 골랐으면 '마감돼서 옮겼다' 안내는 더 보여주지 않는다.
+    setMissedNotice(null);
     const next = new URLSearchParams(params.toString());
     next.set("d", d);
     router.replace(`/themes/${themeSlug}?${next.toString()}`, { scroll: false });
@@ -207,6 +228,26 @@ export function SessionPicker({
 
   return (
     <div className="flex flex-col gap-5 md:gap-6">
+    {/*
+      공유된 링크(?d=)가 가리킨 날이 이미 마감이라 가장 가까운 신청 가능 날짜로
+      옮겨 왔다는 안내. 왜 내가 안 고른 날이 열려 있는지 알려 준다.
+    */}
+    {missedNotice && (
+      <p
+        role="status"
+        className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-body-sm text-white/85"
+      >
+        <span className="font-semibold text-foreground">
+          {kstDayLabel(`${missedNotice}T00:00:00+09:00`)}
+        </span>
+        {" 회차는 마감됐어요. 가장 가까운 "}
+        <span className="font-semibold text-foreground">
+          {kstDayLabel(`${initialDate}T00:00:00+09:00`)}
+        </span>
+        {/* 조사는 앞말에 붙인다 — "(토) 로" 처럼 띄우면 어색하다. */}
+        {"로 옮겨 뒀어요."}
+      </p>
+    )}
     <div className="flex flex-col gap-5 md:flex-row md:items-stretch md:gap-8">
       <div className="md:w-[19rem] md:shrink-0 lg:w-[23rem]">
         <p className="mb-2 text-xs font-bold text-muted lg:text-sm">날짜 선택</p>
@@ -295,7 +336,7 @@ export function SessionPicker({
                   */}
                   {s.badge && s.bookable && (
                     <span
-                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-extrabold leading-tight sm:text-[11px] ${
+                      className={`whitespace-nowrap rounded-full px-2 py-0.5 text-micro font-extrabold leading-tight ${
                         isActive ? "bg-[#0a0a12] text-white" : ""
                       }`}
                       style={isActive ? undefined : { backgroundColor: accentColor, color: "#0a0a12" }}
@@ -312,7 +353,7 @@ export function SessionPicker({
                     */}
                     {showEarlyBird && (
                       <span
-                        className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-extrabold leading-tight sm:text-xs ${
+                        className={`whitespace-nowrap rounded-full px-2.5 py-1 text-micro font-extrabold leading-tight ${
                           isActive ? "bg-[#0a0a12] text-white" : ""
                         }`}
                         style={
