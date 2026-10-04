@@ -559,7 +559,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
               단체 예약 취소 · 환불 규정
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              단체 예약에는 홈페이지 일반 예약과 별도의 취소 · 환불 규정이 적용됩니다.
+              단체 예약에는 홈페이지 일반 예약과 별도의 취소 · 환불 규정이 적용됩니다.
             </p>
             <dl className="mt-4">
               {REFUND_ROWS.map((r) => (

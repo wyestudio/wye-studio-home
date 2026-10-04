@@ -131,7 +131,7 @@ const ITEMS: Item[] = [
   },
   {
     key: "marketing", id: "marketing", required: false,
-    label: "마케팅 정보(문자) 수신에 동의합니다. (이벤트·프로모션 안내)",
+    label: "마케팅 정보(문자) 수신에 동의합니다. (이벤트 · 프로모션 안내)",
   },
 ];
 
@@ -262,6 +262,17 @@ export function ConsentStep({
             {tone === "required" ? "필수" : "선택"}
           </span>
         </div>
+        {/*
+          ⚠️ 선택 동의에는 **거부해도 신청할 수 있다**는 안내를 반드시 붙인다.
+             개인정보보호법 제22조는 선택 사항임을 알리고, 거부를 이유로 서비스
+             제공을 거부하지 못하게 한다. KRDS 동의 지침도 같은 문장을 요구한다.
+             2026-10-04 까지 화면에 이 안내가 없었다.
+        */}
+        {tone === "optional" && (
+          <p className="mb-3 text-body-sm text-muted sm:mb-4">
+            동의하지 않아도 신청할 수 있어요.
+          </p>
+        )}
         <div className="space-y-3 sm:space-y-4">{list.map(row)}</div>
       </section>
     );
@@ -269,6 +280,16 @@ export function ConsentStep({
 
   return (
     <div className="space-y-3 sm:space-y-4">
+      {/*
+        ⚠️ '필수·선택 항목에 모두 동의합니다' 를 지우지 말 것.
+           이 체크 하나로 **선택 동의(사진·마케팅)까지 함께 켜지므로**, 무엇에
+           동의하는지 밝히지 않으면 개인정보보호위원회가 든 눈속임 설계(포괄적
+           동의)에 해당한다. KRDS 동의 지침도 일괄 동의 시 범위를 알리도록 한다.
+
+        좁은 화면에서 제목과 설명을 한 줄에 나란히 두면 둘 다 두 줄로 쪼개진다
+        (360px 실측, 2026-10-04 제보). 모바일은 위아래로 쌓고 넓은 화면에서만
+        나란히 둔다 — 문구는 그대로 두고 배치로 푼다.
+      */}
       <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3.5 sm:px-6 sm:py-5">
         <input
           type="checkbox"
@@ -276,8 +297,10 @@ export function ConsentStep({
           onChange={toggleAll}
           className="h-5 w-5 shrink-0 accent-[var(--glow)] lg:h-6 lg:w-6"
         />
-        <span className="text-sm font-bold sm:text-base lg:text-lg">전체 동의합니다</span>
-        <span className="text-body-sm text-muted">필수·선택 항목에 모두 동의합니다.</span>
+        <span className="flex min-w-0 flex-col sm:flex-row sm:items-center sm:gap-3">
+          <span className="text-body font-bold sm:text-base lg:text-lg">전체 동의합니다</span>
+          <span className="text-body-sm text-muted">필수·선택 항목에 모두 동의합니다.</span>
+        </span>
       </label>
 
       {group("필수 동의", "required", items.filter((it) => it.required))}
