@@ -91,7 +91,7 @@ export function PriceTable({
               ⚠️ 프로모션이 없을 때는 비교할 열이 없으므로 예전처럼 흐린 제목 그대로 둔다.
 
               ⚠️ 프로모션이 있을 때 **모바일에서는 이 칸을 감추고** 아래 얼리버드
-                 칸이 두 금액을 함께 맡는다. 머리글도 거기서 '참가비' 로 바뀐다.
+                 칸이 두 금액을 함께 맡는다. 머리글도 거기서 두 줄로 나뉜다.
             */}
             <th
               className={`${cellX} ${headY} text-right ${hasPromoColumn ? "hidden font-bold sm:table-cell" : "font-medium"}`}
@@ -104,8 +104,16 @@ export function PriceTable({
                 className={`${cellX} ${headY} text-right font-bold`}
                 style={{ color: promo!.accentColor }}
               >
-                {/* 모바일은 두 금액을 한 칸에 담으므로 '참가비' 로 아우른다. */}
-                <span className="sm:hidden" style={{ color: accent }}>참가비</span>
+                {/*
+                  모바일은 한 칸에 두 금액이 위아래로 들어가므로 머리글도 두 줄이다.
+                  ⚠️ 각 줄의 색을 **아래 금액과 같게** 맞춘다 — 윗줄(기본가)은 테마
+                     강조색, 아랫줄(얼리버드)은 프로모션 색. 색이 어긋나면 어느
+                     줄이 어느 금액의 이름인지 알 수 없다(2026-10-05 요청).
+                */}
+                <span className="flex flex-col items-end leading-tight sm:hidden">
+                  <span style={{ color: accent }}>기본가</span>
+                  <span>{promo!.label}</span>
+                </span>
                 <span className="hidden sm:inline">{promo!.label}</span>
               </th>
             )}
