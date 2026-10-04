@@ -9,14 +9,6 @@ const DURATION = 650;
 let raf = 0;
 
 /**
- * 스크롤 스냅(ScreenSnap)은 움직이는 동안 끈다. 한 프레임씩 scrollTo 로 옮기는 도중
- * 지나가는 블록 경계마다 스냅이 붙잡으려 해서 덜컹거린다. 도착하면 되돌린다.
- */
-function setSnapPaused(paused: boolean) {
-  document.documentElement.style.scrollSnapType = paused ? "none" : "";
-}
-
-/**
  * 화면 위에 붙어 따라오는 줄(헤더, 모바일은 섹션 이동 탭까지)의
  *   bottom : 지금 화면에서의 아래끝 — '지금 블록' 을 찾는 기준선
  *   height : 붙어 있을 때의 높이 합 — 블록이 한 화면에 들어오는지 재는 기준
@@ -45,10 +37,8 @@ export function animateScrollTo(target: number) {
   const start = window.scrollY;
   const dist = target - start;
   if (Math.abs(dist) < 2) return;
-  setSnapPaused(true);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     window.scrollTo(0, target);
-    requestAnimationFrame(() => setSnapPaused(false));
     return;
   }
   const t0 = performance.now();
@@ -57,7 +47,6 @@ export function animateScrollTo(target: number) {
     const t = Math.min(1, (now - t0) / DURATION);
     window.scrollTo(0, start + dist * ease(t));
     if (t < 1) raf = requestAnimationFrame(step);
-    else setSnapPaused(false);
   };
   raf = requestAnimationFrame(step);
 }

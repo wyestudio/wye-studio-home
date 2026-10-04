@@ -18,8 +18,6 @@ import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
   INTRO_SCREEN_SECTION,
-  SCREEN_BODY,
-  SCREEN_INNER,
   SCREEN_SECTION,
   SCREEN_SCROLL_MARGIN,
 } from "@/components/contents/screenSection";
@@ -31,10 +29,7 @@ import { hasGroupBooking } from "@/lib/groupBooking";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { PosterFit } from "./PosterFit";
-import { ScreenSnap } from "./ScreenSnap";
-import { ScreenFit } from "./ScreenFit";
 import { SectionNav } from "./SectionNav";
-import { screenFitInlineScript } from "./screenFitScript";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
 import { SectionViewTracker } from "./SectionViewTracker";
@@ -202,22 +197,18 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
                    오른쪽 요소는 전부 md:self-start — 늘어나 있으면 잰 높이가 틀어진다.
       */}
       {/*
-        첫 화면에는 소개 블록만 — 화면 가운데보다 살짝 위에 띄우고, 아래 날짜 선택이
-        같이 보이지 않게 한다. 한 화면에 정보가 몰리면 피로하다는 의견(2026-09-15).
-        상세 블록·날짜 선택도 같은 규칙이다(SCREEN_SECTION 참고).
+        첫 화면: 소개 블록. 높이는 내용에 맡기고 아래 여백만 둔다 — 예전에는 화면
+        높이를 채우고 안 들어가면 줄였는데(ScreenSnap·ScreenFit), 내용이 적은
+        블록이 비어 보여 2026-10-04 에 걷어냈다(screenSection.ts 참고).
       */}
       <div
         id="intro-screen"
-        // 인라인 스크립트(screenFitInlineScript)가 React 보다 먼저 style 을 넣는다.
-        suppressHydrationWarning
         data-screen
         data-nav-label="테마 소개"
         // 어디까지 읽고 나가는지 세는 집계용 키(SectionViewTracker). 라벨과 달리 안 바뀐다.
         data-section-key="intro"
         className={INTRO_SCREEN_SECTION}
       >
-      <div className={SCREEN_BODY}>
-      <div data-screen-inner className={SCREEN_INNER}>
       <section
         id="intro"
         suppressHydrationWarning
@@ -330,12 +321,8 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       </noscript>
       <ScrollToBookingButton accent={accent} themeName={theme.name} />
       </div>
-      </div>
-      {/* 노트북처럼 낮은 화면에서 소개 블록을 한 화면에 맞춘다(screenFitScript.ts). 포스터를 맞춘 뒤에. */}
-      <script dangerouslySetInnerHTML={{ __html: screenFitInlineScript("intro-screen") }} />
-      </div>
 
-      {/* ── 날짜 선택 ── 상세 블록과 같이 한 화면에 하나. '신청하기' 로 스크롤해 오면 화면을 딱 채운다. */}
+      {/* ── 날짜 선택 ── '신청하기' 로 스크롤해 오면 헤더 밑에 붙는다(SCREEN_SCROLL_MARGIN). */}
       <section
         id="booking"
         data-screen
@@ -344,8 +331,6 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         data-section-key="booking"
         className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}
       >
-        <div className={SCREEN_BODY}>
-        <div data-screen-inner className={SCREEN_INNER}>
         <SectionHeading
           eyebrow="BOOKING"
           // 달력 위에 이미 '날짜 선택' 이 있어 겹친다. 블록 제목은 '회차 선택'.
@@ -377,8 +362,6 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               }
             />
           </Suspense>
-        </div>
-        </div>
         </div>
       </section>
 
@@ -423,10 +406,6 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         />
       </div>
 
-      {/* 휠 한 번에 다음 화면 블록으로([data-screen]) */}
-      <ScreenSnap />
-      {/* 낮은 화면에서 블록을 한 화면에 맞춘다 */}
-      <ScreenFit />
       {/* 넓은 화면 왼쪽 목차 — 지금 보는 블록 표시 + 눌러서 이동 */}
       <SectionNav accent={accent} />
       {/* 어느 블록까지 내려가고 멈추는지 기록한다(화면에 아무것도 그리지 않는다) */}

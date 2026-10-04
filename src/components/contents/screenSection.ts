@@ -1,43 +1,38 @@
 /**
- * '한 화면에 블록 하나' 배치.
+ * 테마 상세 블록의 세로 리듬.
  *
- * 테마 상세 첫 화면(소개)을 화면 높이만큼 채우고 가운데보다 살짝 위에 띄웠더니,
- * 다음 블록이 같이 보이지 않아 집중이 잘 되고 덜 피곤하다는 의견(2026-09-15).
- * 상세 블록·날짜 선택에도 똑같이 쓴다.
+ * 예전에는 '한 화면에 블록 하나' 였다 — 블록마다 화면 높이(min-h)를 차지하고,
+ * 스크롤이 경계에 붙고(ScreenSnap), 한 화면에 안 들어가면 transform 으로
+ * 줄였다(ScreenFit). 2026-10-04 에 **전부 걷어냈다**: 내용이 적은 블록
+ * ('추천', '진행 순서')이 데스크톱에서 절반 이상 비어 보였고, 그 빈 공간이
+ * 고정 높이 탓이었다(UX 진단).
  *
- * - 높이는 **최소값**이다. 내용이 한 화면보다 길면(후기·주의사항 등) 그만큼 길어진다.
- * - pb 를 pt 보다 크게 줘서 가운데보다 위로 올린다.
- * - 화면 높이에서 헤더(모바일은 헤더 + 섹션 이동 탭)를 뺀다.
- * - 모바일은 한 화면을 다 채우지 않는다(최소 72%). 손가락으로 밀어 내리는데 블록마다
- *   빈 여백이 한 화면씩 끼면 스크롤이 힘들다는 의견(2026-09-15). 휠 넘기기도 모바일엔 없다.
+ * 지금은 높이를 내용에 맡기고 **여백만** 준다 — 데스크톱 96px, 모바일 56px.
  *
- * ⚠️ 헤더 높이를 --header-height 로 빼지 않는다. 그 값은 React 가 뜬 뒤에 들어와서
- *    들어오는 순간 블록이 위아래로 한 번 움직인다. 헤더(Header.tsx) 크기를 바꾸면
- *    여기 숫자도 같이 고친다 — 지금 데스크톱 헤더 약 100px, 모바일 헤더 약 64px + 탭 46px.
+ * ⚠️ 홈(/)의 스크롤텔링은 이것과 무관하다. 전혀 다른 구조이고(ScrollStage)
+ *    코드를 한 줄도 공유하지 않는다 — 여기를 고쳐도 홈은 바뀌지 않는다.
  * ⚠️ Tailwind 가 소스에서 클래스 이름을 찾으므로 문자열을 조립하지 말고 통째로 둔다.
  */
+
+/*
+  블록 **사이** 간격이 모바일 56px · 데스크톱 96px 이 되게 한다.
+
+  ⚠️ 블록마다 위아래로 들어가므로 이웃한 두 블록의 여백이 더해진다. 그래서 목표
+     간격의 **절반**을 적는다 — 처음에 96px(py-24)을 그대로 적었더니 블록 사이가
+     192px 으로 벌어져 '추천' 과 '콘텐츠 구성' 사이가 한 화면 가까이 비었다.
+*/
+export const SCREEN_SECTION = "py-7 md:py-12";
+
 /**
- * 첫 화면(테마 소개) 전용. 모바일에서도 화면을 다 채운다 — 첫 화면에는 소개만 보이고
- * 아래 회차 선택이 비쳐 보이지 않게 하려는 것이라, 모바일 여백 줄이기(아래)에서 뺐다.
+ * 첫 화면(테마 소개) 전용. 위쪽은 헤더가 이미 띄워 주므로 아래만 둔다.
  */
-export const INTRO_SCREEN_SECTION =
-  "flex min-h-[calc(100svh-7rem)] flex-col justify-center pt-6 pb-[8svh] md:min-h-[calc(100svh-6.25rem)] md:pt-8 md:pb-[var(--screen-pb,10svh)]";
-
-/** 이 섹션으로 스크롤해 올 때 헤더 밑에 딱 붙게 하는 여백. 섹션이 화면을 정확히 채운다. */
-export const SCREEN_SCROLL_MARGIN = "scroll-mt-[7rem] md:scroll-mt-[6.25rem]";
-
-export const SCREEN_SECTION =
-  "flex min-h-[72svh] flex-col justify-center pt-6 pb-[5svh] md:min-h-[calc(100svh-6.25rem)] md:pt-8 md:pb-[var(--screen-pb,10svh)]";
+export const INTRO_SCREEN_SECTION = "pt-6 pb-7 md:pt-8 md:pb-12";
 
 /**
- * 화면 블록 안쪽을 두 겹으로 감싼다 — 데스크톱에서 한 화면에 안 들어가면 줄이기 위해.
- *   바깥(SCREEN_BODY)  : 줄어든 만큼의 높이를 차지한다(--screen-body-h)
- *   안쪽(SCREEN_INNER) : 원래 크기로 그려진 뒤 비율 그대로 줄어든다(--screen-transform)
- * 값은 ScreenFit / screenFitScript.ts 가 블록([data-screen])에 넣는다. 안 넣으면 그대로다.
+ * 이 섹션으로 스크롤해 올 때 헤더 밑에 딱 붙게 하는 여백.
+ * 목차(SectionNav) · 모바일 탭(DetailTabs) · 신청하기 버튼이 눌렸을 때 쓰인다.
  *
- * ⚠️ transform 은 줄일 때만 건다(기본 none). scale(1) 이라도 걸려 있으면 안쪽의
- *    position: fixed 가 화면이 아니라 이 칸을 기준으로 붙어버린다.
- * ⚠️ 안쪽 칸에 data-screen-inner 를 꼭 붙일 것 — 계산이 이 표시로 찾는다.
+ * ⚠️ 헤더(Header.tsx) 크기를 바꾸면 여기 숫자도 같이 고친다 —
+ *    지금 데스크톱 헤더 약 100px, 모바일 헤더 약 64px + 탭 46px.
  */
-export const SCREEN_BODY = "w-full md:h-[var(--screen-body-h,auto)]";
-export const SCREEN_INNER = "w-full md:origin-top md:[transform:var(--screen-transform,none)]";
+export const SCREEN_SCROLL_MARGIN = "scroll-mt-[7rem] md:scroll-mt-[6.25rem]";

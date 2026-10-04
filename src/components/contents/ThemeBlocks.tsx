@@ -8,7 +8,7 @@ import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import { VenueCard } from "@/components/contents/VenueCard";
 import { THEME_BLOCK_LABELS, type ThemeBlock, type ThemePriceTier, type PublicVenue } from "@/types/catalog";
-import { SCREEN_BODY, SCREEN_INNER, SCREEN_SECTION } from "@/components/contents/screenSection";
+import { SCREEN_SECTION } from "@/components/contents/screenSection";
 
 /**
  * 가격표 블록이 쓸 프로모션. 켜져 있지 않으면 null 이고, 그때는 표가
@@ -42,10 +42,10 @@ const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
  * 운영자가 어드민에서 쌓은 순서 그대로 그린다. 블록 종류마다 모양만 다르고
  * 어떤 블록이 몇 개 오든 상관없다.
  *
- * **한 화면에 블록 하나**씩 세운다(SCREEN_SECTION). 첫 화면(테마 소개)과 같은 규칙이다.
- * 단, **라벨·제목이 둘 다 없는 블록은 바로 앞 블록과 같은 화면에 붙인다.**
+ * 블록마다 위아래 여백을 두고(SCREEN_SECTION) 높이는 내용에 맡긴다.
+ * 단, **라벨·제목이 둘 다 없는 블록은 바로 앞 블록에 붙인다.**
  * 그런 블록은 앞 블록의 덧붙임이다 — 예: 진행 순서 아래 '*자세한 타임테이블은 현장
- * 상황에 따라…' 한 줄. 혼자 한 화면을 차지하면 무슨 말인지 모른다.
+ * 상황에 따라…' 한 줄. 따로 떼면 무슨 말인지 모른다.
  */
 export function ThemeBlocks({
   blocks,
@@ -81,16 +81,16 @@ export function ThemeBlocks({
       !(b.type === "venue" && !venue?.area_label)
   );
 
-  const screens: ThemeBlock[][] = [];
+  const groups: ThemeBlock[][] = [];
   for (const b of visible) {
     const headless = !b.eyebrow?.trim() && !b.title?.trim();
-    if (headless && screens.length > 0) screens[screens.length - 1].push(b);
-    else screens.push([b]);
+    if (headless && groups.length > 0) groups[groups.length - 1].push(b);
+    else groups.push([b]);
   }
 
   return (
     <>
-      {screens.map((group, i) => (
+      {groups.map((group, i) => (
         <section
           key={i}
           data-screen
@@ -101,24 +101,20 @@ export function ThemeBlocks({
           data-section-key={`block-${group[0].type}`}
           className={SCREEN_SECTION}
         >
-          <div className={SCREEN_BODY}>
-            <div data-screen-inner className={SCREEN_INNER}>
-              {group.map((block, j) => (
-                // 같은 화면 안에 붙은 덧붙임 블록은 조금만 띄운다.
-                <div key={j} className={j > 0 ? "mt-6" : undefined}>
-                  <ThemeBlockView
-                    block={block}
-                    accent={accent}
-                    tiers={tiers}
-                    maxGroupSize={maxGroupSize}
-                    venue={venue}
-                    promo={promo}
-                    groupBooking={groupBooking}
-                  />
-                </div>
-              ))}
+          {group.map((block, j) => (
+            // 같은 묶음에 붙은 덧붙임 블록은 조금만 띄운다.
+            <div key={j} className={j > 0 ? "mt-6" : undefined}>
+              <ThemeBlockView
+                block={block}
+                accent={accent}
+                tiers={tiers}
+                maxGroupSize={maxGroupSize}
+                venue={venue}
+                promo={promo}
+                groupBooking={groupBooking}
+              />
             </div>
-          </div>
+          ))}
         </section>
       ))}
     </>
@@ -345,7 +341,7 @@ export function ThemeBlockView({
                 </p>
                 <p className="mt-0.5 font-bold text-foreground sm:mt-1 sm:text-xl lg:text-2xl">{t.title}</p>
                 {t.desc && (
-                  <p className="mt-1 text-xs text-muted sm:mt-2 sm:text-base lg:text-lg">{t.desc}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted sm:mt-2 sm:text-sm lg:text-base">{t.desc}</p>
                 )}
               </div>
             </div>

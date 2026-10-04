@@ -30,9 +30,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape
      다른 테마에서 들어오게 하려면 `GROUP_BOOKING_THEME_SLUGS` 와 이 문구를 같이 본다.
 
   ⚠️ 블록마다 `data-screen` + `data-section-key` 를 붙인다 — 어느 블록까지 읽고
-     나가는지 세는 집계용 표시다(SectionViewTracker). 테마 상세와 달리 이 페이지는
-     '한 화면에 블록 하나' 로 끊지 않는다(ScreenSnap·ScreenFit 을 띄우지 않음):
-     읽을 것이 많아 끊으면 되레 길게 느껴진다.
+     나가는지 세는 집계용 표시다(SectionViewTracker). 레이아웃과는 상관없다.
 */
 export const dynamic = "force-dynamic";
 
