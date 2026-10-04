@@ -111,21 +111,29 @@ async function _getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
 }
 
 /**
- * 해당 테마의 "앞으로 진행될" 회차들. 지난 회차와 비활성화된 회차는 뺀다.
+ * 해당 테마에서 **고객 화면에 보일** 회차들. 취소된 회차와 아직 공개 시각이
+ * 안 된 회차만 뺀다 — 지난 회차는 '종료' 로 남긴다.
  * session_view 를 쓰는 이유는 가격·정원·장소의 override 규칙이 그 안에만
  * 존재하기 때문이다 (sessions 테이블을 직접 읽지 않는다).
+ *
+ * ⚠️ 지난 회차도 내려간다. 달력에서 지난 날짜를 눌러 "이 회차가 있었다" 를 볼 수
+ *    있어야 하는데, 쿼리에서 빼면 그 날짜 자체가 달력에 없는 날이 된다.
+ *    **대신 신청을 막는 책임이 통째로 isBookable 로 옮겨왔다** — 지난 회차를
+ *    목록에서 빼는 것이 예전에는 유일한 차단이었다. DB(submit_application_v3)
+ *    는 status 만 보고 start_at 은 보지 않으므로, 운영에서 status 가 'open' 인
+ *    채로 지나간 회차는 isBookable 의 시각 판정에만 걸린다.
  *
  * ⚠️ opens_at 이 아직 안 온 회차는 뺀다. 롤링 오픈이라 회차는 몇 달 치가 미리
  *    만들어져 있고, 공개 시각이 지나야 고객 화면에 나온다.
  */
 // 회차 목록은 '지금 열려 있는지'(opens_at <= now) 로 걸러지므로 오래 들고 있으면 안 된다.
-export const getUpcomingSessionsForTheme = unstable_cache(
-  _getUpcomingSessionsForTheme,
-  ["upcoming-sessions"],
+export const getPublicSessionsForTheme = unstable_cache(
+  _getPublicSessionsForTheme,
+  ["public-sessions"],
   { revalidate: 30 }
 );
 
-async function _getUpcomingSessionsForTheme(themeId: string): Promise<SessionView[]> {
+async function _getPublicSessionsForTheme(themeId: string): Promise<SessionView[]> {
   const supabase = createPublicClient();
   const now = new Date().toISOString();
 
@@ -134,7 +142,6 @@ async function _getUpcomingSessionsForTheme(themeId: string): Promise<SessionVie
     .select("*")
     .eq("theme_id", themeId)
     .neq("status", "cancelled")
-    .gte("start_at", now)
     .lte("opens_at", now)
     .order("start_at", { ascending: true });
 
@@ -156,6 +163,14 @@ async function _attachStats(
   const supabase = createPublicClient();
   return Promise.all(
     sessions.map(async (s) => {
+      // 지난 회차는 집계를 묻지 않는다. 화면에는 '종료' 로만 나가 잔여석이 쓰이지
+      // 않는데, 집계는 회차 수만큼 RPC 를 친다 — 지난 회차는 지우지 않으니
+      // 계속 쌓이기만 한다.
+      // ⚠️ 그래서 지난 회차의 stats 는 항상 null 이다. stats 가 null 이면
+      //    remainingSeats 도 null 이고 "자리 있음" 쪽으로 읽히므로,
+      //    isBookable 은 **시각을 먼저** 본다.
+      if (isPastSession(s.start_at)) return { ...s, stats: null };
+
       const { data, error } = await supabase
         .rpc("get_session_stats", { p_session_id: s.id })
         .single();
@@ -177,11 +192,41 @@ export function remainingSeats(
   return Math.max(0, session.capacity_max - stats.paid_confirmed_count);
 }
 
+/**
+ * 이미 시작한 회차인가.
+ *
+ * ⚠️ 서버에서만 부른다. 브라우저 시계로 판정하면 시계가 틀어진 기기에서
+ *    끝난 회차가 신청 가능으로 보인다(얼리버드와 같은 이유).
+ */
+export function isPastSession(startAt: string): boolean {
+  return new Date(startAt).getTime() < Date.now();
+}
+
+/**
+ * 아직 안 지난 'open' 회차들. 홈·컨텐츠 목록의 "남은 회차 N개" 와 "다음 회차"
+ * 가 쓴다(집계는 묻지 않으므로 마감된 회차도 센다 — 예전부터 그랬다).
+ *
+ * ⚠️ status 만 보면 안 된다. 운영에서 지나간 회차의 status 를 'closed' 로
+ *    내리지 않으므로, 끝난 회차가 '남은 회차' 로 세어지고 nextStartAt 이 과거
+ *    날짜가 된다. 지난 회차를 목록에 남기기로 한 뒤 실제로 그렇게 됐다
+ *    (2026-10-04: 지난 회차 13개 중 4개가 'open').
+ */
+export function upcomingOpenSessions<T extends Pick<SessionView, "status" | "start_at">>(
+  sessions: T[]
+): T[] {
+  return sessions.filter((s) => s.status === "open" && !isPastSession(s.start_at));
+}
+
 /** 회차가 신청을 받을 수 있는 상태인가. */
 export function isBookable(
-  session: Pick<SessionView, "status" | "capacity_max">,
+  session: Pick<SessionView, "status" | "capacity_max" | "start_at">,
   stats: SessionStats | null
 ): boolean {
+  // ⚠️ **시각을 제일 먼저 본다.** status 를 'closed' 로 내리는 건 운영자가 손으로
+  //    하는 일이라 지나간 회차에 'open' 이 그대로 남아 있다(2026-10-04 운영 DB
+  //    기준 지난 회차 13개 중 4개). 지난 회차를 목록에 남기기로 한 뒤부터는
+  //    여기서 끊지 않으면 끝난 회차에 신청이 들어간다.
+  if (isPastSession(session.start_at)) return false;
   if (session.status !== "open") return false;
   const left = remainingSeats(session, stats);
   return left === null || left > 0;

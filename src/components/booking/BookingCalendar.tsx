@@ -212,7 +212,8 @@ export function BookingCalendar({
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-white/10 pt-2.5">
           <LegendDot color={promoColor} label={promoLabel} />
           <LegendDot color={accentColor} label="일반" />
-          <LegendDot color={accentColor} label="마감" opacity={0.3} />
+          {/* 흐린 점은 '그날 고를 회차가 없다' 는 뜻 하나다 — 전부 마감이든 이미 끝났든. */}
+          <LegendDot color={accentColor} label="마감·종료" opacity={0.3} />
         </div>
       )}
     </div>

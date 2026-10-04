@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import {
   getThemeBySlug,
-  getUpcomingSessionsForTheme,
+  getPublicSessionsForTheme,
   attachStats,
   remainingSeats,
   isBookable,
+  isPastSession,
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
@@ -115,7 +116,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
   // 주소로 직접 열고 신청까지 되면 막아둔 의미가 없다.
   const acceptingApplications = theme.is_active && !theme.is_locked;
 
-  const rawSessions = await getUpcomingSessionsForTheme(theme.id);
+  const rawSessions = await getPublicSessionsForTheme(theme.id);
   const withStats = await attachStats(rawSessions);
 
   /*
@@ -134,6 +135,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
     ...s,
     remaining: remainingSeats(s, s.stats),
     bookable: isBookable(s, s.stats),
+    // '종료' 와 '마감' 을 가르는 값. 둘 다 못 고르지만 뜻이 달라서 — 마감은
+    // 다음 회차를 권할 자리고, 종료는 이미 지나간 이력이다.
+    past: isPastSession(s.start_at),
     earlyBird:
       activePromo !== null &&
       promoTiers.length > 0 &&

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getThemeBySlug, getUpcomingSessionsForTheme, attachStats, isBookable } from "@/lib/themes";
+import { getThemeBySlug, getPublicSessionsForTheme, attachStats, isBookable, isPastSession } from "@/lib/themes";
 // 날짜 형식은 완료 화면·참여내역 조회와 같아야 한다. 한 화면 안에서 회차 일시와
 // 신청일이 다른 모양이면 같은 종류의 값으로 읽히지 않는다.
 import { formatDateTimeFull } from "@/lib/format";
@@ -41,7 +41,7 @@ export default async function ApplyPage({
     return <Fallback slug={slug} accent={accent} message="먼저 날짜와 시간을 선택해주세요." />;
   }
 
-  const sessions = await attachStats(await getUpcomingSessionsForTheme(theme.id));
+  const sessions = await attachStats(await getPublicSessionsForTheme(theme.id));
   const target = sessions.find((s) => s.id === sessionId);
 
   if (!target) {
@@ -53,6 +53,17 @@ export default async function ApplyPage({
   // 잠긴 테마는 신청 자체를 받지 않는다(테마 상세의 신청 버튼과 같은 기준).
   if (!theme.is_active || theme.is_locked) {
     return <Fallback slug={slug} accent={accent} message="현재 이 테마는 신청을 받지 않습니다." />;
+  }
+
+  /*
+    ⚠️ 지난 회차도 목록에 들어 있다(테마 상세 달력에 이력으로 남기기 때문).
+       그래서 여기 도달하는 경로가 늘었다 — 지난 회차 주소를 북마크해 뒀거나,
+       달력에서 지난 회차를 본 뒤 주소만 바꿔 들어오는 경우다.
+       isBookable 이 시각으로 먼저 끊으므로 신청까지 가지는 않지만,
+       "마감" 이라고만 하면 빈자리를 기다리는 사람이 생긴다.
+  */
+  if (isPastSession(target.start_at)) {
+    return <Fallback slug={slug} accent={accent} message="선택하신 회차는 이미 종료되었습니다. 다른 날짜를 골라주세요." />;
   }
 
   if (!isBookable(target, target.stats)) {

@@ -21,6 +21,17 @@ export type PickerSession = SessionView & {
    *    청구되는 일이 생긴다(판정 기준은 src/lib/promotion.ts 주석 참고).
    */
   earlyBird: boolean;
+  /**
+   * 이미 시작한(끝난) 회차인가.
+   *
+   * 지난 회차를 목록에서 빼지 않고 '종료' 로 남긴다 — 매주 회차가 돌아간 이력이
+   * 달력에 그대로 보여야 한다는 요청(2026-10-04).
+   *
+   * ⚠️ **서버가 판정한다.** 여기서 브라우저 시각으로 다시 계산하면 시계가 틀어진
+   *    기기에서 끝난 회차가 고를 수 있는 것처럼 보인다(earlyBird 와 같은 이유).
+   *    고를 수 없게 막는 쪽은 bookable 이 이미 false 로 내려온다.
+   */
+  past: boolean;
 };
 
 const kstDate = (iso: string) =>
@@ -116,10 +127,21 @@ export function SessionPicker({
 
   const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
 
+  /*
+    처음 열렸을 때 고를 날짜.
+
+    ⚠️ 마지막 보루가 dates[0] 이면 **제일 오래된 지난 회차**로 떨어진다
+       (지난 회차가 목록에 들어온 뒤부터). 신청 가능한 날 → 아직 안 지난 날 →
+       그래도 없으면 제일 최근 날 순으로 내려간다. 달력은 이 날짜가 있는 달부터
+       펼쳐지므로, 여기서 과거로 떨어지면 첫 화면이 지난 달이 된다.
+  */
   const initialDate = (() => {
     const q = params.get("d");
     if (q && byDate.has(q)) return q;
-    return dates.find((d) => byDate.get(d)!.some((s) => s.bookable)) ?? dates[0] ?? "";
+    const bookable = dates.find((d) => byDate.get(d)!.some((s) => s.bookable));
+    if (bookable) return bookable;
+    const upcoming = dates.find((d) => byDate.get(d)!.some((s) => !s.past));
+    return upcoming ?? dates[dates.length - 1] ?? "";
   })();
 
   const [selectedDate, setSelectedDate] = useState(initialDate);
@@ -228,6 +250,10 @@ export function SessionPicker({
                   key={s.id}
                   onClick={() => {
                     if (!s.bookable) {
+                      // ⚠️ 지난 회차는 세지 않는다. soldOutClick 은 "원하는 날짜가
+                      //    마감이었다" 를 재는 지표인데, 끝난 회차를 구경한 클릭이
+                      //    섞이면 회차를 더 열어야 한다는 신호로 잘못 읽힌다.
+                      if (s.past) return;
                       // 고를 수는 없지만 **눌렀다는 건 센다.** 마감 회차만 눌러보고
                       // 나간 사람은 화면이 어려운 게 아니라 원하는 날짜가 없는 것이다
                       // — 고칠 곳이 카피가 아니라 회차 편성이라는 뜻이라 갈라 놔야 한다.
@@ -295,7 +321,13 @@ export function SessionPicker({
                         {promo!.badgeLabel}
                       </span>
                     )}
-                    {!s.bookable && <span className="text-xs text-muted">마감</span>}
+                    {/*
+                      못 고르는 이유를 갈라 적는다. '마감' 은 자리가 없다는 뜻이라
+                      취소표를 기다리는 사람이 생기지만, 끝난 회차는 기다릴 게 없다.
+                    */}
+                    {!s.bookable && (
+                      <span className="text-xs text-muted">{s.past ? "종료" : "마감"}</span>
+                    )}
                   </span>
                 </button>
               );

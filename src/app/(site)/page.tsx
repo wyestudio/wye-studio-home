@@ -3,7 +3,7 @@ import { HeroScene } from "@/components/home/scenes/HeroScene";
 import { ThemeScene } from "@/components/home/scenes/ThemeScene";
 import { InstagramScene } from "@/components/home/scenes/InstagramScene";
 import { NoticeScene } from "@/components/home/scenes/NoticeScene";
-import { getListedThemes, getUpcomingSessionsForTheme } from "@/lib/themes";
+import { getListedThemes, getPublicSessionsForTheme, upcomingOpenSessions } from "@/lib/themes";
 import type { HomeThemeCard } from "@/components/home/ThemeHomeShowcase";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
 
@@ -17,8 +17,10 @@ export default async function Home() {
   // 테마 수가 적어(한 자릿수) 순회 비용이 무의미하다.
   const cards: HomeThemeCard[] = await Promise.all(
     themes.map(async (theme) => {
-      const sessions = await getUpcomingSessionsForTheme(theme.id);
-      return { ...theme, upcomingCount: sessions.filter((s) => s.status === "open").length };
+      // ⚠️ 목록에는 지난 회차도 들어 있다(테마 상세 달력의 이력용).
+      //    여기서 걸러야 "남은 회차" 가 부풀지 않는다.
+      const sessions = await getPublicSessionsForTheme(theme.id);
+      return { ...theme, upcomingCount: upcomingOpenSessions(sessions).length };
     })
   );
 
