@@ -13,8 +13,15 @@ export function SectionHeading({
   className?: string;
   eyebrowColor?: string;
   /**
-   * lg: 테마 상세처럼 블록 하나가 한 화면을 차지하는 곳. 화면이 크게 비는 만큼 제목도 키운다.
-   * 다른 페이지는 기본(md) 그대로.
+   * ⚠️ **이제 크기를 바꾸지 않는다.** 섹션 제목은 어디서나 `text-h2` 한 가지다.
+   *
+   * 예전에는 lg 가 테마 상세용으로 제목을 키웠다 — 블록 하나가 한 화면을 차지하던
+   * 시절(스냅 구조)이라 화면이 비어 보여서였다. 2026-10-04 에 그 구조를 걷어내
+   * **전제가 사라졌고**, 남은 건 "모든 섹션이 페이지 제목(H1)만큼 큰" 상태뿐이었다
+   * (상세에서 H1·H2 가 똑같이 36px 이었다 — UX 진단 지적).
+   *
+   * 값은 남겨 둔다. 호출부 13곳을 한꺼번에 고치는 것보다, 받되 무시하는 쪽이
+   * 되돌리기 쉽다.
    */
   size?: "md" | "lg";
 }) {
@@ -22,19 +29,13 @@ export function SectionHeading({
   return (
     <div className={`${align === "center" ? "text-center" : "text-left"} ${className}`}>
       <p
-        className={`${lg ? "text-xs sm:text-sm" : "text-xs"} font-bold uppercase tracking-[0.3em] text-muted ${title ? (lg ? "mb-2 sm:mb-3" : "mb-2") : ""}`}
+        className={`text-micro font-bold uppercase tracking-[0.3em] text-muted ${title ? (lg ? "mb-2 sm:mb-3" : "mb-2") : ""}`}
         style={eyebrowColor ? { color: eyebrowColor } : undefined}
       >
         {eyebrow}
       </p>
       {title && (
-        <h2
-          className={
-            lg
-              ? "text-2xl font-extrabold sm:text-3xl lg:text-4xl"
-              : "text-xl font-extrabold sm:text-2xl"
-          }
-        >
+        <h2 className="text-h2 font-extrabold">
           {title}
         </h2>
       )}

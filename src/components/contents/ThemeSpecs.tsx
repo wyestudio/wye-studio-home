@@ -113,7 +113,8 @@ function SpecTile({ label, children }: { label: string; children: React.ReactNod
 }
 
 /** 소요시간 큰 숫자. 난이도 칸의 BaselineStrut 도 같은 글자 크기를 써야 기준선이 맞는다. */
-const BIG_NUMBER = "text-[1.75rem] font-extrabold leading-none sm:text-4xl";
+// ⚠️ 섹션 제목(text-h2)과 같은 급이다. 예전에는 36px 이라 페이지 제목(H1)만큼 컸다.
+const BIG_NUMBER = "text-h2 font-extrabold leading-none";
 
 /**
  * 난이도·소요시간 값 줄.

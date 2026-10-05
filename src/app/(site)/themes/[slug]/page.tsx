@@ -283,7 +283,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
             */}
             <p
-              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-base leading-[1.85] text-white/90 sm:pl-5 sm:text-lg lg:text-xl"
+              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.8] text-white/90 sm:pl-5"
               style={{ borderColor: `${accent}80` }}
             >
               {synopsis}

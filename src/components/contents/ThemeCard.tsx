@@ -95,7 +95,7 @@ export function ThemeCard({
 
       <div className="border-t border-white/12 p-3 sm:p-4 lg:p-5">
         {/* 글꼴은 테마마다 다르다 — 어드민에서 고른다. */}
-        <p className={`truncate text-base font-bold text-white sm:text-lg lg:text-xl ${titleFontClass}`}>
+        <p className={`truncate text-h3 font-bold text-white ${titleFontClass}`}>
           {name}
         </p>
         {/* 0 은 '미정' 이라 감춘다 — "난이도 0 · 0분" 은 고장으로 읽힌다. */}

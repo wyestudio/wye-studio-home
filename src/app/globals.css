@@ -73,7 +73,7 @@ html {
     text-display  메인 히어로, 단체 예약 H1
     text-h1       페이지 제목(테마명·참가 신청)
     text-h2       섹션 제목 — H1 보다 반드시 작게
-    text-h3       카드 제목
+    text-h3       카드 제목 · 시놉시스
     text-body     설명문 전부
     text-body-sm  각주·보조 안내
     text-label    입력 라벨·탭·날짜
@@ -98,8 +98,8 @@ html {
   --text-h1--line-height: 1.25;
   --text-h2: clamp(1.375rem, 1.2107rem + 0.6742vw, 1.75rem);
   --text-h2--line-height: 1.3;
-  --text-h3: clamp(1.0625rem, 0.9803rem + 0.3371vw, 1.25rem);
-  --text-h3--line-height: 1.4;
+  --text-h3: clamp(1rem, 0.9452rem + 0.2247vw, 1.125rem);
+  --text-h3--line-height: 1.45;
   --text-body: clamp(0.9375rem, 0.9101rem + 0.1124vw, 1rem);
   --text-body--line-height: 1.6;
   --text-body-sm: 0.875rem;
