@@ -3,6 +3,7 @@ import {
   eventBubbleDismissScript,
 } from "@/components/ui/InstagramEventBubble";
 import { getEventBubble } from "@/lib/siteSettings";
+import { ScrollAwayFloat } from "@/components/ui/ScrollAwayFloat";
 
 const KAKAO_CHANNEL_URL = "http://pf.kakao.com/_EGNBX";
 const INSTAGRAM_URL = "https://www.instagram.com/wouldyouescape/";
@@ -27,6 +28,8 @@ export async function KakaoChannelButton({ raised = false }: { raised?: boolean 
 
   return (
     <>
+      {/* 스크롤을 내리는 동안 이 묶음을 옆으로 치운다(모바일에서 본문을 덮어서). */}
+      <ScrollAwayFloat />
       {bubble.enabled && (
         // 이미 닫은 방문자에게 깜빡 보였다 사라지지 않게, 그려지기 전에 표시를 단다.
         <script dangerouslySetInnerHTML={{ __html: eventBubbleDismissScript }} />
