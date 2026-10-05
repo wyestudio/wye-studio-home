@@ -25,8 +25,12 @@ export const SCREEN_SECTION = "py-7 md:py-12";
 
 /**
  * 첫 화면(테마 소개) 전용. 위쪽은 헤더가 이미 띄워 주므로 아래만 둔다.
+ *
+ * ⚠️ 아래 여백은 **다음 블록의 위 여백(md:py-12 = 48px)과 더해진다.** 여기도 48px
+ *    이었을 때 소개와 '회차 선택' 사이가 96px 벌어져, 소개 블록이 화면을 혼자
+ *    차지하는 데 한몫했다 (2026-10-05 실측 810px = 화면의 101%).
  */
-export const INTRO_SCREEN_SECTION = "pt-6 pb-7 md:pt-8 md:pb-12";
+export const INTRO_SCREEN_SECTION = "pt-6 pb-7 md:pt-8 md:pb-8";
 
 /**
  * 이 섹션으로 스크롤해 올 때 헤더 밑에 딱 붙게 하는 여백.

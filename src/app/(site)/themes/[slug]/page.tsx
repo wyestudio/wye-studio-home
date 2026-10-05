@@ -212,7 +212,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <section
         id="intro"
         suppressHydrationWarning
-        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-3
+        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-3 md:gap-y-2
                    [grid-template-areas:'title_title'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
                    md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-10
                    md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_genres'_'poster_synopsis']
@@ -272,7 +272,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         {synopsis && (
           <div data-fit-bottom className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3">
             <p
-              className="mb-3 text-xs font-bold uppercase tracking-[0.3em]"
+              className="mb-2 text-micro font-bold uppercase tracking-[0.3em]"
               style={{ color: accent }}
             >
               Synopsis
@@ -283,7 +283,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
             */}
             <p
-              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.8] text-white/90 sm:pl-5"
+              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.7] text-white/90 sm:pl-5"
               style={{ borderColor: `${accent}80` }}
             >
               {synopsis}
@@ -301,12 +301,12 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       */}
       {introNotice && (
         <div
-          className="mt-4 rounded-xl border px-4 py-3 sm:mt-6 sm:px-5 sm:py-4"
+          className="mt-4 rounded-xl border px-4 py-3 sm:px-5 sm:py-3.5"
           style={{ borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
         >
           <RichText
             text={introNotice}
-            className="block text-[13px] leading-relaxed text-white/85 sm:text-sm lg:text-base"
+            className="block text-body-sm leading-relaxed text-white/85"
           />
         </div>
       )}

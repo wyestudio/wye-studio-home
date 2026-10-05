@@ -93,14 +93,15 @@ export function ThemeCard({
         )}
       </div>
 
-      <div className="border-t border-white/12 p-3 sm:p-4 lg:p-5">
+      {/* lg:p-5 였다 — 카드 아래 글자 묶음이 포스터만큼 두꺼워 보였다(2026-10-05). */}
+      <div className="border-t border-white/12 p-3 sm:p-4">
         {/* 글꼴은 테마마다 다르다 — 어드민에서 고른다. */}
         <p className={`truncate text-h3 font-bold text-white ${titleFontClass}`}>
           {name}
         </p>
         {/* 0 은 '미정' 이라 감춘다 — "난이도 0 · 0분" 은 고장으로 읽힌다. */}
         {(difficulty > 0 || durationMinutes > 0) && (
-          <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
+          <p className="mt-1.5 text-label text-muted sm:mt-2">
             {[
               difficulty > 0 ? `🔒 난이도 ${difficulty}` : null,
               durationMinutes > 0 ? `⏱ ${hoursLabel(durationMinutes)}` : null,
@@ -109,7 +110,7 @@ export function ThemeCard({
               .join(" · ")}
           </p>
         )}
-        {locked && <p className="mt-1 text-xs text-muted sm:text-sm">아직 탐사되지 않은 행성입니다.</p>}
+        {locked && <p className="mt-1 text-label text-muted">아직 탐사되지 않은 행성입니다.</p>}
       </div>
     </>
   );

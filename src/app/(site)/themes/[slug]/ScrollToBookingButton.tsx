@@ -15,7 +15,9 @@ export function ScrollToBookingButton({
   accent,
   themeName,
   direction = "down",
-  className = "mt-10 md:mt-12",
+  // 데스크톱 48px(mt-12)은 소개 블록이 화면 하나를 꽉 채우게 만든 몫이 컸다
+  // (버튼 위 여백 48 + 버튼 62 = 110px). 24px 으로 줄였다.
+  className = "mt-10 md:mt-6",
 }: {
   accent: string;
   /** GA4 에 실어 보낼 테마명. 다른 이벤트들과 같은 값(theme.name)이어야 한다. */

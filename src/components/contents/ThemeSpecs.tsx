@@ -90,7 +90,9 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
           {genres.map((g) => (
             <li
               key={g}
-              className="rounded-full border px-2.5 py-1 text-xs font-bold sm:px-3.5 sm:py-1.5 sm:text-base"
+              // 태그는 라벨이다. 데스크톱에서 16px(sm:text-base)이라 장르 칸이 본문처럼
+              // 커 보였고, 그 높이가 포스터까지 끌어올렸다.
+              className="rounded-full border px-2.5 py-1 text-label font-bold sm:px-3.5"
               style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
             >
               #{g}
@@ -102,11 +104,18 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
   );
 }
 
-/** 칸 하나. 소제목(dt) + 내용(dd). 칸이 늘어나면 내용은 세로 가운데에 선다. */
+/**
+ * 칸 하나. 소제목(dt) + 내용(dd). 칸이 늘어나면 내용은 세로 가운데에 선다.
+ *
+ * ⚠️ 데스크톱 세로 여백을 py-4(16px)에서 py-3(12px)으로 줄였다. 이 칸 높이가
+ *    오른쪽 칸 전체 높이를 밀어 올리고, 그게 **포스터 크기까지 끌어올린다**
+ *    (PosterFit — 포스터는 오른쪽 칸 높이를 따라간다). 담긴 건 두 줄뿐인데
+ *    칸이 102px 이었다 (2026-10-05 실측).
+ */
 function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-4">
-      <dt className="mb-1.5 text-xs font-bold text-muted sm:mb-2 sm:text-sm">{label}</dt>
+    <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-3">
+      <dt className="mb-1.5 text-label font-bold text-muted">{label}</dt>
       <dd>{children}</dd>
     </div>
   );
@@ -124,8 +133,10 @@ const BIG_NUMBER = "text-h2 font-extrabold leading-none";
  * 줄 높이는 고정하고 아래로 붙여(items-end) 두 칸의 기준선 높이가 같게 한다.
  */
 function SpecValue({ children }: { children: React.ReactNode }) {
+  // 높이는 담긴 것 중 가장 큰 것(숫자 28px · 자물쇠 28px)에 맞춘다. 숫자가 36px
+  // 이던 시절의 h-10(40px)을 그대로 두면 아래가 4px 비어 칸만 높아진다.
   return (
-    <div className="flex h-8 items-end sm:h-10">
+    <div className="flex h-8 items-end sm:h-9">
       <div className="flex items-baseline gap-3">{children}</div>
     </div>
   );
