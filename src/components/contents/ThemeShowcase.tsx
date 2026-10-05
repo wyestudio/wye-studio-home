@@ -26,7 +26,11 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
       ⚠️ 화면 가운데 배치(SCREEN_SECTION)는 쓰지 않는다. 한 번 적용했더니 'CONTENTS'
          위 여백이 너무 커져서 원래 위쪽 여백으로 되돌렸다(2026-09-15). 크기만 키운 상태.
     */
-    <section className="mx-auto max-w-5xl px-5 py-14">
+    /*
+      ⚠️ 아래 여백은 테마 상세 맨 아래(pb-16 sm:pb-24)와 같은 값이다. 위아래 둘 다
+         py-14(56px)였을 때 마지막 카드와 푸터가 붙어 답답했다(2026-10-06).
+    */
+    <section className="mx-auto max-w-5xl px-5 pb-16 pt-14 sm:pb-24">
       <SectionHeading eyebrow="CONTENTS" size="lg" />
 
       {themes.length === 0 ? (
