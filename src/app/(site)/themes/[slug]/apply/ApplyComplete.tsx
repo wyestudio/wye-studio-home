@@ -242,7 +242,7 @@ export function ApplyComplete({
             참여 내역 조회
           </Link>
           <Link href="/contents" className="rounded-lg border border-white/25 px-4 py-2.5 text-sm sm:px-6 sm:py-3.5 sm:text-base">
-            다른 컨텐츠 보기
+            다른 콘텐츠 보기
           </Link>
         </div>
       </div>

@@ -34,7 +34,7 @@ export async function sendApplicationSlackAlert({
     `${prefix}📥 새신청 - [${session.session_type} 방탈출]`,
     `접수번호: ${application.confirmation_code}`,
     `신청자명: ${representative?.name ?? "-"}${representative?.nickname ? ` (${representative.nickname})` : ""}`,
-    `출생년도: ${representative?.birthYear ?? "-"}년`,
+    `출생연도: ${representative?.birthYear ?? "-"}년`,
     `성별: ${representative?.gender ? GENDER_LABEL[representative.gender] : "-"}`,
     `방탈출 횟수: ${representative?.experienceRange ? EXPERIENCE_RANGE_LABELS[representative.experienceRange] : "-"}`,
     `인원: ${attendees.length}명`,

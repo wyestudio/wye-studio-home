@@ -275,7 +275,7 @@ const PAGE_BODY_HTML = String.raw`
   <section>
     <h2><span class="num">4</span>스포일러는 가려주세요</h2>
     <div class="warn">
-      <h3>다음 참가자들의 재미를 위해 🙏</h3>
+      <h3>다음 참여자들의 재미를 위해 🙏</h3>
       <ul>
         <li>문제지·힌트 내용이 보이는 사진</li>
         <li>비하인드 카드의 내용이 보이는 사진</li>
@@ -321,21 +321,21 @@ const PAGE_BODY_HTML = String.raw`
 
       <div class="field" data-name="name">
         <label>이름 <span class="req">*</span></label>
-        <input type="text" name="name" placeholder="참가 신청 시 이름과 동일하게" autocomplete="name" required>
+        <input type="text" name="name" placeholder="참여 신청 시 이름과 동일하게" autocomplete="name" required>
         <div class="err-msg">이름을 입력해 주세요.</div>
       </div>
 
       <div class="field" data-name="phone">
         <label>전화번호 <span class="req">*</span></label>
         <input type="tel" name="phone" placeholder="010-0000-0000" inputmode="numeric" autocomplete="tel" required>
-        <div class="hint">참가 신청 때 쓰신 번호로 입력해 주세요.</div>
+        <div class="hint">참여 신청 때 쓰신 번호로 입력해 주세요.</div>
         <div class="err-msg">올바른 휴대폰 번호를 입력해 주세요.</div>
       </div>
 
       <div class="field" data-name="session">
-        <label>참가 회차 <span class="req">*</span></label>
+        <label>참여 회차 <span class="req">*</span></label>
         <select name="session" required>
-          <option value="" selected disabled>참가하신 회차를 선택해 주세요</option>
+          <option value="" selected disabled>참여하신 회차를 선택해 주세요</option>
           <!-- TODO(TING): 새 회차 오픈 시 option 추가 -->
           <option value="0829-meeting">8/29 프리오픈 · 그룹 방탈출 (낮)</option>
           <option value="0829-dating">8/29 프리오픈 · 소개팅 방탈출 (저녁)</option>

@@ -157,7 +157,7 @@ const SCHEDULE = [
     title: "아이스브레이킹 · 맞춤 레크리에이션",
     desc: "단체 예약 전용. 모임 성격에 맞춘 레크리에이션으로 분위기를 풀고 시작해요.",
   },
-  { title: "1부 컨텐츠 안내", desc: "방탈출 진행 규칙 안내 및 설명" },
+  { title: "1부 콘텐츠 안내", desc: "방탈출 진행 규칙 안내 및 설명" },
   { title: "방탈출 진행 + 미니게임", desc: "팀별 방탈출 진행. 돌발 미니게임 발생" },
   {
     title: "2부 교류 타임 & 상품 교환",
@@ -411,7 +411,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           <Panel>
             <PanelTitle>동일 테마 재참여 가능</PanelTitle>
             <p className="text-sm leading-relaxed text-muted">
-              일반 예약과 달리 단체 예약은 기존 참가자도 함께 참여할 수 있어요.
+              일반 예약과 달리 단체 예약은 기존 참여자도 함께 참여할 수 있어요.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-muted">
               ※ 재참여자가 있는 경우 참여 방식 및 이용 금액은 별도 문의해주세요.
@@ -455,8 +455,8 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
               ))}
             </ul>
             <div className="mt-5 flex flex-col gap-1 text-xs leading-relaxed text-muted">
-              <p>※ BYOB는 주류 판매 · 제공이 아닌, 성인 참가자가 직접 주류를 가져오는 방식입니다.</p>
-              <p>※ BYOB(주류 동반)를 이용하는 경우 참가자 전원 만 19세 이상이어야 합니다.</p>
+              <p>※ BYOB는 주류 판매 · 제공이 아닌, 성인 참여자가 직접 주류를 가져오는 방식입니다.</p>
+              <p>※ BYOB(주류 동반)를 이용하는 경우 참여자 전원 만 19세 이상이어야 합니다.</p>
               <p>※ 진행 프로그램 없이 공간을 자유롭게 이용하는 패키지입니다.</p>
             </div>
           </div>
@@ -504,7 +504,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             </ul>
           </Panel>
           <Panel>
-            <PanelTitle>참가 전 꼭 확인해주세요</PanelTitle>
+            <PanelTitle>참여 전 꼭 확인해주세요</PanelTitle>
             <ul className="flex list-disc flex-col gap-2.5 pl-5 text-sm sm:text-base">
               <li>
                 <strong className="text-foreground">휴대폰 사용 제한</strong>{" "}

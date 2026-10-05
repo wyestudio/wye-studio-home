@@ -4,9 +4,9 @@ import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
 
 const STEPS = [
-  { n: "01", label: "참가 신청", desc: "온라인으로 3분" },
+  { n: "01", label: "참여 신청", desc: "온라인으로 3분" },
   { n: "02", label: "조 편성", desc: "신청 확정 시 자동 안내" },
-  { n: "03", label: "방탈출 참가", desc: "회차 시간에 현장 참여" },
+  { n: "03", label: "방탈출 참여", desc: "회차 시간에 현장 참여" },
   { n: "04", label: "(확장) 애프터", desc: "추후 도입 예정", muted: true },
 ];
 

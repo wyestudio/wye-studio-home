@@ -108,7 +108,7 @@ function spreadCouponParts(prev: string[], half: number, raw: string): string[] 
 type FieldError = { field: string; message: string };
 
 /**
- * 참가 신청 — 정보입력 · 약관동의 · 제출 3단계.
+ * 참여 신청 — 정보입력 · 약관동의 · 제출 3단계.
  *
  * 다음 단계로는 현재 단계를 통과해야만 갈 수 있고, 지나온 단계는 진행 표시줄에서
  * 눌러 돌아갈 수 있다. 검사 항목은 8/29 회차 폼의 것을 그대로 옮기되 테마 구조에

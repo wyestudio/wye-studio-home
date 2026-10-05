@@ -6,7 +6,7 @@ export const LIFECYCLE_LABEL: Record<LifecycleStatus, string> = {
   applied: "신청 완료",
   awaiting_payment: "입금확인 전",
   paid: "입금완료",
-  confirmed_soon: "참가확정",
+  confirmed_soon: "참여확정",
   attended: "참여완료",
   cancelled: "취소됨",
 };

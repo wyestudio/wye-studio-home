@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const DEFAULT_ACCENT = "#3dffb0";
 
 export const metadata: Metadata = {
-  title: "참가 신청",
+  title: "참여 신청",
   robots: { index: false },
 };
 

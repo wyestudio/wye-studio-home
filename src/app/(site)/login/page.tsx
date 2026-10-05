@@ -35,7 +35,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <div className="mx-auto max-w-md px-5 py-12">
       <h1 className="mb-1 text-2xl font-extrabold">로그인</h1>
       <p className="mb-8 text-sm text-muted">
-        참가 신청을 하려면 먼저 로그인해주세요.
+        참여 신청을 하려면 먼저 로그인해주세요.
       </p>
       {notice ? (
         <p className="mb-4 rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">

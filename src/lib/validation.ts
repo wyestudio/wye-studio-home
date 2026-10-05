@@ -68,8 +68,8 @@ export function getValidationErrorMessage(field: string, reason: string): string
       invalid: "올바른 휴대폰 번호 형식이 아니에요.",
     },
     birthYear: {
-      required: "출생년도를 선택해주세요.",
-      invalid: "신청 가능한 출생년도를 선택해주세요.",
+      required: "출생연도를 선택해주세요.",
+      invalid: "신청 가능한 출생연도를 선택해주세요.",
     },
     gender: {
       required: "성별을 선택해주세요.",

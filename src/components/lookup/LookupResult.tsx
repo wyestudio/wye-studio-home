@@ -157,7 +157,7 @@ export function LookupResult() {
           className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-bold sm:mt-8 sm:px-7 sm:py-4 sm:text-base lg:text-lg"
           style={{ backgroundColor: DEFAULT_ACCENT, color: "#0a0a12" }}
         >
-          다른 컨텐츠 보기
+          다른 콘텐츠 보기
         </Link>
       </div>
     );

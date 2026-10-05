@@ -108,7 +108,7 @@ export function ThemeCard({
               .join(" · ")}
           </p>
         )}
-        {locked && <p className="mt-1 text-xs text-muted sm:text-sm">아직 탐사되지 않은 행성입니다</p>}
+        {locked && <p className="mt-1 text-xs text-muted sm:text-sm">아직 탐사되지 않은 행성입니다.</p>}
       </div>
     </>
   );
@@ -122,7 +122,7 @@ export function ThemeCard({
       <div
         role="button"
         tabIndex={0}
-        aria-label={`${name} — 아직 탈출할 수 없는 행성입니다`}
+        aria-label={`${name} — 아직 탐사되지 않은 행성입니다`}
         onClick={knock}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {

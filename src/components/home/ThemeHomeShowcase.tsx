@@ -110,7 +110,7 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
   if (themes.length === 0) {
     return (
       <div className="mx-auto max-w-4xl rounded-xl border border-white/15 bg-white/5 p-8 text-center">
-        <p className="font-semibold">준비 중인 컨텐츠가 곧 공개됩니다.</p>
+        <p className="font-semibold">준비 중인 콘텐츠가 곧 공개됩니다.</p>
       </div>
     );
   }
@@ -335,7 +335,7 @@ function ThemeSlot({
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/55">
           <LockIcon shaking={knocked} px={30} />
           <p className="px-3 text-center text-xs font-medium text-white">
-            아직 탈출할 수 없는 행성입니다.
+            아직 탐사되지 않은 행성입니다.
           </p>
         </div>
       )}
@@ -348,7 +348,7 @@ function ThemeSlot({
       <div
         role="button"
         tabIndex={0}
-        aria-label={`${theme.name} — 아직 탈출할 수 없는 행성입니다`}
+        aria-label={`${theme.name} — 아직 탐사되지 않은 행성입니다`}
         onClick={knock}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -406,7 +406,7 @@ function ComingSoonSlot({ planetRef }: { planetRef: (el: HTMLDivElement | null) 
 
       {/* 넓은 화면에서는 패널 자체가 없다. 좁은 화면에서만 한 줄. */}
       <div className="flex min-h-28 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-black/40 p-4 sm:hidden">
-        <p className="text-xs font-medium text-white/55">미탐사된 행성입니다.</p>
+        <p className="text-xs font-medium text-white/55">아직 탐사되지 않은 행성입니다.</p>
       </div>
     </div>
   );
