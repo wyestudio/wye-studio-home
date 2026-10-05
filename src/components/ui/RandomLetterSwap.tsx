@@ -42,6 +42,16 @@ export function RandomLetterSwap({
     }
   }, [active, isTouchDevice]);
 
+  /*
+    ⚠️ 글자 애니메이션은 글자 하나를 **세 벌**(자리차지 1 + 움직이는 2) 그린다.
+       그대로 두면 스크린리더가 "C C C o o o n n n…" 으로 읽는다 — 주 메뉴가
+       이 꼴이었다(2026-10-04 접근성 진단).
+
+       그래서 보이는 글자 더미는 통째로 aria-hidden 으로 감추고, 읽히는 이름은
+       sr-only 로 **한 번만** 둔다. 화면에 보이는 모습은 그대로다.
+    ⚠️ aria-hidden 을 바깥 span 에 걸면 안 된다 — sr-only 까지 같이 숨어서
+       링크에 이름이 하나도 없는 상태가 된다.
+  */
   return (
     <span
       className={className}
@@ -54,8 +64,9 @@ export function RandomLetterSwap({
       }}
       style={{ display: "inline-flex" }}
     >
+      <span className="sr-only">{label}</span>
       {letters.map((char, i) => (
-        <span key={i} style={{ position: "relative", display: "inline-block", overflow: "hidden" }}>
+        <span key={i} aria-hidden style={{ position: "relative", display: "inline-block", overflow: "hidden" }}>
           {/* 보이지 않는 자리차지용 — 두 겹의 motion.span이 absolute라 부모 너비가 안 잡히는 걸 막음 */}
           <span style={{ visibility: "hidden" }}>{char === " " ? " " : char}</span>
           <motion.span

@@ -85,11 +85,18 @@ export function Header() {
     };
   }, [autoHide, isMenuOpen]);
 
+  /*
+    메뉴 이름은 **한국어**다(2026-10-05). 영문(Contents·Check·Notice)일 때는
+    'Check' 가 신청내역 조회라는 걸 추측해야 했다 — 눌렀을 때 무엇이 나오는지
+    이름만 보고 알 수 있어야 한다(UX 진단 H2).
+
+    ⚠️ 짧게 둔다. 좁은 화면에서 네 개가 한 줄에 들어가야 한다.
+  */
   const navItems = [
-    { label: "About", href: "/about", enabled: process.env.NEXT_PUBLIC_ABOUT_ENABLED === "true" },
-    { label: "Contents", href: "/contents" },
-    { label: "Check", href: "/lookup" },
-    { label: "Notice", href: "/notice" },
+    { label: "소개", href: "/about", enabled: process.env.NEXT_PUBLIC_ABOUT_ENABLED === "true" },
+    { label: "테마", href: "/contents" },
+    { label: "예약조회", href: "/lookup" },
+    { label: "공지", href: "/notice" },
   ];
 
   return (
@@ -170,7 +177,6 @@ export function Header() {
         {isMenuOpen && (
           <div className="border-t border-border bg-background">
             <div className="mx-auto max-w-5xl px-5 py-3">
-              {/* 영문 메뉴 */}
               <nav className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-base font-bold text-muted">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href;
