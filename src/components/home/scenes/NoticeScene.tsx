@@ -56,7 +56,9 @@ export function NoticeScene({
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-muted transition-colors hover:text-foreground"
+              // 아이콘은 23px 그대로, 누르는 영역만 넓힌다(-m-3 로). ⚠️ 48px 인 이유 — 홈 씬은 transform 으로 살짝 줄어서 44 로 두면 41px 로 잡힌다(2026-10-05 실측).
+              // 주변 여백을 먹어 배치는 그대로). WCAG 2.5.8 · Apple HIG 44pt.
+              className="-m-3 flex h-12 w-12 items-center justify-center p-3 text-muted transition-colors hover:text-foreground"
               aria-label={link.name}
             >
               {link.icon}

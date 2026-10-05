@@ -167,7 +167,12 @@ export function Header() {
           {/* 모바일 햄버거 버튼 */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex flex-col gap-1.5 focus:outline-none"
+            /*
+              ⚠️ 막대 3개는 24×18 이지만 **누르는 영역은 44×44** 다(-m-2.5 로
+                 주변 여백을 먹어 레이아웃은 그대로 둔다). 손가락 기준 최소
+                 크기다(Apple HIG 44pt · Material 48dp · WCAG 2.5.8).
+            */
+            className="-m-2.5 flex h-11 w-11 flex-col items-center justify-center gap-1.5 p-2.5 focus:outline-none"
             aria-label="메뉴"
           >
             <div className={`h-0.5 w-6 bg-foreground transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />

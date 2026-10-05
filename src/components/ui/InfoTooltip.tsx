@@ -117,7 +117,9 @@ export function InfoTooltip({
         aria-describedby={open ? id : undefined}
         // 마우스 기기는 올리는 순간 이미 열려 있다. 그때 누르면 닫혀버리니 열기만 한다.
         onClick={() => (canHover() ? setOpen(true) : setOpen((v) => !v))}
-        className="flex h-5 w-5 items-center justify-center rounded-full text-muted transition-colors hover:text-foreground focus-visible:text-foreground"
+          /* ⚠️ 물음표 그림은 20px 그대로지만 **누르는 영역은 44×44** 다.
+             -m-3 으로 주변 여백을 먹어 글줄 높이는 변하지 않는다(2026-10-05). */
+        className="-m-3 flex h-11 w-11 items-center justify-center rounded-full p-3 text-muted transition-colors hover:text-foreground focus-visible:text-foreground"
       >
         <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" aria-hidden>
           <circle cx="10" cy="10" r="8.25" stroke="currentColor" strokeWidth="1.5" />

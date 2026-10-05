@@ -22,14 +22,19 @@ export function Footer() {
           </div>
 
           {/* 오른쪽 컬럼 — 약관 링크 */}
-          <div className="flex flex-col items-end gap-1 sm:gap-1.5 lg:gap-2 shrink-0">
-            <Link href="/terms" className="hover:text-glow transition-colors">
+          {/*
+              ⚠️ 링크 높이가 16px 이라 손가락으로 집기 어려웠다(2026-10-05).
+                 글자 크기는 그대로 두고 **누르는 영역만** 세로로 넓힌다(py-2.5).
+                 대신 줄 사이 gap 을 없애 푸터 전체 높이는 거의 그대로다.
+            */}
+            <div className="flex shrink-0 flex-col items-end">
+            <Link href="/terms" className="py-2.5 hover:text-glow transition-colors">
               이용약관
             </Link>
-            <Link href="/terms#article-8" className="hover:text-glow transition-colors">
+            <Link href="/terms#article-8" className="py-2.5 hover:text-glow transition-colors">
               환불정책
             </Link>
-            <Link href="/privacy" className="hover:text-glow transition-colors">
+            <Link href="/privacy" className="py-2.5 hover:text-glow transition-colors">
               개인정보처리방침
             </Link>
           </div>

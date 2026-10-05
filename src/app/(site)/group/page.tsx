@@ -236,7 +236,9 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
       <div className="mb-6">
         <Link
           href="/themes/baotalchul"
-          className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
+            // ⚠️ 문장 안이 아니라 혼자 서 있는 링크다 — 누르는 높이를 44px 로 둔다.
+            //    -my-3 으로 주변 여백을 먹어 배치는 그대로(2026-10-05).
+          className="-my-3 inline-flex h-11 items-center gap-1 text-body-sm text-muted hover:text-foreground"
         >
           <Chevron dir="left" className="h-3.5 w-3.5" />
           바-ㅇ탈출 테마 보기

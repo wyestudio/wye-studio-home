@@ -56,7 +56,8 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
      먼저 보이게 하고, 더 갈 곳이 없을 때만 흐려진다.
 */
 const ARROW_BUTTON =
-  "flex h-9 w-9 items-center justify-center rounded-lg border border-white/20 " +
+  // ⚠️ 44×44 — 손가락 기준 최소 크기다(2026-10-05). 36×36 이었다.
+    "flex h-11 w-11 items-center justify-center rounded-lg border border-white/20 " +
   "text-white/85 transition-colors hover:border-white/45 hover:bg-white/10 hover:text-white " +
   "disabled:border-white/10 disabled:text-white/20 disabled:hover:bg-transparent";
 

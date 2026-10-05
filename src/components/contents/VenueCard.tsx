@@ -64,7 +64,8 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
             type="button"
             onClick={copyAddress}
             aria-label={copied ? "주소가 복사되었습니다" : "주소 복사"}
-            className="shrink-0 rounded-lg border border-panel-border px-3 py-1.5 text-xs font-semibold text-muted transition-colors hover:text-foreground sm:text-sm"
+            // ⚠️ 높이 44px — 손가락 기준 최소 크기(2026-10-05). py-1.5(30px) 였다.
+              className="flex h-11 shrink-0 items-center rounded-lg border border-panel-border px-3 text-body-sm font-semibold text-muted transition-colors hover:text-foreground"
           >
             {copied ? "복사됨" : "복사"}
           </button>
