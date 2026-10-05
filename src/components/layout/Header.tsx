@@ -91,11 +91,14 @@ export function Header() {
     이름만 보고 알 수 있어야 한다(UX 진단 H2).
 
     ⚠️ 짧게 둔다. 좁은 화면에서 네 개가 한 줄에 들어가야 한다.
+    ⚠️ '예약조회' 가 아니라 **'신청조회'** 다. 개인 흐름은 전부 '신청' 으로 쓴다
+       (신청하기 · 참여 신청 · 신청내역 조회). '예약' 은 **단체 예약**에만 쓰는
+       말이라, 여기에 쓰면 둘이 다른 상품인 것처럼 읽힌다.
   */
   const navItems = [
     { label: "소개", href: "/about", enabled: process.env.NEXT_PUBLIC_ABOUT_ENABLED === "true" },
     { label: "테마", href: "/contents" },
-    { label: "예약조회", href: "/lookup" },
+    { label: "신청조회", href: "/lookup" },
     { label: "공지", href: "/notice" },
   ];
 
