@@ -21,6 +21,20 @@ const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
 const hint = "mt-1 text-body-sm text-muted sm:mt-1.5";
 const errorText = "mt-1 text-body-sm text-danger sm:mt-1.5";
 
+/*
+  입력칸이 자기 오류 문구를 가리키게 하는 속성 묶음(aria-describedby).
+  연결하지 않으면 화면에는 빨간 글씨가 보이는데 스크린리더는 무엇이 잘못됐는지
+  읽어주지 못한다 — 2026-10-04 접근성 진단에서 공개 폼에 이 연결이 0건이었다.
+  오류 문구 쪽에는 같은 규칙의 id(`<입력칸 id>-error`)를 단다.
+*/
+function errorProps(id: string, hasError: boolean) {
+  return {
+    id,
+    "aria-invalid": hasError || undefined,
+    "aria-describedby": hasError ? `${id}-error` : undefined,
+  } as const;
+}
+
 export type NicknameCheckState = "idle" | "checking" | "available" | "taken" | "error";
 
 export type AttendeeErrors = {
@@ -80,7 +94,7 @@ export function AttendeeFields({
         <div>
           <label className={label} htmlFor={`attendee-${index}-name`}>이름 *</label>
           <input
-            id={`attendee-${index}-name`}
+            {...errorProps(`attendee-${index}-name`, !!errors.name)}
             className={errors.name ? fieldInvalid : field}
             /*
               대표 신청자(본인)만 브라우저 자동완성을 받는다. 동행자 칸에 "name" 을
@@ -91,14 +105,16 @@ export function AttendeeFields({
             placeholder="홍길동"
             onChange={(e) => onChange({ name: e.target.value })}
           />
-          {errors.name && <p className={errorText}>{errors.name}</p>}
+          {errors.name && (
+            <p id={`attendee-${index}-name-error`} role="alert" className={errorText}>{errors.name}</p>
+          )}
         </div>
 
         <div>
           <label className={label} htmlFor={`attendee-${index}-nickname`}>닉네임 (선택)</label>
           <div className="flex gap-2">
             <input
-              id={`attendee-${index}-nickname`}
+              {...errorProps(`attendee-${index}-nickname`, !!errors.nickname)}
               className={errors.nickname ? fieldInvalid : field}
               autoComplete="off"
               value={attendee.nickname}
@@ -117,7 +133,7 @@ export function AttendeeFields({
             )}
           </div>
           {errors.nickname ? (
-            <p className={errorText}>{errors.nickname}</p>
+            <p id={`attendee-${index}-nickname-error`} role="alert" className={errorText}>{errors.nickname}</p>
           ) : nicknameCheckState === "available" ? (
             <p className="mt-1 text-body-sm text-glow sm:mt-1.5">사용 가능한 닉네임이에요.</p>
           ) : nicknameCheckState === "taken" ? (
@@ -142,7 +158,7 @@ export function AttendeeFields({
             ⚠️ maxLength 는 글자 수(하이픈 포함) 13 이다. 숫자 11 자리가 아니다.
           */}
           <input
-            id={`attendee-${index}-phone`}
+            {...errorProps(`attendee-${index}-phone`, phoneInvalid)}
             className={phoneInvalid ? fieldInvalid : field}
             type="tel"
             inputMode="numeric"
@@ -153,9 +169,9 @@ export function AttendeeFields({
             onChange={(e) => onChange({ phoneInput: formatPhoneInput(e.target.value) })}
           />
           {errors.phone ? (
-            <p className={errorText}>{errors.phone}</p>
+            <p id={`attendee-${index}-phone-error`} role="alert" className={errorText}>{errors.phone}</p>
           ) : isConflict ? (
-            <p className={errorText}>
+            <p id={`attendee-${index}-phone-error`} role="alert" className={errorText}>
               {conflictReason === "group"
                 ? "그룹 안의 다른 참여자와 전화번호가 중복돼요."
                 : "이미 같은 테마에 참여하신 신청자예요."}
@@ -174,9 +190,10 @@ export function AttendeeFields({
             options={birthYears.map((y) => ({ value: String(y), label: `${y}년생` }))}
             placeholder="선택"
             invalid={!!errors.birthYear}
+            errorId={`attendee-${index}-birthYear-error`}
           />
           {errors.birthYear ? (
-            <p className={errorText}>{errors.birthYear}</p>
+            <p id={`attendee-${index}-birthYear-error`} role="alert" className={errorText}>{errors.birthYear}</p>
           ) : (
             <p className={hint}>이 회차는 만 {minAge}세 이상만 참여할 수 있어요.</p>
           )}
@@ -194,9 +211,10 @@ export function AttendeeFields({
             options={EXPERIENCE_RANGES.map((r) => ({ value: r, label: EXPERIENCE_RANGE_LABELS[r] }))}
             placeholder="선택"
             invalid={!!errors.experienceRange}
+            errorId={`attendee-${index}-experienceRange-error`}
           />
           {errors.experienceRange ? (
-            <p className={errorText}>{errors.experienceRange}</p>
+            <p id={`attendee-${index}-experienceRange-error`} role="alert" className={errorText}>{errors.experienceRange}</p>
           ) : (
             <p className={hint}>팀 배정에 참고됩니다.</p>
           )}

@@ -10,6 +10,7 @@ export function Select({
   options,
   placeholder,
   invalid,
+  errorId,
   variant = "surface",
   size = "md",
 }: {
@@ -19,6 +20,11 @@ export function Select({
   options: { value: string; label: string }[];
   placeholder?: string;
   invalid?: boolean;
+  /**
+   * 이 칸의 오류 문구 id. 주면 보조기기가 "무엇이 잘못됐는지"까지 읽는다
+   * (aria-describedby). 2026-10-04 접근성 진단에서 공개 폼에 이 연결이 없었다.
+   */
+  errorId?: string;
   /** glass = 반투명 카드 위에 올리는 신청 폼용. surface = 기존 화면용. */
   variant?: "surface" | "glass";
   /**
@@ -68,6 +74,8 @@ export function Select({
       <button
         id={id}
         type="button"
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid && errorId ? errorId : undefined}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={(e) => {
           if (e.key === "Escape") {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useActionState } from "react";
 import { useRouter } from "next/navigation";
-import { Field, Input } from "@/components/ui/Input";
+import { Field, Input, describedBy } from "@/components/ui/Input";
 import { getValidationErrorMessage } from "@/lib/validation";
 import { formatPhoneInput, phoneDigits, isValidPhoneDigits } from "@/lib/phone";
 import { lookupAction, type LookupState } from "@/app/(site)/lookup/actions";
@@ -79,7 +79,7 @@ export function LookupForm() {
         <div className="flex flex-col gap-4 sm:gap-6">
           <Field label="접수번호" htmlFor="confirmationCode" error={confirmationCodeError}>
             <Input
-              id="confirmationCode"
+              {...describedBy("confirmationCode", !!confirmationCodeError)}
               name="confirmationCode"
               type="text"
               inputMode="numeric"
@@ -100,7 +100,7 @@ export function LookupForm() {
           </Field>
           <Field label="신청자 전화번호" htmlFor="phone" error={phoneError}>
             <Input
-              id="phone"
+              {...describedBy("phone", !!phoneError)}
               name="phone"
               type="tel"
               inputMode="numeric"

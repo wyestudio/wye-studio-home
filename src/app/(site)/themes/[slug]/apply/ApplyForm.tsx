@@ -894,6 +894,9 @@ export function ApplyForm({
                       {half === 1 && <span className="text-muted">-</span>}
                       <input
                         id={half === 0 ? "couponCode" : "couponCode2"}
+                        // 쿠폰은 두 칸이지만 오류는 하나다 — 두 칸 모두 같은 문구를 가리킨다.
+                        aria-invalid={couponError ? true : undefined}
+                        aria-describedby={couponError ? "couponCode-error" : undefined}
                         className={`${field} text-center font-mono uppercase tracking-widest`}
                         autoComplete="off"
                         value={couponParts[half]}
@@ -967,7 +970,7 @@ export function ApplyForm({
                 )}
 
                 {couponError ? (
-                  <p className="mt-1.5 text-body-sm text-amber-400 sm:mt-2">{couponError}</p>
+                  <p id="couponCode-error" role="alert" className="mt-1.5 text-body-sm text-amber-400 sm:mt-2">{couponError}</p>
                 ) : (
                   <p className="mt-1.5 text-body-sm text-muted sm:mt-2">
                     쿠폰이 있으시면 코드를 입력하고 적용을 눌러주세요.
@@ -981,6 +984,9 @@ export function ApplyForm({
                 <label className={label} htmlFor="depositorName">입금자명 *</label>
                 <input
                   id="depositorName"
+                  // 오류 문구를 보조기기가 함께 읽게 연결한다(2026-10-04 접근성 진단).
+                  aria-invalid={errOf(step3Errors, "depositorName") ? true : undefined}
+                  aria-describedby={errOf(step3Errors, "depositorName") ? "depositorName-error" : undefined}
                   className={errOf(step3Errors, "depositorName") ? fieldInvalid : field}
                   autoComplete="name"
                   value={depositorName}
@@ -988,7 +994,7 @@ export function ApplyForm({
                   placeholder="실제로 입금하실 분의 성함"
                 />
                 {errOf(step3Errors, "depositorName") && (
-                  <p className="mt-1 text-body-sm text-danger">{errOf(step3Errors, "depositorName")}</p>
+                  <p id="depositorName-error" role="alert" className="mt-1 text-body-sm text-danger">{errOf(step3Errors, "depositorName")}</p>
                 )}
                 <div className="mt-2 rounded-lg border border-amber-500/50 bg-amber-500/10 px-3 py-2.5 text-body-sm text-amber-200 sm:mt-3 sm:px-4 sm:py-3">
                   <p className="font-semibold">⚠️ 실제로 입금하실 분의 성함과 정확히 일치해야 합니다.</p>
