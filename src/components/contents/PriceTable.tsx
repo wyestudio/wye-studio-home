@@ -88,6 +88,8 @@ export function PriceTable({
             {/*
               기본가 열 제목도 **자기 열의 색**으로 맞춘다(2026-10-01 요청).
               얼리버드 제목만 색이 있으면 그쪽만 '진짜 가격' 처럼 읽힌다.
+              ⚠️ 이건 **열이 나란히 놓인 데스크톱 이야기다.** 모바일은 두 금액이
+                 위아래로 붙어 색이 서로 경쟁하므로 기본가에서 색을 뺐다(2026-10-05).
               ⚠️ 프로모션이 없을 때는 비교할 열이 없으므로 예전처럼 흐린 제목 그대로 둔다.
 
               ⚠️ 프로모션이 있을 때 **모바일에서는 이 칸을 감추고** 아래 얼리버드
@@ -106,12 +108,15 @@ export function PriceTable({
               >
                 {/*
                   모바일은 한 칸에 두 금액이 위아래로 들어가므로 머리글도 두 줄이다.
-                  ⚠️ 각 줄의 색을 **아래 금액과 같게** 맞춘다 — 윗줄(기본가)은 테마
-                     강조색, 아랫줄(얼리버드)은 프로모션 색. 색이 어긋나면 어느
-                     줄이 어느 금액의 이름인지 알 수 없다(2026-10-05 요청).
+
+                  ⚠️ 모바일에서는 **기본가 쪽에 색을 주지 않는다**(2026-10-05 요청).
+                     세 열로 떨어져 있을 때는 열마다 자기 색을 갖는 게 맞았지만
+                     (아래 데스크톱 주석 참고), 위아래로 붙이고 나니 민트와 노랑이
+                     서로 경쟁해 어느 쪽이 할인가인지 구분이 안 됐다.
+                     기본가는 흐리게 두고 얼리버드만 색을 갖는다.
                 */}
                 <span className="flex flex-col items-end leading-tight sm:hidden">
-                  <span style={{ color: accent }}>기본가</span>
+                  <span className="text-muted">기본가</span>
                   <span>{promo!.label}</span>
                 </span>
                 <span className="hidden sm:inline">{promo!.label}</span>
@@ -202,14 +207,15 @@ export function PriceTable({
                         {/*
                           모바일 전용 기본가 줄. 세 칸이 좁은 화면을 넘어가서 2열로
                           접은 결과다(2026-10-04).
-                          ⚠️ 흐리게 만들지 말 것 — 기본가가 안 보이면 표가 '할인
-                             안내문' 처럼 읽힌다(2026-10-01 요청). 열 제목과 같은
-                             강조색·굵기를 그대로 쓴다.
+
+                          ⚠️ **색을 주지 않는다**(2026-10-05 요청). 민트(테마색)로 뒀더니
+                             바로 아래 노랑 할인가와 밝기가 비슷해 둘이 경쟁했고,
+                             어느 쪽이 할인가인지 한눈에 안 들어왔다.
+                          ⚠️ 그렇다고 취소선을 긋거나 더 흐리게 하지는 말 것 — 정가가
+                             안 보이면 표가 '할인 안내문' 처럼 읽힌다(2026-10-01 요청).
+                             색만 빼고 굵기는 남긴다.
                         */}
-                        <span
-                          className="font-bold sm:hidden"
-                          style={{ color: accent }}
-                        >
+                        <span className="font-bold text-muted sm:hidden">
                           {formatKrw(unit)}
                         </span>
                         <span className="inline-flex items-center justify-end gap-1 sm:contents">
