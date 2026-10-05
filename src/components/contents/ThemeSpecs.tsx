@@ -145,7 +145,12 @@ function SmallNote({ children }: { children: React.ReactNode }) {
   return <span className="hidden whitespace-nowrap text-sm font-bold text-muted lg:inline">{children}</span>;
 }
 
-function hoursLabel(minutes: number) {
+/**
+ * 분 → "3시간" / "1시간 30분" / "45분".
+ * ⚠️ 시간 표기는 **한 곳에서만 만든다.** 화면마다 따로 적으면 같은 회차가
+ *    "180분" · "3시간" · "⏱ 3시간" 으로 갈린다(2026-10-05 UX 진단).
+ */
+export function hoursLabel(minutes: number) {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${m}분`;

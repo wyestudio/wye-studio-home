@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { PosterImage } from "@/components/contents/PosterImage";
+import { hoursLabel } from "@/components/contents/ThemeSpecs";
 
 /**
  * 잠긴 테마 위에 올리는 자물쇠.
@@ -102,7 +103,7 @@ export function ThemeCard({
           <p className="mt-1.5 text-xs text-muted sm:mt-2 sm:text-sm">
             {[
               difficulty > 0 ? `🔒 난이도 ${difficulty}` : null,
-              durationMinutes > 0 ? `⏱ ${durationMinutes}분` : null,
+              durationMinutes > 0 ? `⏱ ${hoursLabel(durationMinutes)}` : null,
             ]
               .filter(Boolean)
               .join(" · ")}

@@ -129,7 +129,7 @@ function NumberedList({
 
 const PROGRAM_SPECS = [
   { label: "난이도", value: "4 / 5", note: "조정 가능" },
-  { label: "소요 시간", value: "180분" },
+  { label: "소요 시간", value: "3시간(180분)" },
   { label: "장르", value: "문제방 · 팀경쟁" },
 ];
 
@@ -266,7 +266,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           <div className="grid grid-cols-3 gap-2.5">
             {[
               { label: "인원", value: `${GROUP_HEADCOUNT_MIN}~${GROUP_HEADCOUNT_MAX}명` },
-              { label: "소요 시간", value: "3시간" },
+              { label: "소요 시간", value: "3시간(180분)" },
               { label: "진행", value: "단독 진행", accent: true },
             ].map((t) => (
               <div
