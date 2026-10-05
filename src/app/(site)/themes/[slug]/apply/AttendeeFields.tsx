@@ -63,6 +63,7 @@ export function AttendeeFields({
   conflictReason,
   nicknameCheckState,
   onChange,
+  onTouch,
   onNicknameCheck,
 }: {
   index: number;
@@ -75,6 +76,11 @@ export function AttendeeFields({
   conflictReason: "group" | "theme" | null;
   nicknameCheckState: NicknameCheckState;
   onChange: (patch: Partial<AttendeeForm>) => void;
+  /**
+   * 칸을 떠났을 때(blur) 부른다. 그 칸은 '다음' 을 누르기 전에도 오류를 보여준다
+   * (ApplyForm 의 touched 주석 참고). 타이핑 중에는 부르지 않는다.
+   */
+  onTouch?: (field: string) => void;
   onNicknameCheck: () => void;
 }) {
   const phoneInvalid = !!errors.phone || isConflict;
@@ -102,6 +108,7 @@ export function AttendeeFields({
             */
             autoComplete={index === 0 ? "name" : "off"}
             value={attendee.name}
+            onBlur={() => onTouch?.(`attendee-${index}-name`)}
             placeholder="홍길동"
             onChange={(e) => onChange({ name: e.target.value })}
           />
@@ -118,6 +125,7 @@ export function AttendeeFields({
               className={errors.nickname ? fieldInvalid : field}
               autoComplete="off"
               value={attendee.nickname}
+              onBlur={() => onTouch?.(`attendee-${index}-nickname`)}
               placeholder="현장에서 쓰일 이름"
               onChange={(e) => onChange({ nickname: e.target.value })}
             />
@@ -164,6 +172,7 @@ export function AttendeeFields({
             inputMode="numeric"
             autoComplete="tel"
             maxLength={13}
+            onBlur={() => onTouch?.(`attendee-${index}-phone`)}
             placeholder="010-0000-0000"
             value={attendee.phoneInput}
             onChange={(e) => onChange({ phoneInput: formatPhoneInput(e.target.value) })}

@@ -321,13 +321,29 @@ export function ApplyForm({
     return errors;
   }, [depositorName]);
 
+  /*
+    이미 **입력을 마친 칸**은 '다음' 을 누르기 전에도 오류를 보여준다(2026-10-05).
+    예전에는 '다음' 을 눌러야만 한꺼번에 떴다 — 번호를 잘못 치고 나머지를 다
+    채운 뒤에야 알게 되니 어디가 틀렸는지 거슬러 올라가야 했다(UX 진단 C5).
+
+    ⚠️ **타이핑 중에는 띄우지 않는다.** 칸을 떠난 뒤(blur)부터 본다. 치는 도중에
+       "형식이 틀렸다" 가 깜빡이면 다 치기도 전에 혼난다.
+    ⚠️ 고치는 순간 사라진다 — validateStep1 이 매 렌더마다 지금 값으로 다시 돈다.
+  */
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+  const markTouched = useCallback((field: string) => {
+    setTouched((prev) => (prev.has(field) ? prev : new Set(prev).add(field)));
+  }, []);
+
   const step1Errors = useMemo(
-    () => (submitAttempted && step === 0 ? validateStep1() : []),
-    [submitAttempted, step, validateStep1]
+    () =>
+      step === 0 ? validateStep1().filter((e) => submitAttempted || touched.has(e.field)) : [],
+    [submitAttempted, step, validateStep1, touched]
   );
   const step3Errors = useMemo(
-    () => (submitAttempted && step === 2 ? validateStep3() : []),
-    [submitAttempted, step, validateStep3]
+    () =>
+      step === 2 ? validateStep3().filter((e) => submitAttempted || touched.has(e.field)) : [],
+    [submitAttempted, step, validateStep3, touched]
   );
 
   const errorIndexes = useMemo(() => {
@@ -742,6 +758,7 @@ export function ApplyForm({
                   nickname: errOf(step1Errors, `attendee-${activeIndex}-nickname`),
                 }}
                 onChange={(patch) => patchAttendee(activeIndex, patch)}
+                onTouch={markTouched}
                 onNicknameCheck={() => runNicknameCheck(activeIndex)}
               />
             )}
@@ -987,6 +1004,7 @@ export function ApplyForm({
                   // 오류 문구를 보조기기가 함께 읽게 연결한다(2026-10-04 접근성 진단).
                   aria-invalid={errOf(step3Errors, "depositorName") ? true : undefined}
                   aria-describedby={errOf(step3Errors, "depositorName") ? "depositorName-error" : undefined}
+                  onBlur={() => markTouched("depositorName")}
                   className={errOf(step3Errors, "depositorName") ? fieldInvalid : field}
                   autoComplete="name"
                   value={depositorName}
