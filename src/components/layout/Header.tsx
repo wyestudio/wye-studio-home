@@ -14,8 +14,14 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
-  // 테마 상세(/themes/[slug])에서만 모바일 헤더를 스크롤 방향에 따라 숨긴다.
-  const autoHide = /^\/themes\/[^/]+\/?$/.test(pathname);
+  /*
+    모바일 헤더를 스크롤 방향에 따라 숨기는 화면.
+      /themes/[slug]       테마 상세 — 길어서 위가 답답했다(2026-09-15)
+      /themes/[slug]/apply 신청 — 헤더 + 3단계 스테퍼가 겹쳐 화면이 꽉 찼다(2026-10-05)
+    ⚠️ 두 화면 모두 위에 sticky 줄(DetailTabs · ApplyStepper)이 하나 더 붙어 있다.
+       그 줄들은 html[data-header-hidden] 을 보고 헤더 자리만큼 따라 올라간다.
+  */
+  const autoHide = /^\/themes\/[^/]+(\/apply)?\/?$/.test(pathname);
 
   // 실제 렌더된 헤더 높이를 CSS 변수로 노출 — 홈 히어로의 스크롤 스테이지가 이 값만큼
   // 음수 마진을 줘서, 헤더 아래로 스크롤이 다 지나가야 스크롤텔링이 시작되는 "빈 스크롤

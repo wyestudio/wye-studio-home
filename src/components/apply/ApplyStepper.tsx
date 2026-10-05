@@ -32,7 +32,17 @@ export function ApplyStepper({
   accentColor: string;
 }) {
   return (
-    <div className="sticky top-[var(--header-height,0px)] z-20 -mx-5 border-b border-border bg-background px-5 py-4 sm:py-5">
+    <div
+      /*
+        헤더가 스크롤로 숨으면 이 줄도 그만큼 따라 올라간다(DetailTabs 와 같은 방식).
+        그러지 않으면 헤더가 사라진 자리가 빈 띠로 남는다.
+        ⚠️ 데스크톱(md 이상)에서는 헤더가 숨지 않으므로 이 변환도 걸리지 않는다 —
+           data-header-hidden 자체가 모바일에서만 붙는다(Header.tsx).
+      */
+      className="sticky top-[var(--header-height,0px)] z-20 -mx-5 border-b border-border bg-background px-5 py-4
+                 transition-transform duration-300 ease-out sm:py-5
+                 [html[data-header-hidden]_&]:-translate-y-[var(--header-height,0px)]"
+    >
       <ol className="flex items-center gap-2">
         {STEPS.map((label, index) => {
           const done = index < currentStep;
