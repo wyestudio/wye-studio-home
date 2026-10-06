@@ -57,7 +57,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
       <div className="flex flex-col gap-2.5 sm:gap-3">
         {/* 주소 + 복사. 긴 주소가 버튼을 밀어내지 않게 글자 쪽이 줄바꿈된다. */}
         <div className="flex items-center gap-3 rounded-xl border border-panel-border bg-panel-raised px-4 py-3 sm:px-5 sm:py-4">
-          <p className="min-w-0 flex-1 break-keep text-sm leading-relaxed text-foreground sm:text-base lg:text-lg">
+          <p className="min-w-0 flex-1 break-keep text-h3 leading-relaxed text-foreground">
             {venue.address}
           </p>
           <button
@@ -72,7 +72,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
         </div>
 
         {venue.parking_note && (
-          <p className="px-1 text-xs text-muted sm:text-sm">
+          <p className="px-1 text-body-sm text-muted">
             <span className="font-semibold text-foreground">주차</span> · {venue.parking_note}
           </p>
         )}
@@ -87,7 +87,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
              (설명 한 줄을 따로 달았다가, 안내문처럼 늘어져 라벨 안으로 넣었다)
         */}
         {venue.operating_period && (
-          <p className="px-1 text-xs text-muted sm:text-sm">
+          <p className="px-1 text-body-sm text-muted">
             <span className="font-semibold text-foreground">이 장소 운영기간</span> ·{" "}
             {venue.operating_period}
           </p>
@@ -99,7 +99,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
           href={naverUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#03C75A] px-3 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 sm:py-3.5 sm:text-base"
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#03C75A] px-3 py-3 text-body font-bold text-white transition-opacity hover:opacity-90 sm:py-3.5"
         >
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor" aria-hidden>
             <path d="M16.27 12.84 7.44 0H0v24h7.73V11.16L16.56 24H24V0h-7.73z" />
@@ -110,7 +110,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
           href={kakaoUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-3 py-3 text-sm font-bold text-[#191919] transition-opacity hover:opacity-90 sm:py-3.5 sm:text-base"
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-3 py-3 text-body font-bold text-[#191919] transition-opacity hover:opacity-90 sm:py-3.5"
         >
           카카오맵
         </a>

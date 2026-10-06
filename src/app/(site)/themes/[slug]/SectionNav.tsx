@@ -137,13 +137,13 @@ export function SectionNav({ accent }: { accent: string }) {
 
                   <span className={`flex items-center whitespace-nowrap ${reveal}`}>
                     <span
-                      className={`ml-3 w-5 font-mono text-[10px] tabular-nums ${on ? "" : "text-white/35"}`}
+                      className={`ml-3 w-5 font-mono text-micro tabular-nums ${on ? "" : "text-white/35"}`}
                       style={on ? { color: accent } : undefined}
                     >
                       {pad(i + 1)}
                     </span>
                     <span
-                      className={`max-w-[11.5rem] truncate pr-1 text-[13px] transition-colors ${
+                      className={`max-w-[11.5rem] truncate pr-1 text-label transition-colors ${
                         on ? "font-bold" : "font-medium text-white/60 group-hover/item:text-white"
                       }`}
                       style={on ? { color: accent, textShadow: `0 0 8px ${accent}66` } : undefined}

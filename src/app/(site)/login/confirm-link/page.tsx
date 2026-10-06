@@ -26,10 +26,10 @@ export default async function ConfirmLinkPage() {
 
   return (
     <div className="mx-auto max-w-sm px-5 py-16 text-center">
-      <h1 className="mb-3 text-xl font-extrabold">
+      <h1 className="mb-3 text-h3 font-extrabold">
         {isPhoneMatch ? "이미 가입된 휴대폰 번호가 있어요" : "이미 가입된 계정이 있어요"}
       </h1>
-      <p className="mb-8 text-sm text-muted">
+      <p className="mb-8 text-body-sm text-muted">
         {isPhoneMatch ? (
           <>
             입력하신 휴대폰 번호로 가입된 계정({maskEmail(pending.email)})이 이미 있어요.
@@ -47,13 +47,13 @@ export default async function ConfirmLinkPage() {
       <div className="flex flex-col gap-2">
         <a
           href="/auth/oauth/confirm-link"
-          className="inline-flex items-center justify-center rounded-lg bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground hover:opacity-90"
+          className="inline-flex items-center justify-center rounded-lg bg-brand px-5 py-3 text-body-sm font-semibold text-brand-foreground hover:opacity-90"
         >
           연결하고 로그인하기
         </a>
         <a
           href="/auth/oauth/cancel-link"
-          className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-5 py-3 text-sm font-semibold hover:bg-black/5"
+          className="inline-flex items-center justify-center rounded-lg border border-border bg-surface px-5 py-3 text-body-sm font-semibold hover:bg-black/5"
         >
           취소
         </a>

@@ -207,7 +207,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
                 className="drop-shadow-[0_0_30px_var(--glow)]"
               />
               <span
-                className={`pointer-events-none rounded bg-black/40 px-1.5 py-0.5 text-[10px] text-foreground backdrop-blur-sm transition-opacity duration-150 ${
+                className={`pointer-events-none rounded bg-black/40 px-1.5 py-0.5 text-micro text-foreground backdrop-blur-sm transition-opacity duration-150 ${
                   hasHover || activeIndex === i ? "opacity-100" : "opacity-0"
                 } ${hasHover && "group-hover:opacity-100 group-focus-visible:opacity-100"}`}
               >
@@ -269,7 +269,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
                   className="drop-shadow-[0_0_30px_var(--glow)]"
                 />
                 <span
-                  className={`pointer-events-none rounded bg-black/40 px-1.5 py-0.5 text-[10px] text-foreground backdrop-blur-sm transition-opacity duration-150 ${
+                  className={`pointer-events-none rounded bg-black/40 px-1.5 py-0.5 text-micro text-foreground backdrop-blur-sm transition-opacity duration-150 ${
                     hasHover || activeIndex === i ? "opacity-100" : "opacity-0"
                   } ${hasHover && "group-hover:opacity-100 group-focus-visible:opacity-100"}`}
                 >

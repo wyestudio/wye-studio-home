@@ -16,7 +16,7 @@ function FaqRow({ item, lg, linkClassName }: { item: FaqItem; lg: boolean; linkC
         className={`flex w-full items-center justify-between gap-4 text-left ${lg ? "px-5 py-4 sm:px-7 sm:py-6" : "px-5 py-4"}`}
         aria-expanded={open}
       >
-        <span className={`font-bold text-foreground ${lg ? "sm:text-lg" : ""}`}>{item.q}</span>
+        <span className={`font-bold text-foreground ${lg ? "text-h3" : ""}`}>{item.q}</span>
         <span
           aria-hidden
           className={`shrink-0 text-muted transition-transform duration-200 ${lg ? "text-lg sm:text-2xl" : "text-lg"}`}
@@ -31,8 +31,8 @@ function FaqRow({ item, lg, linkClassName }: { item: FaqItem; lg: boolean; linkC
         <div
           className={
             lg
-              ? "px-5 pb-4 text-sm leading-relaxed text-muted sm:px-7 sm:pb-6 sm:text-base"
-              : "px-5 pb-4 text-sm text-muted"
+              ? "px-5 pb-4 text-body leading-relaxed text-muted sm:px-7 sm:pb-6"
+              : "px-5 pb-4 text-body-sm text-muted"
           }
         >
           <RichText text={item.a} linkClassName={linkClassName} />

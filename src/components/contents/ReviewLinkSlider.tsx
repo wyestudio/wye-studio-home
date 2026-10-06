@@ -132,7 +132,7 @@ function SliderButton({
       disabled={disabled}
       aria-label={dir === -1 ? "이전 후기" : "다음 후기"}
       className="flex h-8 w-8 items-center justify-center rounded-full border border-panel-border
-                 bg-panel text-sm text-foreground transition-opacity disabled:opacity-30"
+                 bg-panel text-body-sm text-foreground transition-opacity disabled:opacity-30"
     >
       <Chevron dir={dir === -1 ? "left" : "right"} className="h-4 w-4" />
     </button>
@@ -188,7 +188,7 @@ function InstagramCard({ link }: { link: ReviewLink }) {
         />
       ) : (
         <div className="flex h-full items-center justify-center bg-panel">
-          <span className="text-xs text-muted">불러오는 중…</span>
+          <span className="text-micro text-muted">불러오는 중…</span>
         </div>
       )}
     </div>
@@ -206,11 +206,11 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
       style={{ height: CARD_HEIGHT }}
     >
       <div className="flex items-center gap-2.5 border-b border-panel-border px-4 py-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#03C75A] text-[13px] font-black text-white">
+        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#03C75A] text-label font-black text-white">
           N
         </span>
         <div className="min-w-0">
-          <p className="truncate text-[13px] font-bold text-foreground">{link.author || "네이버 블로그"}</p>
+          <p className="truncate text-label font-bold text-foreground">{link.author || "네이버 블로그"}</p>
           {link.date && <p className="text-micro text-muted">{link.date}</p>}
         </div>
       </div>
@@ -229,14 +229,14 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
 
       <div className="flex shrink-0 flex-col p-4">
         {link.title && (
-          <p className="line-clamp-3 text-sm font-bold leading-relaxed text-foreground">
+          <p className="line-clamp-3 text-body-sm font-bold leading-relaxed text-foreground">
             {link.title}
           </p>
         )}
         {link.excerpt && (
-          <p className="mt-2 line-clamp-3 text-xs leading-relaxed text-muted">{link.excerpt}</p>
+          <p className="mt-2 line-clamp-3 text-micro leading-relaxed text-muted">{link.excerpt}</p>
         )}
-        <span className="pt-3 text-xs font-semibold" style={{ color: accent }}>
+        <span className="pt-3 text-micro font-semibold" style={{ color: accent }}>
           네이버 블로그에서 읽기 →
         </span>
       </div>

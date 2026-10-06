@@ -64,21 +64,21 @@ export function ApplyComplete({
   return (
     <div className="mx-auto max-w-[560px]">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-extrabold">신청이 완료되었습니다.</h1>
-        <p className="mt-1 text-sm text-muted">신청해주셔서 감사합니다 (__)</p>
+        <h1 className="text-h2 font-extrabold">신청이 완료되었습니다.</h1>
+        <p className="mt-1 text-body-sm text-muted">신청해주셔서 감사합니다 (__)</p>
       </div>
 
       <div className="flex flex-col gap-6 rounded-xl glass-panel p-6">
         {/* 대기 상태 안내 */}
         {application.status === "waiting" ? (
           <div className="text-center">
-            <p className="text-base font-semibold text-muted">
+            <p className="text-body font-semibold text-muted">
               정원이 마감되었습니다.
             </p>
-            <p className="mt-1 text-2xl font-extrabold">
+            <p className="mt-1 text-h2 font-extrabold">
               대기번호 {application.waiting_number}번
             </p>
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-body-sm text-muted">
               취소 발생 시 신청자 전화번호로 연락드리겠습니다.
             </p>
           </div>
@@ -86,12 +86,12 @@ export function ApplyComplete({
 
         {/* 접수번호 */}
         <div className="flex items-center justify-center gap-3">
-          <p className="text-sm text-muted">접수번호</p>
-          <p className="text-3xl font-extrabold">{application.confirmation_code}</p>
+          <p className="text-body-sm text-muted">접수번호</p>
+          <p className="text-h2 font-extrabold">{application.confirmation_code}</p>
           <button
             type="button"
             onClick={handleCopyClick}
-            className="rounded-md border border-border px-2 py-1 text-xs text-muted hover:text-foreground"
+            className="rounded-md border border-border px-2 py-1 text-micro text-muted hover:text-foreground"
           >
             {copied ? "복사됨" : "복사"}
           </button>
@@ -100,20 +100,20 @@ export function ApplyComplete({
         {/* 2열: 신청 정보 | 신청자 정보 */}
         <div className="grid grid-cols-2 divide-x divide-border">
           <div className="flex flex-col gap-2 pr-6">
-            <p className="text-sm font-bold text-muted">신청 정보</p>
+            <p className="text-body-sm font-bold text-muted">신청 정보</p>
             <div className="flex items-center gap-2">
-              <ThemeTag sessionType={sessionType} className="text-lg font-bold" />
-              <span className="text-xs font-semibold text-muted">
+              <ThemeTag sessionType={sessionType} className="text-h3 font-bold" />
+              <span className="text-micro font-semibold text-muted">
                 {themeName}
               </span>
             </div>
-            <p className="text-sm text-foreground">{formatSessionDateTime(startAt)}</p>
-            <p className="text-sm text-muted">{venueArea}</p>
+            <p className="text-body-sm text-foreground">{formatSessionDateTime(startAt)}</p>
+            <p className="text-body-sm text-muted">{venueArea}</p>
           </div>
 
           <div className="flex flex-col gap-2 pl-6">
-            <p className="text-sm font-bold text-muted">신청자 정보</p>
-            <ul className="flex flex-col gap-1.5 text-sm">
+            <p className="text-body-sm font-bold text-muted">신청자 정보</p>
+            <ul className="flex flex-col gap-1.5 text-body-sm">
               {attendees.map((attendee, i) => (
                 <li key={i} className="text-foreground">
                   <span className="font-semibold">
@@ -133,7 +133,7 @@ export function ApplyComplete({
 
         {/* 입금 안내 (대기 상태는 문자를 보내지 않으므로 생략) */}
         {application.status === "confirmed" ? (
-          <p className="text-center text-sm text-muted">
+          <p className="text-center text-body-sm text-muted">
             {smsRecipientLabel} 전화번호({representative ? formatPhoneDigits(representative.phone) : ""})로 입금 안내를 문자로 전송드렸어요.
           </p>
         ) : null}
@@ -146,13 +146,13 @@ export function ApplyComplete({
       <div className="mt-6 flex items-center gap-3">
         <Link
           href="/contents"
-          className="inline-flex flex-1 items-center justify-center rounded-full border border-glass-border bg-surface px-5 py-3 text-sm font-semibold text-foreground transition-all hover:bg-white/5"
+          className="inline-flex flex-1 items-center justify-center rounded-full border border-glass-border bg-surface px-5 py-3 text-body-sm font-semibold text-foreground transition-all hover:bg-white/5"
         >
           목록으로
         </Link>
         <Link
           href="/lookup"
-          className="inline-flex flex-1 items-center justify-center rounded-full bg-brand px-5 py-3 text-sm font-semibold text-brand-foreground shadow-[0_0_20px_-4px_var(--glow)] transition-all hover:opacity-95 hover:shadow-[0_0_28px_-2px_var(--glow)]"
+          className="inline-flex flex-1 items-center justify-center rounded-full bg-brand px-5 py-3 text-body-sm font-semibold text-brand-foreground shadow-[0_0_20px_-4px_var(--glow)] transition-all hover:opacity-95 hover:shadow-[0_0_28px_-2px_var(--glow)]"
         >
           신청내역 조회
         </Link>

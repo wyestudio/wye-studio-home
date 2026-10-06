@@ -14,7 +14,7 @@ const initialState: LookupState = {};
  * 입력칸 크기. 공용 Input(높이 48px · 글자 16px) 위에 큰 화면에서만 덧씌운다.
  * ⚠️ 글자를 16px 아래로 내리지 말 것 — 아이폰이 포커스 때 화면을 확대한다.
  */
-const INPUT_SIZE = "sm:h-14 lg:text-lg";
+const INPUT_SIZE = "sm:h-14 text-h3";
 
 export function LookupForm() {
   const router = useRouter();
@@ -118,7 +118,7 @@ export function LookupForm() {
             />
           </Field>
 
-          {state.error ? <p className="text-sm text-danger sm:text-base">{state.error}</p> : null}
+          {state.error ? <p className="text-body text-danger">{state.error}</p> : null}
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export function LookupForm() {
         type="submit"
         disabled={pending}
         onPointerEnter={handleSubmitPointerEnter}
-        className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-sm transition-all disabled:pointer-events-none disabled:opacity-50 sm:py-4 sm:text-base lg:text-lg"
+        className="apply-submit-button relative inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 font-semibold text-h3 transition-all disabled:pointer-events-none disabled:opacity-50 sm:py-4"
       >
         <span aria-hidden className="apply-submit-fill" />
         <span className="apply-submit-label">{pending ? "조회 중..." : "조회하기"}</span>

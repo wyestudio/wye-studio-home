@@ -204,7 +204,7 @@ export function ThemeBlockView({
 
       {/* 짧은 주석 한 줄로 쓰이는 자리라 제목들과 같이 가운데로 둔다. */}
       {block.type === "text" && (
-        <RichText text={block.body} className="block text-center text-sm leading-relaxed sm:text-base" />
+        <RichText text={block.body} className="block text-center text-body leading-relaxed" />
       )}
 
       {block.type === "image" && block.src && (
@@ -226,12 +226,12 @@ export function ThemeBlockView({
           className="w-full overflow-hidden rounded-2xl border border-panel-border bg-panel p-6 sm:p-10 lg:p-12"
         >
           {block.headline && (
-            <p className="text-lg font-extrabold leading-snug text-foreground sm:text-2xl lg:text-3xl">
+            <p className="text-h2 font-extrabold leading-snug text-foreground">
               {block.headline}
             </p>
           )}
           {block.subtitle && (
-            <p className="mt-2 text-sm leading-relaxed text-muted sm:mt-3 sm:text-base">{block.subtitle}</p>
+            <p className="mt-2 text-body leading-relaxed text-muted sm:mt-3">{block.subtitle}</p>
           )}
 
           <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4">
@@ -246,13 +246,13 @@ export function ThemeBlockView({
                     높이를 고정해 세 카드의 제목이 한 줄에 맞게 한다. */}
                 {item.emoji && (
                   <span
-                    className="mb-3 flex items-center text-2xl leading-none sm:mb-5 sm:h-10 sm:text-4xl"
+                    className="mb-3 flex items-center text-h1 leading-none sm:mb-5 sm:h-10"
                     aria-hidden
                   >
                     {item.emoji}
                   </span>
                 )}
-                <p className="font-bold text-foreground sm:text-lg lg:text-xl">{item.title}</p>
+                <p className="font-bold text-foreground text-h3">{item.title}</p>
                 {item.desc && (
                   <p className="mt-1.5 text-body text-muted sm:mt-2">
                     {item.desc}
@@ -264,7 +264,7 @@ export function ThemeBlockView({
 
           {block.highlight && (
             <p
-              className="mt-5 rounded-xl border px-5 py-3.5 text-center text-sm font-semibold sm:mt-6 sm:py-4 sm:text-base lg:text-lg"
+              className="mt-5 rounded-xl border px-5 py-3.5 text-center text-h3 font-semibold sm:mt-6 sm:py-4"
               style={{ backgroundColor: `${accent}12`, borderColor: `${accent}33`, color: accent }}
             >
               {block.highlight}
@@ -289,7 +289,7 @@ export function ThemeBlockView({
                 <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-micro font-extrabold text-brand-foreground">
                   STEP {i + 1}
                 </span>
-                <p className="mb-2 font-bold text-foreground sm:text-lg lg:text-xl">
+                <p className="mb-2 font-bold text-foreground text-h3">
                   {step.emoji} {step.title}
                 </p>
                 <p className="text-body text-muted">{step.desc}</p>
@@ -309,7 +309,7 @@ export function ThemeBlockView({
                   </span>
                 )}
                 <div>
-                  <p className="font-bold text-foreground sm:text-lg lg:text-xl">{card.title}</p>
+                  <p className="font-bold text-foreground text-h3">{card.title}</p>
                   {card.desc && (
                     // 설명은 RichText 로 그린다 — 운영자가 **굵게** 와 [문구](주소)
                     // 링크를 쓸 수 있어야 한다(FOR YOU 카드에서 단체 예약으로 보냄).
@@ -339,7 +339,7 @@ export function ThemeBlockView({
                 <p className="text-label font-extrabold" style={{ color: accent }}>
                   {i + 1}
                 </p>
-                <p className="mt-0.5 font-bold text-foreground sm:mt-1 sm:text-xl lg:text-2xl">{t.title}</p>
+                <p className="mt-0.5 font-bold text-foreground sm:mt-1 text-h3">{t.title}</p>
                 {t.desc && (
                   <p className="mt-1 text-body text-muted sm:mt-2">{t.desc}</p>
                 )}
@@ -360,7 +360,7 @@ export function ThemeBlockView({
                 {i + 1}
               </span>
               <div className="flex flex-col gap-1 sm:gap-1.5">
-                <p className="font-bold text-foreground sm:text-lg">{p.title}</p>
+                <p className="font-bold text-foreground text-h3">{p.title}</p>
                 {p.desc && (
                   <p className="text-body text-muted">{p.desc}</p>
                 )}
@@ -401,7 +401,7 @@ function ReviewsBlock({
     <div className="flex flex-col gap-10 sm:gap-12">
       {/* 제목 아래 한 줄. 제목들과 같이 가운데. */}
       {block.subtitle && (
-        <p className="-mt-2 text-center text-sm leading-relaxed text-muted sm:-mt-4 sm:text-base lg:text-lg">
+        <p className="-mt-2 text-center text-h3 leading-relaxed text-muted sm:-mt-4">
           {block.subtitle}
         </p>
       )}
@@ -419,12 +419,12 @@ function ReviewsBlock({
               className="rounded-xl border border-panel-border bg-panel px-5 py-6 text-center sm:px-6 sm:py-7"
             >
               <p
-                className="text-[2rem] font-extrabold leading-none tabular-nums sm:text-[2.4rem] lg:text-5xl"
+                className="text-display font-extrabold leading-none tabular-nums"
                 style={{ color: accent }}
               >
                 {s.value}
               </p>
-              <p className="mt-2.5 text-sm font-bold text-foreground sm:mt-3 sm:text-base">{s.label}</p>
+              <p className="mt-2.5 text-body font-bold text-foreground sm:mt-3">{s.label}</p>
               {s.note && <p className="mt-1 text-body-sm leading-relaxed text-muted">{s.note}</p>}
             </div>
           ))}
@@ -441,12 +441,12 @@ function ReviewsBlock({
             >
               <span
                 aria-hidden
-                className="absolute left-4 top-2 select-none text-3xl leading-none opacity-25 sm:left-5"
+                className="absolute left-4 top-2 select-none text-h2 leading-none opacity-25 sm:left-5"
                 style={{ color: accent }}
               >
                 &ldquo;
               </span>
-              <blockquote className="relative pt-3 text-sm leading-relaxed text-foreground sm:text-base">
+              <blockquote className="relative pt-3 text-body leading-relaxed text-foreground">
                 {q.text}
               </blockquote>
               {q.meta && (

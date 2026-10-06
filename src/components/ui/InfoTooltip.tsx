@@ -140,7 +140,7 @@ export function InfoTooltip({
           role="tooltip"
           // 자리를 재기 전 한 순간 엉뚱한 곳에 보이지 않게 숨겨 둔다(재고 나서 visible).
           style={{ visibility: "hidden" }}
-          className="absolute left-0 top-0 z-30 block w-max rounded-lg border border-white/15 bg-[#161826] px-3.5 py-2.5 text-left text-xs font-medium leading-relaxed tracking-normal text-foreground shadow-xl sm:text-sm"
+          className="absolute left-0 top-0 z-30 block w-max rounded-lg border border-white/15 bg-[#161826] px-3.5 py-2.5 text-left text-body-sm font-medium leading-relaxed tracking-normal text-foreground shadow-xl"
         >
           {/* 꼬리. 테두리 두 변만 그린 네모를 돌려 삼각형처럼 보이게 한다. */}
           <span

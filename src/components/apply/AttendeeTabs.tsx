@@ -14,7 +14,7 @@ function attendeeTabClassName(isActive: boolean, hasError: boolean) {
 }
 
 function arrowButtonClassName(disabled: boolean) {
-  return `flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm transition-all sm:h-10 sm:w-10 lg:h-11 lg:w-11 ${
+  return `flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-body-sm transition-all sm:h-10 sm:w-10 lg:h-11 lg:w-11 ${
     disabled
       ? "pointer-events-none border-border bg-surface text-muted opacity-30"
       : "border-border bg-surface text-foreground hover:border-brand hover:text-brand"

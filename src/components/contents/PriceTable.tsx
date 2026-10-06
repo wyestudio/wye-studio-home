@@ -79,7 +79,7 @@ export function PriceTable({
   return (
     <div className="overflow-x-auto rounded-xl border border-white/15">
       {/* ⚠️ 모바일 글씨는 한 단계 낮다 — 세 칸을 390px 안에 넣기 위해서다. */}
-      <table className={`w-full ${lg ? "text-body sm:text-lg lg:text-xl" : "text-body"}`}>
+      <table className={`w-full ${lg ? "text-body text-h3" : "text-body"}`}>
         <thead>
           <tr
             className="border-b border-white/12 bg-white/[0.04] text-label text-muted"
@@ -227,6 +227,13 @@ export function PriceTable({
                           {off}% OFF
                         </span>
                         <span
+                          /*
+                            ⚠️ 글자 크기 토큰으로 옮기지 않는다(2026-10-06).
+                               가장 가까운 text-h2 는 모바일에서 22px 인데 지금은 16px 이다.
+                               이 표는 좁은 화면에서 금액이 **실제로 잘렸던 곳**이라
+                               (2026-10-05, 모바일 2열 접기로 고침) 키우면 그 문제가 돌아온다.
+                               척도 밖에 남은 몇 안 되는 자리다.
+                          */
                           className={`whitespace-nowrap font-extrabold ${
                             lg ? "text-base sm:text-2xl lg:text-[1.75rem]" : "text-sm sm:text-xl"
                           }`}

@@ -9,7 +9,7 @@ export default function TestEnvBanner() {
   if (process.env.NEXT_PUBLIC_IS_TEST_ENV !== "true") return null;
 
   return (
-    <div className="relative z-50 bg-amber-900 px-4 py-2 text-center text-sm text-amber-50">
+    <div className="relative z-50 bg-amber-900 px-4 py-2 text-center text-body-sm text-amber-50">
       ⚠️ <strong>TEST 환경</strong> (테스트 DB 연결됨)
     </div>
   );

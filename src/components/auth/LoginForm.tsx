@@ -40,7 +40,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     <div className="flex flex-col gap-6">
       <SocialLoginButtons redirectTo={redirectTo} />
 
-      <div className="flex items-center gap-3 text-xs text-muted">
+      <div className="flex items-center gap-3 text-micro text-muted">
         <div className="h-px flex-1 bg-border" />
         또는 이메일로 로그인
         <div className="h-px flex-1 bg-border" />
@@ -55,7 +55,7 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
           <Input id="password" name="password" type="password" required autoComplete="current-password" />
         </Field>
 
-        {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+        {state.error ? <p className="text-body-sm text-danger">{state.error}</p> : null}
 
         <Button type="submit" disabled={pending} className="mt-2 w-full">
           {pending ? "로그인 중..." : "로그인"}

@@ -207,7 +207,7 @@ export function ConsentStep({
               checked={consents[it.key]}
               onChange={() => onChange({ ...consents, [it.key]: !consents[it.key] })}
             />
-            <span className="text-sm leading-snug sm:text-base lg:text-lg">
+            <span className="text-h3 leading-snug">
               {typeof it.label === "function" ? it.label(minAge) : it.label}
             </span>
           </label>
@@ -251,7 +251,7 @@ export function ConsentStep({
     return (
       <section className="rounded-lg border border-white/15 p-4 sm:p-6">
         <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-white/10 pb-2.5 sm:mb-4 sm:pb-3">
-          <span className="text-sm font-bold sm:text-base lg:text-lg">{title}</span>
+          <span className="text-h3 font-bold">{title}</span>
           <span
             className={`rounded px-1.5 py-0.5 text-micro font-bold sm:px-2 ${
               tone === "required"
@@ -298,7 +298,7 @@ export function ConsentStep({
           className="h-5 w-5 shrink-0 accent-[var(--glow)] lg:h-6 lg:w-6"
         />
         <span className="flex min-w-0 flex-col sm:flex-row sm:items-center sm:gap-3">
-          <span className="text-body font-bold sm:text-base lg:text-lg">전체 동의합니다</span>
+          <span className="text-body font-bold text-h3">전체 동의합니다</span>
           <span className="text-body-sm text-muted">필수·선택 항목에 모두 동의합니다.</span>
         </span>
       </label>
@@ -307,7 +307,7 @@ export function ConsentStep({
       {group("선택 동의", "optional", items.filter((it) => !it.required))}
 
       {showError && !allRequiredChecked(consents, attendeeCount) && (
-        <p className="text-sm text-danger sm:text-base">필수 항목에 모두 동의해주세요.</p>
+        <p className="text-body text-danger">필수 항목에 모두 동의해주세요.</p>
       )}
     </div>
   );

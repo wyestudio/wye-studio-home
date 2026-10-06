@@ -16,7 +16,7 @@ export function DifficultyLocks({
           </span>
         ))}
       </span>
-      <span className="text-xs text-muted">난이도 {rating}/{max}</span>
+      <span className="text-micro text-muted">난이도 {rating}/{max}</span>
     </div>
   );
 }

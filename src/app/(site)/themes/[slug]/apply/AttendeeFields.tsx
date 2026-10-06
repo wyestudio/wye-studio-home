@@ -14,9 +14,9 @@ import type { AttendeeForm } from "./ApplyForm";
  * ⚠️ 높이 48px(h-12) 은 터치 영역 기준이다(Apple HIG 44pt · Material 48dp).
  */
 const field =
-  "h-12 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-input outline-none focus:border-white/50 sm:h-14 lg:text-lg";
+  "h-12 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-input outline-none focus:border-white/50 sm:h-14 text-h3";
 const fieldInvalid =
-  "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 lg:text-lg";
+  "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 text-h3";
 const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
 const hint = "mt-1 text-body-sm text-muted sm:mt-1.5";
 const errorText = "mt-1 text-body-sm text-danger sm:mt-1.5";
@@ -91,7 +91,7 @@ export function AttendeeFields({
         isConflict ? "border-danger bg-danger-soft" : "border-white/15"
       }`}
     >
-      <p className="mb-3 text-sm font-semibold sm:mb-4 sm:text-base lg:text-lg">
+      <p className="mb-3 text-h3 font-semibold sm:mb-4">
         {index === 0 ? (attendeeCount > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${index}`}
       </p>
 

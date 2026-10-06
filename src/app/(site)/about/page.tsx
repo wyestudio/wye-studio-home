@@ -25,10 +25,10 @@ export default function AboutPage() {
     <div className="pt-10 sm:pt-16 lg:pt-20">
       <div className={WRAP}>
         <Reveal className="mb-10 text-center sm:mb-16">
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em] text-muted sm:mb-3 sm:text-sm">
+          <p className="mb-2 text-body-sm font-bold uppercase tracking-[0.3em] text-muted sm:mb-3">
             Identity
           </p>
-          <h1 className="text-2xl font-extrabold sm:text-4xl lg:text-5xl">About</h1>
+          <h1 className="text-display font-extrabold">About</h1>
         </Reveal>
 
         <section className={SECTION}>
@@ -47,8 +47,8 @@ export default function AboutPage() {
                 🧢
               </span>
               <div>
-                <p className="font-bold sm:text-lg lg:text-xl">케이프를 소개합니다</p>
-                <p className="text-sm text-muted sm:mt-1 sm:text-base lg:text-lg">
+                <p className="font-bold text-h3">케이프를 소개합니다</p>
+                <p className="text-h3 text-muted sm:mt-1">
                   우주이스케이프의 마스코트예요. 새 행성을 찾아다니느라 늘 바빠요.
                 </p>
               </div>
@@ -68,8 +68,8 @@ export default function AboutPage() {
             {PRINCIPLES.map((p, i) => (
               <Reveal key={p.title} delay={i * 0.08}>
                 <HudCard className="flex h-full flex-col gap-2 p-5 text-center sm:gap-3 sm:p-7 lg:p-8">
-                  <p className="font-bold sm:text-lg lg:text-xl">{p.title}</p>
-                  <p className="text-sm text-muted sm:text-base lg:text-lg">{p.desc}</p>
+                  <p className="font-bold text-h3">{p.title}</p>
+                  <p className="text-h3 text-muted">{p.desc}</p>
                 </HudCard>
               </Reveal>
             ))}
@@ -78,8 +78,8 @@ export default function AboutPage() {
 
         <section className="mb-10 sm:mb-20 lg:mb-24">
           <Reveal>
-            <HudCard className="space-y-2 p-5 text-sm sm:space-y-3 sm:p-7 sm:text-base lg:p-8">
-              <p className="font-semibold sm:text-lg">사업자 정보</p>
+            <HudCard className="space-y-2 p-5 text-body sm:space-y-3 sm:p-7  lg:p-8">
+              <p className="font-semibold text-h3">사업자 정보</p>
               <div className="space-y-1 text-muted">
                 <p>우주이스케이프 (wouldyouescape) · 사업자등록번호 820-04-03772</p>
                 <p>서울특별시 관악구 낙성대로 2 4층 · wouldyouescape@gmail.com</p>

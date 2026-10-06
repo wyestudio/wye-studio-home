@@ -27,7 +27,7 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
 
   return (
     <section>
-      <h2 className="mb-6 text-center text-2xl font-extrabold sm:mb-10 sm:text-3xl lg:text-4xl">공지사항</h2>
+      <h2 className="mb-6 text-center text-h1 font-extrabold sm:mb-10">공지사항</h2>
 
       {notices.length === 0 ? (
         <HudPlaceholder label="등록된 공지가 없습니다." />
@@ -39,12 +39,12 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
                 onClick={() => setOpen(n)}
                 className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/5 sm:gap-5 sm:px-6 sm:py-5 lg:px-7 lg:py-6"
               >
-                <span className="min-w-0 flex-1 truncate text-sm sm:text-base lg:text-lg">
+                <span className="min-w-0 flex-1 truncate text-h3">
                   {n.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
                   {n.title}
                 </span>
                 {n.published_at && (
-                  <span className="shrink-0 text-xs text-muted sm:text-sm">{kstDate(n.published_at)}</span>
+                  <span className="shrink-0 text-body-sm text-muted">{kstDate(n.published_at)}</span>
                 )}
               </button>
             </li>
@@ -73,18 +73,18 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h3 className="font-bold sm:text-xl lg:text-2xl">
+            <h3 className="font-bold text-h3">
               {notice.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
               {notice.title}
             </h3>
             {notice.published_at && (
-              <p className="mt-1 text-xs text-muted sm:mt-2 sm:text-sm">{kstDate(notice.published_at)}</p>
+              <p className="mt-1 text-body-sm text-muted sm:mt-2">{kstDate(notice.published_at)}</p>
             )}
           </div>
           <button
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 rounded px-2 py-1 text-lg leading-none text-muted hover:text-foreground"
+            className="shrink-0 rounded px-2 py-1 text-h3 leading-none text-muted hover:text-foreground"
           >
             ×
           </button>
@@ -92,12 +92,12 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
 
         <RichText
           text={notice.body}
-          className="block text-sm leading-relaxed text-muted sm:text-base lg:text-lg"
+          className="block text-h3 leading-relaxed text-muted"
         />
 
         <button
           onClick={onClose}
-          className="mt-6 w-full rounded-lg border border-glass-border py-2.5 text-sm sm:mt-8 sm:py-3.5 sm:text-base"
+          className="mt-6 w-full rounded-lg border border-glass-border py-2.5 text-body sm:mt-8 sm:py-3.5"
         >
           닫기
         </button>

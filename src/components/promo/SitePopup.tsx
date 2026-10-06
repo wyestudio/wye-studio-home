@@ -137,7 +137,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
         <div className={`px-5 ${hasImage ? "pt-4" : "pt-6"} pb-1`}>
           <RichText
             text={popup.body}
-            className="block whitespace-pre-wrap text-sm leading-relaxed text-white/90 sm:text-base"
+            className="block whitespace-pre-wrap text-body leading-relaxed text-white/90"
           />
         </div>
       )}
@@ -212,7 +212,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
             <Link
               href={popup.link_url}
               onClick={close}
-              className="block rounded-lg bg-glow px-5 py-3 text-center text-sm font-bold text-white transition-opacity hover:opacity-90 sm:text-base"
+              className="block rounded-lg bg-glow px-5 py-3 text-center text-body font-bold text-white transition-opacity hover:opacity-90"
             >
               {popup.link_label}
             </Link>
@@ -230,7 +230,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
             hasImage ? "bg-black/55 backdrop-blur" : "border-t border-white/10"
           }`}
         >
-          <label className="flex cursor-pointer select-none items-center gap-2 py-1 pr-2 text-xs text-muted sm:text-sm">
+          <label className="flex cursor-pointer select-none items-center gap-2 py-1 pr-2 text-body-sm text-muted">
             <input
               type="checkbox"
               checked={dontShow}
@@ -242,7 +242,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
           <button
             type="button"
             onClick={close}
-            className="rounded-lg px-4 py-1.5 text-xs font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white sm:text-sm"
+            className="rounded-lg px-4 py-1.5 text-body-sm font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
           >
             닫기
           </button>

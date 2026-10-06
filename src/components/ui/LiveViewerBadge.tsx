@@ -19,7 +19,7 @@ export function LiveViewerBadge({
 
   return (
     <p
-      className={`mx-auto flex w-fit items-center gap-2.5 rounded-full px-6 py-3 text-base font-extrabold text-brand sm:text-lg ${className ?? ""}`}
+      className={`mx-auto flex w-fit items-center gap-2.5 rounded-full px-6 py-3 text-h3 font-extrabold text-brand  ${className ?? ""}`}
       style={{
         backgroundColor: "rgba(5,6,25,0.9)",
         border: "1px solid var(--brand)",

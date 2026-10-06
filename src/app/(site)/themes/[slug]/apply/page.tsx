@@ -120,10 +120,10 @@ export default async function ApplyPage({
 function Fallback({ slug, accent, message }: { slug: string; accent: string; message: string }) {
   return (
     <main className="mx-auto max-w-lg px-5 py-24 text-center sm:max-w-xl sm:py-32">
-      <p className="font-semibold sm:text-lg lg:text-xl">{message}</p>
+      <p className="font-semibold text-h3">{message}</p>
       <Link
         href={`/themes/${slug}`}
-        className="mt-6 inline-block rounded-lg px-5 py-3 text-sm font-bold sm:mt-8 sm:px-7 sm:py-4 sm:text-base lg:text-lg"
+        className="mt-6 inline-block rounded-lg px-5 py-3 text-h3 font-bold sm:mt-8 sm:px-7 sm:py-4"
         style={{ backgroundColor: accent, color: "#0a0a12" }}
       >
         날짜 선택하러 가기

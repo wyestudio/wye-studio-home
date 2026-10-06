@@ -47,13 +47,13 @@ export function GroupBookingCta({
     >
       <span className="min-w-0">
         <span
-          className={`block font-extrabold ${lg ? "sm:text-lg" : "text-sm sm:text-base"}`}
+          className={`block font-extrabold ${lg ? "text-h3" : "text-body"}`}
           style={{ color: GROUP_ACCENT }}
         >
           {title}
         </span>
         <span
-          className={`mt-0.5 block leading-relaxed text-muted ${lg ? "text-xs sm:text-sm" : "text-xs"}`}
+          className={`mt-0.5 block leading-relaxed text-muted ${lg ? "text-body-sm" : "text-micro"}`}
         >
           {desc}
         </span>

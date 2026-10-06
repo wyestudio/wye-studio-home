@@ -16,7 +16,7 @@ import {
 } from "@/lib/groupBooking";
 
 const field =
-  "w-full rounded-lg border border-white/20 bg-white/5 px-3.5 py-3 text-base outline-none focus:border-[#f082f4] sm:py-3.5";
+  "w-full rounded-lg border border-white/20 bg-white/5 px-3.5 py-3 text-body outline-none focus:border-[#f082f4] sm:py-3.5";
 
 /** 고르는 칸(알약 버튼) 한 줄. 손가락으로 누르는 크기(44px) 를 지킨다. */
 function ChipGroup({
@@ -38,7 +38,7 @@ function ChipGroup({
             type="button"
             aria-pressed={on}
             onClick={() => onPick(o.code)}
-            className={`min-h-[44px] rounded-full px-4 text-sm transition ${
+            className={`min-h-[44px] rounded-full px-4 text-body-sm transition ${
               on
                 ? "bg-[#f082f4] font-bold text-[#141414]"
                 : "border border-white/20 bg-white/5 text-foreground hover:border-white/40"
@@ -54,7 +54,7 @@ function ChipGroup({
 
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="block text-sm font-bold text-foreground">
+    <label htmlFor={htmlFor} className="block text-body-sm font-bold text-foreground">
       {children}
     </label>
   );
@@ -193,14 +193,14 @@ export function QuoteForm() {
           <circle cx="12" cy="12" r="9" />
           <path d="M8 12.5l3 3 5-6" />
         </svg>
-        <h3 className="text-xl font-extrabold sm:text-2xl">견적 신청이 접수됐어요</h3>
-        <p className="text-sm leading-relaxed text-muted sm:text-base">
+        <h3 className="text-h2 font-extrabold">견적 신청이 접수됐어요</h3>
+        <p className="text-body leading-relaxed text-muted">
           아직 예약이 확정된 건 아닙니다.
           <br />
           희망 일시의 진행 가능 여부를 확인한 뒤 남겨주신 연락 수단으로 연락드리고, 예약금 30%
           입금이 확인되면 최종 확정됩니다.
         </p>
-        <dl className="w-full rounded-xl border border-panel-border bg-background/60 px-5 py-4 text-left text-sm text-muted">
+        <dl className="w-full rounded-xl border border-panel-border bg-background/60 px-5 py-4 text-left text-body-sm text-muted">
           {[
             ["인원", done.headcount],
             ["날짜", done.preferredDate],
@@ -217,7 +217,7 @@ export function QuoteForm() {
         <button
           type="button"
           onClick={() => setDone(null)}
-          className="min-h-[44px] rounded-full border border-white/20 px-5 text-sm text-foreground hover:border-white/40"
+          className="min-h-[44px] rounded-full border border-white/20 px-5 text-body-sm text-foreground hover:border-white/40"
         >
           내용 수정해서 다시 신청
         </button>
@@ -241,14 +241,14 @@ export function QuoteForm() {
             onChange={(e) => edit(setHeadcount)(e.target.value)}
             className={`${field} w-28`}
           />
-          <span className="text-sm text-muted">명</span>
+          <span className="text-body-sm text-muted">명</span>
         </div>
       </div>
 
       <fieldset className="flex flex-col gap-2 border-0 p-0">
-        <legend className="mb-2 text-sm font-bold text-foreground">연락 수단</legend>
+        <legend className="mb-2 text-body-sm font-bold text-foreground">연락 수단</legend>
         <ChipGroup options={CONTACT_METHODS} value={contactMethod} onPick={edit(setContactMethod)} />
-        <label htmlFor="q-contact" className="mt-2 text-xs text-muted">
+        <label htmlFor="q-contact" className="mt-2 text-micro text-muted">
           연락처 (선택한 수단의 전화번호 · 카카오톡 ID · 이메일)
         </label>
         <input
@@ -271,18 +271,18 @@ export function QuoteForm() {
           className={field}
           style={{ colorScheme: "dark" }}
         />
-        <p className="text-xs leading-relaxed text-muted">
+        <p className="text-micro leading-relaxed text-muted">
           미정이면 가장 유력한 날짜를 골라주시고, 아래 요청사항에 후보일을 적어주세요.
         </p>
       </div>
 
       <fieldset className="border-0 p-0">
-        <legend className="mb-2 text-sm font-bold text-foreground">예상 이용 시간</legend>
+        <legend className="mb-2 text-body-sm font-bold text-foreground">예상 이용 시간</legend>
         <ChipGroup options={PREFERRED_TIMES} value={preferredTime} onPick={edit(setPreferredTime)} />
       </fieldset>
 
       <fieldset className="border-0 p-0">
-        <legend className="mb-2 text-sm font-bold text-foreground">모임 성격</legend>
+        <legend className="mb-2 text-body-sm font-bold text-foreground">모임 성격</legend>
         <ChipGroup options={GROUP_KINDS} value={groupKind} onPick={edit(setGroupKind)} />
       </fieldset>
 
@@ -301,7 +301,7 @@ export function QuoteForm() {
       </div>
 
       {error && (
-        <p role="alert" className="text-sm font-bold text-danger">
+        <p role="alert" className="text-body-sm font-bold text-danger">
           {error}
         </p>
       )}
@@ -311,11 +311,11 @@ export function QuoteForm() {
           type="button"
           onClick={submit}
           disabled={sending}
-          className="min-h-[52px] rounded-full bg-[#f082f4] px-6 text-base font-extrabold text-[#141414] transition hover:bg-[#f6a8f9] disabled:opacity-60 sm:text-lg"
+          className="min-h-[52px] rounded-full bg-[#f082f4] px-6 text-h3 font-extrabold text-[#141414] transition hover:bg-[#f6a8f9] disabled:opacity-60"
         >
           {sending ? "접수 중…" : "견적 신청하기"}
         </button>
-        <p className="text-center text-xs leading-relaxed text-muted">
+        <p className="text-center text-micro leading-relaxed text-muted">
           견적 신청만으로 예약이 확정되지 않으며, 일정 확인 후 개별 연락드립니다.
           <br />
           입력하신 정보는 단체 예약 상담 목적으로만 사용됩니다.{" "}

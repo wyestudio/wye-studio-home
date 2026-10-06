@@ -29,7 +29,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0 sm:py-2.5">
       <span className="shrink-0 text-label text-muted">{label}</span>
-      <span className="text-right text-sm sm:text-base lg:text-lg">{value}</span>
+      <span className="text-right text-h3">{value}</span>
     </div>
   );
 }
@@ -94,17 +94,17 @@ export function ApplyComplete({
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="pt-2 text-center">
-        <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">
+        <h1 className="text-h1 font-extrabold">
           {isWaiting ? "대기 신청이 접수되었습니다." : "신청이 완료되었습니다."}
         </h1>
-        <p className="mt-1 text-sm text-muted sm:mt-2 sm:text-base lg:text-lg">신청해주셔서 감사합니다 (__)</p>
+        <p className="mt-1 text-h3 text-muted sm:mt-2">신청해주셔서 감사합니다 (__)</p>
       </div>
 
       {/* ── 접수번호 ── */}
       <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center sm:p-8 lg:p-10">
         <p className="text-label text-muted">접수번호</p>
         <div className="mt-1 flex items-center justify-center gap-2 sm:mt-2 sm:gap-3">
-          <p className="text-3xl font-extrabold tracking-wider sm:text-4xl lg:text-5xl" style={{ color: accentColor }}>
+          <p className="text-display font-extrabold tracking-wider" style={{ color: accentColor }}>
             {result.confirmationCode}
           </p>
           <button
@@ -119,7 +119,7 @@ export function ApplyComplete({
         <p className="mt-2 text-body text-muted sm:mt-3">참여 내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
 
         {isWaiting && (
-          <p className="mt-4 text-sm text-amber-300 sm:text-base lg:text-lg">
+          <p className="mt-4 text-h3 text-amber-300">
             현재 대기 {result.waitingNumber ?? "-"}번입니다. 자리가 나면 개별 연락드립니다.
             <span className="mt-1 block text-body-sm text-muted">
               앞선 신청이 취소되면 순번은 앞당겨질 수 있습니다.
@@ -131,21 +131,21 @@ export function ApplyComplete({
       {/* ── 입금 안내: 계좌는 문자로만 ── */}
       {!isWaiting && (
         <div className="rounded-xl border-2 p-5 sm:p-7 lg:p-8" style={{ borderColor: accentColor }}>
-          <h2 className="text-center font-bold sm:text-lg lg:text-xl">입금 안내를 문자로 보내드렸어요</h2>
-          <p className="mt-2 text-center text-sm text-muted sm:text-base lg:text-lg">
+          <h2 className="text-center font-bold text-h3">입금 안내를 문자로 보내드렸어요</h2>
+          <p className="mt-2 text-center text-h3 text-muted">
             <strong className="text-foreground">{representativePhone}</strong> 으로 입금하실 계좌와
             금액을 보냈습니다.
           </p>
           <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 sm:gap-4">
             <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
               <p className="text-label text-muted">입금액</p>
-              <p className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
+              <p className="mt-1 text-h1 font-extrabold" style={{ color: accentColor }}>
                 {formatKrw(result.amountKrw)}
               </p>
             </div>
             <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
               <p className="text-label text-muted">입금자명</p>
-              <p className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl" style={{ color: accentColor }}>
+              <p className="mt-1 text-h1 font-extrabold" style={{ color: accentColor }}>
                 {depositorName}
               </p>
             </div>
@@ -161,7 +161,7 @@ export function ApplyComplete({
 
       {/* ── 제출한 내용 ── */}
       <div className="rounded-xl border border-white/15 p-5 sm:p-7 lg:p-8">
-        <h2 className="mb-2 font-bold sm:mb-3 sm:text-lg lg:text-xl">신청 정보</h2>
+        <h2 className="mb-2 font-bold sm:mb-3 text-h3">신청 정보</h2>
 
         <Row label="테마" value={themeName} />
         <Row label="일시" value={sessionLabel} />
@@ -228,7 +228,7 @@ export function ApplyComplete({
       <RefundPolicyBox />
 
       {/* ── 다음 ── */}
-      <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-center text-sm sm:p-7 sm:text-base lg:p-8 lg:text-lg">
+      <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-center text-h3 sm:p-7 lg:p-8">
         <p className="font-semibold">참여 내역은 언제든 확인할 수 있어요</p>
         <p className="mt-1 text-muted sm:mt-2">
           휴대폰 번호와 접수번호 <strong>{result.confirmationCode}</strong>로 조회하실 수 있습니다.
@@ -236,12 +236,12 @@ export function ApplyComplete({
         <div className="mt-4 flex flex-wrap justify-center gap-2 sm:mt-6 sm:gap-3">
           <Link
             href="/lookup"
-            className="rounded-lg px-4 py-2.5 text-sm font-bold sm:px-6 sm:py-3.5 sm:text-base"
+            className="rounded-lg px-4 py-2.5 text-body font-bold sm:px-6 sm:py-3.5"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
             참여 내역 조회
           </Link>
-          <Link href="/contents" className="rounded-lg border border-white/25 px-4 py-2.5 text-sm sm:px-6 sm:py-3.5 sm:text-base">
+          <Link href="/contents" className="rounded-lg border border-white/25 px-4 py-2.5 text-body sm:px-6 sm:py-3.5">
             다른 콘텐츠 보기
           </Link>
         </div>

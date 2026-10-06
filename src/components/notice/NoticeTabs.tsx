@@ -29,7 +29,7 @@ export function NoticeTabs({ notices, faqs }: { notices: Notice[]; faqs: Faq[] }
             onClick={() => setSelected(tab.key)}
             role="tab"
             aria-selected={selected === tab.key}
-            className="relative overflow-hidden rounded-lg border px-4 py-2 text-sm font-semibold transition-colors sm:px-6 sm:py-3 sm:text-base lg:px-7 lg:py-3.5 lg:text-lg"
+            className="relative overflow-hidden rounded-lg border px-4 py-2 text-h3 font-semibold transition-colors sm:px-6 sm:py-3 lg:px-7 lg:py-3.5"
             style={{
               borderColor: selected === tab.key ? "var(--brand)" : "var(--border)",
               color: selected === tab.key ? "var(--brand-foreground)" : "var(--muted)",

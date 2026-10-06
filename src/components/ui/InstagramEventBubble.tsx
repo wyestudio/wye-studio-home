@@ -51,7 +51,7 @@ export function InstagramEventBubble({ href, text }: { href: string; text: strin
           href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-start gap-2 text-[13px] font-bold leading-snug text-[#191919] sm:text-sm"
+          className="flex items-start gap-2 text-label font-bold leading-snug text-[#191919]"
         >
           <span className="shrink-0 text-base leading-tight sm:text-lg" aria-hidden>
             🎁

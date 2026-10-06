@@ -45,14 +45,14 @@ export function EarlyBirdBanner({
           {/* 좁은 화면: 제목과 할인폭을 한 줄에. 넓은 화면에서는 할인폭이 오른쪽으로 빠진다. */}
           <div className="flex items-center justify-between gap-3">
             <p
-              className="text-sm font-extrabold tracking-tight sm:text-base lg:text-lg"
+              className="text-h3 font-extrabold tracking-tight"
               style={{ color: accent }}
             >
               <span aria-hidden="true">🚀</span> {title}
             </p>
             {highlight && (
               <span
-                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-extrabold sm:hidden"
+                className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-micro font-extrabold sm:hidden"
                 style={{ backgroundColor: accent, color: "#0a0a12" }}
               >
                 {highlight}
@@ -61,7 +61,7 @@ export function EarlyBirdBanner({
           </div>
 
           {body && (
-            <p className="mt-1 text-xs leading-relaxed text-white/85 sm:text-sm">{body}</p>
+            <p className="mt-1 text-body-sm leading-relaxed text-white/85">{body}</p>
           )}
         </div>
 
@@ -70,7 +70,7 @@ export function EarlyBirdBanner({
           <div className="hidden shrink-0 flex-col items-end gap-1.5 sm:flex">
             {highlight && (
               <span
-                className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-extrabold lg:text-base"
+                className="whitespace-nowrap rounded-full px-3.5 py-1.5 text-body font-extrabold"
                 style={{ backgroundColor: accent, color: "#0a0a12" }}
               >
                 {highlight}

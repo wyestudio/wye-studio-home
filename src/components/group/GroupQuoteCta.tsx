@@ -19,7 +19,7 @@ export function GroupQuoteCta({
   variant?: "solid" | "outline";
 }) {
   const base =
-    "flex min-h-[52px] w-full items-center justify-center rounded-full px-6 text-center text-base font-extrabold transition sm:text-lg";
+    "flex min-h-[52px] w-full items-center justify-center rounded-full px-6 text-center text-h3 font-extrabold transition";
   const skin =
     variant === "solid"
       ? "bg-[#f082f4] text-[#141414] hover:bg-[#f6a8f9]"

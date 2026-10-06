@@ -130,13 +130,13 @@ export function Header() {
               priority
               className="h-11 w-auto"
             />
-            <span className="whitespace-nowrap text-xl font-extrabold tracking-tight text-foreground">
+            <span className="whitespace-nowrap text-h3 font-extrabold tracking-tight text-foreground">
               우주이스케이프
             </span>
           </Link>
         </div>
         {/* 데스크톱 네비게이션 */}
-        <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-lg font-bold text-muted">
+        <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-h3 font-bold text-muted">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return item.enabled === false ? null : (
@@ -165,7 +165,7 @@ export function Header() {
                 priority
                 className="h-8 w-auto"
               />
-              <span className="whitespace-nowrap text-base font-extrabold tracking-tight text-foreground">
+              <span className="whitespace-nowrap text-body font-extrabold tracking-tight text-foreground">
                 우주이스케이프
               </span>
             </Link>
@@ -191,7 +191,7 @@ export function Header() {
         {isMenuOpen && (
           <div className="border-t border-border bg-background">
             <div className="mx-auto max-w-5xl px-5 py-3">
-              <nav className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-base font-bold text-muted">
+              <nav className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-body font-bold text-muted">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href;
                   return item.enabled === false ? null : (

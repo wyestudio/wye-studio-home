@@ -9,13 +9,13 @@ export function SocialLoginButtons({ redirectTo = "/" }: { redirectTo?: string }
     <div className="flex flex-col gap-2">
       <a
         href={`/auth/kakao/login?${query}`}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] px-5 py-3 text-sm font-semibold text-[#3C1E1E]"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] px-5 py-3 text-body-sm font-semibold text-[#3C1E1E]"
       >
         카카오로 시작하기
       </a>
       <a
         href={`/auth/naver/login?${query}`}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#03C75A] px-5 py-3 text-sm font-semibold text-white"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#03C75A] px-5 py-3 text-body-sm font-semibold text-white"
       >
         네이버로 시작하기
       </a>

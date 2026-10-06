@@ -21,7 +21,7 @@ export function SignupForm({
     <div className="flex flex-col gap-6">
       <SocialLoginButtons redirectTo={redirectTo} />
 
-      <div className="flex items-center gap-3 text-xs text-muted">
+      <div className="flex items-center gap-3 text-micro text-muted">
         <div className="h-px flex-1 bg-border" />
         또는 이메일로 가입
         <div className="h-px flex-1 bg-border" />
@@ -43,11 +43,11 @@ export function SignupForm({
           <Input id="password" name="password" type="password" required minLength={8} autoComplete="new-password" />
         </Field>
 
-        <p className="text-xs text-muted">
+        <p className="text-micro text-muted">
           이메일 인증 후 이름·연락처 등 추가 정보를 입력하게 돼요.
         </p>
 
-        {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+        {state.error ? <p className="text-body-sm text-danger">{state.error}</p> : null}
 
         <Button type="submit" disabled={pending} className="mt-2 w-full">
           {pending ? "가입 처리 중..." : "회원가입"}

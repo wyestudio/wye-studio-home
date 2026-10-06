@@ -35,7 +35,7 @@ export function ScrollToBookingButton({
         pushGa4Event(DETAIL_EVENT.bookingScroll, { themeLabel: themeName });
         scrollToBooking(e);
       }}
-      className={`group mx-auto hidden w-fit items-center gap-2 rounded-full border px-6 py-3 text-base font-bold transition-colors sm:flex lg:px-8 lg:py-4 lg:text-lg ${className}`}
+      className={`group mx-auto hidden w-fit items-center gap-2 rounded-full border px-6 py-3 text-h3 font-bold transition-colors sm:flex lg:px-8 lg:py-4  ${className}`}
       style={{ borderColor: `${accent}80`, color: accent }}
     >
       신청하기

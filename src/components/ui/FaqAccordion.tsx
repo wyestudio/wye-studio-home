@@ -20,7 +20,7 @@ function FaqRow({ item, reduceMotion }: { item: FaqItem; reduceMotion: boolean }
         <span className="font-bold">{item.q}</span>
         <span
           aria-hidden
-          className="shrink-0 text-lg text-muted"
+          className="shrink-0 text-h3 text-muted"
           style={
             reduceMotion
               ? undefined
@@ -31,7 +31,7 @@ function FaqRow({ item, reduceMotion }: { item: FaqItem; reduceMotion: boolean }
         </span>
       </button>
       {reduceMotion ? (
-        open && <p className="px-5 pb-4 text-sm text-muted">{item.a}</p>
+        open && <p className="px-5 pb-4 text-body-sm text-muted">{item.a}</p>
       ) : (
         <AnimatePresence initial={false}>
           {open && (
@@ -42,7 +42,7 @@ function FaqRow({ item, reduceMotion }: { item: FaqItem; reduceMotion: boolean }
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               style={{ overflow: "hidden" }}
             >
-              <p className="px-5 pb-4 text-sm text-muted">{item.a}</p>
+              <p className="px-5 pb-4 text-body-sm text-muted">{item.a}</p>
             </motion.div>
           )}
         </AnimatePresence>

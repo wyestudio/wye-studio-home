@@ -9,15 +9,15 @@ export function ProcessSteps() {
   return (
     <section className="border-t border-border px-5 py-12">
       <div className="mx-auto max-w-3xl">
-        <h2 className="mb-6 text-center text-xl font-extrabold">진행 방식</h2>
+        <h2 className="mb-6 text-center text-h3 font-extrabold">진행 방식</h2>
         <div className="flex flex-wrap items-start justify-center gap-2">
           {STEPS.map((step, i) => (
             <div key={step.label} className="flex items-center gap-2">
               <div className="flex flex-col items-center gap-1 px-1">
-                <span className="rounded-full border border-glow bg-brand-soft px-4 py-2 text-sm font-semibold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
+                <span className="rounded-full border border-glow bg-brand-soft px-4 py-2 text-body-sm font-semibold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
                   {step.label}
                 </span>
-                <span className="text-xs text-muted">{step.desc}</span>
+                <span className="text-micro text-muted">{step.desc}</span>
               </div>
               {i < STEPS.length - 1 ? <span className="mb-5 text-border">→</span> : null}
             </div>

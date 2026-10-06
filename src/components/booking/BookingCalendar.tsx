@@ -141,7 +141,7 @@ export function BookingCalendar({
         {WEEKDAYS.map((w, i) => (
           <div
             key={w}
-            className={`py-1 text-xs ${i === 0 ? "text-red-400/70" : i === 6 ? "text-sky-400/70" : "text-muted"}`}
+            className={`py-1 text-micro ${i === 0 ? "text-red-400/70" : i === 6 ? "text-sky-400/70" : "text-muted"}`}
           >
             {w}
           </div>
@@ -172,7 +172,7 @@ export function BookingCalendar({
               onClick={() => onSelect(ymd)}
               aria-label={`${Number(m)}월 ${day}일${earlyBird ? ` ${promoLabel}` : ""}${note ? ` ${note}` : ""}`}
               aria-pressed={isSelected}
-              className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-sm transition-colors
+              className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-body-sm transition-colors
                 ${disabled ? "text-white/20" : "hover:bg-white/10"}
                 ${isSelected ? "font-bold" : ""}
                 ${isToday && !isSelected ? "ring-1 ring-white/25" : ""}`}
@@ -182,7 +182,7 @@ export function BookingCalendar({
 
               {note && (
                 <span
-                  className="mt-0.5 text-[9px] leading-none"
+                  className="mt-0.5 text-micro leading-none"
                   style={isSelected ? undefined : { color: dayColor }}
                 >
                   {note}

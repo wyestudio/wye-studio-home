@@ -9,7 +9,7 @@ export function Footer() {
 
   return (
     // 글자·여백은 테마 상세의 새 비율에 맞춰 한 단계 키웠다(2026-09-15).
-    <footer className="border-t border-border py-6 text-xs text-muted sm:py-10 sm:text-sm lg:py-14 lg:text-base">
+    <footer className="border-t border-border py-6 text-body-sm text-muted sm:py-10 lg:py-14">
       <div className="mx-auto max-w-5xl px-5">
         {/* 정보 + 링크 — 항상 좌/우 2열 */}
         <div className="flex justify-between items-start gap-6 sm:gap-8">

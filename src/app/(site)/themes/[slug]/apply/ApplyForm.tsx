@@ -48,9 +48,9 @@ import { GroupBookingCta } from "@/components/group/GroupBookingCta";
      나란히 놓인다.
 */
 const field =
-  "h-12 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-input outline-none focus:border-white/50 sm:h-14 lg:text-lg";
+  "h-12 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-input outline-none focus:border-white/50 sm:h-14 text-h3";
 const fieldInvalid =
-  "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 lg:text-lg";
+  "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 text-h3";
 const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
 
 /** 인원 선택 상한. 테마에 max_group_size 가 있으면 그쪽이 우선이다. */
@@ -650,11 +650,11 @@ export function ApplyForm({
       <ValidationToast message={toast} onClose={() => setToast(null)} />
 
       <div className="mb-4 sm:mb-5">
-        <a href={backHref} className="text-sm text-muted underline sm:text-base">
+        <a href={backHref} className="text-body text-muted underline">
           ← 날짜 다시 선택
         </a>
       </div>
-      <h1 className="mb-4 text-2xl font-extrabold sm:mb-6 sm:text-3xl lg:text-4xl">참여 신청</h1>
+      <h1 className="mb-4 text-h1 font-extrabold sm:mb-6">참여 신청</h1>
 
       <ApplyStepper
         accentColor={accentColor}
@@ -669,7 +669,7 @@ export function ApplyForm({
 
       <div className="space-y-6 py-8 pb-28 sm:space-y-8 sm:py-10 sm:pb-32">
         {error && (
-          <div className="rounded-lg border border-red-500 bg-red-500/10 px-4 py-3 text-sm text-red-300 sm:px-5 sm:py-4 sm:text-base">
+          <div className="rounded-lg border border-red-500 bg-red-500/10 px-4 py-3 text-body text-red-300 sm:px-5 sm:py-4">
             {error}
           </div>
         )}
@@ -677,7 +677,7 @@ export function ApplyForm({
         {/* ── 회차 요약 ── */}
         <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <p className="font-semibold sm:text-lg lg:text-xl">{themeName}</p>
+            <p className="font-semibold text-h3">{themeName}</p>
             {categoryName && (
               <span
                 className="rounded-full border px-2 py-0.5 text-micro font-bold sm:px-2.5"
@@ -691,13 +691,13 @@ export function ApplyForm({
               </span>
             )}
           </div>
-          <p className="mt-1 text-sm text-muted sm:mt-1.5 sm:text-base lg:text-lg">{sessionLabel}</p>
+          <p className="mt-1 text-h3 text-muted sm:mt-1.5">{sessionLabel}</p>
         </div>
 
         {/* ══ 1. 정보입력 ══ */}
         {step === 0 && (
           <div className="space-y-4 sm:space-y-5">
-            <div className="space-y-1.5 rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-sm text-muted sm:px-5 sm:py-4 sm:text-base">
+            <div className="space-y-1.5 rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-body text-muted sm:px-5 sm:py-4">
               <p>참여자 확인을 위해 정확한 정보를 입력해주세요.</p>
               <p>연령 확인이 필요한 회차는 현장에서 신분증 확인이 진행될 수 있습니다.</p>
             </div>
@@ -787,7 +787,7 @@ export function ApplyForm({
             {tiers.length > 0 && (
               <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
                 <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
-                  <p className="text-sm font-bold sm:text-base">인원별 참가비</p>
+                  <p className="text-body font-bold">인원별 참가비</p>
                   {/*
                     얼리버드 회차임을 여기서 한 번 더 알린다. 얼리버드가 아닌 회차를
                     고른 사람에게는 promo 가 null 이라 이 배지도, 아래 얼리버드 칸도
@@ -826,14 +826,14 @@ export function ApplyForm({
                   return (
                     <>
                       <div className="flex items-baseline justify-between gap-3">
-                        <span className="text-sm text-muted sm:text-base lg:text-lg">
+                        <span className="text-h3 text-muted">
                           {headcount}명 × {formatKrw(baseUnitPrice!)}
                         </span>
                         <span
                           className={
                             hasDiscount
-                              ? "text-sm text-muted line-through sm:text-base"
-                              : "text-2xl font-extrabold sm:text-3xl lg:text-4xl"
+                              ? "text-body text-muted line-through"
+                              : "text-h1 font-extrabold"
                           }
                           style={hasDiscount ? undefined : { color: accentColor }}
                         >
@@ -842,7 +842,7 @@ export function ApplyForm({
                       </div>
 
                       {promoDiscount > 0 && promo && (
-                        <div className="mt-1.5 flex items-baseline justify-between gap-3 text-sm sm:mt-2 sm:text-base lg:text-lg">
+                        <div className="mt-1.5 flex items-baseline justify-between gap-3 text-h3 sm:mt-2">
                           <span className="flex items-center gap-1.5 text-muted">
                             <span
                               className="whitespace-nowrap rounded-full px-1.5 py-0.5 text-micro font-extrabold leading-tight"
@@ -861,7 +861,7 @@ export function ApplyForm({
                       )}
 
                       {appliedDiscount > 0 && (
-                        <div className="mt-1.5 flex items-baseline justify-between gap-3 text-sm sm:mt-2 sm:text-base lg:text-lg">
+                        <div className="mt-1.5 flex items-baseline justify-between gap-3 text-h3 sm:mt-2">
                           <span className="text-muted">쿠폰 할인</span>
                           <span className="text-glow">- {formatKrw(appliedDiscount)}</span>
                         </div>
@@ -870,7 +870,7 @@ export function ApplyForm({
                       {hasDiscount && (
                         <div className="mt-2 flex items-baseline justify-between gap-3 border-t border-white/10 pt-2 sm:mt-3 sm:pt-3">
                           <span className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-semibold sm:text-base lg:text-lg">
+                            <span className="text-h3 font-semibold">
                               입금하실 금액
                             </span>
                             {totalOffPercent > 0 && (
@@ -886,7 +886,7 @@ export function ApplyForm({
                             )}
                           </span>
                           <span
-                            className="text-2xl font-extrabold sm:text-3xl lg:text-4xl"
+                            className="text-h1 font-extrabold"
                             style={{ color: accentColor }}
                           >
                             {formatKrw(payable)}
@@ -897,7 +897,7 @@ export function ApplyForm({
                   );
                 })()
               ) : (
-                <p className="text-sm text-muted sm:text-base">요금 정보를 불러올 수 없습니다.</p>
+                <p className="text-body text-muted">요금 정보를 불러올 수 없습니다.</p>
               )}
             </div>
 
@@ -948,7 +948,7 @@ export function ApplyForm({
                     type="button"
                     onClick={verifyCoupon}
                     disabled={couponChecking || !couponCode || total === null}
-                    className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-sm font-semibold disabled:opacity-40 sm:px-5 sm:text-base"
+                    className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-body font-semibold disabled:opacity-40 sm:px-5"
                   >
                     {couponChecking ? "확인 중…" : "적용"}
                   </button>
@@ -1039,7 +1039,7 @@ export function ApplyForm({
             type="button"
             onClick={goNext}
             disabled={busy}
-            className="w-full rounded-lg px-6 py-4 text-base font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:py-[18px] lg:text-lg"
+            className="w-full rounded-lg px-6 py-4 text-h3 font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:py-[18px]"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
             {pending

@@ -29,7 +29,7 @@ export function ProfileDetailsForm({ redirectTo }: { redirectTo: string }) {
       <Field label="휴대폰 번호" htmlFor="phone">
         <Input id="phone" name="phone" type="tel" required placeholder="01012345678" />
       </Field>
-      <p className="-mt-2 text-xs text-muted">
+      <p className="-mt-2 text-micro text-muted">
         이 번호로 신청하신 내역이 있으면 자동으로 연결해 드려요.
       </p>
       <Field label="출생연도" htmlFor="birthYear">
@@ -37,7 +37,7 @@ export function ProfileDetailsForm({ redirectTo }: { redirectTo: string }) {
           id="birthYear"
           name="birthYear"
           required
-          className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-sm outline-none focus:border-white/50"
+          className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-body-sm outline-none focus:border-white/50"
           defaultValue=""
         >
           <option value="" disabled>선택</option>
@@ -47,10 +47,10 @@ export function ProfileDetailsForm({ redirectTo }: { redirectTo: string }) {
         </select>
       </Field>
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-sm font-semibold text-foreground">
+        <legend className="text-body-sm font-semibold text-foreground">
           성별 <span className="font-normal text-muted">(선택)</span>
         </legend>
-        <div className="flex gap-4 text-sm">
+        <div className="flex gap-4 text-body-sm">
           <label className="flex items-center gap-1.5">
             <input type="radio" name="gender" value="M" /> 남
           </label>
@@ -63,7 +63,7 @@ export function ProfileDetailsForm({ redirectTo }: { redirectTo: string }) {
         </div>
       </fieldset>
 
-      {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
+      {state.error ? <p className="text-body-sm text-danger">{state.error}</p> : null}
 
       <Button type="submit" disabled={pending} className="mt-2 w-full">
         {pending ? "저장 중..." : "완료"}

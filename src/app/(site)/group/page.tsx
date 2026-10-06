@@ -86,7 +86,7 @@ function Panel({ className = "", children }: { className?: string; children: Rea
 
 function PanelTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mb-3 text-base font-extrabold sm:text-lg" style={{ color: GROUP_ACCENT }}>
+    <h3 className="mb-3 text-h3 font-extrabold" style={{ color: GROUP_ACCENT }}>
       {children}
     </h3>
   );
@@ -108,7 +108,7 @@ function NumberedList({
           className="flex items-start gap-3.5 rounded-xl border border-panel-border bg-panel px-4 py-4 sm:px-5"
         >
           <span
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-extrabold"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-micro font-extrabold"
             style={
               filled
                 ? { backgroundColor: GROUP_ACCENT, color: "#141414" }
@@ -118,8 +118,8 @@ function NumberedList({
             {i + 1}
           </span>
           <div className="min-w-0">
-            <p className="font-bold text-foreground sm:text-lg">{item.title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-muted sm:text-base">{item.desc}</p>
+            <p className="font-bold text-foreground text-h3">{item.title}</p>
+            <p className="mt-1 text-body leading-relaxed text-muted">{item.desc}</p>
           </div>
         </li>
       ))}
@@ -249,17 +249,17 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
         {/* ── 첫 화면 ── */}
         <Block sectionKey="hero" navLabel="첫 화면" className="flex flex-col gap-5">
           <span
-            className="self-start rounded-full px-3.5 py-1.5 text-xs font-extrabold"
+            className="self-start rounded-full px-3.5 py-1.5 text-micro font-extrabold"
             style={{ backgroundColor: GROUP_ACCENT, color: "#141414" }}
           >
             {GROUP_HEADCOUNT_MIN}~{GROUP_HEADCOUNT_MAX}명 단체 전용
           </span>
-          <h1 className="text-3xl font-extrabold leading-tight sm:text-4xl lg:text-5xl">
+          <h1 className="text-display font-extrabold leading-tight">
             우주이스케이프
             <br />
             <span style={{ color: GROUP_ACCENT }}>단체 예약</span>
           </h1>
-          <p className="text-base leading-relaxed text-muted sm:text-lg">
+          <p className="text-h3 leading-relaxed text-muted">
             {GROUP_HEADCOUNT_MIN}명부터 {GROUP_HEADCOUNT_MAX}명까지, 우리 모임끼리만 단독으로
             즐기는 3시간 팀 대항 파티형 방탈출. 단체 전용 견적으로 안내드립니다.
           </p>
@@ -273,9 +273,9 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                 key={t.label}
                 className="rounded-xl border border-panel-border bg-panel px-3 py-3.5 text-center"
               >
-                <p className="text-xs text-muted">{t.label}</p>
+                <p className="text-micro text-muted">{t.label}</p>
                 <p
-                  className="mt-0.5 font-bold sm:text-lg"
+                  className="mt-0.5 font-bold text-h3"
                   style={t.accent ? { color: GROUP_ACCENT } : undefined}
                 >
                   {t.value}
@@ -284,7 +284,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             ))}
           </div>
           <GroupQuoteCta where="hero">견적 신청하기</GroupQuoteCta>
-          <p className="text-center text-xs text-muted">
+          <p className="text-center text-micro text-muted">
             1분이면 끝나요 · 확인 후 직접 연락드립니다
           </p>
         </Block>
@@ -297,7 +297,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             align="left"
             eyebrowColor={GROUP_ACCENT}
           />
-          <p className="text-sm leading-relaxed text-muted sm:text-base">
+          <p className="text-body leading-relaxed text-muted">
             파티형 방탈출 <strong className="text-foreground">바-ㅇ탈출</strong>은 방에 갇히는
             방탈출이 아니라, 여러 팀이 한 공간에서 동시에 문제를 풀며 경쟁하는 팀 대항
             방탈출이에요. 진행은 운영진이 처음부터 끝까지 상주하니, 방탈출이 처음인 분이 섞여
@@ -314,7 +314,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                   글자 크기는 아래 '소셜 프로그램' 카드와 맞춘다 — 같은 섹션 안에서
                   이 칸만 작으면 스펙이 곁다리로 읽힌다(2026-10-02 요청).
                 */}
-                <p className="text-sm text-muted sm:text-base">
+                <p className="text-body text-muted">
                   {s.label}
                   {/* 단서는 값 아래가 아니라 **라벨 옆**에 둔다. 아래에 두면 '4 / 5'
                       라는 숫자에 붙은 말처럼 보여서 무엇이 조정 가능한지 흐려진다. */}
@@ -328,7 +328,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                     </span>
                   )}
                 </p>
-                <p className="mt-1 text-base font-extrabold sm:text-lg">{s.value}</p>
+                <p className="mt-1 text-h3 font-extrabold">{s.value}</p>
               </div>
             ))}
           </div>
@@ -336,7 +336,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             {PROGRAM_CARDS.map((c) => (
               <Panel key={c.title}>
                 <PanelTitle>{c.title}</PanelTitle>
-                <p className="text-sm leading-relaxed text-muted sm:text-base">{c.desc}</p>
+                <p className="text-body leading-relaxed text-muted">{c.desc}</p>
               </Panel>
             ))}
           </div>
@@ -351,13 +351,13 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             eyebrowColor={GROUP_ACCENT}
           />
           <NumberedList items={SCHEDULE} />
-          <p className="text-xs leading-relaxed text-muted">
+          <p className="text-micro leading-relaxed text-muted">
             ※ 자세한 타임테이블은 현장 상황에 따라 달라질 수 있습니다. AFTER PARTY를 추가하면
             종료 후 같은 공간에서 이어집니다.
           </p>
           <Panel>
             <PanelTitle>단체 예약 기본 포함</PanelTitle>
-            <ul className="flex list-disc flex-col gap-2 pl-5 text-sm sm:text-base">
+            <ul className="flex list-disc flex-col gap-2 pl-5 text-body">
               <li>
                 <strong className="text-foreground">3시간 풀 프로그램</strong>{" "}
                 <span className="text-muted">
@@ -369,7 +369,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                 다과 · 음료 · 자체 제작 굿즈 · 단체사진 촬영 및 전달
               </li>
             </ul>
-            <p className="mt-4 text-sm leading-relaxed text-muted">
+            <p className="mt-4 text-body-sm leading-relaxed text-muted">
               참가비는 인원 · 일정 · 시기에 따라 달라져, 견적 신청 후 개별 안내드립니다.
             </p>
           </Panel>
@@ -387,14 +387,14 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             {BENEFITS.map((b) => (
               <Panel key={b.title}>
                 <PanelTitle>{b.title}</PanelTitle>
-                <p className="text-sm leading-relaxed text-muted">{b.desc}</p>
+                <p className="text-body-sm leading-relaxed text-muted">{b.desc}</p>
               </Panel>
             ))}
           </div>
 
           <Panel>
             <PanelTitle>맞춤 팀 편성</PanelTitle>
-            <p className="text-sm leading-relaxed text-muted">
+            <p className="text-body-sm leading-relaxed text-muted">
               세 가지 방식 중 원하는 대로 팀을 구성해 드려요.
             </p>
             <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
@@ -404,7 +404,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                   className="rounded-xl border border-panel-border bg-background/60 px-4 py-3.5"
                 >
                   <p className="font-bold text-foreground">{m.title}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted">{m.desc}</p>
+                  <p className="mt-1 text-micro leading-relaxed text-muted">{m.desc}</p>
                 </div>
               ))}
             </div>
@@ -412,10 +412,10 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
 
           <Panel>
             <PanelTitle>동일 테마 재참여 가능</PanelTitle>
-            <p className="text-sm leading-relaxed text-muted">
+            <p className="text-body-sm leading-relaxed text-muted">
               일반 예약과 달리 단체 예약은 기존 참여자도 함께 참여할 수 있어요.
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted">
+            <p className="mt-2 text-micro leading-relaxed text-muted">
               ※ 재참여자가 있는 경우 참여 방식 및 이용 금액은 별도 문의해주세요.
             </p>
           </Panel>
@@ -428,35 +428,35 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             style={{ borderColor: GROUP_ACCENT, backgroundColor: `${GROUP_ACCENT}14` }}
           >
             <p
-              className="text-xs font-bold uppercase tracking-[0.3em]"
+              className="text-micro font-bold uppercase tracking-[0.3em]"
               style={{ color: GROUP_ACCENT }}
             >
               After Party
             </p>
-            <p className="mt-3 font-bold sm:text-lg">놀다 헤어지기 아쉽다면?</p>
+            <p className="mt-3 font-bold text-h3">놀다 헤어지기 아쉽다면?</p>
             <h2
-              className="text-2xl font-extrabold leading-tight sm:text-3xl"
+              className="text-h2 font-extrabold leading-tight"
               style={{ color: GROUP_ACCENT }}
             >
               AFTER PARTY PACKAGE
             </h2>
             <span
-              className="mt-4 inline-block rounded-full px-4 py-1.5 text-xs font-extrabold"
+              className="mt-4 inline-block rounded-full px-4 py-1.5 text-micro font-extrabold"
               style={{ backgroundColor: GROUP_ACCENT, color: "#141414" }}
             >
               추가 옵션 · 비용은 견적 시 안내
             </span>
-            <p className="mt-4 text-sm leading-relaxed sm:text-base">
+            <p className="mt-4 text-body leading-relaxed">
               프로그램 종료 후 <strong style={{ color: GROUP_ACCENT }}>최대 4시간</strong>, 이용하던
               공간에서 그대로 우리끼리 뒤풀이.{" "}
               <strong style={{ color: GROUP_ACCENT }}>다른 장소로 이동할 필요 없어요.</strong>
             </p>
-            <ul className="mt-4 grid grid-cols-1 gap-2 text-sm text-muted sm:grid-cols-2">
+            <ul className="mt-4 grid grid-cols-1 gap-2 text-body-sm text-muted sm:grid-cols-2">
               {AFTER_PARTY.map((x) => (
                 <li key={x}>{x}</li>
               ))}
             </ul>
-            <div className="mt-5 flex flex-col gap-1 text-xs leading-relaxed text-muted">
+            <div className="mt-5 flex flex-col gap-1 text-micro leading-relaxed text-muted">
               <p>※ BYOB는 주류 판매 · 제공이 아닌, 성인 참여자가 직접 주류를 가져오는 방식입니다.</p>
               <p>※ BYOB(주류 동반)를 이용하는 경우 참여자 전원 만 19세 이상이어야 합니다.</p>
               <p>※ 진행 프로그램 없이 공간을 자유롭게 이용하는 패키지입니다.</p>
@@ -474,7 +474,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           />
           <Panel>
             <PanelTitle>이용 안내</PanelTitle>
-            <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-muted sm:text-base">
+            <ul className="flex list-disc flex-col gap-2 pl-5 text-body text-muted">
               <li>
                 이용 인원{" "}
                 <strong className="text-foreground">
@@ -492,7 +492,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           </Panel>
           <Panel>
             <PanelTitle>예약 · 결제 조건</PanelTitle>
-            <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-muted sm:text-base">
+            <ul className="flex list-disc flex-col gap-2 pl-5 text-body text-muted">
               <li>예약금 30% 입금 시 확정 · 행사 7일 전 확정 인원 기준 잔금</li>
               <li>확정 이후 인원이 줄어도 확정 인원 기준 정산 (최소 {GROUP_HEADCOUNT_MIN}인)</li>
               <li>결제: 계좌이체</li>
@@ -507,7 +507,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           </Panel>
           <Panel>
             <PanelTitle>참여 전 꼭 확인해주세요</PanelTitle>
-            <ul className="flex list-disc flex-col gap-2.5 pl-5 text-sm sm:text-base">
+            <ul className="flex list-disc flex-col gap-2.5 pl-5 text-body">
               <li>
                 <strong className="text-foreground">휴대폰 사용 제한</strong>{" "}
                 <span className="text-muted">
@@ -542,13 +542,13 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             align="left"
             eyebrowColor={GROUP_ACCENT}
           />
-          <p className="text-sm leading-relaxed text-muted sm:text-base">
+          <p className="text-body leading-relaxed text-muted">
             견적 신청만으로는 예약이 확정되지 않아요. 일정 협의 후{" "}
             <strong className="text-foreground">예약금 30% 입금이 확인되면</strong> 해당 일정이 최종
             확정됩니다.
           </p>
           <NumberedList items={STEPS} filled />
-          <p className="text-xs leading-relaxed text-muted">
+          <p className="text-micro leading-relaxed text-muted">
             ※ 행사 7일 이내 신청은 일정 및 준비 가능 여부 확인 후, 확정 인원 기준 전액 결제 시
             예약이 확정됩니다.
           </p>
@@ -557,17 +557,17 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             id="refund"
             className="scroll-mt-28 rounded-2xl border border-danger/60 bg-danger-soft p-5 sm:p-7"
           >
-            <h3 className="text-base font-extrabold text-danger sm:text-lg">
+            <h3 className="text-h3 font-extrabold text-danger">
               단체 예약 취소 · 환불 규정
             </h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted">
+            <p className="mt-2 text-body-sm leading-relaxed text-muted">
               단체 예약에는 홈페이지 일반 예약과 별도의 취소 · 환불 규정이 적용됩니다.
             </p>
             <dl className="mt-4">
               {REFUND_ROWS.map((r) => (
                 <div
                   key={r.when}
-                  className="flex items-baseline justify-between gap-3 border-t border-panel-border py-3 text-sm sm:text-base"
+                  className="flex items-baseline justify-between gap-3 border-t border-panel-border py-3 text-body"
                 >
                   <dt className="text-muted">{r.when}</dt>
                   <dd
@@ -580,7 +580,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                 </div>
               ))}
             </dl>
-            <ul className="mt-4 flex list-disc flex-col gap-1.5 pl-5 text-xs leading-relaxed text-muted sm:text-sm">
+            <ul className="mt-4 flex list-disc flex-col gap-1.5 pl-5 text-body-sm leading-relaxed text-muted">
               <li>잔금 결제 후에는 인원 감소 및 취소에 따른 차액 환불이 어렵습니다.</li>
               <li>
                 예약 확정 후 인원 추가는 최대 정원 내에서 가능하며, 추가 인원분을 별도 결제합니다.
@@ -602,7 +602,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             align="left"
             eyebrowColor={GROUP_ACCENT}
           />
-          <p className="mb-6 mt-2 text-sm text-muted">
+          <p className="mb-6 mt-2 text-body-sm text-muted">
             아직 확정이 아니어도 괜찮아요. 예상 기준으로 적어주세요.
           </p>
           <QuoteForm />
@@ -610,7 +610,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
 
         {/* ── 카카오톡 문의 ── */}
         <Block sectionKey="contact" navLabel="문의" className="flex flex-col items-center gap-4">
-          <p className="text-center text-sm text-muted sm:text-base">
+          <p className="text-center text-body text-muted">
             급하게 확인이 필요하다면 카카오톡 채널로 바로 문의해주세요.
           </p>
           <a

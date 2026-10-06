@@ -71,7 +71,7 @@ export function ThemeSpecTiles({
         <SpecTile label="소요시간">
           <SpecValue>
             <span className={BIG_NUMBER}>{durationMinutes}</span>
-            <span className="-ml-2.5 text-sm font-bold text-muted sm:text-base">분</span>
+            <span className="-ml-2.5 text-body font-bold text-muted">분</span>
             <SmallNote>({hoursLabel(durationMinutes)})</SmallNote>
           </SpecValue>
         </SpecTile>
@@ -154,7 +154,7 @@ function BaselineStrut() {
 /** 데스크톱(lg)에서만 보이는 보조 표기. 모바일은 칸이 좁아 뺀다. */
 function SmallNote({ children }: { children: React.ReactNode }) {
   // 칸이 좁아져도 '4 / 5' 가 두 줄로 꺾이지 않게.
-  return <span className="hidden whitespace-nowrap text-sm font-bold text-muted lg:inline">{children}</span>;
+  return <span className="hidden whitespace-nowrap text-body-sm font-bold text-muted lg:inline">{children}</span>;
 }
 
 /**

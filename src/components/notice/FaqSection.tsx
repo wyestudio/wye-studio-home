@@ -3,7 +3,7 @@ import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
 import { RichText } from "@/components/ui/RichText";
 import type { Faq } from "@/lib/content";
 
-const HEADING = "mb-6 text-center text-2xl font-extrabold sm:mb-10 sm:text-3xl lg:text-4xl";
+const HEADING = "mb-6 text-center text-h1 font-extrabold sm:mb-10";
 
 /** 표시 전용. 데이터는 서버에서 받아 내려준다. */
 export function FaqSection({ faqs }: { faqs: Faq[] }) {
@@ -24,7 +24,7 @@ export function FaqSection({ faqs }: { faqs: Faq[] }) {
         [&_button]·[&_p] 가 더 구체적인 선택자라 부품 안의 기본 크기 클래스를 이긴다.
       */}
       <FaqAccordion
-        className="sm:gap-4 sm:[&_button]:px-7 sm:[&_button]:py-6 sm:[&_button]:text-lg sm:[&_p]:px-7 sm:[&_p]:pb-6 sm:[&_p]:text-base lg:[&_p]:text-lg"
+        className="sm:gap-4 [&_button]:text-h3 [&_p]:text-h3 sm:[&_button]:px-7 sm:[&_button]:py-6 sm:[&_p]:px-7 sm:[&_p]:pb-6"
         items={faqs.map((f) => ({ q: f.question, a: <RichText text={f.answer} /> }))}
       />
     </section>

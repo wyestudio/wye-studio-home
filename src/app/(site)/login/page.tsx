@@ -33,17 +33,17 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <div className="mx-auto max-w-md px-5 py-12">
-      <h1 className="mb-1 text-2xl font-extrabold">로그인</h1>
-      <p className="mb-8 text-sm text-muted">
+      <h1 className="mb-1 text-h2 font-extrabold">로그인</h1>
+      <p className="mb-8 text-body-sm text-muted">
         참여 신청을 하려면 먼저 로그인해주세요.
       </p>
       {notice ? (
-        <p className="mb-4 rounded-lg bg-danger-soft px-4 py-3 text-sm text-danger">
+        <p className="mb-4 rounded-lg bg-danger-soft px-4 py-3 text-body-sm text-danger">
           {notice}
         </p>
       ) : null}
       <LoginForm redirectTo={redirectTo} />
-      <p className="mt-6 text-center text-sm text-muted">
+      <p className="mt-6 text-center text-body-sm text-muted">
         아직 계정이 없으신가요?{" "}
         <Link
           href={`/signup?redirect=${encodeURIComponent(redirectTo)}`}

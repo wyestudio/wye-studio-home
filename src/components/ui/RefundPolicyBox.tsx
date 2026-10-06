@@ -14,11 +14,11 @@ export function RefundPolicyBox() {
   return (
     // 신청 완료·조회 결과 화면 크기(2026-09-15 키움)에 맞춰 sm·lg 에서 한 단계씩 키운다.
     <div className="rounded-xl border border-danger/40 bg-danger/[0.07] p-5 sm:p-7 lg:p-8">
-      <p className="text-sm font-bold text-danger sm:text-base lg:text-lg">취소·환불 규정</p>
+      <p className="text-h3 font-bold text-danger">취소·환불 규정</p>
 
       <ul className="mt-3 space-y-1.5 sm:mt-4 sm:space-y-2.5">
         {REFUND_TIERS.map((tier) => (
-          <li key={tier.when} className="flex items-baseline justify-between gap-4 text-sm sm:text-base lg:text-lg">
+          <li key={tier.when} className="flex items-baseline justify-between gap-4 text-h3">
             <span className="text-muted">{tier.when} 취소</span>
             <span
               className={
@@ -31,7 +31,7 @@ export function RefundPolicyBox() {
         ))}
       </ul>
 
-      <p className="mt-3 border-t border-danger/20 pt-3 text-xs leading-relaxed text-muted sm:mt-4 sm:pt-4 sm:text-sm">
+      <p className="mt-3 border-t border-danger/20 pt-3 text-body-sm leading-relaxed text-muted sm:mt-4 sm:pt-4">
         취소는 참여 내역 조회에서 직접 하실 수 있고, 환불은 영업일 기준 3~5일 이내 처리됩니다.
         연락 없이 불참(노쇼)하시면 이후 신청이 제한될 수 있습니다.
       </p>

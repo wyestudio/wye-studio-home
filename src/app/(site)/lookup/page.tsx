@@ -25,7 +25,7 @@ export default function LookupPage() {
          필요해 자체 클래스로 떼어 왔다.
     */
     <div className="mx-auto flex min-h-[72svh] w-full max-w-md flex-col justify-center px-5 pt-6 pb-[5svh] sm:max-w-lg md:min-h-[calc(100svh-6.25rem)] md:pt-8 md:pb-[10svh] lg:max-w-xl">
-      <h1 className="mb-6 text-2xl font-extrabold sm:mb-8 sm:text-3xl lg:text-4xl">신청내역 조회</h1>
+      <h1 className="mb-6 text-h1 font-extrabold sm:mb-8">신청내역 조회</h1>
       <LookupForm />
       <KakaoChannelButton />
     </div>

@@ -44,10 +44,10 @@ const STATUS: Record<string, { label: string; tone: string }> = {
 export function MyApplications({ applications }: { applications: MyApplication[] }) {
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
-      <h2 className="mb-3 text-sm font-semibold text-muted">참여 이력</h2>
+      <h2 className="mb-3 text-body-sm font-semibold text-muted">참여 이력</h2>
 
       {applications.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted">
+        <p className="py-6 text-center text-body-sm text-muted">
           아직 참여 내역이 없어요.
           <br />
           <Link href="/contents" className="mt-2 inline-block text-glow underline">
@@ -65,18 +65,18 @@ export function MyApplications({ applications }: { applications: MyApplication[]
                     <p className="font-semibold">
                       {a.theme_name ?? "테마"}
                       {a.format_label && (
-                        <span className="ml-1.5 text-xs font-normal text-muted">
+                        <span className="ml-1.5 text-micro font-normal text-muted">
                           {a.format_label}
                         </span>
                       )}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted">{kst(a.start_at)}</p>
-                    {a.venue_area && <p className="text-xs text-muted">{a.venue_area}</p>}
+                    <p className="mt-0.5 text-micro text-muted">{kst(a.start_at)}</p>
+                    {a.venue_area && <p className="text-micro text-muted">{a.venue_area}</p>}
                   </div>
-                  <span className={`shrink-0 text-sm font-semibold ${s.tone}`}>{s.label}</span>
+                  <span className={`shrink-0 text-body-sm font-semibold ${s.tone}`}>{s.label}</span>
                 </div>
 
-                <div className="mt-2 flex items-center justify-between border-t border-border/40 pt-2 text-xs">
+                <div className="mt-2 flex items-center justify-between border-t border-border/40 pt-2 text-micro">
                   <span className="text-muted">
                     접수번호 <span className="font-mono">{a.confirmation_code}</span> · {a.headcount}명
                   </span>

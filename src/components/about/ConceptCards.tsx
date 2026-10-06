@@ -20,8 +20,8 @@ export function ConceptCards() {
         {CARDS.map((card, i) => (
           <Reveal key={card.title} delay={i * 0.08}>
             <HudCard className="flex h-full flex-col gap-2 p-5 text-center sm:gap-3 sm:p-7 lg:p-8">
-              <p className="font-bold sm:text-lg lg:text-xl">{card.title}</p>
-              <p className="text-sm text-muted sm:text-base lg:text-lg">{card.desc}</p>
+              <p className="font-bold text-h3">{card.title}</p>
+              <p className="text-h3 text-muted">{card.desc}</p>
             </HudCard>
           </Reveal>
         ))}

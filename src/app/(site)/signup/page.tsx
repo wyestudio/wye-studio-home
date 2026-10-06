@@ -15,8 +15,8 @@ export default async function SignupPage({ searchParams }: PageProps<"/signup">)
 
   return (
     <div className="mx-auto max-w-md px-5 py-12">
-      <h1 className="mb-1 text-2xl font-extrabold">회원가입</h1>
-      <p className="mb-8 text-sm text-muted">
+      <h1 className="mb-1 text-h2 font-extrabold">회원가입</h1>
+      <p className="mb-8 text-body-sm text-muted">
         우주이스케이프는 참여자의 성별·연령 확인을 위해 회원가입 후 참여 신청을 받고 있어요.
       </p>
       <SignupForm redirectTo={redirectTo} prefillEmail={prefillEmail} />

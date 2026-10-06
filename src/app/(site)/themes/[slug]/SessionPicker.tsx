@@ -176,7 +176,7 @@ export function SessionPicker({
     return (
       <div className="rounded-lg border border-white/15 bg-white/5 p-8 text-center">
         <p className="font-semibold">현재 예정된 회차가 없습니다.</p>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-body-sm text-muted">
           새 일정이 열리면 공지와 인스타그램으로 안내드립니다.
         </p>
       </div>
@@ -250,7 +250,7 @@ export function SessionPicker({
     )}
     <div className="flex flex-col gap-5 md:flex-row md:items-stretch md:gap-8">
       <div className="md:w-[19rem] md:shrink-0 lg:w-[23rem]">
-        <p className="mb-2 text-xs font-bold text-muted lg:text-sm">날짜 선택</p>
+        <p className="mb-2 text-body-sm font-bold text-muted">날짜 선택</p>
         <BookingCalendar
           dateStatus={dateStatus}
           selected={selectedDate}
@@ -265,7 +265,7 @@ export function SessionPicker({
       {/* 시간 칸은 달력과 같은 높이로 늘어난다. 신청 버튼을 mt-auto 로 밀면
           버튼 아래끝이 달력 아래끝(=포스터 아래끝)과 같은 선에 놓인다. */}
       <div ref={timeRef} className="flex min-w-0 flex-1 scroll-mt-28 flex-col">
-        <p className="mb-2 text-xs font-bold text-muted lg:text-sm">
+        <p className="mb-2 text-body-sm font-bold text-muted">
           시간 선택
           {selectedDate && (
             <span className="ml-1.5 font-medium text-white/70">
@@ -275,7 +275,7 @@ export function SessionPicker({
         </p>
 
         {daySessions.length === 0 ? (
-          <p className="rounded-lg border border-white/15 bg-white/5 p-4 text-sm text-muted">
+          <p className="rounded-lg border border-white/15 bg-white/5 p-4 text-body-sm text-muted">
             이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
           </p>
         ) : (
@@ -326,7 +326,7 @@ export function SessionPicker({
                       : undefined
                   }
                 >
-                  <p className="text-base font-bold tabular-nums lg:text-lg">{kstTime(s.start_at)}</p>
+                  <p className="text-h3 font-bold tabular-nums">{kstTime(s.start_at)}</p>
 
                   {/*
                     회차 태그(sessions.badge). 회차가 여럿 열려 있으면 "아무도 신청
@@ -371,7 +371,7 @@ export function SessionPicker({
                       나온다) 라벨까지 뜻을 나눌 필요가 없었다. 라벨이 둘이면 읽는
                       쪽이 '못 고른다' 를 두 번 해석한다.
                     */}
-                    {!s.bookable && <span className="text-xs text-muted">마감</span>}
+                    {!s.bookable && <span className="text-micro text-muted">마감</span>}
                   </span>
                 </button>
               );
@@ -459,13 +459,13 @@ function BookingCta({
   const inner = !accepting ? (
     <div className="rounded-lg border border-white/15 bg-white/5 px-6 py-4 text-center">
       <p className="font-semibold">현재 신청을 받고 있지 않습니다.</p>
-      <p className="mt-1 text-sm text-muted">신청이 열리면 공지로 안내드릴게요.</p>
+      <p className="mt-1 text-body-sm text-muted">신청이 열리면 공지로 안내드릴게요.</p>
     </div>
   ) : href ? (
     <a
       href={href}
       onClick={trackApplyClick}
-      className="block rounded-lg px-6 py-4 text-center text-base font-bold transition-opacity hover:opacity-90"
+      className="block rounded-lg px-6 py-4 text-center text-body font-bold transition-opacity hover:opacity-90"
       style={{ backgroundColor: accentColor, color: "#0a0a12" }}
     >
       {label}
@@ -473,7 +473,7 @@ function BookingCta({
   ) : (
     <button
       disabled
-      className="w-full cursor-not-allowed rounded-lg border border-white/15 px-6 py-4 text-center text-base font-bold text-muted"
+      className="w-full cursor-not-allowed rounded-lg border border-white/15 px-6 py-4 text-center text-body font-bold text-muted"
     >
       {label}
     </button>
@@ -494,7 +494,7 @@ function BookingCta({
             <a
               href={href}
               onClick={trackApplyClick}
-              className="block rounded-lg px-6 py-3.5 text-center text-base font-bold"
+              className="block rounded-lg px-6 py-3.5 text-center text-body font-bold"
               style={{ backgroundColor: accentColor, color: "#0a0a12" }}
             >
               {label}
@@ -512,7 +512,7 @@ function BookingCta({
                 pushGa4Event(DETAIL_EVENT.bookingScroll, { themeLabel: themeName });
                 scrollToBooking(e);
               }}
-              className="block rounded-lg border px-6 py-3.5 text-center text-base font-bold"
+              className="block rounded-lg border px-6 py-3.5 text-center text-body font-bold"
               style={{ borderColor: accentColor, color: accentColor }}
             >
               신청하기

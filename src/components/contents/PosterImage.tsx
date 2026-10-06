@@ -22,7 +22,7 @@ export function PosterImage({
 }) {
   if (!src) {
     return (
-      <span className="flex h-full w-full items-center justify-center text-xs text-muted">
+      <span className="flex h-full w-full items-center justify-center text-micro text-muted">
         이미지 준비중
       </span>
     );

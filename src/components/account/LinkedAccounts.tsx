@@ -31,7 +31,7 @@ function LinkButton({ href }: { href: string }) {
   return (
     <a
       href={href}
-      className="inline-flex items-center rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold hover:bg-black/5"
+      className="inline-flex items-center rounded-lg border border-border bg-surface px-3 py-1.5 text-micro font-semibold hover:bg-black/5"
     >
       연결하기
     </a>
@@ -49,7 +49,7 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm">{label}</span>
+      <span className="text-body-sm">{label}</span>
       {connected ? <Badge tone="confirm">연결됨</Badge> : action}
     </div>
   );

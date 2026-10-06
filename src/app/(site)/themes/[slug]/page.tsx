@@ -246,7 +246,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           {category && <CategoryLabel category={category} accent={accent} />}
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-extrabold sm:text-3xl lg:text-4xl">{theme.name}</h1>
+              <h1 className="text-h1 font-extrabold">{theme.name}</h1>
             </div>
             <div className="shrink-0">
               <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
@@ -340,7 +340,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           size="lg"
         />
         <div className="mx-auto w-full max-w-3xl lg:max-w-4xl">
-          <Suspense fallback={<div className="text-sm text-muted">불러오는 중…</div>}>
+          <Suspense fallback={<div className="text-body-sm text-muted">불러오는 중…</div>}>
             <SessionPicker
               themeSlug={theme.slug}
               themeName={theme.name}

@@ -22,7 +22,7 @@ export function ValidationToast({ message, onClose }: { message: string | null; 
           animate={{ opacity: 1, y: 0 }}
           exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
           transition={{ duration: 0.2 }}
-          className="fixed left-1/2 top-[calc(var(--header-height)+12px)] z-40 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-sm font-semibold text-danger shadow-lg sm:px-5 sm:py-3.5 sm:text-base"
+          className="fixed left-1/2 top-[calc(var(--header-height)+12px)] z-40 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-danger bg-danger-soft px-4 py-3 text-body font-semibold text-danger shadow-lg sm:px-5 sm:py-3.5"
         >
           <span>{message}</span>
           {/* 닫기 표시는 글자(✕)가 아니라 SVG — 본문 글꼴 SUIT 에 없는 글자라 기기마다 모양이 달라진다. */}
