@@ -57,7 +57,7 @@ export function ImageUploadField({
 
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-medium text-muted">{label}</label>
+      <label className="mb-1.5 block text-micro font-medium text-muted">{label}</label>
 
       <div
         className={`relative overflow-hidden border border-border bg-background ${
@@ -73,7 +73,7 @@ export function ImageUploadField({
             sizes="256px"
           />
         ) : (
-          <span className="flex h-full items-center justify-center text-xs text-muted">
+          <span className="flex h-full items-center justify-center text-micro text-muted">
             등록된 이미지 없음
           </span>
         )}
@@ -96,7 +96,7 @@ export function ImageUploadField({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="flex-1 rounded border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+          className="flex-1 rounded border border-border px-3 py-1.5 text-micro disabled:opacity-50"
         >
           {busy ? "올리는 중…" : value ? "변경" : "이미지 올리기"}
         </button>
@@ -104,7 +104,7 @@ export function ImageUploadField({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="rounded border border-red-500/40 px-3 py-1.5 text-xs text-red-400"
+            className="rounded border border-red-500/40 px-3 py-1.5 text-micro text-red-400"
           >
             삭제
           </button>
@@ -112,13 +112,13 @@ export function ImageUploadField({
       </div>
 
       <input
-        className="mt-2 w-full rounded border border-border bg-background px-2 py-1.5 text-[11px]"
+        className="mt-2 w-full rounded border border-border bg-background px-2 py-1.5 text-micro"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="또는 이미지 주소를 직접 붙여넣기"
       />
-      {hint && <p className="mt-1 text-[11px] text-muted">{hint}</p>}
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {hint && <p className="mt-1 text-micro text-muted">{hint}</p>}
+      {error && <p className="mt-1 text-micro text-red-400">{error}</p>}
     </div>
   );
 }

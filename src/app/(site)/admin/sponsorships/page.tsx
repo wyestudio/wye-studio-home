@@ -71,15 +71,15 @@ export default async function AdminSponsorshipsPage() {
           ← 돌아가기
         </Link>
 
-        <h1 className="text-3xl font-bold mb-8">협찬 신청 목록</h1>
+        <h1 className="text-h2 font-bold mb-8">협찬 신청 목록</h1>
 
         <section className="mb-12">
-          <h2 className="text-xl font-semibold mb-3">그룹 방탈출 크리에이터 협찬 ({(groupApplications ?? []).length}건)</h2>
+          <h2 className="text-h3 font-semibold mb-3">그룹 방탈출 크리에이터 협찬 ({(groupApplications ?? []).length}건)</h2>
           <GroupApplicationsTable applications={(groupApplications as GroupApplication[]) ?? []} />
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-3">
+          <h2 className="text-h3 font-semibold mb-3">
             소개팅 방탈출 여성 크리에이터 협찬 ({(datingApplications ?? []).length}건)
           </h2>
           <DatingApplicationsTable applications={(datingApplications as DatingApplication[]) ?? []} />
@@ -111,41 +111,41 @@ function GroupApplicationsTable({ applications }: { applications: GroupApplicati
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-border">
-            <th className="text-left py-3 px-4 font-semibold text-sm">신청일시</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">이름</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">출생연도</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">성별</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">휴대폰</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">채널명</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">주력 채널</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">채널 주소</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">팔로워/도달</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">대표 후기</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">동행인</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">희망 콘텐츠</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">소개/기획</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">약관 동의</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">신청일시</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">이름</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">출생연도</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">휴대폰</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">채널명</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">주력 채널</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">채널 주소</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">팔로워/도달</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">대표 후기</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">동행인</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">희망 콘텐츠</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">소개/기획</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">약관 동의</th>
           </tr>
         </thead>
         <tbody>
           {applications.map((app) => (
             <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
-              <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
-              <td className="py-3 px-4 text-sm">{app.name}</td>
-              <td className="py-3 px-4 text-sm">{app.birth_year}</td>
-              <td className="py-3 px-4 text-sm">{genderLabel(app.gender)}</td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">{app.phone}</td>
-              <td className="py-3 px-4 text-sm">{app.handle}</td>
-              <td className="py-3 px-4 text-sm">{app.platform}</td>
-              <td className="py-3 px-4 text-sm max-w-[220px] truncate">
+              <td className="py-3 px-4 text-micro whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
+              <td className="py-3 px-4 text-body-sm">{app.name}</td>
+              <td className="py-3 px-4 text-body-sm">{app.birth_year}</td>
+              <td className="py-3 px-4 text-body-sm">{genderLabel(app.gender)}</td>
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.phone}</td>
+              <td className="py-3 px-4 text-body-sm">{app.handle}</td>
+              <td className="py-3 px-4 text-body-sm">{app.platform}</td>
+              <td className="py-3 px-4 text-body-sm max-w-[220px] truncate">
                 <a href={app.profile_url} target="_blank" rel="noopener" className="text-glow hover:underline">
                   {app.profile_url}
                 </a>
               </td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">
                 {app.followers.toLocaleString("ko-KR")} / {app.reach.toLocaleString("ko-KR")}
               </td>
-              <td className="py-3 px-4 text-sm max-w-[180px] truncate">
+              <td className="py-3 px-4 text-body-sm max-w-[180px] truncate">
                 {app.portfolio_url ? (
                   <a href={app.portfolio_url} target="_blank" rel="noopener" className="text-glow hover:underline">
                     {app.portfolio_url}
@@ -154,10 +154,10 @@ function GroupApplicationsTable({ applications }: { applications: GroupApplicati
                   <span className="text-muted">-</span>
                 )}
               </td>
-              <td className="py-3 px-4 text-sm">{app.companions}명</td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">{app.deliverable}</td>
-              <td className="py-3 px-4 text-sm max-w-[240px]">{app.note || <span className="text-muted">-</span>}</td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">
+              <td className="py-3 px-4 text-body-sm">{app.companions}명</td>
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.deliverable}</td>
+              <td className="py-3 px-4 text-body-sm max-w-[240px]">{app.note || <span className="text-muted">-</span>}</td>
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">
                 <AgreementBadges agreements={app.agreements} />
               </td>
             </tr>
@@ -177,40 +177,40 @@ function DatingApplicationsTable({ applications }: { applications: DatingApplica
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-border">
-            <th className="text-left py-3 px-4 font-semibold text-sm">신청일시</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">이름</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">출생연도</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">성별</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">휴대폰</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">채널명</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">주력 채널</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">채널 주소</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">팔로워/도달</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">대표 후기</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">희망 콘텐츠</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">소개/기획</th>
-            <th className="text-left py-3 px-4 font-semibold text-sm">약관 동의</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">신청일시</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">이름</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">출생연도</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">휴대폰</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">채널명</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">주력 채널</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">채널 주소</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">팔로워/도달</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">대표 후기</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">희망 콘텐츠</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">소개/기획</th>
+            <th className="text-left py-3 px-4 font-semibold text-body-sm">약관 동의</th>
           </tr>
         </thead>
         <tbody>
           {applications.map((app) => (
             <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
-              <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
-              <td className="py-3 px-4 text-sm">{app.name}</td>
-              <td className="py-3 px-4 text-sm">{app.birth_year}</td>
-              <td className="py-3 px-4 text-sm">{genderLabel(app.gender)}</td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">{app.phone}</td>
-              <td className="py-3 px-4 text-sm">{app.handle}</td>
-              <td className="py-3 px-4 text-sm">{app.platform}</td>
-              <td className="py-3 px-4 text-sm max-w-[220px] truncate">
+              <td className="py-3 px-4 text-micro whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
+              <td className="py-3 px-4 text-body-sm">{app.name}</td>
+              <td className="py-3 px-4 text-body-sm">{app.birth_year}</td>
+              <td className="py-3 px-4 text-body-sm">{genderLabel(app.gender)}</td>
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.phone}</td>
+              <td className="py-3 px-4 text-body-sm">{app.handle}</td>
+              <td className="py-3 px-4 text-body-sm">{app.platform}</td>
+              <td className="py-3 px-4 text-body-sm max-w-[220px] truncate">
                 <a href={app.profile_url} target="_blank" rel="noopener" className="text-glow hover:underline">
                   {app.profile_url}
                 </a>
               </td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">
                 {app.followers.toLocaleString("ko-KR")} / {app.reach.toLocaleString("ko-KR")}
               </td>
-              <td className="py-3 px-4 text-sm max-w-[180px] truncate">
+              <td className="py-3 px-4 text-body-sm max-w-[180px] truncate">
                 {app.portfolio_url ? (
                   <a href={app.portfolio_url} target="_blank" rel="noopener" className="text-glow hover:underline">
                     {app.portfolio_url}
@@ -219,9 +219,9 @@ function DatingApplicationsTable({ applications }: { applications: DatingApplica
                   <span className="text-muted">-</span>
                 )}
               </td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">{app.deliverable}</td>
-              <td className="py-3 px-4 text-sm max-w-[240px]">{app.note || <span className="text-muted">-</span>}</td>
-              <td className="py-3 px-4 text-sm whitespace-nowrap">
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.deliverable}</td>
+              <td className="py-3 px-4 text-body-sm max-w-[240px]">{app.note || <span className="text-muted">-</span>}</td>
+              <td className="py-3 px-4 text-body-sm whitespace-nowrap">
                 <AgreementBadges agreements={app.agreements} />
               </td>
             </tr>

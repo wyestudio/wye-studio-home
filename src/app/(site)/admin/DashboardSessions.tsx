@@ -99,7 +99,7 @@ export function DashboardSessions({
 
   if (tabs.length === 0) {
     return (
-      <p className="py-8 text-center text-sm text-muted">
+      <p className="py-8 text-center text-body-sm text-muted">
         등록된 테마가 없습니다. <Link href="/themes" className="underline">테마 등록</Link>
       </p>
     );
@@ -112,7 +112,7 @@ export function DashboardSessions({
           <button
             key={t.id}
             onClick={() => { setThemeId(t.id); setSelected(""); }}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-2 text-body-sm font-medium transition-colors ${
               themeId === t.id
                 ? "bg-glow text-glow-foreground"
                 : "border border-border text-muted hover:border-glow"
@@ -124,7 +124,7 @@ export function DashboardSessions({
       </div>
 
       {dateStatus.size === 0 ? (
-        <div className="rounded-lg border border-border p-8 text-center text-sm text-muted">
+        <div className="rounded-lg border border-border p-8 text-center text-body-sm text-muted">
           이 테마에 등록된 회차가 없습니다.{" "}
           <Link href="/sessions" className="underline">회차 편성</Link>에서 일정을 정해주세요.
         </div>
@@ -138,19 +138,19 @@ export function DashboardSessions({
               openingDate={null}
               onSelect={setSelected}
             />
-            <p className="mt-2 text-[11px] text-muted">
+            <p className="mt-2 text-micro text-muted">
               점이 흐린 날은 아직 공개 전인 회차만 있는 날입니다.
             </p>
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold">
+            <h3 className="mb-2 text-body-sm font-semibold">
               {date ? kstDateLabel(date) : "날짜를 선택해주세요"}
               <span className="ml-2 font-normal text-muted">{daySessions.length}회차</span>
             </h3>
 
             {daySessions.length === 0 ? (
-              <p className="rounded-lg border border-border p-6 text-center text-sm text-muted">
+              <p className="rounded-lg border border-border p-6 text-center text-body-sm text-muted">
                 이 날짜에는 회차가 없습니다.
               </p>
             ) : (
@@ -164,23 +164,23 @@ export function DashboardSessions({
                           <p className="font-semibold">
                             {kstTime(s.start_at)}
                             {s.format_label && (
-                              <span className="ml-2 rounded bg-muted/20 px-1.5 py-0.5 text-[11px] font-normal text-muted">
+                              <span className="ml-2 rounded bg-muted/20 px-1.5 py-0.5 text-micro font-normal text-muted">
                                 {s.format_label}
                               </span>
                             )}
                           </p>
-                          <p className="mt-1 text-xs text-muted">{s.capacity_line}</p>
-                          <p className="mt-1 text-xs text-muted">{s.headcount_line}</p>
-                          <p className="mt-1 text-xs text-muted">입금 확인 전 인원: {s.unpaid}명</p>
+                          <p className="mt-1 text-micro text-muted">{s.capacity_line}</p>
+                          <p className="mt-1 text-micro text-muted">{s.headcount_line}</p>
+                          <p className="mt-1 text-micro text-muted">입금 확인 전 인원: {s.unpaid}명</p>
                           {pending && s.opens_at && (
-                            <p className="mt-1 text-xs text-amber-400">
+                            <p className="mt-1 text-micro text-amber-400">
                               공개 예정: {formatDateTimeFull(s.opens_at)}
                             </p>
                           )}
                         </div>
 
                         <div className="flex shrink-0 flex-col items-end gap-2">
-                          <span className="text-sm font-medium">
+                          <span className="text-body-sm font-medium">
                             {s.status === "cancelled" ? (
                               <span className="text-red-500">비활성화</span>
                             ) : pending ? (
@@ -196,7 +196,7 @@ export function DashboardSessions({
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <Link
                           href={`/sessions/${s.id}`}
-                          className="rounded border border-border px-3 py-1.5 text-xs hover:border-glow"
+                          className="rounded border border-border px-3 py-1.5 text-micro hover:border-glow"
                         >
                           신청자 보기 →
                         </Link>

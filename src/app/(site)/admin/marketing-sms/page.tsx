@@ -26,8 +26,8 @@ export default async function MarketingSmsPage() {
         <AdminNav current="/marketing-sms" />
 
         <header className="mb-5">
-          <h1 className="text-2xl font-bold">광고 문자</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">광고 문자</h1>
+          <p className="mt-1 text-body-sm text-muted">
             이미 끝난 회차에 실제로 참여한 사람(확정·입금확인, 취소·환불 제외) 중 본인이 마케팅
             수신에 동의했고 수신거부하지 않은 사람에게 보냅니다. 동행자는 본인 동의가 없어 빠집니다.
           </p>

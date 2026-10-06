@@ -39,8 +39,8 @@ type Inquiry = {
   admin_memo: string | null;
 };
 
-const th = "px-3 py-3 text-left text-sm font-semibold";
-const td = "px-3 py-3 align-top text-sm";
+const th = "px-3 py-3 text-left text-body-sm font-semibold";
+const td = "px-3 py-3 align-top text-body-sm";
 
 export default async function AdminGroupBookingsPage() {
   const supabase = createAdminClient();
@@ -69,8 +69,8 @@ export default async function AdminGroupBookingsPage() {
           ← 돌아가기
         </Link>
 
-        <h1 className="mb-2 text-3xl font-bold">단체 예약 문의</h1>
-        <p className="mb-8 text-sm text-muted">
+        <h1 className="mb-2 text-h2 font-bold">단체 예약 문의</h1>
+        <p className="mb-8 text-body-sm text-muted">
           전체 {rows.length}건 · 미응대 {pending}건 ·{" "}
           <Link href="/group" className="text-glow hover:underline">
             고객 화면(/group)
@@ -102,20 +102,20 @@ export default async function AdminGroupBookingsPage() {
                       r.status === "new" ? "bg-brand-soft/30" : ""
                     }`}
                   >
-                    <td className={`${td} whitespace-nowrap text-xs`}>
+                    <td className={`${td} whitespace-nowrap text-micro`}>
                       {formatDateTimeFull(r.created_at)}
                     </td>
                     <td className={`${td} whitespace-nowrap font-bold`}>{r.headcount}명</td>
                     <td className={`${td} whitespace-nowrap`}>
                       {r.preferred_date ?? <span className="text-muted">날짜 미정</span>}
                       <br />
-                      <span className="text-xs text-muted">
+                      <span className="text-micro text-muted">
                         {preferredTimeLabel(r.preferred_time)}
                       </span>
                     </td>
                     <td className={`${td} whitespace-nowrap`}>{groupKindLabel(r.group_kind)}</td>
                     <td className={`${td} whitespace-nowrap`}>
-                      <span className="text-xs text-muted">
+                      <span className="text-micro text-muted">
                         {contactMethodLabel(r.contact_method)}
                       </span>
                       <br />
@@ -124,7 +124,7 @@ export default async function AdminGroupBookingsPage() {
                     <td className={`${td} max-w-[280px] whitespace-pre-line`}>
                       {r.note || <span className="text-muted">-</span>}
                     </td>
-                    <td className={`${td} max-w-[180px] text-xs text-muted`}>
+                    <td className={`${td} max-w-[180px] text-micro text-muted`}>
                       {/* 빈 칸이 곧 '직접 방문' 이다 — 그 말을 직접 적어 둔다. */}
                       {r.utm_source || r.referrer ? (
                         <>
@@ -152,7 +152,7 @@ export default async function AdminGroupBookingsPage() {
           </div>
         )}
 
-        <p className="mt-8 text-xs leading-relaxed text-muted">
+        <p className="mt-8 text-micro leading-relaxed text-muted">
           진행 상태: {INQUIRY_STATUSES.map((s) => s.label).join(" → ")}
         </p>
       </div>

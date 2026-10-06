@@ -49,7 +49,7 @@ export function PopupImageField({
 
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-medium text-muted">팝업 이미지</label>
+      <label className="mb-1.5 block text-micro font-medium text-muted">팝업 이미지</label>
 
       <div className="relative flex min-h-[10rem] w-full items-center justify-center overflow-hidden rounded-lg border border-border bg-background p-2">
         {value ? (
@@ -62,7 +62,7 @@ export function PopupImageField({
             className="h-auto max-h-[22rem] w-auto max-w-full object-contain"
           />
         ) : (
-          <span className="text-xs text-muted">등록된 이미지 없음</span>
+          <span className="text-micro text-muted">등록된 이미지 없음</span>
         )}
       </div>
 
@@ -83,7 +83,7 @@ export function PopupImageField({
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="flex-1 rounded border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+          className="flex-1 rounded border border-border px-3 py-1.5 text-micro disabled:opacity-50"
         >
           {busy ? "올리는 중…" : value ? "변경" : "이미지 올리기"}
         </button>
@@ -91,7 +91,7 @@ export function PopupImageField({
           <button
             type="button"
             onClick={() => onChange("")}
-            className="rounded border border-red-500/40 px-3 py-1.5 text-xs text-red-400"
+            className="rounded border border-red-500/40 px-3 py-1.5 text-micro text-red-400"
           >
             삭제
           </button>
@@ -99,16 +99,16 @@ export function PopupImageField({
       </div>
 
       <input
-        className="mt-2 w-full rounded border border-border bg-background px-2 py-1.5 text-[11px]"
+        className="mt-2 w-full rounded border border-border bg-background px-2 py-1.5 text-micro"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="또는 이미지 주소를 직접 붙여넣기"
       />
-      <p className="mt-1 text-[11px] text-muted">
+      <p className="mt-1 text-micro text-muted">
         JPG · PNG · WEBP · GIF, 5MB 이하. 세로로 긴 이미지(예: 가로 800 세로 1000)가 모바일에서
         잘 보입니다.
       </p>
-      {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
+      {error && <p className="mt-1 text-micro text-red-400">{error}</p>}
     </div>
   );
 }

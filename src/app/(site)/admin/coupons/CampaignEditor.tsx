@@ -57,8 +57,8 @@ function contractChanges(
   return out;
 }
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
-const label = "block text-xs text-muted mb-1";
+const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro text-muted mb-1";
 
 /** datetime-local(로컬 표기) ↔ ISO. 서버는 UTC 로 돈다. */
 function toIso(local: string): string | null {
@@ -212,7 +212,7 @@ export function CampaignEditor({
               value={form.discountValue}
               onChange={(e) => setForm({ ...form, discountValue: Number(e.target.value) })}
             />
-            <span className="text-sm text-muted">
+            <span className="text-body-sm text-muted">
               {form.discountType === "percent" ? "%" : form.discountType === "per_head" ? "원 × 인원" : "원"}
             </span>
           </div>
@@ -234,13 +234,13 @@ export function CampaignEditor({
       </div>
 
       {form.discountType === "percent" && (
-        <p className="text-xs text-muted">
+        <p className="text-micro text-muted">
           정률은 인원이 많을수록 할인액이 커집니다. 상한을 비워두면 4인 신청에서 할인액이 크게 뜁니다.
         </p>
       )}
 
       {form.discountType === "per_head" && (
-        <p className="text-xs text-muted">
+        <p className="text-micro text-muted">
           신청 인원수만큼 곱해서 깎입니다 — 1인당 1,000원이면 3인 신청은 3,000원 할인.
           할인액은 <strong className="text-foreground">신청 시점의 실제 인원</strong>으로 계산되므로,
           신청자가 화면에서 인원을 바꾸면 따라 바뀝니다. 단체 신청의 할인액이 걱정되면 최대 할인액을 걸어두세요.
@@ -294,7 +294,7 @@ export function CampaignEditor({
       </div>
 
       <div className="flex flex-wrap gap-5">
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-body-sm">
           <input
             type="checkbox"
             checked={form.isActive}
@@ -302,7 +302,7 @@ export function CampaignEditor({
           />
           사용 가능
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-body-sm">
           <input
             type="checkbox"
             checked={form.restrictToIssuedPhone}
@@ -311,7 +311,7 @@ export function CampaignEditor({
           받은 분 번호로만 사용
         </label>
       </div>
-      <label className="flex items-center gap-2 text-sm">
+      <label className="flex items-center gap-2 text-body-sm">
         <input
           type="checkbox"
           checked={form.stackable}
@@ -325,7 +325,7 @@ export function CampaignEditor({
         쿠폰과 같은 자리에서 켜고 끈다(2026-09-16). 쿠폰을 끄거나 기간이 지나면 같이 사라진다.
       */}
       <div className="rounded border border-border p-3">
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-body-sm">
           <input
             type="checkbox"
             checked={form.showEventBubble}
@@ -349,7 +349,7 @@ export function CampaignEditor({
               onChange={(e) => setForm({ ...form, eventBubbleUrl: e.target.value })}
               placeholder="https://www.instagram.com/p/..."
             />
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-micro text-muted">
               방문자가 X 로 닫으면 그 방문 동안은 안 뜨고, 사이트에 다시 들어오면 또 보입니다.
               쿠폰을 &lsquo;사용 중지&rsquo; 하거나 사용 기간이 지나면 말풍선도 같이 사라져요.
               <br />
@@ -359,7 +359,7 @@ export function CampaignEditor({
         )}
       </div>
 
-      <p className="text-xs text-muted">
+      <p className="text-micro text-muted">
         &lsquo;받은 분 번호로만&rsquo;을 켜면 양도가 막힙니다. 지인에게 선물하는 쿠폰이면 꺼두세요.
         <br />
         &lsquo;중복 사용 가능&rsquo;은 <strong className="text-foreground">겹쳐 쓸 쿠폰끼리 모두</strong>{" "}
@@ -367,7 +367,7 @@ export function CampaignEditor({
         두 장 쓰는 건 언제나 막힙니다.
       </p>
 
-      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
 
       {/*
         계약으로 묶인 쿠폰의 조건을 바꿀 때만 뜬다.
@@ -379,12 +379,12 @@ export function CampaignEditor({
           <p className="font-semibold text-amber-300">
             ⚠️ 이 쿠폰은 잼핏(ZAMFIT) 제휴계약으로 조건이 정해져 있습니다
           </p>
-          <p className="mt-1.5 text-sm text-muted">
+          <p className="mt-1.5 text-body-sm text-muted">
             계약 제6조 7항 — <strong className="text-foreground">&ldquo;쿠폰 사용조건 또는 할인금액의
             변경은 양 당사자의 서면 합의로 정한다&rdquo;</strong>. 합의 없이 바꾸면 그 자체가 계약
             위반이 될 수 있습니다.
           </p>
-          <ul className="mt-3 space-y-1 text-sm">
+          <ul className="mt-3 space-y-1 text-body-sm">
             {confirmChanges.map((c) => (
               <li key={c} className="text-amber-200">· {c}</li>
             ))}
@@ -393,14 +393,14 @@ export function CampaignEditor({
             <button
               onClick={() => save({ ...form, validFrom: toIso(from), validUntil: toIso(until) })}
               disabled={busy}
-              className="rounded border border-amber-400/50 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-200 disabled:opacity-50"
+              className="rounded border border-amber-400/50 bg-amber-400/10 px-4 py-2 text-body-sm font-semibold text-amber-200 disabled:opacity-50"
             >
               {busy ? "저장 중…" : "합의됐습니다 — 변경"}
             </button>
             <button
               onClick={() => setConfirmChanges(null)}
               disabled={busy}
-              className="rounded border border-border px-4 py-2 text-sm disabled:opacity-50"
+              className="rounded border border-border px-4 py-2 text-body-sm disabled:opacity-50"
             >
               취소
             </button>
@@ -412,7 +412,7 @@ export function CampaignEditor({
         <button
           onClick={requestSubmit}
           disabled={busy}
-          className="rounded bg-glow px-4 py-2 text-sm font-semibold text-glow-foreground disabled:opacity-50"
+          className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           {busy ? "저장 중…" : form.id ? "저장" : "쿠폰 만들기"}
         </button>
@@ -420,13 +420,13 @@ export function CampaignEditor({
           <button
             onClick={remove}
             disabled={busy}
-            className="rounded border border-red-500/40 px-4 py-2 text-sm text-red-400 disabled:opacity-50"
+            className="rounded border border-red-500/40 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
           >
             삭제
           </button>
         )}
         {onDone && (
-          <button onClick={onDone} className="rounded border border-border px-4 py-2 text-sm text-muted">
+          <button onClick={onDone} className="rounded border border-border px-4 py-2 text-body-sm text-muted">
             닫기
           </button>
         )}

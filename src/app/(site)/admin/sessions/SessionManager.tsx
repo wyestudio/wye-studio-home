@@ -8,8 +8,8 @@ import { nextOpening, todayKst } from "@/lib/scheduleRules";
 import { saveSchedule, type ScheduleInput } from "./actions";
 import { formatDateFull, formatDateTimeFull } from "@/lib/format";
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
-const label = "block text-xs font-medium text-muted mb-1";
+const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-medium text-muted mb-1";
 
 /** 행성 로고를 안 올린 테마가 쓰는 기본 그림. 고객 화면과 같은 규칙. */
 const FALLBACK_LOGO = "/logo-white.png";
@@ -107,7 +107,7 @@ export function SessionManager({
 
   if (themes.length === 0) {
     return (
-      <div className="rounded-lg border border-border p-6 text-center text-sm text-muted">
+      <div className="rounded-lg border border-border p-6 text-center text-body-sm text-muted">
         등록된 테마가 없습니다. <strong>테마</strong> 메뉴에서 먼저 등록해주세요.
       </div>
     );
@@ -135,8 +135,8 @@ export function SessionManager({
                 />
               </div>
               <div className="border-t border-border p-3">
-                <p className="truncate text-sm font-medium">{t.name}</p>
-                <p className="mt-0.5 text-[11px] text-muted">
+                <p className="truncate text-body-sm font-medium">{t.name}</p>
+                <p className="mt-0.5 text-micro text-muted">
                   {s
                     ? `${s.weekdays.map((w) => WEEKDAYS[w].label).join("·")} · ${s.times.length}회차`
                     : "편성 없음"}
@@ -159,7 +159,7 @@ export function SessionManager({
     <div className="space-y-4">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-sm ${
+          className={`rounded border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -170,7 +170,7 @@ export function SessionManager({
       <div className="flex items-center gap-3">
         <button
           onClick={() => { setThemeId(null); setDraft(null); }}
-          className="rounded border border-border px-3 py-1.5 text-xs"
+          className="rounded border border-border px-3 py-1.5 text-micro"
         >
           ← 테마 목록
         </button>
@@ -178,7 +178,7 @@ export function SessionManager({
       </div>
 
       <div className="rounded-lg border border-border p-4 space-y-4">
-        <h3 className="text-sm font-semibold">언제 진행하나</h3>
+        <h3 className="text-body-sm font-semibold">언제 진행하나</h3>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -188,7 +188,7 @@ export function SessionManager({
               value={draft.start_date}
               onChange={(e) => patch({ start_date: e.target.value })}
             />
-            <p className="mt-1 text-[11px] text-muted">이 날짜부터 반복합니다. 지난 날짜는 만들지 않습니다.</p>
+            <p className="mt-1 text-micro text-muted">이 날짜부터 반복합니다. 지난 날짜는 만들지 않습니다.</p>
           </div>
           <div>
             <label className={label}>종료일</label>
@@ -197,7 +197,7 @@ export function SessionManager({
               value={draft.end_date ?? ""}
               onChange={(e) => patch({ end_date: e.target.value || null })}
             />
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-micro text-muted">
               이 날짜까지만 만듭니다. <strong>비우면 계속 반복</strong>합니다.
             </p>
           </div>
@@ -215,7 +215,7 @@ export function SessionManager({
                         : [...draft.weekdays, d.v].sort(),
                     })
                   }
-                  className={`h-9 w-9 rounded text-sm ${
+                  className={`h-9 w-9 rounded text-body-sm ${
                     draft.weekdays.includes(d.v)
                       ? "bg-glow text-glow-foreground"
                       : "border border-border text-muted"
@@ -235,7 +235,7 @@ export function SessionManager({
               <div key={i} className="flex items-center gap-1">
                 <input
                   type="time"
-                  className="rounded border border-border bg-background px-2 py-2 text-sm"
+                  className="rounded border border-border bg-background px-2 py-2 text-body-sm"
                   value={t}
                   onChange={(e) => {
                     const next = [...draft.times];
@@ -246,7 +246,7 @@ export function SessionManager({
                 <button
                   type="button"
                   onClick={() => patch({ times: draft.times.filter((_, x) => x !== i) })}
-                  className="rounded border border-red-500/50 px-2 py-2 text-xs text-red-400"
+                  className="rounded border border-red-500/50 px-2 py-2 text-micro text-red-400"
                 >
                   ✕
                 </button>
@@ -255,19 +255,19 @@ export function SessionManager({
             <button
               type="button"
               onClick={() => patch({ times: [...draft.times, "11:30"] })}
-              className="rounded border border-border px-3 py-2 text-xs"
+              className="rounded border border-border px-3 py-2 text-micro"
             >
               + 시각 추가
             </button>
           </div>
-          <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+          <div className="mt-2 flex flex-wrap gap-2 text-micro">
             {times.map((t, i) => (
               <span key={i} className="rounded bg-muted/15 px-2 py-0.5 text-muted">
                 {t} → 만 {defaultMinAge(t, theme.duration_minutes, theme.min_age_floor)}세 이상
               </span>
             ))}
           </div>
-          <p className="mt-1 text-[11px] text-muted">
+          <p className="mt-1 text-micro text-muted">
             최소 연령은 <strong>종료 시각</strong>으로 자동 결정됩니다 —{" "}
             <strong>22:00 이전 종료 만 16세 / 이후 종료 만 19세</strong> (약관 제9조)
             {theme.min_age_floor ? ` (이 테마는 최소 ${theme.min_age_floor}세)` : ""}.
@@ -276,8 +276,8 @@ export function SessionManager({
       </div>
 
       <div className="rounded-lg border border-border p-4 space-y-4">
-        <h3 className="text-sm font-semibold">언제 신청을 여나</h3>
-        <p className="text-xs text-muted">
+        <h3 className="text-body-sm font-semibold">언제 신청을 여나</h3>
+        <p className="text-micro text-muted">
           일정을 한꺼번에 다 열지 않고, 회차일이 가까워지면 하나씩 엽니다.
         </p>
 
@@ -296,7 +296,7 @@ export function SessionManager({
               <button
                 type="button"
                 onClick={() => patch({ open_weekday: null })}
-                className={`h-9 rounded px-2.5 text-sm ${
+                className={`h-9 rounded px-2.5 text-body-sm ${
                   draft.open_weekday === null
                     ? "bg-glow text-glow-foreground"
                     : "border border-border text-muted"
@@ -309,7 +309,7 @@ export function SessionManager({
                   key={d.v}
                   type="button"
                   onClick={() => patch({ open_weekday: d.v })}
-                  className={`h-9 w-9 rounded text-sm ${
+                  className={`h-9 w-9 rounded text-body-sm ${
                     draft.open_weekday === d.v
                       ? "bg-glow text-glow-foreground"
                       : "border border-border text-muted"
@@ -319,7 +319,7 @@ export function SessionManager({
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-micro text-muted">
               {draft.open_weekday === null
                 ? "회차마다 정확히 N주 전에 하나씩 열립니다."
                 : "N주 전에서 이 요일로 되감아 한꺼번에 엽니다 (일부는 더 일찍 열림)."}
@@ -336,7 +336,7 @@ export function SessionManager({
         </div>
 
         {/* 규칙이 의도대로 걸렸는지는 말보다 실제 날짜를 보여주는 게 빠르다. */}
-        <div className="rounded bg-muted/10 p-3 text-xs">
+        <div className="rounded bg-muted/10 p-3 text-micro">
           {next ? (
             <>
               <p className="font-medium">
@@ -353,7 +353,7 @@ export function SessionManager({
       </div>
 
       {saved?.generated_until && (
-        <p className="text-xs text-muted">
+        <p className="text-micro text-muted">
           현재 <strong className="text-foreground">{saved.generated_until}</strong>까지 회차가 만들어져 있습니다.
           기간이 다 되기 전에 이 화면에서 다시 저장하면 연장됩니다.
         </p>
@@ -363,11 +363,11 @@ export function SessionManager({
         <button
           onClick={submit}
           disabled={pending}
-          className="rounded bg-glow px-4 py-2 text-sm text-glow-foreground disabled:opacity-50"
+          className="rounded bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
         >
           {pending ? "저장 중…" : "저장하고 회차 만들기"}
         </button>
-        <span className="text-xs text-muted">
+        <span className="text-micro text-muted">
           이미 있는 회차는 그대로 둡니다. 신청이 붙어 있을 수 있어서요.
         </span>
       </div>

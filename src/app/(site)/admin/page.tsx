@@ -196,11 +196,11 @@ export default async function AdminDashboard() {
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/" />
 
-        <h1 className="mb-6 text-2xl font-bold">대시보드</h1>
+        <h1 className="mb-6 text-h2 font-bold">대시보드</h1>
 
         {/* ── 처리 대기 ── */}
         <section className="mb-6">
-          <h2 className="mb-2 text-sm font-semibold text-muted">처리 대기</h2>
+          <h2 className="mb-2 text-body-sm font-semibold text-muted">처리 대기</h2>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
             {todo.map((t) => (
               <Link
@@ -208,10 +208,10 @@ export default async function AdminDashboard() {
                 href={t.href}
                 className="rounded-lg border border-border p-4 transition-colors hover:bg-muted/10"
               >
-                <p className="text-xs text-muted">{t.label}</p>
-                <p className={`mt-1 text-2xl font-bold ${t.count > 0 ? toneClass[t.tone] : "text-muted"}`}>
+                <p className="text-micro text-muted">{t.label}</p>
+                <p className={`mt-1 text-h2 font-bold ${t.count > 0 ? toneClass[t.tone] : "text-muted"}`}>
                   {t.count}
-                  <span className="ml-1 text-sm font-normal text-muted">건</span>
+                  <span className="ml-1 text-body-sm font-normal text-muted">건</span>
                 </p>
               </Link>
             ))}
@@ -220,17 +220,17 @@ export default async function AdminDashboard() {
 
         {/* ── 이번 주 ── */}
         <section className="mb-8 rounded-lg border border-border p-4">
-          <h2 className="mb-2 text-sm font-semibold text-muted">최근 7일</h2>
-          <p className="text-sm">
+          <h2 className="mb-2 text-body-sm font-semibold text-muted">최근 7일</h2>
+          <p className="text-body-sm">
             신청 <strong>{recentApps.length}건</strong> · 참여 인원 <strong>{recentPeople}명</strong>
           </p>
           {upcoming.length > 0 ? (
-            <p className="mt-2 text-sm text-muted">
+            <p className="mt-2 text-body-sm text-muted">
               다가오는 회차: <strong className="text-foreground">{formatDateTimeFull(upcoming[0].start_at)}</strong>
               {upcoming.length > 1 && ` 외 ${upcoming.length - 1}건`}
             </p>
           ) : (
-            <p className="mt-2 text-sm text-amber-400">
+            <p className="mt-2 text-body-sm text-amber-400">
               예정된 회차가 없습니다. <Link href="/sessions" className="underline">회차 열기</Link>
             </p>
           )}
@@ -239,8 +239,8 @@ export default async function AdminDashboard() {
         {/* ── 회차 ── */}
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-muted">회차</h2>
-            <Link href="/sessions" className="text-xs text-glow underline">
+            <h2 className="text-body-sm font-semibold text-muted">회차</h2>
+            <Link href="/sessions" className="text-micro text-glow underline">
               회차 편성 →
             </Link>
           </div>
@@ -253,7 +253,7 @@ export default async function AdminDashboard() {
           />
         </section>
 
-        <p className="mt-8 text-center text-xs text-muted">
+        <p className="mt-8 text-center text-micro text-muted">
           매출·정산, 고객 관리, 공지·FAQ 편집은 준비 중입니다.
         </p>
       </div>

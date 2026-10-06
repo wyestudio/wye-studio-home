@@ -95,8 +95,8 @@ export default async function AuditLogPage() {
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/audit" />
 
-        <h1 className="mb-1 text-2xl font-bold">감사로그</h1>
-        <p className="mb-6 text-sm text-muted">
+        <h1 className="mb-1 text-h2 font-bold">감사로그</h1>
+        <p className="mb-6 text-body-sm text-muted">
           어드민에서 실행한 되돌리기 어려운 작업의 기록입니다. 최근 {PAGE_SIZE}건까지 보여줍니다.
           {" "}
           <span className="text-amber-400">
@@ -109,14 +109,14 @@ export default async function AuditLogPage() {
         ) : rows.length === 0 ? (
           <div className="rounded-lg border border-border p-10 text-center">
             <p className="font-semibold">아직 기록이 없습니다.</p>
-            <p className="mt-2 text-sm text-muted">
+            <p className="mt-2 text-body-sm text-muted">
               입금 확인·취소·환불 완료 같은 작업을 하면 여기에 쌓입니다.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
             <table className="w-full min-w-[56rem] text-left">
-              <thead className="border-b border-border text-xs text-muted">
+              <thead className="border-b border-border text-micro text-muted">
                 <tr>
                   <th className="px-4 py-3 font-medium">시각</th>
                   <th className="px-4 py-3 font-medium">작업</th>
@@ -130,21 +130,21 @@ export default async function AuditLogPage() {
                   const ip = typeof r.detail?.ip === "string" ? r.detail.ip : "-";
                   return (
                     <tr key={r.id} className="border-b border-border/50 last:border-0">
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-muted">
+                      <td className="whitespace-nowrap px-4 py-3 text-body-sm text-muted">
                         {formatDateTimeFull(r.created_at)}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm">
+                      <td className="whitespace-nowrap px-4 py-3 text-body-sm">
                         <span className={HEAVY.has(r.action) ? "font-semibold text-amber-400" : ""}>
                           {ACTION_LABEL[r.action] ?? r.action}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm">{r.summary ?? "-"}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">
+                      <td className="px-4 py-3 text-body-sm">{r.summary ?? "-"}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-micro text-muted">
                         {r.target_type}
                         <br />
                         <span className="font-mono">{r.target_id.slice(0, 8)}</span>
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted">{ip}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-micro text-muted">{ip}</td>
                     </tr>
                   );
                 })}

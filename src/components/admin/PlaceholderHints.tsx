@@ -40,7 +40,7 @@ export function PlaceholderHints({
               onMouseEnter={() => setHovered(key)}
               onMouseLeave={() => setHovered((h) => (h === key ? null : h))}
               onClick={() => handleCopy(key)}
-              className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-xs text-glow transition-colors hover:border-brand"
+              className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-micro text-glow transition-colors hover:border-brand"
             >
               {copied === key ? "복사됨!" : `{{${key}}}`}
             </button>
@@ -51,7 +51,7 @@ export function PlaceholderHints({
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 8, scale: 0.96 }}
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
-                  className="glass-panel pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[220px] -translate-x-1/2 rounded-lg px-3 py-2 text-xs"
+                  className="glass-panel pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-max max-w-[220px] -translate-x-1/2 rounded-lg px-3 py-2 text-micro"
                 >
                   {label && <p className="font-semibold text-foreground">{label}</p>}
                   {/* 빈 값이 정상인 변수도 있어서 '(빈 값)' 으로 구분해 보여준다. */}

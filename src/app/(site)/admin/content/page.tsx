@@ -35,8 +35,8 @@ export default async function AdminContentPage() {
         <AdminNav current="/content" />
 
         <header className="mb-5">
-          <h1 className="text-2xl font-bold">공지 · FAQ</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">공지 · FAQ</h1>
+          <p className="mt-1 text-body-sm text-muted">
             여기서 고치면 배포 없이 바로 사이트에 반영됩니다. 고객에게는{" "}
             <a href="/notice" className="text-glow underline" target="_blank" rel="noopener noreferrer">
               Notice 페이지

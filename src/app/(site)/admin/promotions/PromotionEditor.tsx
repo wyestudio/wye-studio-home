@@ -43,8 +43,8 @@ export type ThemeOption = {
   tiers: { min_headcount: number; unit_price_krw: number }[];
 };
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
-const label = "block text-xs font-medium text-muted mb-1";
+const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-medium text-muted mb-1";
 const section = "rounded-lg border border-border p-4 space-y-3";
 
 /** timestamptz → datetime-local 칸에 넣을 'YYYY-MM-DDTHH:mm' (KST). */
@@ -181,7 +181,7 @@ export function PromotionEditor({
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-sm ${
+          className={`rounded border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -192,7 +192,7 @@ export function PromotionEditor({
       <div className="flex justify-end">
         <button
           onClick={() => setEditing(emptyInput())}
-          className="rounded bg-glow px-3 py-2 text-sm text-white"
+          className="rounded bg-glow px-3 py-2 text-body-sm text-white"
         >
           + 프로모션 추가
         </button>
@@ -203,7 +203,7 @@ export function PromotionEditor({
           <h2 className="font-semibold">{editing.id ? "프로모션 수정" : "새 프로모션"}</h2>
 
           <div className={section}>
-            <h3 className="text-sm font-semibold">기본</h3>
+            <h3 className="text-body-sm font-semibold">기본</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <label className={label}>이름 (어드민·신청 기록용)</label>
@@ -224,7 +224,7 @@ export function PromotionEditor({
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-body-sm">
               <input
                 type="checkbox"
                 checked={editing.is_active}
@@ -235,8 +235,8 @@ export function PromotionEditor({
           </div>
 
           <div className={section}>
-            <h3 className="text-sm font-semibold">적용 조건</h3>
-            <p className="text-xs text-muted">
+            <h3 className="text-body-sm font-semibold">적용 조건</h3>
+            <p className="text-micro text-muted">
               셋을 <strong>모두</strong> 만족해야 할인이 붙습니다. 비운 칸은 제한 없음입니다.
             </p>
 
@@ -307,7 +307,7 @@ export function PromotionEditor({
 
             {/* 회차 범위를 비워 두면 1년 치 회차가 전부 대상이 된다. 실제로 겪기 전에 알린다. */}
             {!editing.session_from && !editing.session_to && (
-              <p className="rounded border border-amber-500/50 px-3 py-2 text-xs text-amber-300">
+              <p className="rounded border border-amber-500/50 px-3 py-2 text-micro text-amber-300">
                 회차 진행일 범위를 비우면 <strong>앞으로 열린 모든 회차</strong>가 대상이 됩니다.
                 회차는 1년 치가 미리 열려 있습니다.
               </p>
@@ -315,8 +315,8 @@ export function PromotionEditor({
           </div>
 
           <div className={section}>
-            <h3 className="text-sm font-semibold">얼리버드 금액 (인당)</h3>
-            <p className="text-xs text-muted">
+            <h3 className="text-body-sm font-semibold">얼리버드 금액 (인당)</h3>
+            <p className="text-micro text-muted">
               해당 인원 <strong>이상</strong>일 때 적용되며, 조건을 만족하는 구간 중 가장 큰 것이
               쓰입니다. <strong>구간을 하나도 넣지 않은 테마는 기본가 그대로</strong>입니다.
             </p>
@@ -378,7 +378,7 @@ export function PromotionEditor({
                     </div>
 
                     {/* 기본가 대비 얼마나 싼지. 저장 전에 눈으로 확인할 수 있어야 한다. */}
-                    <div className="min-w-[10rem] pb-2 text-xs">
+                    <div className="min-w-[10rem] pb-2 text-micro">
                       {base === null ? (
                         <span className="text-amber-300">이 인원의 기본 요금이 없습니다</span>
                       ) : off > 0 ? (
@@ -395,7 +395,7 @@ export function PromotionEditor({
 
                     <button
                       onClick={() => patch({ tiers: editing.tiers.filter((_, x) => x !== i) })}
-                      className="rounded border border-red-500/50 px-2.5 py-2 text-xs text-red-400"
+                      className="rounded border border-red-500/50 px-2.5 py-2 text-micro text-red-400"
                     >
                       삭제
                     </button>
@@ -417,14 +417,14 @@ export function PromotionEditor({
                   ],
                 })
               }
-              className="rounded border border-border px-3 py-1.5 text-xs"
+              className="rounded border border-border px-3 py-1.5 text-micro"
             >
               + 구간 추가
             </button>
           </div>
 
           <div className={section}>
-            <h3 className="text-sm font-semibold">회차 선택 배너 문구</h3>
+            <h3 className="text-body-sm font-semibold">회차 선택 배너 문구</h3>
             <div>
               <label className={label}>제목</label>
               <input
@@ -469,13 +469,13 @@ export function PromotionEditor({
             <button
               onClick={submit}
               disabled={pending}
-              className="rounded bg-glow px-4 py-2 text-sm text-white disabled:opacity-50"
+              className="rounded bg-glow px-4 py-2 text-body-sm text-white disabled:opacity-50"
             >
               {pending ? "저장 중…" : "저장"}
             </button>
             <button
               onClick={() => setEditing(null)}
-              className="rounded border border-border px-4 py-2 text-sm"
+              className="rounded border border-border px-4 py-2 text-body-sm"
             >
               취소
             </button>
@@ -485,7 +485,7 @@ export function PromotionEditor({
 
       <div className="space-y-2">
         {promotions.length === 0 && (
-          <p className="rounded-lg border border-border p-6 text-center text-sm text-muted">
+          <p className="rounded-lg border border-border p-6 text-center text-body-sm text-muted">
             등록된 프로모션이 없습니다.
           </p>
         )}
@@ -502,14 +502,14 @@ export function PromotionEditor({
               <p className="font-semibold">
                 {p.name}{" "}
                 <span
-                  className={`ml-1 rounded px-1.5 py-0.5 text-[11px] ${
+                  className={`ml-1 rounded px-1.5 py-0.5 text-micro ${
                     p.is_active ? "bg-glow text-white" : "bg-muted/20 text-muted"
                   }`}
                 >
                   {p.is_active ? "켜짐" : "꺼짐"}
                 </span>
               </p>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-micro text-muted">
                 회차 {p.session_from ?? "제한 없음"} ~ {p.session_to ?? "제한 없음"} · 진행일{" "}
                 {p.days_before}일 전까지 · 접수{" "}
                 {p.applies_until ? `${isoToKstLocal(p.applies_until)} 까지` : "종료일 없음"} ·
@@ -519,20 +519,20 @@ export function PromotionEditor({
             <button
               onClick={() => toggle(p.id, !p.is_active, p.name)}
               disabled={pending}
-              className="rounded border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+              className="rounded border border-border px-3 py-1.5 text-micro disabled:opacity-50"
             >
               {p.is_active ? "끄기" : "켜기"}
             </button>
             <button
               onClick={() => setEditing(toInput(p))}
-              className="rounded border border-border px-3 py-1.5 text-xs"
+              className="rounded border border-border px-3 py-1.5 text-micro"
             >
               수정
             </button>
             <button
               onClick={() => remove(p.id, p.name)}
               disabled={pending}
-              className="rounded border border-red-500/50 px-3 py-1.5 text-xs text-red-400 disabled:opacity-50"
+              className="rounded border border-red-500/50 px-3 py-1.5 text-micro text-red-400 disabled:opacity-50"
             >
               삭제
             </button>

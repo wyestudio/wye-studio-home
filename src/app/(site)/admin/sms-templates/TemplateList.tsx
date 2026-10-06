@@ -20,7 +20,7 @@ export type TemplateRow = {
   updatedAt: string;
 };
 
-const field = "rounded border border-border bg-background px-3 py-2 text-sm";
+const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
 
 const LABELS = Object.fromEntries(
   Object.entries(PLACEHOLDER_INFO).map(([k, v]) => [k, v.label])
@@ -51,7 +51,7 @@ export function TemplateList({
     <>
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-border p-4">
         <div>
-          <label className="mb-1 block text-xs text-muted">미리보기 기준 테마</label>
+          <label className="mb-1 block text-micro text-muted">미리보기 기준 테마</label>
           <select className={field} value={themeId} onChange={(e) => setThemeId(e.target.value)}>
             {themes.map((t) => (
               <option key={t.id} value={t.id}>
@@ -61,7 +61,7 @@ export function TemplateList({
           </select>
         </div>
         {theme && (
-          <p className="self-end pb-2 text-xs text-muted">
+          <p className="self-end pb-2 text-micro text-muted">
             가격·소요시간·장소·일시는 <strong className="text-foreground">{theme.name}</strong> 의
             실제 값입니다 — {theme.basis}.
           </p>

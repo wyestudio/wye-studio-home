@@ -55,7 +55,7 @@ export function ApplicationDetailDialog({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="font-mono text-sm text-glow hover:underline"
+        className="font-mono text-body-sm text-glow hover:underline"
       >
         {application.confirmation_code}
       </button>
@@ -70,7 +70,7 @@ export function ApplicationDetailDialog({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">
-              <h2 className="text-lg font-bold text-foreground">신청 상세 · {application.confirmation_code}</h2>
+              <h2 className="text-h3 font-bold text-foreground">신청 상세 · {application.confirmation_code}</h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -82,7 +82,7 @@ export function ApplicationDetailDialog({
             </div>
 
             <section className="mb-5">
-              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">신청 정보</h3>
+              <h3 className="mb-2 text-micro font-bold uppercase tracking-wide text-muted">신청 정보</h3>
               <div className="rounded-lg border border-border p-3">
                 <InfoRow label="입금자명" value={application.depositor_name} />
                 <InfoRow label="신청일시" value={formatDateTimeFull(application.created_at)} />
@@ -125,7 +125,7 @@ export function ApplicationDetailDialog({
 
             {application.refund_bank_name && (
               <section className="mb-5">
-                <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">환불 계좌</h3>
+                <h3 className="mb-2 text-micro font-bold uppercase tracking-wide text-muted">환불 계좌</h3>
                 <div className="rounded-lg border border-border p-3">
                   <InfoRow label="은행" value={application.refund_bank_name} />
                   <InfoRow label="예금주" value={application.refund_account_holder || "-"} />
@@ -135,14 +135,14 @@ export function ApplicationDetailDialog({
             )}
 
             <section>
-              <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">
+              <h3 className="mb-2 text-micro font-bold uppercase tracking-wide text-muted">
                 참여자 ({sortedAttendees.length}명)
               </h3>
               <div className="flex flex-col gap-3">
                 {sortedAttendees.map((attendee) => (
                   <div key={attendee.id} className="rounded-lg border border-border p-3">
                     {attendee.is_representative && (
-                      <span className="mb-1 inline-block rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand">
+                      <span className="mb-1 inline-block rounded-full bg-brand-soft px-2 py-0.5 text-micro font-bold text-brand">
                         대표 신청자
                       </span>
                     )}

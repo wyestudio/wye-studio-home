@@ -23,7 +23,7 @@ export type PickerSession = {
   note?: string | null;
 };
 
-const field = "rounded border border-border bg-background px-3 py-2 text-sm";
+const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
 
 /** ISO(UTC) → KST 기준 'YYYY-MM-DD'. `<input type="date">` 가 쓰는 형식이다. */
 export function kstDate(iso: string): string {
@@ -97,7 +97,7 @@ export function SessionPicker({
   return (
     <>
       <div>
-        <label className="mb-1 block text-xs text-muted">테마</label>
+        <label className="mb-1 block text-micro text-muted">테마</label>
         <select className={field} value={themeKey} onChange={(e) => pickTheme(e.target.value)}>
           <option value="">테마 선택</option>
           {themes.map((t) => (
@@ -109,7 +109,7 @@ export function SessionPicker({
       </div>
 
       <div>
-        <label className="mb-1 block text-xs text-muted">날짜</label>
+        <label className="mb-1 block text-micro text-muted">날짜</label>
         <input
           type="date"
           className={field}
@@ -124,7 +124,7 @@ export function SessionPicker({
 
       {date && onDate.length > 0 && (
         <div>
-          <label className="mb-1 block text-xs text-muted">회차</label>
+          <label className="mb-1 block text-micro text-muted">회차</label>
           <select className={field} value={value} onChange={(e) => onChange(e.target.value)}>
             {onDate.map((s) => (
               <option key={s.id} value={s.id}>
@@ -137,7 +137,7 @@ export function SessionPicker({
       )}
 
       {date && onDate.length === 0 && (
-        <span className="self-end pb-2 text-sm text-muted">그날 회차가 없습니다</span>
+        <span className="self-end pb-2 text-body-sm text-muted">그날 회차가 없습니다</span>
       )}
     </>
   );

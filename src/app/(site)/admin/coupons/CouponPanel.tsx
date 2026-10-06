@@ -8,7 +8,7 @@ import { formatCouponCode } from "@/lib/coupon";
 import { formatKrw, formatDateFull } from "@/lib/format";
 import { toCsv, downloadCsv, kstStamp, parseCsv, readCsvFile, findIssueColumns } from "@/lib/csv";
 
-const field = "rounded border border-border bg-background px-3 py-2 text-sm";
+const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
 
 export type CouponRow = {
   id: string;
@@ -155,7 +155,7 @@ export function CouponPanel({
             setAdding((v) => !v);
             setOpenId(null);
           }}
-          className="rounded border border-border px-3 py-1.5 text-sm"
+          className="rounded border border-border px-3 py-1.5 text-body-sm"
         >
           {adding ? "취소" : "+ 쿠폰 종류 만들기"}
         </button>
@@ -168,7 +168,7 @@ export function CouponPanel({
       )}
 
       {campaigns.length === 0 ? (
-        <div className="rounded-lg border border-border py-16 text-center text-sm text-muted">
+        <div className="rounded-lg border border-border py-16 text-center text-body-sm text-muted">
           아직 만든 쿠폰이 없습니다.
         </div>
       ) : (
@@ -182,18 +182,18 @@ export function CouponPanel({
                   <div className="min-w-0">
                     <p className="font-semibold">
                       {c.name}
-                      {!c.is_active && <span className="ml-2 text-xs text-amber-400">중지됨</span>}
+                      {!c.is_active && <span className="ml-2 text-micro text-amber-400">중지됨</span>}
                       {c.restrict_to_issued_phone && (
-                        <span className="ml-2 text-xs text-muted">본인 전용</span>
+                        <span className="ml-2 text-micro text-muted">본인 전용</span>
                       )}
                     </p>
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-0.5 text-micro text-muted">
                       {discountLabel(c)} · {periodLabel(c)}
                       {c.stackable && <span className="ml-1.5 text-glow">· 중복 사용 가능</span>}
                     </p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="text-sm">
+                    <p className="text-body-sm">
                       <strong>{mine.length}</strong>장 발급
                       <span className="ml-2 text-muted">
                         {used}장 사용 · {mine.length - used}장 남음
@@ -205,7 +205,7 @@ export function CouponPanel({
                         setOpenId(null);
                         setIssued(null);
                       }}
-                      className="rounded border border-border px-3 py-1.5 text-xs"
+                      className="rounded border border-border px-3 py-1.5 text-micro"
                     >
                       코드
                     </button>
@@ -214,7 +214,7 @@ export function CouponPanel({
                         setOpenId(openId === c.id ? null : c.id);
                         setCodesFor(null);
                       }}
-                      className="rounded border border-border px-3 py-1.5 text-xs"
+                      className="rounded border border-border px-3 py-1.5 text-micro"
                     >
                       수정
                     </button>
@@ -231,7 +231,7 @@ export function CouponPanel({
                   <div className="border-t border-border p-4">
                     <div className="mb-3 flex flex-wrap items-end gap-2">
                       <div>
-                        <label className="block text-xs text-muted mb-1">발급 수량</label>
+                        <label className="block text-micro text-muted mb-1">발급 수량</label>
                         <input
                           type="number"
                           className={`${field} w-24`}
@@ -240,7 +240,7 @@ export function CouponPanel({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-muted mb-1">앞글자</label>
+                        <label className="block text-micro text-muted mb-1">앞글자</label>
                         <input
                           className={`${field} w-20 uppercase`}
                           value={prefix}
@@ -250,7 +250,7 @@ export function CouponPanel({
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-muted mb-1">메모</label>
+                        <label className="block text-micro text-muted mb-1">메모</label>
                         <input
                           className={`${field} w-32`}
                           value={issueLabel}
@@ -261,27 +261,27 @@ export function CouponPanel({
                       <button
                         onClick={() => issue(c.id)}
                         disabled={busy || count < 1}
-                        className="rounded bg-glow px-4 py-2 text-sm font-semibold text-glow-foreground disabled:opacity-50"
+                        className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
                       >
                         {busy ? "발급 중…" : `${count}장 발급`}
                       </button>
                     </div>
-                    <p className="mb-3 text-xs text-muted">
+                    <p className="mb-3 text-micro text-muted">
                       혼동하기 쉬운 글자(I·L·O·U)를 뺀 8자리로 만듭니다. 앞글자로 종류를 구분할 수 있어요.
                     </p>
 
                     {error && (
-                      <p className="mb-3 rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>
+                      <p className="mb-3 rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>
                     )}
                     {issued && (
                       <div className="mb-3 rounded bg-glow/10 p-3">
-                        <p className="mb-2 text-sm text-glow">{issued.length}장 발급했습니다.</p>
+                        <p className="mb-2 text-body-sm text-glow">{issued.length}장 발급했습니다.</p>
                         <textarea
                           readOnly
-                          className="h-24 w-full rounded border border-border bg-background p-2 font-mono text-xs"
+                          className="h-24 w-full rounded border border-border bg-background p-2 font-mono text-micro"
                           value={issued.map(formatCouponCode).join("\n")}
                         />
-                        <p className="mt-1 text-xs text-muted">
+                        <p className="mt-1 text-micro text-muted">
                           복사해서 발송에 쓰세요. 이 목록은 아래 표에서 다시 볼 수 있습니다.
                         </p>
                       </div>
@@ -296,8 +296,8 @@ export function CouponPanel({
                     */}
                     {c.key && (
                       <div className="mb-3 rounded border border-border bg-background/40 p-3">
-                        <p className="text-xs font-semibold">발송 기록 CSV 반영</p>
-                        <p className="mt-1 text-[11px] text-muted">
+                        <p className="text-micro font-semibold">발송 기록 CSV 반영</p>
+                        <p className="mt-1 text-micro text-muted">
                           외부 발송 도구에서 내보낸 CSV 파일을 그대로 올리면 「받아간 계정」에
                           반영됩니다. 같은 파일을 여러 번 올려도 안전해요. 이미 다른 아이디가 적힌
                           코드는 덮어쓰지 않고 알려드립니다.
@@ -327,8 +327,8 @@ export function CouponPanel({
                             dragOver === c.id ? "border-glow bg-glow/5" : "border-border"
                           }`}
                         >
-                          <p className="text-[11px] text-muted">CSV 파일을 여기에 끌어다 놓으세요</p>
-                          <label className="cursor-pointer rounded border border-border px-3 py-1.5 text-xs hover:bg-muted/30">
+                          <p className="text-micro text-muted">CSV 파일을 여기에 끌어다 놓으세요</p>
+                          <label className="cursor-pointer rounded border border-border px-3 py-1.5 text-micro hover:bg-muted/30">
                             파일 고르기
                             <input
                               type="file"
@@ -347,7 +347,7 @@ export function CouponPanel({
                           (() => {
                             const 요약 = summarizeCsv(csvInputs[c.id] ?? "");
                             return (
-                              <p className="mt-2 rounded bg-glow/10 px-3 py-2 text-xs">
+                              <p className="mt-2 rounded bg-glow/10 px-3 py-2 text-micro">
                                 <strong>{csvNames[c.id] || "붙여넣은 내용"}</strong>
                                 <span className="ml-2 text-muted">
                                   {요약
@@ -363,7 +363,7 @@ export function CouponPanel({
                             type="button"
                             disabled={busyCsv === c.id || !(csvInputs[c.id] ?? "").trim()}
                             onClick={() => void applyCsv(c.id, c.key!)}
-                            className="rounded border border-border px-3 py-2 text-xs hover:bg-muted/30 disabled:opacity-40"
+                            className="rounded border border-border px-3 py-2 text-micro hover:bg-muted/30 disabled:opacity-40"
                           >
                             {busyCsv === c.id ? "반영 중…" : "CSV 반영"}
                           </button>
@@ -371,7 +371,7 @@ export function CouponPanel({
                             <button
                               type="button"
                               onClick={() => clearCsv(c.id)}
-                              className="rounded border border-border px-3 py-2 text-xs text-muted hover:bg-muted/30"
+                              className="rounded border border-border px-3 py-2 text-micro text-muted hover:bg-muted/30"
                             >
                               비우기
                             </button>
@@ -379,13 +379,13 @@ export function CouponPanel({
                           <button
                             type="button"
                             onClick={() => setShowPaste(showPaste === c.id ? null : c.id)}
-                            className="text-[11px] text-muted underline"
+                            className="text-micro text-muted underline"
                           >
                             {showPaste === c.id ? "붙여넣기 칸 접기" : "직접 붙여넣기"}
                           </button>
                           {csvResult[c.id] && (
                             <span
-                              className={`text-xs ${
+                              className={`text-micro ${
                                 csvResult[c.id].startsWith("⚠️") ? "text-red-400" : "text-glow"
                               }`}
                             >
@@ -396,7 +396,7 @@ export function CouponPanel({
 
                         {showPaste === c.id && (
                           <textarea
-                            className="mt-2 h-24 w-full rounded border border-border bg-background p-2 font-mono text-[11px]"
+                            className="mt-2 h-24 w-full rounded border border-border bg-background p-2 font-mono text-micro"
                             placeholder={'"코드","메모","발송여부","인스타아이디","발송일시"\n"E01Y-07TY",...'}
                             value={csvInputs[c.id] ?? ""}
                             onChange={(e) => {
@@ -410,7 +410,7 @@ export function CouponPanel({
 
                     {mine.length > 0 && (
                       <div className="mb-2 flex items-center justify-between">
-                        <p className="text-xs text-muted">
+                        <p className="text-micro text-muted">
                           발급된 코드 {mine.length}장 · 사용 {mine.filter((c) => c.used_at).length}장
                         </p>
                         {/*
@@ -419,7 +419,7 @@ export function CouponPanel({
                         */}
                         <button
                           type="button"
-                          className="rounded border border-border px-3 py-1.5 text-xs hover:bg-muted/30"
+                          className="rounded border border-border px-3 py-1.5 text-micro hover:bg-muted/30"
                           onClick={() =>
                             downloadCsv(
                               `쿠폰_${c.name}_${kstStamp()}.csv`,
@@ -442,7 +442,7 @@ export function CouponPanel({
 
                     {mine.length > 0 && (
                       <div className="max-h-72 overflow-y-auto rounded border border-border">
-                        <table className="w-full text-xs">
+                        <table className="w-full text-micro">
                           <thead className="sticky top-0 bg-background text-left text-muted">
                             <tr>
                               <th className="px-3 py-2">코드</th>

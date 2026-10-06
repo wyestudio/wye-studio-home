@@ -49,7 +49,7 @@ export function GenreInput({
         {value.map((g, i) => (
           <span
             key={g}
-            className="inline-flex items-center gap-0.5 rounded-full border border-border bg-white/5 py-0.5 pl-1 pr-1 text-xs"
+            className="inline-flex items-center gap-0.5 rounded-full border border-border bg-white/5 py-0.5 pl-1 pr-1 text-micro"
           >
             <button
               type="button"
@@ -81,7 +81,7 @@ export function GenreInput({
           </span>
         ))}
         <input
-          className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm outline-none"
+          className="min-w-24 flex-1 bg-transparent px-1 py-1 text-body-sm outline-none"
           value={draft}
           disabled={full}
           maxLength={GENRE_MAX_LENGTH + 1}
@@ -100,7 +100,7 @@ export function GenreInput({
           placeholder={full ? `최대 ${GENRE_MAX_COUNT}개` : value.length ? "추가…" : "문제방 입력 후 Enter"}
         />
       </div>
-      <p className="mt-1 text-[11px] text-muted">
+      <p className="mt-1 text-micro text-muted">
         Enter 나 쉼표로 하나씩 추가합니다. 최대 {GENRE_MAX_COUNT}개, 하나당 {GENRE_MAX_LENGTH}자.
         태그 양옆 화살표로 순서를 바꿀 수 있어요.
       </p>

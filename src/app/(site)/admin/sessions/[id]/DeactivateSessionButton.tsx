@@ -54,7 +54,7 @@ export function DeactivateSessionButton({ sessionId }: { sessionId: string }) {
 
   if (result) {
     return (
-      <span className="text-red-500 text-xs font-semibold">
+      <span className="text-red-500 text-micro font-semibold">
         ✓ 회차 비활성화됨 — 신청 {result.count}/{result.total}건 취소 안내 발송
       </span>
     );
@@ -65,7 +65,7 @@ export function DeactivateSessionButton({ sessionId }: { sessionId: string }) {
       <button
         onClick={handleOpen}
         disabled={isLoading}
-        className="px-3 py-1.5 text-xs bg-danger text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        className="px-3 py-1.5 text-micro bg-danger text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
       >
         {isLoading ? "처리중..." : "회차 비활성화 (최소인원 미달)"}
       </button>

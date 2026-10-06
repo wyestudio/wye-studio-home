@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { SessionPicker, type PickerSession } from "@/components/admin/SessionPicker";
 
-const field = "rounded border border-border bg-background px-3 py-2 text-sm";
+const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
 
 /**
  * 신청 목록 검색·필터.
@@ -52,7 +52,7 @@ export function ApplicationFilters({ sessions }: { sessions: PickerSession[] }) 
           onChange={(e) => setQ(e.target.value)}
           placeholder="접수번호 · 이름 · 입금자명 · 전화번호"
         />
-        <button type="submit" className="rounded bg-glow px-3 py-2 text-sm text-glow-foreground">
+        <button type="submit" className="rounded bg-glow px-3 py-2 text-body-sm text-glow-foreground">
           검색
         </button>
       </form>
@@ -93,7 +93,7 @@ export function ApplicationFilters({ sessions }: { sessions: PickerSession[] }) 
             setPickerKey((k) => k + 1);
             router.push("/applications");
           }}
-          className="rounded border border-border px-3 py-2 text-sm text-muted"
+          className="rounded border border-border px-3 py-2 text-body-sm text-muted"
         >
           초기화
         </button>

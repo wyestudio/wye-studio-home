@@ -25,7 +25,7 @@ export function CopyUrlButton({ url }: CopyUrlButtonProps) {
     <button
       type="button"
       onClick={handleClick}
-      className="rounded-md border border-border px-2 py-1 text-xs text-muted hover:text-foreground transition-colors"
+      className="rounded-md border border-border px-2 py-1 text-micro text-muted hover:text-foreground transition-colors"
     >
       {copied ? "복사됨" : "링크 복사"}
     </button>

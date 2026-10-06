@@ -87,13 +87,13 @@ export function ManualApplyButton({
           setOpen(true);
         }}
         disabled={isLoading}
-        className="px-3 py-1.5 text-xs bg-brand text-brand-foreground rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        className="px-3 py-1.5 text-micro bg-brand text-brand-foreground rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
       >
         수동 등록 (문자 미발송)
       </button>
 
       {result && (
-        <span className="text-xs text-confirm font-semibold">
+        <span className="text-micro text-confirm font-semibold">
           ✓ 등록 완료 — 접수번호 {result.confirmationCode} ({result.status === "confirmed" ? "확정" : "대기"})
         </span>
       )}
@@ -112,7 +112,7 @@ export function ManualApplyButton({
       >
         <div className="mt-4 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-foreground">입금자명</label>
+            <label className="text-body-sm font-semibold text-foreground">입금자명</label>
             <input
               type="text"
               placeholder="홍길동"
@@ -125,14 +125,14 @@ export function ManualApplyButton({
           {attendees.map((attendee, index) => (
             <div key={index} className="rounded-xl border border-border p-3 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-muted">
+                <p className="text-micro font-bold text-muted">
                   {index === 0 ? (attendees.length > 1 ? "대표 신청자" : "신청자") : `동행자 ${index}`}
                 </p>
                 {!isDatingSession && attendees.length > 1 && (
                   <button
                     type="button"
                     onClick={() => setAttendees((prev) => prev.filter((_, i) => i !== index))}
-                    className="text-xs text-danger hover:underline"
+                    className="text-micro text-danger hover:underline"
                   >
                     삭제
                   </button>
@@ -151,14 +151,14 @@ export function ManualApplyButton({
             <button
               type="button"
               onClick={() => setAttendees((prev) => [...prev, emptyAttendeeRow()])}
-              className="text-sm text-glow hover:underline self-start"
+              className="text-body-sm text-glow hover:underline self-start"
             >
               + 동행자 추가
             </button>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-foreground">비고 (선택)</label>
+            <label className="text-body-sm font-semibold text-foreground">비고 (선택)</label>
             <input
               type="text"
               placeholder="예: 전화 문의 후 직접 등록"
@@ -166,12 +166,12 @@ export function ManualApplyButton({
               onChange={(e) => setNotes(e.target.value)}
               className={attendeeInputClassName}
             />
-            <p className="text-xs text-muted">
+            <p className="text-micro text-muted">
               어드민 상세 화면에서 수동 등록 여부를 구분하는 용도예요. 그룹(2인 이상) 회차는 신청자도 /lookup 조회 시 이 내용을 볼 수 있으니 필요하면 내용을 바꾸거나 비워두세요.
             </p>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-foreground">
+          <label className="flex items-center gap-2 text-body-sm text-foreground">
             <input type="checkbox" checked={markPaid} onChange={(e) => setMarkPaid(e.target.checked)} />
             입금 확인 완료 상태로 등록 (체크 해제 시 입금 대기 상태로 등록)
           </label>

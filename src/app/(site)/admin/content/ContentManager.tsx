@@ -27,11 +27,11 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
         setOpenId(null);
         setAdding(false);
       }}
-      className={`rounded px-3 py-1.5 text-sm ${
+      className={`rounded px-3 py-1.5 text-body-sm ${
         tab === key ? "bg-glow text-glow-foreground font-semibold" : "border border-border text-muted"
       }`}
     >
-      {label} <span className="text-xs">({count})</span>
+      {label} <span className="text-micro">({count})</span>
     </button>
   );
 
@@ -45,7 +45,7 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
             setAdding((v) => !v);
             setOpenId(null);
           }}
-          className="ml-auto rounded border border-border px-3 py-1.5 text-sm"
+          className="ml-auto rounded border border-border px-3 py-1.5 text-body-sm"
         >
           {adding ? "취소" : tab === "notice" ? "+ 공지 추가" : "+ 질문 추가"}
         </button>
@@ -72,11 +72,11 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
                   onClick={() => setOpenId(openId === n.id ? null : n.id)}
                   className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-left hover:bg-muted/10"
                 >
-                  <span className="min-w-0 flex-1 truncate text-sm">
+                  <span className="min-w-0 flex-1 truncate text-body-sm">
                     {n.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
                     {n.title}
                   </span>
-                  <span className="shrink-0 text-xs text-muted">
+                  <span className="shrink-0 text-micro text-muted">
                     {n.published_at ? kst(n.published_at) : <span className="text-amber-400">미게시</span>}
                   </span>
                 </button>
@@ -99,11 +99,11 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
                 onClick={() => setOpenId(openId === f.id ? null : f.id)}
                 className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-left hover:bg-muted/10"
               >
-                <span className="min-w-0 flex-1 truncate text-sm">
-                  <span className="mr-2 text-xs text-muted">{f.sort_order}</span>
+                <span className="min-w-0 flex-1 truncate text-body-sm">
+                  <span className="mr-2 text-micro text-muted">{f.sort_order}</span>
                   {f.question}
                 </span>
-                {!f.is_visible && <span className="shrink-0 text-xs text-amber-400">비공개</span>}
+                {!f.is_visible && <span className="shrink-0 text-micro text-amber-400">비공개</span>}
               </button>
               {openId === f.id && (
                 <div className="mt-2">
@@ -120,6 +120,6 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
 
 function Empty({ label }: { label: string }) {
   return (
-    <div className="rounded-lg border border-border py-16 text-center text-sm text-muted">{label}</div>
+    <div className="rounded-lg border border-border py-16 text-center text-body-sm text-muted">{label}</div>
   );
 }

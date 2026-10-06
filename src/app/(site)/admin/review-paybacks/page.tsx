@@ -56,7 +56,7 @@ export default async function AdminReviewPaybacksPage() {
           ← 돌아가기
         </Link>
 
-        <h1 className="text-3xl font-bold mb-8">후기 페이백 신청 목록 ({rows.length}건)</h1>
+        <h1 className="text-h2 font-bold mb-8">후기 페이백 신청 목록 ({rows.length}건)</h1>
 
         {rows.length === 0 ? (
           <p className="text-muted py-4">아직 신청이 없습니다.</p>
@@ -65,33 +65,33 @@ export default async function AdminReviewPaybacksPage() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">신청일시</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">이름</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">휴대폰</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">참가 회차</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">후기 채널</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">게시물 링크</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">은행</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">계좌번호</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">예금주</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">신청일시</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">이름</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">휴대폰</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">참가 회차</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">후기 채널</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">게시물 링크</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">은행</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">계좌번호</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">예금주</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((app) => (
                   <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
-                    <td className="py-3 px-4 text-xs whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
-                    <td className="py-3 px-4 text-sm">{app.name}</td>
-                    <td className="py-3 px-4 text-sm whitespace-nowrap">{app.phone}</td>
-                    <td className="py-3 px-4 text-sm whitespace-nowrap">{SESSION_LABELS[app.session_slug] ?? app.session_slug}</td>
-                    <td className="py-3 px-4 text-sm whitespace-nowrap">{CHANNEL_LABELS[app.channel] ?? app.channel}</td>
-                    <td className="py-3 px-4 text-sm max-w-[220px] truncate">
+                    <td className="py-3 px-4 text-micro whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
+                    <td className="py-3 px-4 text-body-sm">{app.name}</td>
+                    <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.phone}</td>
+                    <td className="py-3 px-4 text-body-sm whitespace-nowrap">{SESSION_LABELS[app.session_slug] ?? app.session_slug}</td>
+                    <td className="py-3 px-4 text-body-sm whitespace-nowrap">{CHANNEL_LABELS[app.channel] ?? app.channel}</td>
+                    <td className="py-3 px-4 text-body-sm max-w-[220px] truncate">
                       <a href={app.post_url} target="_blank" rel="noopener" className="text-glow hover:underline">
                         {app.post_url}
                       </a>
                     </td>
-                    <td className="py-3 px-4 text-sm whitespace-nowrap">{app.bank_name}</td>
-                    <td className="py-3 px-4 text-sm whitespace-nowrap">{app.account_number}</td>
-                    <td className="py-3 px-4 text-sm whitespace-nowrap">{app.account_holder}</td>
+                    <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.bank_name}</td>
+                    <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.account_number}</td>
+                    <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.account_holder}</td>
                   </tr>
                 ))}
               </tbody>

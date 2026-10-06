@@ -31,8 +31,8 @@ export default async function AdminSessionsPage() {
         <AdminNav current="/sessions" />
 
         <header className="mb-6">
-          <h1 className="text-2xl font-bold">회차 편성</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">회차 편성</h1>
+          <p className="mt-1 text-body-sm text-muted">
             테마마다 <strong>언제 진행하고 언제 신청을 여는지</strong>를 정합니다. 회차는 이 규칙대로
             자동으로 만들어지고, 정해진 시점이 되면 저절로 신청 가능해집니다.
             회차 하나하나는 <strong>대시보드</strong>에서 날짜별로 봅니다.

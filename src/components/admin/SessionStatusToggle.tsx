@@ -54,8 +54,8 @@ export function SessionStatusToggle({
         type="button"
         onClick={() => { setError(null); setOpen(true); }}
         disabled={pending}
-        className={`rounded border transition-colors disabled:opacity-50 ${
-          size === "md" ? "px-3 py-1.5 text-xs" : "px-2.5 py-1 text-[11px]"
+        className={`rounded border text-micro transition-colors disabled:opacity-50 ${
+          size === "md" ? "px-3 py-1.5" : "px-2.5 py-1"
         } ${
           closing
             ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/10"

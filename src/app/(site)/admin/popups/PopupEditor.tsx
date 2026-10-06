@@ -27,8 +27,8 @@ export type PopupRow = {
   sort: number;
 };
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
-const label = "block text-xs font-medium text-muted mb-1";
+const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-medium text-muted mb-1";
 const section = "rounded-lg border border-border p-4 space-y-3";
 
 const ALL_PAGES: PopupPage[] = ["home", "themes", "theme_detail"];
@@ -129,7 +129,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-sm ${
+          className={`rounded border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -140,7 +140,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
       <div className="flex justify-end">
         <button
           onClick={() => setEditing(emptyInput())}
-          className="rounded bg-glow px-3 py-2 text-sm text-white"
+          className="rounded bg-glow px-3 py-2 text-body-sm text-white"
         >
           + 팝업 추가
         </button>
@@ -152,7 +152,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <div className={section}>
-              <h3 className="text-sm font-semibold">내용</h3>
+              <h3 className="text-body-sm font-semibold">내용</h3>
               <div>
                 <label className={label}>팝업 이름 (어드민 목록용 · 고객에게 안 보임)</label>
                 <input
@@ -192,7 +192,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
 
             <div className="space-y-4">
               <div className={section}>
-                <h3 className="text-sm font-semibold">누르면 이동할 곳</h3>
+                <h3 className="text-body-sm font-semibold">누르면 이동할 곳</h3>
                 <div>
                   <label className={label}>링크 (사이트 내 경로 또는 https:// 주소)</label>
                   <input
@@ -214,13 +214,13 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
               </div>
 
               <div className={section}>
-                <h3 className="text-sm font-semibold">게시</h3>
+                <h3 className="text-body-sm font-semibold">게시</h3>
 
                 <div>
                   <label className={label}>띄울 화면</label>
                   <div className="flex flex-wrap gap-3">
                     {ALL_PAGES.map((pg) => (
-                      <label key={pg} className="flex items-center gap-1.5 text-sm">
+                      <label key={pg} className="flex items-center gap-1.5 text-body-sm">
                         <input
                           type="checkbox"
                           checked={editing.pages.includes(pg)}
@@ -269,7 +269,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
                   />
                 </div>
 
-                <label className="flex items-center gap-2 text-sm">
+                <label className="flex items-center gap-2 text-body-sm">
                   <input
                     type="checkbox"
                     checked={editing.is_active}
@@ -278,7 +278,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
                   게시 (켜면 고객 화면에 바로 뜹니다)
                 </label>
 
-                <p className="text-xs text-muted">
+                <p className="text-micro text-muted">
                   한 화면에 여러 팝업이 걸리면 <strong>정렬이 가장 앞선 하나만</strong> 뜹니다 —
                   겹쳐 뜨면 닫을 수 없습니다. 고객이 &lsquo;오늘 하루 보지 않기&rsquo; 를 누르면
                   그 브라우저에서 24시간 동안 안 뜹니다.
@@ -291,13 +291,13 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
             <button
               onClick={submit}
               disabled={pending}
-              className="rounded bg-glow px-4 py-2 text-sm text-white disabled:opacity-50"
+              className="rounded bg-glow px-4 py-2 text-body-sm text-white disabled:opacity-50"
             >
               {pending ? "저장 중…" : "저장"}
             </button>
             <button
               onClick={() => setEditing(null)}
-              className="rounded border border-border px-4 py-2 text-sm"
+              className="rounded border border-border px-4 py-2 text-body-sm"
             >
               취소
             </button>
@@ -307,7 +307,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
 
       <div className="space-y-2">
         {popups.length === 0 && (
-          <p className="rounded-lg border border-border p-6 text-center text-sm text-muted">
+          <p className="rounded-lg border border-border p-6 text-center text-body-sm text-muted">
             등록된 팝업이 없습니다.
           </p>
         )}
@@ -320,14 +320,14 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
               <p className="font-semibold">
                 {p.title}{" "}
                 <span
-                  className={`ml-1 rounded px-1.5 py-0.5 text-[11px] ${
+                  className={`ml-1 rounded px-1.5 py-0.5 text-micro ${
                     p.is_active ? "bg-glow text-white" : "bg-muted/20 text-muted"
                   }`}
                 >
                   {p.is_active ? "게시 중" : "내림"}
                 </span>
               </p>
-              <p className="mt-1 text-xs text-muted">
+              <p className="mt-1 text-micro text-muted">
                 {p.pages.map((pg) => POPUP_PAGE_LABELS[pg]).join(" · ")} ·{" "}
                 {p.image_url ? "이미지" : "문구만"} ·{" "}
                 {p.starts_at ? isoToKstLocal(p.starts_at) : "시작 제한 없음"} ~{" "}
@@ -337,20 +337,20 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
             <button
               onClick={() => toggle(p.id, !p.is_active, p.title)}
               disabled={pending}
-              className="rounded border border-border px-3 py-1.5 text-xs disabled:opacity-50"
+              className="rounded border border-border px-3 py-1.5 text-micro disabled:opacity-50"
             >
               {p.is_active ? "내리기" : "게시"}
             </button>
             <button
               onClick={() => setEditing(toInput(p))}
-              className="rounded border border-border px-3 py-1.5 text-xs"
+              className="rounded border border-border px-3 py-1.5 text-micro"
             >
               수정
             </button>
             <button
               onClick={() => remove(p.id, p.title)}
               disabled={pending}
-              className="rounded border border-red-500/50 px-3 py-1.5 text-xs text-red-400 disabled:opacity-50"
+              className="rounded border border-red-500/50 px-3 py-1.5 text-micro text-red-400 disabled:opacity-50"
             >
               삭제
             </button>

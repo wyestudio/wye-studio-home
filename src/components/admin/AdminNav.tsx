@@ -80,13 +80,13 @@ export function AdminNav({ current }: { current?: string }) {
     >
       {GROUPS.map((group) => (
         <div key={group.label} className="flex items-center gap-2">
-          <span className="text-[11px] uppercase tracking-wide text-muted">{group.label}</span>
+          <span className="text-micro uppercase tracking-wide text-muted">{group.label}</span>
           <div className="flex gap-1">
             {group.items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded px-2.5 py-1 text-sm transition-colors ${
+                className={`rounded px-2.5 py-1 text-body-sm transition-colors ${
                   current === item.href
                     ? "bg-glow text-glow-foreground"
                     : "text-foreground hover:bg-muted/20"

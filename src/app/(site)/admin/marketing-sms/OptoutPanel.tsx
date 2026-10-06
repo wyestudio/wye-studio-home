@@ -6,7 +6,7 @@ import { formatPhoneDigits, formatPhoneInput } from "@/lib/phone";
 import type { MarketingOptout } from "@/lib/marketingSmsServer";
 import { addOptout, removeOptout } from "./actions";
 
-const field = "rounded border border-border bg-background px-3 py-2 text-sm";
+const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
 
 /**
  * 수신거부 목록.
@@ -47,15 +47,15 @@ export function OptoutPanel({ optouts }: { optouts: MarketingOptout[] }) {
 
   return (
     <section className="rounded-lg border border-border p-4">
-      <h2 className="text-lg font-semibold">수신거부 목록</h2>
-      <p className="mb-3 mt-1 text-xs text-muted">
+      <h2 className="text-h3 font-semibold">수신거부 목록</h2>
+      <p className="mb-3 mt-1 text-micro text-muted">
         카카오톡·전화로 거부를 받았거나 솔라피 080 거부 내역을 옮길 때 등록합니다. 등록된 번호는
         광고 문자 대상에서 자동으로 빠집니다.
       </p>
 
       <div className="flex flex-wrap items-end gap-2">
         <div>
-          <label htmlFor="optout-phone" className="mb-1 block text-xs text-muted">
+          <label htmlFor="optout-phone" className="mb-1 block text-micro text-muted">
             휴대폰 번호
           </label>
           <input
@@ -68,7 +68,7 @@ export function OptoutPanel({ optouts }: { optouts: MarketingOptout[] }) {
           />
         </div>
         <div className="min-w-0 flex-1">
-          <label htmlFor="optout-note" className="mb-1 block text-xs text-muted">
+          <label htmlFor="optout-note" className="mb-1 block text-micro text-muted">
             메모(선택)
           </label>
           <input
@@ -83,29 +83,29 @@ export function OptoutPanel({ optouts }: { optouts: MarketingOptout[] }) {
         <button
           onClick={add}
           disabled={busy || phone.replace(/\D/g, "").length < 10}
-          className="rounded bg-glow px-4 py-2 text-sm font-semibold text-glow-foreground disabled:opacity-50"
+          className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           거부 등록
         </button>
       </div>
 
-      {error && <p className="mt-2 rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="mt-2 rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
 
       {optouts.length === 0 ? (
-        <p className="mt-4 text-sm text-muted">등록된 번호가 없습니다.</p>
+        <p className="mt-4 text-body-sm text-muted">등록된 번호가 없습니다.</p>
       ) : (
-        <ul className="mt-4 divide-y divide-border/40 text-sm">
+        <ul className="mt-4 divide-y divide-border/40 text-body-sm">
           {optouts.map((o) => (
             <li key={o.phoneHash} className="flex flex-wrap items-center justify-between gap-2 py-2">
               <span>
                 <span className="tabular-nums">{formatPhoneDigits(o.phone)}</span>
-                {o.note && <span className="ml-2 text-xs text-muted">{o.note}</span>}
-                <span className="ml-2 text-xs text-muted">
+                {o.note && <span className="ml-2 text-micro text-muted">{o.note}</span>}
+                <span className="ml-2 text-micro text-muted">
                   {new Date(o.createdAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
                 </span>
               </span>
               {pendingRemove === o.phoneHash ? (
-                <span className="flex gap-2 text-xs">
+                <span className="flex gap-2 text-micro">
                   <span className="text-muted">다시 광고를 받게 됩니다.</span>
                   <button onClick={() => remove(o.phoneHash)} disabled={busy} className="text-red-400">
                     해제
@@ -115,7 +115,7 @@ export function OptoutPanel({ optouts }: { optouts: MarketingOptout[] }) {
                   </button>
                 </span>
               ) : (
-                <button onClick={() => setPendingRemove(o.phoneHash)} className="text-xs text-muted">
+                <button onClick={() => setPendingRemove(o.phoneHash)} className="text-micro text-muted">
                   해제
                 </button>
               )}

@@ -19,8 +19,8 @@ export default async function AdminVenuesPage() {
         <AdminNav current="/venues" />
 
         <header className="mb-6">
-          <h1 className="text-2xl font-bold">장소</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">장소</h1>
+          <p className="mt-1 text-body-sm text-muted">
             대관 장소를 관리합니다. <strong>상호명·주소·지도 링크는 테마 상세 &lsquo;진행 장소&rsquo;
             블록에 공개됩니다</strong>(네이버 플레이스 등록용). 주소는 장소안내 문자에도 쓰입니다.
           </p>

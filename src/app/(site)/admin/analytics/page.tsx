@@ -180,9 +180,9 @@ function Kpi({
     tone === "glow" ? "text-glow" : tone === "warn" ? "text-amber-400" : "text-foreground";
   return (
     <div className="rounded-lg border border-border bg-background/50 p-4">
-      <p className="text-xs text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${color}`}>{value}</p>
-      {sub && <p className="mt-1 text-xs text-muted">{sub}</p>}
+      <p className="text-micro text-muted">{label}</p>
+      <p className={`mt-1 text-h2 font-bold ${color}`}>{value}</p>
+      {sub && <p className="mt-1 text-micro text-muted">{sub}</p>}
     </div>
   );
 }
@@ -205,21 +205,21 @@ function FunnelRow({
   const drop = prev != null && prev > 0 ? prev - value : null;
   return (
     <div className="py-2">
-      <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+      <div className="mb-1 flex items-baseline justify-between gap-3 text-body-sm">
         <span>
           {label}
-          {hint && <span className="ml-1.5 text-xs text-muted">{hint}</span>}
+          {hint && <span className="ml-1.5 text-micro text-muted">{hint}</span>}
         </span>
         <span className="shrink-0">
           <strong>{value.toLocaleString()}</strong>
-          <span className="ml-2 text-xs text-muted">{pct(value, top)}</span>
+          <span className="ml-2 text-micro text-muted">{pct(value, top)}</span>
         </span>
       </div>
       <div className="h-2.5 w-full rounded bg-muted/30">
         <div className="h-full rounded bg-glow" style={{ width: `${width}%` }} />
       </div>
       {drop != null && drop > 0 && (
-        <p className="mt-1 text-xs text-amber-400/80">
+        <p className="mt-1 text-micro text-amber-400/80">
           ↓ 이 단계에서 {drop.toLocaleString()}명 이탈 ({pct(drop, prev!)})
         </p>
       )}
@@ -230,7 +230,7 @@ function FunnelRow({
 /** 박스 맨 위 한 줄 요약. 숫자를 읽기 전에 "그래서 뭔데" 를 먼저 알려준다. */
 function Summary({ text }: { text: string }) {
   return (
-    <p className="mb-3 rounded border border-glow/25 bg-glow/5 px-3 py-2 text-sm">{text}</p>
+    <p className="mb-3 rounded border border-glow/25 bg-glow/5 px-3 py-2 text-body-sm">{text}</p>
   );
 }
 
@@ -394,8 +394,8 @@ export default function AnalyticsDashboard() {
 
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="mb-1 text-2xl font-bold">분석</h1>
-            <p className="text-sm text-muted">
+            <h1 className="mb-1 text-h2 font-bold">분석</h1>
+            <p className="text-body-sm text-muted">
               방문(GA4)과 신청·입금(우리 DB)을 같이 봅니다. 방문 수만 보면 장사가 되는지 알 수
               없어서, <strong className="text-foreground">방문 대비 신청 전환율</strong>을 가장
               위에 둡니다.
@@ -406,7 +406,7 @@ export default function AnalyticsDashboard() {
               <button
                 key={p.key}
                 onClick={() => changePeriod(p.key)}
-                className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
+                className={`rounded-lg border px-3 py-2 text-body-sm font-semibold transition-all ${
                   period === p.key
                     ? "border-glow bg-glow/10 text-foreground"
                     : "border-border bg-background/50 text-muted hover:bg-muted/30 hover:text-foreground"
@@ -430,8 +430,8 @@ export default function AnalyticsDashboard() {
               화면만 봐서는 빠진 줄 모르니 얼마나 뺐는지 알린다.
             */}
             {((data.testDeviceSessions ?? 0) > 0 || (data.internalApplications ?? 0) > 0) && (
-              <p className="mb-4 rounded-lg border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-sm text-amber-300">
-                <span className="mr-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-[10px] font-semibold">
+              <p className="mb-4 rounded-lg border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-body-sm text-amber-300">
+                <span className="mr-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-micro font-semibold">
                   테스트
                 </span>
                 테스트 기기 방문 {data.testDeviceSessions ?? 0}회, 신청 {data.internalApplications ?? 0}건은
@@ -467,8 +467,8 @@ export default function AnalyticsDashboard() {
 
             {/* ── 일별 추이 ── */}
             <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
-              <h2 className="mb-1 text-lg font-semibold">일별 추이</h2>
-              <p className="mb-4 text-sm text-muted">
+              <h2 className="mb-1 text-h3 font-semibold">일별 추이</h2>
+              <p className="mb-4 text-body-sm text-muted">
                 막대는 방문 수(왼쪽 축), 선은 신청·입금 건수(오른쪽 축)입니다. 홍보한 날 방문이
                 튀는지, 그 방문이 신청으로 이어졌는지를 같이 봅니다.
               </p>
@@ -504,8 +504,8 @@ export default function AnalyticsDashboard() {
 
             {/* ── 퍼널 ── */}
             <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
-              <h2 className="mb-1 text-lg font-semibold">어디서 떨어지나</h2>
-              <p className="mb-4 text-sm text-muted">
+              <h2 className="mb-1 text-h3 font-semibold">어디서 떨어지나</h2>
+              <p className="mb-4 text-body-sm text-muted">
                 앞 단계 대비 몇 명이 빠졌는지를 봅니다. 가장 크게 빠지는 칸이 지금 고쳐야 할
                 화면입니다.
               </p>
@@ -589,25 +589,25 @@ export default function AnalyticsDashboard() {
                 hint="(우리 DB)"
               />
               {detailTracked && detailFunnel && detailFunnel.soldOutSessions > 0 && (
-                <p className="mt-3 rounded border border-amber-400/25 bg-amber-400/5 px-3 py-2 text-sm">
+                <p className="mt-3 rounded border border-amber-400/25 bg-amber-400/5 px-3 py-2 text-body-sm">
                   이 기간에 <strong>{detailFunnel.soldOutSessions.toLocaleString()}명</strong>이{" "}
                   <strong>마감된 회차를 눌러</strong> 봤습니다. 이 사람들은 화면이 어려워서가
                   아니라 <strong>원하는 날짜가 없어서</strong> 빠진 쪽입니다 — 문구가 아니라 회차
                   편성을 봐야 합니다.
                 </p>
               )}
-              <p className="mt-3 text-xs text-muted">
+              <p className="mt-3 text-micro text-muted">
                 <strong>사이트 방문 · 테마 상세 조회 · 신청 폼 열람 · 신청/입금</strong>은 GA4 의{" "}
                 <strong>페이지 경로</strong>와 우리 DB 로 셉니다 — 이벤트 태그에 기대면 GTM 설정이
                 어긋날 때 조용히 0이 되는데, 경로는 페이지가 열리기만 하면 잡힙니다.
               </p>
               {detailTracked ? (
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-micro text-muted">
                   <strong>(상세 안)</strong> 표시가 붙은 칸은 전부 한 주소(테마 상세) 안에서
                   일어나는 일이라 경로로 못 가릅니다. 여기만 <strong>GA4 이벤트</strong>로 셉니다.
                 </p>
               ) : (
-                <p className="mt-1 text-xs text-amber-400/80">
+                <p className="mt-1 text-micro text-amber-400/80">
                   <strong>테마 상세 안에서 무슨 일이 있었는지가 아직 안 보입니다.</strong> 이
                   칸들은 GA4 <strong>이벤트</strong>로 세는데(전부 한 주소 안이라 경로로 못
                   가릅니다), 이유는 둘 중 하나입니다 — <strong>①</strong> 코드·GTM 을 반영한 지
@@ -617,12 +617,12 @@ export default function AnalyticsDashboard() {
                 </p>
               )}
               {stepTracked ? (
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-micro text-muted">
                   신청 폼 안의 2·3단계는 세 화면이 같은 주소라 경로로 못 가릅니다. 여기만{" "}
                   <strong>GA4 이벤트</strong>로 셉니다.
                 </p>
               ) : (
-                <p className="mt-1 text-xs text-amber-400/80">
+                <p className="mt-1 text-micro text-amber-400/80">
                   신청 폼 안의 <strong>2·3단계가 아직 안 보입니다.</strong> 이 두 칸만 GA4{" "}
                   <strong>이벤트</strong>로 세는데(세 화면이 같은 주소라 경로로 못 가릅니다),
                   이유는 둘 중 하나입니다 — <strong>①</strong> 코드·GTM 을 반영한 지 얼마 안 돼
@@ -635,8 +635,8 @@ export default function AnalyticsDashboard() {
 
             {/* ── 상세 페이지에서 어디까지 읽나 ── */}
             <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
-              <h2 className="mb-1 text-lg font-semibold">상세에서 어디까지 읽나</h2>
-              <p className="mb-4 text-sm text-muted">
+              <h2 className="mb-1 text-h3 font-semibold">상세에서 어디까지 읽나</h2>
+              <p className="mb-4 text-body-sm text-muted">
                 테마 상세의 블록이 화면에 들어온 세션 수입니다. 위에서 아래로 줄어드는 게
                 정상이고, <strong className="text-foreground">유난히 크게 꺾이는 칸</strong>이
                 사람들이 읽기를 그만두는 자리입니다. 회차 선택이 그 아래에 있으면 신청까지 가는
@@ -648,7 +648,7 @@ export default function AnalyticsDashboard() {
                     const top = theme.sections[0]?.sessions ?? 0;
                     return (
                       <div key={theme.themeLabel}>
-                        <p className="mb-2 text-sm font-semibold">{theme.themeLabel}</p>
+                        <p className="mb-2 text-body-sm font-semibold">{theme.themeLabel}</p>
                         {theme.sections.map((sec, i) => (
                           <FunnelRow
                             key={`${sec.key}-${sec.index}`}
@@ -664,13 +664,13 @@ export default function AnalyticsDashboard() {
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-muted">
+                <p className="text-body-sm text-muted">
                   아직 데이터가 없습니다. 코드·GTM 을 반영한 직후라면 하루 정도 기다려 주세요 —
                   그 뒤에도 비어 있으면 <code>ANALYTICS.md</code> 의 확인 절차를 따라가시면
                   됩니다.
                 </p>
               )}
-              <p className="mt-3 text-xs text-muted">
+              <p className="mt-3 text-micro text-muted">
                 테마마다 블록 구성이 달라서 <strong>합치지 않고 따로</strong> 보여드립니다. 순서는
                 기록된 그 시점의 화면 순서라, 기간 중에 블록 순서를 바꾸셨으면 같은 블록이 두 줄로
                 갈릴 수 있습니다.
@@ -679,8 +679,8 @@ export default function AnalyticsDashboard() {
 
             {/* ── 신청까지 온 유입경로 (우리 DB) ── */}
             <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
-              <h2 className="mb-1 text-lg font-semibold">어디서 들어와 신청까지 했나</h2>
-              <p className="mb-3 text-sm text-muted">
+              <h2 className="mb-1 text-h3 font-semibold">어디서 들어와 신청까지 했나</h2>
+              <p className="mb-3 text-body-sm text-muted">
                 아래 &lsquo;어디서 들어오나&rsquo;는 GA4 라 <strong className="text-foreground">방문</strong>까지만
                 셉니다. 이 표는 신청 한 건 한 건에 저장해 둔 유입경로라{" "}
                 <strong className="text-foreground">신청·입금·매출</strong>까지 따라옵니다. 외부
@@ -690,8 +690,8 @@ export default function AnalyticsDashboard() {
                 <>
                   <Summary text={sourceApplySummary} />
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[520px] text-sm">
-                      <thead className="border-b border-border text-left text-xs text-muted">
+                    <table className="w-full min-w-[520px] text-body-sm">
+                      <thead className="border-b border-border text-left text-micro text-muted">
                         <tr>
                           <th className="py-2 pr-3">유입경로</th>
                           <th className="py-2 pr-3 text-right">신청</th>
@@ -706,7 +706,7 @@ export default function AnalyticsDashboard() {
                             <td className="py-2 pr-3">
                               {s.label}
                               {s.campaigns && (
-                                <span className="ml-1.5 font-mono text-[11px] text-muted">
+                                <span className="ml-1.5 font-mono text-micro text-muted">
                                   {s.campaigns}
                                 </span>
                               )}
@@ -724,7 +724,7 @@ export default function AnalyticsDashboard() {
               ) : (
                 <p className="text-muted">아직 데이터가 없습니다.</p>
               )}
-              <p className="mt-3 text-xs text-muted">
+              <p className="mt-3 text-micro text-muted">
                 · <strong className="text-foreground">2026-09-15부터</strong> 쌓입니다. 그 이전
                 신청은 값이 없어 전부 &lsquo;직접 방문 · 출처 없음&rsquo;으로 잡힙니다.
                 <br />· <strong className="text-foreground">처음 들어온 곳</strong> 기준입니다 —
@@ -737,8 +737,8 @@ export default function AnalyticsDashboard() {
             {/* ── 유입 ── */}
             <div className="mb-8 grid gap-4 md:grid-cols-2">
               <div className="rounded-lg border border-border bg-background/50 p-5">
-                <h2 className="mb-1 text-lg font-semibold">어디서 들어오나</h2>
-                <p className="mb-3 text-sm text-muted">
+                <h2 className="mb-1 text-h3 font-semibold">어디서 들어오나</h2>
+                <p className="mb-3 text-body-sm text-muted">
                   어느 홍보가 사람을 데려오는지 비교할 때 씁니다.
                 </p>
                 {data.trafficSources.length > 0 ? (
@@ -749,10 +749,10 @@ export default function AnalyticsDashboard() {
                         const top = data.trafficSources[0].sessions || 1;
                         return (
                           <li key={i}>
-                            <div className="mb-1 flex items-baseline justify-between text-sm">
+                            <div className="mb-1 flex items-baseline justify-between text-body-sm">
                               <span className="truncate pr-2">
                                 {sourceLabel(s.source)}
-                                <span className="ml-1.5 font-mono text-[11px] text-muted">
+                                <span className="ml-1.5 font-mono text-micro text-muted">
                                   {s.source}
                                 </span>
                               </span>
@@ -777,8 +777,8 @@ export default function AnalyticsDashboard() {
               </div>
 
               <div className="rounded-lg border border-border bg-background/50 p-5">
-                <h2 className="mb-1 text-lg font-semibold">첫 화면으로 뭘 보나</h2>
-                <p className="mb-3 text-sm text-muted">
+                <h2 className="mb-1 text-h3 font-semibold">첫 화면으로 뭘 보나</h2>
+                <p className="mb-3 text-body-sm text-muted">
                   방문자가 처음 도착한 페이지입니다. 광고·공유 링크가 어디로 보내고 있는지
                   확인합니다.
                 </p>
@@ -790,10 +790,10 @@ export default function AnalyticsDashboard() {
                         const top = data.landingPages[0].sessions || 1;
                         return (
                           <li key={i}>
-                            <div className="mb-1 flex items-baseline justify-between text-sm">
+                            <div className="mb-1 flex items-baseline justify-between text-body-sm">
                               <span className="truncate pr-2">
                                 {pathLabel(p.page)}
-                                <span className="ml-1.5 font-mono text-[11px] text-muted">
+                                <span className="ml-1.5 font-mono text-micro text-muted">
                                   {p.page}
                                 </span>
                               </span>
@@ -820,8 +820,8 @@ export default function AnalyticsDashboard() {
 
             {/* ── 캠페인별 유입 → 신청 ── */}
             <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
-              <h2 className="mb-1 text-lg font-semibold">어느 캠페인이 신청까지 오나</h2>
-              <p className="mb-3 text-sm text-muted">
+              <h2 className="mb-1 text-h3 font-semibold">어느 캠페인이 신청까지 오나</h2>
+              <p className="mb-3 text-body-sm text-muted">
                 위 &lsquo;어디서 들어오나&rsquo; 는 채널까지만 봅니다. 같은 인스타그램이라도
                 바이오 링크·8월 게시물·926 오픈 이벤트는{" "}
                 <strong className="text-foreground">캠페인으로만 갈립니다</strong>.
@@ -834,8 +834,8 @@ export default function AnalyticsDashboard() {
                 <>
                   <Summary text={mergedSummary} />
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[720px] text-sm">
-                      <thead className="border-b border-border text-left text-xs text-muted">
+                    <table className="w-full min-w-[720px] text-body-sm">
+                      <thead className="border-b border-border text-left text-micro text-muted">
                         <tr>
                           <th className="py-2 pr-3">채널</th>
                           <th className="py-2 pr-3">캠페인</th>
@@ -852,12 +852,12 @@ export default function AnalyticsDashboard() {
                           <tr key={r.key} className="border-b border-border/40">
                             <td className="py-2 pr-3">
                               {sourceLabel(r.sourceMedium)}
-                              <span className="ml-1.5 font-mono text-[11px] text-muted">
+                              <span className="ml-1.5 font-mono text-micro text-muted">
                                 {r.sourceMedium}
                               </span>
                             </td>
-                            <td className="py-2 pr-3 font-mono text-xs">{r.campaign}</td>
-                            <td className="py-2 pr-3 font-mono text-xs text-muted">
+                            <td className="py-2 pr-3 font-mono text-micro">{r.campaign}</td>
+                            <td className="py-2 pr-3 font-mono text-micro text-muted">
                               {r.content || "-"}
                             </td>
                             <td className="py-2 pr-3 text-right">
@@ -886,7 +886,7 @@ export default function AnalyticsDashboard() {
                       </tbody>
                     </table>
                   </div>
-                  <p className="mt-3 text-xs text-muted">
+                  <p className="mt-3 text-micro text-muted">
                     · <strong className="text-foreground">방문 칸의 &lsquo;-&rsquo;</strong> 만
                     0이 아니라 <strong className="text-foreground">모른다</strong>는 뜻입니다. GA4에서
                     상위 40개만 받아오기 때문에 꼬리에 있는 캠페인은 방문 수가 비어 보일 수 있습니다.
@@ -905,13 +905,13 @@ export default function AnalyticsDashboard() {
 
             {/* ── 날짜별 표 ── */}
             <div className="mb-8 overflow-x-auto rounded-lg border border-border bg-background/50 p-5">
-              <h2 className="mb-1 text-lg font-semibold">날짜별 숫자</h2>
-              <p className="mb-3 text-sm text-muted">
+              <h2 className="mb-1 text-h3 font-semibold">날짜별 숫자</h2>
+              <p className="mb-3 text-body-sm text-muted">
                 차트에서 튀는 날을 찾았을 때 정확한 숫자를 보는 표입니다. 입금·취소는 그 일이
                 <strong className="text-foreground"> 실제로 일어난 날</strong>에 셉니다(신청일이 아닙니다).
               </p>
-              <table className="w-full min-w-[520px] text-sm">
-                <thead className="border-b border-border text-left text-xs text-muted">
+              <table className="w-full min-w-[520px] text-body-sm">
+                <thead className="border-b border-border text-left text-micro text-muted">
                   <tr>
                     <th className="py-2 pr-3">날짜</th>
                     <th className="py-2 pr-3 text-right">방문</th>
@@ -946,8 +946,8 @@ export default function AnalyticsDashboard() {
 
         {/* 가이드 섹션 */}
         <div className="mt-12 border-t border-border pt-8">
-          <h2 className="text-2xl font-semibold mb-2">이 대시보드에 없는 지표는 어디서 봐요?</h2>
-          <p className="text-sm text-muted mb-6">
+          <h2 className="text-h2 font-semibold mb-2">이 대시보드에 없는 지표는 어디서 봐요?</h2>
+          <p className="text-body-sm text-muted mb-6">
             더 자세한 분석이 필요하면 Google Analytics에서 직접 확인할 수 있습니다. 왼쪽 항목을 선택하면 오른쪽에 단계별 설명이 나타납니다.
           </p>
 
@@ -964,23 +964,23 @@ export default function AnalyticsDashboard() {
                       : "border-border bg-background/50 text-muted hover:text-foreground hover:bg-muted/30"
                   }`}
                 >
-                  <p className="font-semibold text-sm">{item.title}</p>
-                  <p className="text-xs text-muted/80 mt-1">{item.summary}</p>
+                  <p className="font-semibold text-body-sm">{item.title}</p>
+                  <p className="text-micro text-muted/80 mt-1">{item.summary}</p>
                 </button>
               ))}
             </div>
 
             {/* 오른쪽: 상세 내용 */}
             <div className="border border-border rounded-lg p-6 bg-background/50">
-              <h3 className="text-xl font-semibold mb-3">{selectedGuide.title}</h3>
+              <h3 className="text-h3 font-semibold mb-3">{selectedGuide.title}</h3>
 
-              <p className="text-sm text-muted mb-4">{selectedGuide.description}</p>
+              <p className="text-body-sm text-muted mb-4">{selectedGuide.description}</p>
 
               <div className="mb-6">
-                <h4 className="text-sm font-semibold mb-3 text-foreground">단계별 설명</h4>
+                <h4 className="text-body-sm font-semibold mb-3 text-foreground">단계별 설명</h4>
                 <ol className="space-y-2">
                   {selectedGuide.steps.map((step, idx) => (
-                    <li key={idx} className="text-sm text-muted flex gap-3">
+                    <li key={idx} className="text-body-sm text-muted flex gap-3">
                       <span className="font-semibold text-glow shrink-0">{idx + 1}.</span>
                       <span>{step}</span>
                     </li>
@@ -989,15 +989,15 @@ export default function AnalyticsDashboard() {
               </div>
 
               <div className="mb-6 bg-muted/30 p-4 rounded-lg border border-border/50">
-                <p className="text-sm font-semibold mb-2">예시로 보면</p>
-                <p className="text-sm text-muted">{selectedGuide.example}</p>
+                <p className="text-body-sm font-semibold mb-2">예시로 보면</p>
+                <p className="text-body-sm text-muted">{selectedGuide.example}</p>
               </div>
 
               <a
                 href={selectedGuide.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block px-4 py-2 bg-glow text-glow-foreground rounded-lg hover:opacity-90 transition-opacity text-sm font-semibold"
+                className="inline-block px-4 py-2 bg-glow text-glow-foreground rounded-lg hover:opacity-90 transition-opacity text-body-sm font-semibold"
               >
                 Google Analytics 열기 →
               </a>
@@ -1005,7 +1005,7 @@ export default function AnalyticsDashboard() {
           </div>
         </div>
 
-        <div className="mt-12 text-xs text-muted border-t border-border pt-6">
+        <div className="mt-12 text-micro text-muted border-t border-border pt-6">
           <p>· 데이터 기준: {PERIODS.find((p) => p.key === period)?.label ?? period}</p>
           <p>· 업데이트: 5분 캐시 · 방문 수는 GA4, 신청·입금·매출은 우리 DB</p>
           <p>· GA4 측정 ID: G-EG7FHGECVK</p>

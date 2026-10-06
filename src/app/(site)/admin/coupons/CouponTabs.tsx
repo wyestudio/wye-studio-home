@@ -18,7 +18,7 @@ export function CouponTabs(props: {
   const btn = (key: "manage" | "send", label: string) => (
     <button
       onClick={() => setTab(key)}
-      className={`rounded px-3 py-1.5 text-sm ${
+      className={`rounded px-3 py-1.5 text-body-sm ${
         tab === key ? "bg-glow font-semibold text-glow-foreground" : "border border-border text-muted"
       }`}
     >
@@ -40,7 +40,7 @@ export function CouponTabs(props: {
           themes={props.themes}
         />
       ) : props.campaigns.length === 0 ? (
-        <div className="rounded-lg border border-border py-16 text-center text-sm text-muted">
+        <div className="rounded-lg border border-border py-16 text-center text-body-sm text-muted">
           먼저 쿠폰 종류를 만들어주세요.
         </div>
       ) : (

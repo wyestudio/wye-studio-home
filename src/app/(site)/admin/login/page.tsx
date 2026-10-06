@@ -39,13 +39,13 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold">관리자 로그인</h1>
-            <p className="text-sm text-muted mt-1">운영 대시보드에 접근하려면 비밀번호를 입력해주세요.</p>
+            <h1 className="text-h2 font-bold">관리자 로그인</h1>
+            <p className="text-body-sm text-muted mt-1">운영 대시보드에 접근하려면 비밀번호를 입력해주세요.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
+              <label htmlFor="password" className="block text-body-sm font-medium mb-2">
                 비밀번호
               </label>
               <input
@@ -59,7 +59,7 @@ export default function AdminLoginPage() {
               />
             </div>
 
-            {error && <div className="text-sm text-red-500">{error}</div>}
+            {error && <div className="text-body-sm text-red-500">{error}</div>}
 
             <button
               type="submit"

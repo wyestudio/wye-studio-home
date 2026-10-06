@@ -91,7 +91,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
 
   return (
     <section className="space-y-4">
-      <div className="rounded-lg border border-border p-4 text-sm">
+      <div className="rounded-lg border border-border p-4 text-body-sm">
         <p className="mb-2 font-semibold">보내기 전에 알아둘 것</p>
         <ul className="list-disc space-y-1 pl-5 text-muted">
           <li>
@@ -117,10 +117,10 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border border-border p-4">
-          <label htmlFor="marketing-body" className="mb-1 block text-sm font-semibold">
+          <label htmlFor="marketing-body" className="mb-1 block text-body-sm font-semibold">
             문구
           </label>
-          <p className="mb-2 text-xs text-muted">
+          <p className="mb-2 text-micro text-muted">
             첫 줄은 &quot;(광고) 우주이스케이프&quot; 바로 뒤에 한 칸 띄고 이어집니다. 수신거부 안내는
             맨 끝에 자동으로 붙습니다. {NAME_PLACEHOLDER} 는 받는 사람 이름으로 바뀝니다.
           </p>
@@ -130,10 +130,10 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
             onChange={(e) => setBody(e.target.value)}
             rows={10}
             placeholder={`GRAND OPEN EVENT\n9/26 정식 오픈 기념, 인스타그램에서 5,000원 할인 이벤트를 진행합니다!`}
-            className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
+            className="w-full rounded border border-border bg-background px-3 py-2 text-body-sm"
           />
           {(removed.length > 0 || replaced.length > 0) && (
-            <div className="mt-2 rounded bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            <div className="mt-2 rounded bg-amber-500/10 px-3 py-2 text-micro text-amber-300">
               {removed.length > 0 && <p>문자로 보내지지 않아 빠지는 이모지: {removed.join("  ")}</p>}
               {replaced.length > 0 && (
                 <p>보내지는 기호로 바뀌는 글자: {replaced.map(([a, b]) => `${a} 대신 ${b}`).join(", ")}</p>
@@ -142,32 +142,32 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
             </div>
           )}
           {emptyAfterSanitize && (
-            <p className="mt-2 text-xs text-red-400">이모지를 빼고 나면 보낼 글자가 없습니다.</p>
+            <p className="mt-2 text-micro text-red-400">이모지를 빼고 나면 보낼 글자가 없습니다.</p>
           )}
         </div>
 
         <div className="rounded-lg border border-border p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold">받는 화면 미리보기</p>
-            <span className={`text-xs ${tooLong ? "text-red-400" : "text-muted"}`}>
+            <p className="text-body-sm font-semibold">받는 화면 미리보기</p>
+            <span className={`text-micro ${tooLong ? "text-red-400" : "text-muted"}`}>
               {bytes}바이트 · {bytes > SMS_MAX_BYTES ? "장문(LMS)" : "단문(SMS)"}
             </span>
           </div>
-          <pre className="whitespace-pre-wrap rounded bg-surface p-3 text-sm">{preview}</pre>
+          <pre className="whitespace-pre-wrap rounded bg-surface p-3 text-body-sm">{preview}</pre>
         </div>
       </div>
 
       {quiet && (
-        <p className="rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">
+        <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">
           지금은 밤 9시~아침 8시라 광고 문자를 보낼 수 없습니다(야간 광고는 별도 동의 필요).
         </p>
       )}
-      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
       {result && (
-        <div className="rounded-lg border border-border p-4 text-sm">
+        <div className="rounded-lg border border-border p-4 text-body-sm">
           <p className="font-semibold text-glow">발송 완료 — {result.sent}건 접수</p>
           {result.failures.length > 0 && (
-            <ul className="mt-2 space-y-0.5 text-xs text-red-400">
+            <ul className="mt-2 space-y-0.5 text-micro text-red-400">
               {result.failures.map((f, i) => (
                 <li key={i}>
                   {f.name || "(이름 없음)"}: {f.reason}
@@ -180,7 +180,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
 
       <div className="rounded-lg border border-border">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
-          <p className="text-sm">
+          <p className="text-body-sm">
             대상 <strong>{recipients.length}</strong>명 · 선택{" "}
             <strong className="text-glow">{chosen.length}</strong>명
           </p>
@@ -189,7 +189,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
               onClick={() =>
                 setSelected(allSelected ? new Set() : new Set(recipients.map((r) => r.phoneHash)))
               }
-              className="rounded border border-border px-3 py-1.5 text-xs"
+              className="rounded border border-border px-3 py-1.5 text-micro"
             >
               {allSelected ? "전체 해제" : "전체 선택"}
             </button>
@@ -199,7 +199,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
                 setConfirming(true);
               }}
               disabled={!canSend}
-              className="rounded bg-glow px-4 py-1.5 text-sm font-semibold text-glow-foreground disabled:opacity-50"
+              className="rounded bg-glow px-4 py-1.5 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
             >
               {busy ? "보내는 중…" : `${chosen.length}명에게 보내기`}
             </button>
@@ -207,11 +207,11 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
         </div>
 
         {recipients.length === 0 ? (
-          <p className="p-4 text-sm text-muted">보낼 수 있는 사람이 없습니다.</p>
+          <p className="p-4 text-body-sm text-muted">보낼 수 있는 사람이 없습니다.</p>
         ) : (
           <div className="max-h-96 overflow-x-auto overflow-y-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted">
+            <table className="w-full text-body-sm">
+              <thead className="text-left text-micro text-muted">
                 <tr className="border-b border-border">
                   <th className="w-10 p-2" />
                   <th className="p-2">이름</th>
@@ -255,7 +255,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
         error={error}
         confirmDisabled={!canSend}
       >
-        <pre className="mt-3 max-h-60 overflow-y-auto whitespace-pre-wrap rounded border border-glass-border p-2 text-xs text-muted">
+        <pre className="mt-3 max-h-60 overflow-y-auto whitespace-pre-wrap rounded border border-glass-border p-2 text-micro text-muted">
           {preview}
         </pre>
       </ConfirmDialog>

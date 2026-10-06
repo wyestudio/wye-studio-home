@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveNotice, deleteNotice, type NoticeInput } from "./actions";
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
+const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
 
 /** datetime-local 입력값(로컬 시각)을 KST 기준 ISO 로 바꾼다. 서버는 UTC 로 돈다. */
 function toIso(local: string): string | null {
@@ -82,7 +82,7 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
       />
 
       <div className="flex flex-wrap items-center gap-4">
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-body-sm">
           <span className="text-muted">게시일</span>
           <input
             type="datetime-local"
@@ -91,7 +91,7 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
             onChange={(e) => setPublished(e.target.value)}
           />
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-body-sm">
           <input
             type="checkbox"
             checked={form.is_pinned}
@@ -99,7 +99,7 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
           />
           상단 고정
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-body-sm">
           <span className="text-muted">순서</span>
           <input
             type="number"
@@ -110,17 +110,17 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
         </label>
       </div>
 
-      <p className="text-xs text-muted">
+      <p className="text-micro text-muted">
         게시일을 비우면 공개되지 않습니다(초안). 미래 시각을 넣으면 그때부터 보입니다.
       </p>
 
-      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{error}</p>}
+      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
 
       <div className="flex gap-2">
         <button
           onClick={submit}
           disabled={busy}
-          className="rounded bg-glow px-4 py-2 text-sm font-semibold text-glow-foreground disabled:opacity-50"
+          className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           {busy ? "저장 중…" : form.id ? "저장" : "공지 추가"}
         </button>
@@ -128,13 +128,13 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
           <button
             onClick={remove}
             disabled={busy}
-            className="rounded border border-red-500/40 px-4 py-2 text-sm text-red-400 disabled:opacity-50"
+            className="rounded border border-red-500/40 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
           >
             삭제
           </button>
         )}
         {onDone && (
-          <button onClick={onDone} disabled={busy} className="rounded border border-border px-4 py-2 text-sm text-muted">
+          <button onClick={onDone} disabled={busy} className="rounded border border-border px-4 py-2 text-body-sm text-muted">
             닫기
           </button>
         )}

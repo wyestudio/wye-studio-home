@@ -107,7 +107,7 @@ export function ApplicationActionMenu({
 
   if (done) {
     const action = ACTIONS[done];
-    return <span className={`text-xs font-semibold ${action.doneClass}`}>{action.doneLabel}</span>;
+    return <span className={`text-micro font-semibold ${action.doneClass}`}>{action.doneLabel}</span>;
   }
 
   async function handleConfirm() {
@@ -146,7 +146,7 @@ export function ApplicationActionMenu({
         ref={buttonRef}
         onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
         disabled={isLoading}
-        className="px-3 py-1 text-xs bg-surface border border-glass-border text-foreground rounded hover:bg-white/5 disabled:opacity-50 transition-opacity"
+        className="px-3 py-1 text-micro bg-surface border border-glass-border text-foreground rounded hover:bg-white/5 disabled:opacity-50 transition-opacity"
       >
         {isLoading ? "처리중..." : "액션 ▾"}
       </button>
@@ -168,7 +168,7 @@ export function ApplicationActionMenu({
                   setMenuOpen(false);
                   setEditSaved(false);
                 }}
-                className="block w-full px-3 py-2 text-left text-xs text-foreground hover:bg-white/5 transition-colors"
+                className="block w-full px-3 py-2 text-left text-micro text-foreground hover:bg-white/5 transition-colors"
               >
                 정보 수정
               </button>
@@ -180,7 +180,7 @@ export function ApplicationActionMenu({
                     setMenuOpen(false);
                     setError(null);
                   }}
-                  className={`block w-full px-3 py-2 text-left text-xs hover:bg-white/5 transition-colors ${
+                  className={`block w-full px-3 py-2 text-left text-micro hover:bg-white/5 transition-colors ${
                     ACTIONS[key].danger ? "text-danger" : "text-foreground"
                   }`}
                 >
@@ -192,7 +192,7 @@ export function ApplicationActionMenu({
           document.body
         )}
 
-      {editSaved && <p className="mt-1 text-xs font-semibold text-confirm">✓ 저장됨 (새로고침하면 반영돼요)</p>}
+      {editSaved && <p className="mt-1 text-micro font-semibold text-confirm">✓ 저장됨 (새로고침하면 반영돼요)</p>}
 
       {selected && (
         <ConfirmDialog

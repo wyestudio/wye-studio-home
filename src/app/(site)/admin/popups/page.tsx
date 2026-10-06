@@ -19,8 +19,8 @@ export default async function AdminPopupsPage() {
         <AdminNav current="/popups" />
 
         <header className="mb-6">
-          <h1 className="text-2xl font-bold">접속 팝업</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">접속 팝업</h1>
+          <p className="mt-1 text-body-sm text-muted">
             홈 · 테마 목록 · 테마 상세에 들어왔을 때 뜨는 안내 팝업입니다.{" "}
             <strong>게시를 켜면 고객 화면에 바로 뜹니다.</strong> 신청 폼·참여내역 조회처럼
             작업 중인 화면에는 띄우지 않습니다.

@@ -32,7 +32,7 @@ export function RefundCompleteButton({ applicationId, sessionId }: { application
   }
 
   if (done) {
-    return <span className="text-xs font-semibold text-green-500">✓ 환불 완료 처리됨</span>;
+    return <span className="text-micro font-semibold text-green-500">✓ 환불 완료 처리됨</span>;
   }
 
   return (
@@ -40,7 +40,7 @@ export function RefundCompleteButton({ applicationId, sessionId }: { application
       <button
         onClick={() => setOpen(true)}
         disabled={isLoading}
-        className="px-3 py-1 text-xs bg-surface border border-glass-border text-foreground rounded hover:bg-white/5 disabled:opacity-50 transition-opacity"
+        className="px-3 py-1 text-micro bg-surface border border-glass-border text-foreground rounded hover:bg-white/5 disabled:opacity-50 transition-opacity"
       >
         {isLoading ? "처리중..." : "환불 완료"}
       </button>

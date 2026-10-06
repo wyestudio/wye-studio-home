@@ -52,7 +52,7 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
 
   if (result) {
     return (
-      <span className="text-glow text-xs font-semibold">
+      <span className="text-glow text-micro font-semibold">
         ✓ 하루 전 안내 발송됨 — {result.count}/{result.total}건
       </span>
     );
@@ -63,7 +63,7 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
       <button
         onClick={handleOpen}
         disabled={isLoading}
-        className="px-3 py-1.5 text-xs bg-glow text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        className="px-3 py-1.5 text-micro bg-glow text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
       >
         {isLoading ? "처리중..." : "하루 전 안내 발송"}
       </button>
@@ -88,11 +88,11 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
         {preview && (
           <div className="mt-3 space-y-3">
             {preview.total === 0 ? (
-              <p className="text-sm text-muted">발송 대상이 없습니다.</p>
+              <p className="text-body-sm text-muted">발송 대상이 없습니다.</p>
             ) : (
               <div>
-                <p className="text-xs font-semibold text-foreground mb-1">받는 사람 ({preview.total}명)</p>
-                <ul className="max-h-32 overflow-y-auto rounded border border-glass-border p-2 text-xs space-y-0.5">
+                <p className="text-micro font-semibold text-foreground mb-1">받는 사람 ({preview.total}명)</p>
+                <ul className="max-h-32 overflow-y-auto rounded border border-glass-border p-2 text-micro space-y-0.5">
                   {preview.recipients.map((r) => (
                     <li key={r.confirmationCode}>
                       {r.name} [{r.phone}] · 접수번호 {r.confirmationCode}
@@ -100,15 +100,15 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
                   ))}
                 </ul>
                 {preview.skipped && preview.skipped.length > 0 && (
-                  <p className="mt-1 text-xs text-danger">
+                  <p className="mt-1 text-micro text-danger">
                     {preview.skipped.length}건은 연락처 없음으로 제외됩니다.
                   </p>
                 )}
               </div>
             )}
             <div>
-              <p className="text-xs font-semibold text-foreground mb-1">발송 내용 (OOO는 받는 사람 이름으로 자동 치환됩니다)</p>
-              <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded border border-glass-border p-2 text-xs text-muted">
+              <p className="text-micro font-semibold text-foreground mb-1">발송 내용 (OOO는 받는 사람 이름으로 자동 치환됩니다)</p>
+              <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded border border-glass-border p-2 text-micro text-muted">
                 {preview.messagePreview}
               </pre>
             </div>

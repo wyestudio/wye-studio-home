@@ -10,10 +10,10 @@ import {
   type PublicVenue,
 } from "@/types/catalog";
 
-const field = "w-full rounded border border-border bg-background px-2 py-1.5 text-sm";
+const field = "w-full rounded border border-border bg-background px-2 py-1.5 text-body-sm";
 // ⚠️ 줄 편집기는 flex 라 w-full 을 쓰면 안 된다. width:100% 인 칸이 basis:auto 로
 //    공간을 다 먹어 나머지 칸이 0 폭으로 찌그러진다(실제로 그랬다).
-const cell = "rounded border border-border bg-background px-2 py-1.5 text-sm";
+const cell = "rounded border border-border bg-background px-2 py-1.5 text-body-sm";
 
 function emptyBlock(type: ThemeBlockType): ThemeBlock {
   switch (type) {
@@ -100,7 +100,7 @@ export function ContentBlocksEditor({
   return (
     <div>
       {blocks.length === 0 && (
-        <p className="mb-1 rounded border border-dashed border-border py-6 text-center text-sm text-muted">
+        <p className="mb-1 rounded border border-dashed border-border py-6 text-center text-body-sm text-muted">
           아직 내용이 없습니다. 아래에서 블록을 추가해주세요.
         </p>
       )}
@@ -113,38 +113,38 @@ export function ContentBlocksEditor({
           <div key={i}>
             <div className="rounded-lg border border-border">
               <div className="flex items-center gap-2 border-b border-border bg-white/[0.02] px-3 py-2">
-                <span className="shrink-0 rounded bg-muted/20 px-2 py-0.5 text-[11px] text-muted">
+                <span className="shrink-0 rounded bg-muted/20 px-2 py-0.5 text-micro text-muted">
                   {THEME_BLOCK_LABELS[b.type]}
                 </span>
-                <span className="flex-1 truncate text-xs text-muted">
+                <span className="flex-1 truncate text-micro text-muted">
                   {/* included 는 제목을 비워두는 게 기본이라 판 안 문구로 알아본다. */}
                   {b.title ||
                     (b.type === "list" && b.variant === "included" ? b.headline : "") ||
                     "(제목 없음)"}
                 </span>
                 {b.hidden && (
-                  <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-400">
+                  <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-micro text-amber-400">
                     숨김
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => patch(i, { hidden: !b.hidden } as Partial<ThemeBlock>)}
-                  className="rounded border border-border px-2 py-1 text-xs"
+                  className="rounded border border-border px-2 py-1 text-micro"
                   title="고객 화면에서만 감춥니다. 내용은 그대로 남아요."
                 >
                   {b.hidden ? "다시 보이기" : "숨기기"}
                 </button>
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
-                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30">위로</button>
+                  className="rounded border border-border px-2 py-1 text-micro disabled:opacity-30">위로</button>
                 <button type="button" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}
-                  className="rounded border border-border px-2 py-1 text-xs disabled:opacity-30">아래로</button>
+                  className="rounded border border-border px-2 py-1 text-micro disabled:opacity-30">아래로</button>
                 <button type="button" onClick={() => setOpenIndex(open ? null : i)}
-                  className="rounded border border-border px-2 py-1 text-xs">
+                  className="rounded border border-border px-2 py-1 text-micro">
                   {open ? "접기" : "편집"}
                 </button>
                 <button type="button" onClick={() => remove(i)}
-                  className="rounded border border-red-500/40 px-2 py-1 text-xs text-red-400">삭제</button>
+                  className="rounded border border-red-500/40 px-2 py-1 text-micro text-red-400">삭제</button>
               </div>
 
               {/* 미리보기 — 고객 화면과 같은 컴포넌트.
@@ -179,21 +179,21 @@ export function ContentBlocksEditor({
                   </div>
 
                   {b.type === "price" && (
-                    <p className="text-[11px] text-muted">
+                    <p className="text-micro text-muted">
                       금액은 여기서 고치지 않습니다. 아래 <strong>요금 구간 (인당 가격)</strong> 칸을
                       고치면 이 표에 그대로 반영돼요.
                     </p>
                   )}
 
                   {b.type === "venue" && (
-                    <p className="text-[11px] text-muted">
+                    <p className="text-micro text-muted">
                       장소는 여기서 고치지 않습니다. 위쪽 <strong>장소</strong> 선택과 <strong>장소</strong>{" "}
                       메뉴의 상호명·주소·주차 안내·지도 링크가 그대로 보여요.
                     </p>
                   )}
 
                   {b.type === "list" && (
-                    <label className="flex items-center gap-2 text-xs text-muted">
+                    <label className="flex items-center gap-2 text-micro text-muted">
                       모양
                       <select
                         className={`${field} w-44`}
@@ -214,7 +214,7 @@ export function ContentBlocksEditor({
                   {/* 포함 사항 전용 칸. 다른 모양에는 쓰이지 않아 그때만 보여준다. */}
                   {b.type === "list" && b.variant === "included" && (
                     <div className="space-y-2">
-                      <p className="text-[11px] text-muted">
+                      <p className="text-micro text-muted">
                         위의 <strong>라벨·블록 제목</strong>은 비워 두는 것을 권합니다 — 가격표에
                         이어 붙은 한 판으로 보여야 해서, 큰 제목이 붙으면 따로 떨어진 섹션처럼
                         보입니다.
@@ -366,7 +366,7 @@ function InsertRow({ onInsert }: { onInsert: (type: ThemeBlockType) => void }) {
               onInsert(t);
               setOpen(false);
             }}
-            className="rounded border border-border px-3 py-1.5 text-xs hover:border-glow"
+            className="rounded border border-border px-3 py-1.5 text-micro hover:border-glow"
           >
             {THEME_BLOCK_LABELS[t]}
           </button>
@@ -374,7 +374,7 @@ function InsertRow({ onInsert }: { onInsert: (type: ThemeBlockType) => void }) {
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="ml-auto px-2 py-1.5 text-xs text-muted"
+          className="ml-auto px-2 py-1.5 text-micro text-muted"
         >
           취소
         </button>
@@ -389,7 +389,7 @@ function InsertRow({ onInsert }: { onInsert: (type: ThemeBlockType) => void }) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="여기에 블록 추가"
-        className="relative rounded-full border border-border bg-background px-2.5 text-xs leading-5 text-muted opacity-40 transition-opacity hover:border-glow hover:text-glow group-hover:opacity-100"
+        className="relative rounded-full border border-border bg-background px-2.5 text-micro leading-5 text-muted opacity-40 transition-opacity hover:border-glow hover:text-glow group-hover:opacity-100"
       >
         +
       </button>
@@ -436,7 +436,7 @@ function RowsEditor({
   return (
     <div className="space-y-2">
       {block.type === "timetable" && (
-        <p className="text-[11px] text-muted">
+        <p className="text-micro text-muted">
           시각은 적지 않습니다. 화면에는 <strong>1·2·3…</strong> 순서로만 나갑니다.
         </p>
       )}
@@ -464,7 +464,7 @@ function RowsEditor({
           <button
             type="button"
             onClick={() => onChange(items.filter((_, i) => i !== r) as RowBlock["items"])}
-            className="shrink-0 rounded border border-border px-2 py-1.5 text-xs text-muted"
+            className="shrink-0 rounded border border-border px-2 py-1.5 text-micro text-muted"
           >
             ×
           </button>
@@ -474,7 +474,7 @@ function RowsEditor({
       <button
         type="button"
         onClick={() => onChange([...items, blank] as RowBlock["items"])}
-        className="rounded border border-dashed border-border px-3 py-1.5 text-xs text-muted"
+        className="rounded border border-dashed border-border px-3 py-1.5 text-micro text-muted"
       >
         + 항목 추가
       </button>
@@ -508,8 +508,8 @@ function MiniRows({
 
   return (
     <div className="space-y-1.5 rounded border border-border/70 p-2.5">
-      <p className="text-xs font-semibold text-foreground">{label}</p>
-      {hint && <p className="text-[11px] leading-relaxed text-muted">{hint}</p>}
+      <p className="text-micro font-semibold text-foreground">{label}</p>
+      {hint && <p className="text-micro leading-relaxed text-muted">{hint}</p>}
 
       {rows.map((row, r) => (
         <div
@@ -547,7 +547,7 @@ function MiniRows({
           <button
             type="button"
             onClick={() => onChange(rows.filter((_, k) => k !== r))}
-            className="shrink-0 rounded border border-border px-2 py-1.5 text-xs text-muted"
+            className="shrink-0 rounded border border-border px-2 py-1.5 text-micro text-muted"
           >
             ×
           </button>
@@ -557,7 +557,7 @@ function MiniRows({
       <button
         type="button"
         onClick={() => onChange([...rows, blank])}
-        className="rounded border border-dashed border-border px-3 py-1.5 text-xs text-muted"
+        className="rounded border border-dashed border-border px-3 py-1.5 text-micro text-muted"
       >
         + 줄 추가
       </button>

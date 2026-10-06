@@ -17,8 +17,8 @@ import { ContentBlocksEditor } from "./ContentBlocksEditor";
 import { ImageUploadField } from "./ImageUploadField";
 import { GenreInput } from "./GenreInput";
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
-const label = "block text-xs font-medium text-muted mb-1";
+const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-medium text-muted mb-1";
 const section = "rounded-lg border border-border p-4 space-y-4";
 
 /** 강조색을 안 정한 테마가 쓰는 기본값. 고객 화면의 DEFAULT_ACCENT 와 같아야 한다. */
@@ -176,7 +176,7 @@ export function ThemeEditor({
 
   if (activeVenues.length === 0) {
     return (
-      <div className="rounded-lg border border-border p-6 text-center text-sm text-muted">
+      <div className="rounded-lg border border-border p-6 text-center text-body-sm text-muted">
         사용 가능한 장소가 없습니다. <strong>장소</strong> 메뉴에서 먼저 등록해주세요.
       </div>
     );
@@ -189,7 +189,7 @@ export function ThemeEditor({
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-sm ${
+          className={`rounded border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -206,7 +206,7 @@ export function ThemeEditor({
         <div className="flex justify-end">
           <button
             onClick={() => setEditing(emptyTheme(activeVenues[0].id))}
-            className="rounded bg-glow px-3 py-2 text-sm text-glow-foreground"
+            className="rounded bg-glow px-3 py-2 text-body-sm text-glow-foreground"
           >
             + 테마 추가
           </button>
@@ -250,10 +250,10 @@ export function ThemeEditor({
                       <option key={key} value={key}>{f.label}</option>
                     ))}
                   </select>
-                  <p className={`mt-2 text-center text-base font-bold ${themeTitleFontClass(editing.title_font)}`}>
+                  <p className={`mt-2 text-center text-body font-bold ${themeTitleFontClass(editing.title_font)}`}>
                     {editing.name || "테마명"}
                   </p>
-                  <p className="mt-1 text-[11px] text-muted">
+                  <p className="mt-1 text-micro text-muted">
                     컨텐츠 목록에서 <strong>행성 아래 이름</strong>에만 적용됩니다.
                   </p>
                 </div>
@@ -263,7 +263,7 @@ export function ThemeEditor({
                 <div>
                   <label className={label}>테마 이름 *</label>
                   <input
-                    className={`${field} text-lg font-bold`}
+                    className={`${field} text-h3 font-bold`}
                     value={editing.name}
                     onChange={(e) => patch({ name: e.target.value })}
                   />
@@ -289,7 +289,7 @@ export function ThemeEditor({
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
-                  <p className="mt-1 text-[11px] text-muted">
+                  <p className="mt-1 text-micro text-muted">
                     상세 화면에서 테마명 옆에 강조색으로 보입니다.
                     {categoryName && ` 지금은 '${categoryName}'.`}
                   </p>
@@ -303,7 +303,7 @@ export function ThemeEditor({
                         onChange={(e) => patch({ category_description: e.target.value })}
                         placeholder="예) 여러 팀이 한 공간에서 동시에 경쟁하는 방탈출이에요."
                       />
-                      <p className="mt-1 text-[11px] text-muted">
+                      <p className="mt-1 text-micro text-muted">
                         카테고리 옆 동그라미 물음표를 누르거나 마우스를 올리면 말풍선으로 보입니다.
                         비우면 물음표가 사라져요. <strong>같은 카테고리를 쓰는 테마 전체</strong>에 같이 바뀝니다.
                       </p>
@@ -340,7 +340,7 @@ export function ThemeEditor({
 
                 {/* 고객 상세 화면 상단과 같은 컴포넌트다. 입력한 값이 어떻게 보이는지 바로 확인한다. */}
                 <div className="rounded-lg border border-border bg-black/20 p-3">
-                  <p className="mb-2 text-[11px] text-muted">상세 화면 미리보기</p>
+                  <p className="mb-2 text-micro text-muted">상세 화면 미리보기</p>
                   <ThemeSpecs
                     difficulty={editing.difficulty}
                     durationMinutes={editing.duration_minutes}
@@ -370,12 +370,12 @@ export function ThemeEditor({
                     <button
                       type="button"
                       onClick={() => patch({ slug: suggestSlug(editing.name) })}
-                      className="shrink-0 rounded border border-border px-3 text-xs"
+                      className="shrink-0 rounded border border-border px-3 text-micro"
                     >
                       자동
                     </button>
                   </div>
-                  <p className="mt-1 text-[11px] text-muted">
+                  <p className="mt-1 text-micro text-muted">
                     영문 소문자·숫자·하이픈만. 주소는 <code>/themes/{editing.slug || "…"}</code>
                   </p>
                 </div>
@@ -394,7 +394,7 @@ export function ThemeEditor({
                 onChange={(e) => patch({ description: e.target.value })}
                 placeholder="테마의 배경 이야기. 3문장 안팎이 읽기 좋습니다."
               />
-              <p className="mt-1 text-[11px] text-muted">
+              <p className="mt-1 text-micro text-muted">
                 상세 페이지 상단, 난이도·시간·장르 아래에 큰 글씨로 보입니다. 줄바꿈도 그대로 반영돼요.
                 한 줄 소개가 비어 있으면 검색 결과 설명으로도 쓰입니다.
               </p>
@@ -408,7 +408,7 @@ export function ThemeEditor({
                 onChange={(e) => patch({ intro_notice: e.target.value })}
                 placeholder="예: ※ 정식 오픈 회차는 **소개팅 없이 진행되는 그룹 파티형 방탈출**입니다."
               />
-              <p className="mt-1 text-[11px] text-muted">
+              <p className="mt-1 text-micro text-muted">
                 오해를 미리 풀어야 할 때 쓰는 자리입니다. 비우면 안 나옵니다.
                 <strong>**별표 두 개**</strong>로 감싸면 그 부분만 굵게 보여요.
               </p>
@@ -430,7 +430,7 @@ export function ThemeEditor({
                   placeholder={`비우면 ${DEFAULT_ACCENT}`}
                 />
               </div>
-              <p className="mt-1 text-[11px] text-muted">
+              <p className="mt-1 text-micro text-muted">
                 카테고리·선택한 날짜·신청 버튼 등 상세 페이지 곳곳에 쓰입니다.
               </p>
             </div>
@@ -443,7 +443,7 @@ export function ThemeEditor({
                 value={editing.opening_date ?? ""}
                 onChange={(e) => patch({ opening_date: e.target.value || null })}
               />
-              <p className="mt-1 text-[11px] text-muted">
+              <p className="mt-1 text-micro text-muted">
                 예약 달력에서 이 날짜 아래에 <strong>오픈</strong>이라고 표시됩니다. 비우면 표시하지 않습니다.
               </p>
             </div>
@@ -451,8 +451,8 @@ export function ThemeEditor({
 
           {/* ── 상세 콘텐츠 ── */}
           <div className={section}>
-            <h3 className="text-sm font-semibold">상세 페이지 콘텐츠</h3>
-            <p className="text-xs text-muted">
+            <h3 className="text-body-sm font-semibold">상세 페이지 콘텐츠</h3>
+            <p className="text-micro text-muted">
               아래는 고객 화면과 같은 미리보기입니다. 블록 사이의 <strong>+</strong> 를 눌러 원하는
               자리에 끼워넣을 수 있어요.
             </p>
@@ -469,8 +469,8 @@ export function ThemeEditor({
           {/* ── 요금 구간 · 정원/연령 (둘 다 좁아서 2열로 붙인다) ── */}
           <div className="grid gap-4 lg:grid-cols-2">
             <div className={section}>
-              <h3 className="text-sm font-semibold">요금 구간 (인당 가격)</h3>
-              <p className="text-xs text-muted">
+              <h3 className="text-body-sm font-semibold">요금 구간 (인당 가격)</h3>
+              <p className="text-micro text-muted">
                 해당 인원 <strong>이상</strong>일 때 적용되며, 조건을 만족하는 구간 중 가장 큰 것이 쓰입니다.
                 예를 들어 4인 구간이 마지막이면 5인·6인도 4인 가격이 적용됩니다.
               </p>
@@ -517,7 +517,7 @@ export function ThemeEditor({
                     </div>
                     <button
                       onClick={() => patch({ tiers: editing.tiers.filter((_, x) => x !== i) })}
-                      className="rounded border border-red-500/50 px-2.5 py-2 text-xs text-red-400"
+                      className="rounded border border-red-500/50 px-2.5 py-2 text-micro text-red-400"
                     >
                       삭제
                     </button>
@@ -538,12 +538,12 @@ export function ThemeEditor({
                     ],
                   })
                 }
-                className="rounded border border-border px-3 py-1.5 text-xs"
+                className="rounded border border-border px-3 py-1.5 text-micro"
               >
                 + 구간 추가
               </button>
 
-              <div className="rounded bg-muted/10 p-3 text-xs">
+              <div className="rounded bg-muted/10 p-3 text-micro">
                 <p className="mb-1 font-medium">미리보기</p>
                 {[1, 2, 3, 4, 5, 6].map((n) => {
                   const unit = resolveUnitPrice(
@@ -560,7 +560,7 @@ export function ThemeEditor({
             </div>
 
             <div className={section}>
-              <h3 className="text-sm font-semibold">정원 · 연령</h3>
+              <h3 className="text-body-sm font-semibold">정원 · 연령</h3>
               <div>
                 <label className={label}>즉시확정 인원 *</label>
                 <input
@@ -568,7 +568,7 @@ export function ThemeEditor({
                   value={editing.capacity_confirm_line}
                   onChange={(e) => patch({ capacity_confirm_line: Number(e.target.value) })}
                 />
-                <p className="mt-1 text-[11px] text-muted">여기까지는 바로 확정됩니다.</p>
+                <p className="mt-1 text-micro text-muted">여기까지는 바로 확정됩니다.</p>
               </div>
               <div>
                 <label className={label}>정원 (대기 포함) *</label>
@@ -577,7 +577,7 @@ export function ThemeEditor({
                   value={editing.capacity_max}
                   onChange={(e) => patch({ capacity_max: Number(e.target.value) })}
                 />
-                <p className="mt-1 text-[11px] text-muted">이 수를 넘으면 신청이 거부됩니다.</p>
+                <p className="mt-1 text-micro text-muted">이 수를 넘으면 신청이 거부됩니다.</p>
               </div>
               <div>
                 <label className={label}>테마 최소 연령</label>
@@ -587,7 +587,7 @@ export function ThemeEditor({
                   onChange={(e) => patch({ min_age_floor: num(e.target.value) })}
                   placeholder="비우면 시각 규칙만"
                 />
-                <p className="mt-1 text-[11px] text-muted">
+                <p className="mt-1 text-micro text-muted">
                   기본은 <strong>종료 시각</strong> 기준(22:00 이전 종료 만 16세 / 이후 만 19세, 약관
                   제9조). 여기 값이 더 높으면 그게 적용됩니다.
                 </p>
@@ -597,9 +597,9 @@ export function ThemeEditor({
 
           {/* ── 노출 ── */}
           <div className={section}>
-            <h3 className="text-sm font-semibold">노출</h3>
+            <h3 className="text-body-sm font-semibold">노출</h3>
             <div className="flex flex-wrap gap-6">
-              <label className="flex max-w-xs items-start gap-2 text-sm">
+              <label className="flex max-w-xs items-start gap-2 text-body-sm">
                 <input
                   type="checkbox"
                   className="mt-1"
@@ -608,12 +608,12 @@ export function ThemeEditor({
                 />
                 <span>
                   신청 받기
-                  <span className="mt-0.5 block text-xs text-muted">
+                  <span className="mt-0.5 block text-micro text-muted">
                     끄면 <strong>신청 버튼만</strong> 비활성화됩니다. 테마 페이지는 계속 보입니다.
                   </span>
                 </span>
               </label>
-              <label className="flex max-w-xs items-start gap-2 text-sm">
+              <label className="flex max-w-xs items-start gap-2 text-body-sm">
                 <input
                   type="checkbox"
                   className="mt-1"
@@ -622,7 +622,7 @@ export function ThemeEditor({
                 />
                 <span>
                   목록에 노출
-                  <span className="mt-0.5 block text-xs text-muted">
+                  <span className="mt-0.5 block text-micro text-muted">
                     끄면 컨텐츠 목록·검색엔진에 안 나옵니다. 주소를 아는 사람은 볼 수 있습니다.
                   </span>
                 </span>
@@ -632,7 +632,7 @@ export function ThemeEditor({
                 목록에서 빼는 것(is_listed)과는 반대로, 있다는 건 보여주되
                 들어가지는 못하게 한다.
               */}
-              <label className="flex max-w-xs items-start gap-2 text-sm">
+              <label className="flex max-w-xs items-start gap-2 text-body-sm">
                 <input
                   type="checkbox"
                   className="mt-1"
@@ -641,7 +641,7 @@ export function ThemeEditor({
                 />
                 <span>
                   잠금
-                  <span className="mt-0.5 block text-xs text-muted">
+                  <span className="mt-0.5 block text-micro text-muted">
                     켜면 홈·컨텐츠 목록에 <strong>자물쇠</strong>로 덮이고, 눌러도 상세로 가지
                     않습니다. 검색엔진에도 올리지 않습니다.
                   </span>
@@ -660,16 +660,16 @@ export function ThemeEditor({
 
           {/* 폼이 길어서 맨 위 메시지가 화면 밖에 있을 수 있다. 버튼 옆에도 보여준다. */}
           {message?.kind === "err" && (
-            <div className="rounded border border-red-500 px-3 py-2 text-sm text-red-400">
+            <div className="rounded border border-red-500 px-3 py-2 text-body-sm text-red-400">
               {message.text}
             </div>
           )}
 
           <div className="flex flex-wrap gap-2">
-            <button onClick={submit} disabled={pending} className="rounded bg-glow px-4 py-2 text-sm text-glow-foreground disabled:opacity-50">
+            <button onClick={submit} disabled={pending} className="rounded bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50">
               {pending ? "저장 중…" : "저장"}
             </button>
-            <button onClick={() => setEditing(null)} className="rounded border border-border px-4 py-2 text-sm">
+            <button onClick={() => setEditing(null)} className="rounded border border-border px-4 py-2 text-body-sm">
               취소
             </button>
             {/* 목록이 행성 격자가 되면서 줄별 삭제 버튼이 사라졌다. 편집 화면에 둔다. */}
@@ -677,7 +677,7 @@ export function ThemeEditor({
               <button
                 onClick={() => remove(editing.id!, editing.name)}
                 disabled={pending}
-                className="ml-auto rounded border border-red-500/50 px-4 py-2 text-sm text-red-400 disabled:opacity-50"
+                className="ml-auto rounded border border-red-500/50 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
               >
                 이 테마 삭제
               </button>
@@ -690,7 +690,7 @@ export function ThemeEditor({
       {!editing && (
         <div>
           {themes.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted">등록된 테마가 없습니다.</p>
+            <p className="py-8 text-center text-body-sm text-muted">등록된 테마가 없습니다.</p>
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {themes.map((t) => {
@@ -714,17 +714,17 @@ export function ThemeEditor({
                       {(!t.is_active || !t.is_listed || t.is_locked) && (
                         <div className="absolute left-2 top-2 flex flex-col gap-1">
                           {t.is_locked && (
-                            <span className="rounded bg-white/90 px-1.5 py-0.5 text-[10px] text-black">
+                            <span className="rounded bg-white/90 px-1.5 py-0.5 text-micro text-black">
                               🔒 잠금
                             </span>
                           )}
                           {!t.is_active && (
-                            <span className="rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] text-black">
+                            <span className="rounded bg-amber-500/90 px-1.5 py-0.5 text-micro text-black">
                               신청 중지
                             </span>
                           )}
                           {!t.is_listed && (
-                            <span className="rounded bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+                            <span className="rounded bg-black/70 px-1.5 py-0.5 text-micro text-white">
                               목록 숨김
                             </span>
                           )}
@@ -733,13 +733,13 @@ export function ThemeEditor({
                     </div>
 
                     <div className="border-t border-border p-3">
-                      <p className="truncate text-sm font-medium">{t.name}</p>
+                      <p className="truncate text-body-sm font-medium">{t.name}</p>
                       {/* 0 은 '미정'. 숫자 그대로 보이면 데이터가 깨진 것처럼 읽힌다. */}
-                      <p className="mt-0.5 text-[11px] text-muted">
+                      <p className="mt-0.5 text-micro text-muted">
                         난이도 {t.difficulty > 0 ? t.difficulty : "미정"} ·{" "}
                         {t.duration_minutes > 0 ? `${t.duration_minutes}분` : "시간 미정"}
                       </p>
-                      <p className="text-[11px] text-muted">
+                      <p className="text-micro text-muted">
                         {prices.length > 0
                           ? `인당 ${Math.min(...prices).toLocaleString()}~${Math.max(...prices).toLocaleString()}원`
                           : "요금 미설정"}

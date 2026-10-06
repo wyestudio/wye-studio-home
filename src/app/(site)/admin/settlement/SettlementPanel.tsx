@@ -34,10 +34,10 @@ function Table({ rows, 제목 }: { rows: SettlementRow[]; 제목: string }) {
   if (rows.length === 0) return null;
   return (
     <div className="mb-8">
-      <h2 className="mb-2 text-lg font-semibold">{제목}</h2>
+      <h2 className="mb-2 text-h3 font-semibold">{제목}</h2>
       <div className="overflow-x-auto rounded-lg border border-border bg-background/50">
-        <table className="w-full min-w-[900px] text-sm">
-          <thead className="border-b border-border text-left text-xs text-muted">
+        <table className="w-full min-w-[900px] text-body-sm">
+          <thead className="border-b border-border text-left text-micro text-muted">
             <tr>
               <th className="px-3 py-2">예약번호</th>
               <th className="px-3 py-2">회차</th>
@@ -62,7 +62,7 @@ function Table({ rows, 제목 }: { rows: SettlementRow[]; 제목: string }) {
                   <td className="px-3 py-2">
                     {r.allCoupons || "-"}
                     {r.partnerDiscountKrw > 0 && r.discountKrw !== r.partnerDiscountKrw && (
-                      <span className="ml-1 text-[11px] text-muted">
+                      <span className="ml-1 text-micro text-muted">
                         (잼핏분 {formatKrw(r.partnerDiscountKrw)})
                       </span>
                     )}
@@ -129,7 +129,7 @@ export function SettlementPanel({
             <button
               key={m}
               onClick={() => router.push(`/admin/settlement?month=${m}`)}
-              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-all ${
+              className={`rounded-lg border px-3 py-2 text-body-sm font-semibold transition-all ${
                 m === month
                   ? "border-glow bg-glow/10 text-foreground"
                   : "border-border bg-background/50 text-muted hover:bg-muted/30 hover:text-foreground"
@@ -142,7 +142,7 @@ export function SettlementPanel({
         <button
           onClick={내려받기}
           disabled={rows.length === 0 && deductions.length === 0}
-          className="rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/30 disabled:opacity-40"
+          className="rounded-lg border border-border px-3 py-2 text-body-sm hover:bg-muted/30 disabled:opacity-40"
         >
           CSV 내려받기
         </button>
@@ -150,23 +150,23 @@ export function SettlementPanel({
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-lg border border-border bg-background/50 p-4">
-          <p className="text-xs text-muted">성과 인정 예약</p>
-          <p className="mt-1 text-2xl font-bold">{totals.count}건</p>
-          <p className="mt-1 text-xs text-muted">{totals.headcount}명</p>
+          <p className="text-micro text-muted">성과 인정 예약</p>
+          <p className="mt-1 text-h2 font-bold">{totals.count}건</p>
+          <p className="mt-1 text-micro text-muted">{totals.headcount}명</p>
         </div>
         <div className="rounded-lg border border-border bg-background/50 p-4">
-          <p className="text-xs text-muted">보유액 합계</p>
-          <p className="mt-1 text-2xl font-bold">{formatKrw(totals.retainedKrw)}</p>
-          <p className="mt-1 text-xs text-muted">수수료의 기준</p>
+          <p className="text-micro text-muted">보유액 합계</p>
+          <p className="mt-1 text-h2 font-bold">{formatKrw(totals.retainedKrw)}</p>
+          <p className="mt-1 text-micro text-muted">수수료의 기준</p>
         </div>
         <div className="rounded-lg border border-border bg-background/50 p-4">
-          <p className="text-xs text-muted">이번 달 수수료 (5%)</p>
-          <p className="mt-1 text-2xl font-bold">{formatKrw(정산전)}</p>
+          <p className="text-micro text-muted">이번 달 수수료 (5%)</p>
+          <p className="mt-1 text-h2 font-bold">{formatKrw(정산전)}</p>
         </div>
         <div className="rounded-lg border border-glow/40 bg-glow/5 p-4">
-          <p className="text-xs text-muted">지급할 금액</p>
-          <p className="mt-1 text-2xl font-bold text-glow">{formatKrw(상계전)}</p>
-          <p className="mt-1 text-xs text-muted">
+          <p className="text-micro text-muted">지급할 금액</p>
+          <p className="mt-1 text-h2 font-bold text-glow">{formatKrw(상계전)}</p>
+          <p className="mt-1 text-micro text-muted">
             {차감합계 > 0 ? `차감 −${formatKrw(차감합계)} 반영` : "상계 없이"}
           </p>
         </div>
@@ -174,8 +174,8 @@ export function SettlementPanel({
 
       {totals.partnerCouponShareKrw > 0 && (
         <div className="mb-6 rounded-lg border border-border bg-background/50 p-4">
-          <p className="mb-2 text-sm font-semibold">쿠폰 비용 상계 (제6조 3·4항)</p>
-          <p className="mb-3 text-sm text-muted">
+          <p className="mb-2 text-body-sm font-semibold">쿠폰 비용 상계 (제6조 3·4항)</p>
+          <p className="mb-3 text-body-sm text-muted">
             <strong className="text-foreground">잼핏 쿠폰</strong> 할인비용은{" "}
             <strong className="text-foreground">잼핏 50% · 우리 50%</strong> 부담입니다. 다른 이벤트
             쿠폰(인스타 등)은 우리가 전액 부담하므로 여기 들어가지 않습니다.
@@ -184,21 +184,21 @@ export function SettlementPanel({
             다만 <strong className="text-foreground">&ldquo;양 당사자의 동의 하에&rdquo;</strong>이므로
             합의 전에는 상계하지 말고 수수료 전액을 지급한 뒤 따로 청구해야 합니다.
           </p>
-          <dl className="grid gap-2 text-sm sm:grid-cols-3">
+          <dl className="grid gap-2 text-body-sm sm:grid-cols-3">
             <div className="rounded border border-border px-3 py-2">
-              <dt className="text-xs text-muted">잼핏 쿠폰 할인액</dt>
+              <dt className="text-micro text-muted">잼핏 쿠폰 할인액</dt>
               <dd className="mt-0.5 font-bold">
                 {formatKrw(rows.reduce((a, r) => a + (r.retainedKrw > 0 ? r.partnerDiscountKrw : 0), 0))}
               </dd>
             </div>
             <div className="rounded border border-border px-3 py-2">
-              <dt className="text-xs text-muted">잼핏 부담 (50%)</dt>
+              <dt className="text-micro text-muted">잼핏 부담 (50%)</dt>
               <dd className="mt-0.5 font-bold text-amber-400">
                 {formatKrw(totals.partnerCouponShareKrw)}
               </dd>
             </div>
             <div className="rounded border border-glow/30 bg-glow/5 px-3 py-2">
-              <dt className="text-xs text-muted">상계하면 지급액</dt>
+              <dt className="text-micro text-muted">상계하면 지급액</dt>
               <dd className="mt-0.5 font-bold text-glow">{formatKrw(상계후)}</dd>
             </div>
           </dl>
@@ -206,7 +206,7 @@ export function SettlementPanel({
       )}
 
       {needsReview > 0 && (
-        <p className="mb-6 rounded border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-sm text-amber-300">
+        <p className="mb-6 rounded border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-body-sm text-amber-300">
           ⚠️ 환불 금액을 손으로 정했을 수 있는 건이 {needsReview}건 있습니다. 실제 환불액을 확인하고
           보유액이 맞는지 봐주세요 — 환불 금액은 따로 저장하지 않아 <strong>환불 규정대로</strong> 계산한
           값입니다.
@@ -226,8 +226,8 @@ export function SettlementPanel({
            그래서 버튼 이름도 '확정'이 아니라 '보관'이다.
       */}
       <div className="mt-10 rounded-lg border border-border bg-background/50 p-5">
-        <h2 className="text-lg font-semibold">이 내역 보관</h2>
-        <p className="mt-1 text-sm text-muted">
+        <h2 className="text-h3 font-semibold">이 내역 보관</h2>
+        <p className="mt-1 text-body-sm text-muted">
           정산 화면은 매번 <strong className="text-foreground">실시간으로 다시 계산</strong>합니다. 나중에
           데이터가 바뀌면 과거 달 숫자도 같이 바뀌므로, 잼핏에 보낸 시점의 내역을 그대로 남겨 둡니다.
           <br />
@@ -237,7 +237,7 @@ export function SettlementPanel({
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <input
-            className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-sm"
+            className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-body-sm"
             placeholder="메모 (예: 잼핏에 메일로 전달)"
             value={note}
             maxLength={200}
@@ -257,19 +257,19 @@ export function SettlementPanel({
                 }
               })
             }
-            className="rounded-lg border border-glow/40 bg-glow/10 px-4 py-2 text-sm font-semibold hover:bg-glow/20 disabled:opacity-50"
+            className="rounded-lg border border-glow/40 bg-glow/10 px-4 py-2 text-body-sm font-semibold hover:bg-glow/20 disabled:opacity-50"
           >
             {saving ? "보관 중…" : "이 내역 보관"}
           </button>
         </div>
         {saveError && (
-          <p className="mt-2 rounded bg-red-500/10 px-3 py-2 text-sm text-red-400">{saveError}</p>
+          <p className="mt-2 rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{saveError}</p>
         )}
 
         {snapshots.length > 0 && (
           <div className="mt-5 overflow-x-auto rounded border border-border">
-            <table className="w-full min-w-[640px] text-sm">
-              <thead className="border-b border-border text-left text-xs text-muted">
+            <table className="w-full min-w-[640px] text-body-sm">
+              <thead className="border-b border-border text-left text-micro text-muted">
                 <tr>
                   <th className="px-3 py-2">보관 시각</th>
                   <th className="px-3 py-2 text-right">건수</th>
@@ -296,7 +296,7 @@ export function SettlementPanel({
                     <td className="px-3 py-2 text-right">
                       <button
                         type="button"
-                        className="rounded border border-border px-2 py-1 text-xs hover:bg-muted/30"
+                        className="rounded border border-border px-2 py-1 text-micro hover:bg-muted/30"
                         onClick={() =>
                           downloadCsv(
                             `잼핏정산_${s.month}_보관본.csv`,

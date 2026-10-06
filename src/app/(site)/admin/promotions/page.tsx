@@ -58,14 +58,14 @@ export default async function AdminPromotionsPage() {
         <AdminNav current="/promotions" />
 
         <header className="mb-6">
-          <h1 className="text-2xl font-bold">프로모션</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">프로모션</h1>
+          <p className="mt-1 text-body-sm text-muted">
             기간 한정 할인(얼리버드)을 관리합니다.{" "}
             <strong>여기 금액이 그대로 고객 청구액이 됩니다</strong> — 켜는 즉시 조건에 맞는
             회차에 적용되고, 달력·회차 목록·가격표·신청 화면에 함께 표시됩니다.{" "}
             <strong>켤 수 있는 프로모션은 한 번에 하나</strong>입니다.
           </p>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-body-sm text-muted">
             기본가(정가)는 여기가 아니라 <strong>테마 &gt; 요금 구간</strong>에 있습니다. 가격을
             두 곳에 적어두지 않으려고 분리했습니다.
           </p>

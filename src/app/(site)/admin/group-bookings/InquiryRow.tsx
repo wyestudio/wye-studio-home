@@ -46,18 +46,18 @@ export function InquiryRow({
         value={memo}
         onChange={(e) => setMemo(e.target.value)}
         placeholder="응대 메모"
-        className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm outline-none focus:border-glow"
+        className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-body-sm outline-none focus:border-glow"
       />
       <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={save}
           disabled={pending || !dirty}
-          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-bold text-brand-foreground disabled:opacity-40"
+          className="rounded-lg bg-brand px-3 py-1.5 text-body-sm font-bold text-brand-foreground disabled:opacity-40"
         >
           {pending ? "저장 중…" : "저장"}
         </button>
-        {message && <span className="text-xs text-muted">{message}</span>}
+        {message && <span className="text-micro text-muted">{message}</span>}
       </div>
     </div>
   );

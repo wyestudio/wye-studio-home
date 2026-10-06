@@ -25,14 +25,14 @@ type PageProps = Promise<{ id: string }>;
 function CommonCells({ app, appAttendees }: { app: any; appAttendees: any[] }) {
   return (
     <>
-      <td className="py-3 px-4 text-sm">
+      <td className="py-3 px-4 text-body-sm">
         <ApplicationDetailDialog application={app} attendees={appAttendees} />
       </td>
-      <td className="py-3 px-4 text-sm">
+      <td className="py-3 px-4 text-body-sm">
         {appAttendees.length > 0 ? (
           <div className="space-y-1">
             {appAttendees.map((att: any, idx: number) => (
-              <div key={idx} className="text-xs">
+              <div key={idx} className="text-micro">
                 {att.is_representative && <span className="font-semibold">대표 </span>}
                 {att.name} [{att.phone}]
               </div>
@@ -42,11 +42,11 @@ function CommonCells({ app, appAttendees }: { app: any; appAttendees: any[] }) {
           <span className="text-muted">참여자 정보 없음</span>
         )}
       </td>
-      <td className="py-3 px-4 text-sm">
+      <td className="py-3 px-4 text-body-sm">
         {appAttendees.length > 0 ? (
           <div className="space-y-1">
             {appAttendees.map((att: any, idx: number) => (
-              <div key={idx} className="text-xs">
+              <div key={idx} className="text-micro">
                 {att.gender === "M" ? "남" : att.gender === "F" ? "여" : "-"}
               </div>
             ))}
@@ -55,11 +55,11 @@ function CommonCells({ app, appAttendees }: { app: any; appAttendees: any[] }) {
           <span className="text-muted">-</span>
         )}
       </td>
-      <td className="py-3 px-4 text-sm">
+      <td className="py-3 px-4 text-body-sm">
         {appAttendees.length > 0 ? (
           <div className="space-y-1">
             {appAttendees.map((att: any, idx: number) => (
-              <div key={idx} className="text-xs">
+              <div key={idx} className="text-micro">
                 {att.birth_year ?? "-"}
               </div>
             ))}
@@ -74,7 +74,7 @@ function CommonCells({ app, appAttendees }: { app: any; appAttendees: any[] }) {
 
 function StatusCell({ app }: { app: any }) {
   return (
-    <td className="py-3 px-4 text-sm">
+    <td className="py-3 px-4 text-body-sm">
       <span
         className={
           app.status === "confirmed"
@@ -88,7 +88,7 @@ function StatusCell({ app }: { app: any }) {
       </span>
       {app.is_internal && (
         <span
-          className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-[10px] font-semibold text-amber-400"
+          className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-micro font-semibold text-amber-400"
           title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
         >
           테스트
@@ -100,10 +100,10 @@ function StatusCell({ app }: { app: any }) {
 
 function PromotedCell({ app }: { app: any }) {
   return (
-    <td className="py-3 px-4 text-sm">
+    <td className="py-3 px-4 text-body-sm">
       {app.promoted_from_waiting_at ? (
         <span className="text-glow font-semibold">
-          대기→확정 <span className="text-xs text-muted">({formatDateTimeFull(app.promoted_from_waiting_at)})</span>
+          대기→확정 <span className="text-micro text-muted">({formatDateTimeFull(app.promoted_from_waiting_at)})</span>
         </span>
       ) : (
         <span className="text-muted">즉시확정</span>
@@ -114,7 +114,7 @@ function PromotedCell({ app }: { app: any }) {
 
 function PaymentStatusCell({ app }: { app: any }) {
   return (
-    <td className="py-3 px-4 text-sm">
+    <td className="py-3 px-4 text-body-sm">
       <span
         className={
           app.payment_status === "confirmed"
@@ -140,7 +140,7 @@ function ActionCell({
   session: { id: string; session_type: string; min_age: number | null };
 }) {
   return (
-    <td className="py-3 px-4 text-sm">
+    <td className="py-3 px-4 text-body-sm">
       <ApplicationActionMenu
         applicationId={app.id}
         sessionId={session.id}
@@ -183,7 +183,7 @@ function needsRefund(app: any): boolean {
 
 function RefundActionCell({ app, sessionId }: { app: any; sessionId: string }) {
   return (
-    <td className="py-3 px-4 text-sm">
+    <td className="py-3 px-4 text-body-sm">
       {needsRefund(app) && !app.refund_completed_at && (
         <RefundCompleteButton applicationId={app.id} sessionId={sessionId} />
       )}
@@ -276,11 +276,11 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-h2 font-bold mb-2">
               {session.session_type} {session.theme_name}
             </h1>
             <p className="text-muted">{formatDateTimeFull(session.start_at)}</p>
-            <p className="text-sm mt-1">
+            <p className="text-body-sm mt-1">
               상태:{" "}
               <span
                 className={
@@ -316,33 +316,33 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         {stats && (
           <div className="mb-8 rounded-lg border border-border p-4 space-y-1.5">
-            <p className="text-xl font-semibold text-foreground">
+            <p className="text-h3 font-semibold text-foreground">
               {display ? formatCapacityLine(display as SessionDisplayRow) : "정원: -"}
             </p>
-            <p className="text-xl font-semibold text-foreground">
+            <p className="text-h3 font-semibold text-foreground">
               {display ? formatHeadcountLine(display as SessionDisplayRow, stats) : ""}
             </p>
-            <p className="text-xl font-semibold text-foreground">입금 확인 전 인원: {unpaidConfirmedCount}명</p>
+            <p className="text-h3 font-semibold text-foreground">입금 확인 전 인원: {unpaidConfirmedCount}명</p>
           </div>
         )}
 
-        <p className="text-sm text-muted mb-2">💡 접수번호를 클릭하면 신청 상세 정보를 확인할 수 있습니다.</p>
+        <p className="text-body-sm text-muted mb-2">💡 접수번호를 클릭하면 신청 상세 정보를 확인할 수 있습니다.</p>
 
         {/* 확정 목록 — 입금 전 건이 위로 오도록 정렬 */}
         <div className="mb-10">
-          <h2 className="text-lg font-bold mb-3">확정 목록 ({confirmedApps.length})</h2>
+          <h2 className="text-h3 font-bold mb-3">확정 목록 ({confirmedApps.length})</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">접수번호</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">참여자</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">성별</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">출생년도</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">신청 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">확정 경위</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">입금 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">액션</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">접수번호</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">참여자</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">출생년도</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">신청 상태</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">확정 경위</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">입금 상태</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">액션</th>
                 </tr>
               </thead>
               <tbody>
@@ -373,17 +373,17 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         {/* 대기 목록 */}
         <div className="mb-10">
-          <h2 className="text-lg font-bold mb-3">대기 목록 ({waitingApps.length})</h2>
+          <h2 className="text-h3 font-bold mb-3">대기 목록 ({waitingApps.length})</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">접수번호</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">참여자</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">성별</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">출생년도</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">신청 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">액션</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">접수번호</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">참여자</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">출생년도</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">신청 상태</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">액션</th>
                 </tr>
               </thead>
               <tbody>
@@ -412,19 +412,19 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         {/* 취소 목록 — 환불 미완료 건이 위로 오도록 정렬 */}
         <div className="mb-10">
-          <h2 className="text-lg font-bold mb-3">취소 목록 ({cancelledApps.length})</h2>
+          <h2 className="text-h3 font-bold mb-3">취소 목록 ({cancelledApps.length})</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-sm">접수번호</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">참여자</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">성별</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">출생년도</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">신청 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">환불계좌</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">환불 여부</th>
-                  <th className="text-left py-3 px-4 font-semibold text-sm">액션</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">접수번호</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">참여자</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">출생년도</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">신청 상태</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">환불계좌</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">환불 여부</th>
+                  <th className="text-left py-3 px-4 font-semibold text-body-sm">액션</th>
                 </tr>
               </thead>
               <tbody>
@@ -435,19 +435,19 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                       <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
                         <CommonCells app={app} appAttendees={appAttendees} />
                         <StatusCell app={app} />
-                        <td className="py-3 px-4 text-sm">
+                        <td className="py-3 px-4 text-body-sm">
                           {app.refund_bank_name && (
-                            <div className="text-xs space-y-0.5">
+                            <div className="text-micro space-y-0.5">
                               <p><strong>{app.refund_bank_name}</strong></p>
                               <p>{app.refund_account_number}</p>
                               <p>{app.refund_account_holder}</p>
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-sm">
+                        <td className="py-3 px-4 text-body-sm">
                           {app.refund_completed_at ? (
                             <span className="text-green-500 font-semibold">
-                              완료 <span className="text-xs text-muted">({formatDateTimeFull(app.refund_completed_at)})</span>
+                              완료 <span className="text-micro text-muted">({formatDateTimeFull(app.refund_completed_at)})</span>
                             </span>
                           ) : needsRefund(app) ? (
                             <span className="text-yellow-500 font-semibold">미완료</span>

@@ -115,7 +115,7 @@ export function EditApplicationDialog({
     >
       <div className="mt-4 flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-semibold text-foreground">입금자명</label>
+          <label className="text-body-sm font-semibold text-foreground">입금자명</label>
           <input
             type="text"
             value={depositorName}
@@ -126,7 +126,7 @@ export function EditApplicationDialog({
 
         {attendees.map((attendee, index) => (
           <div key={attendee.id} className="rounded-xl border border-border p-3 flex flex-col gap-3">
-            <p className="text-xs font-bold text-muted">{attendee.isRepresentative ? "대표 신청자" : `동행자 ${index}`}</p>
+            <p className="text-micro font-bold text-muted">{attendee.isRepresentative ? "대표 신청자" : `동행자 ${index}`}</p>
             <AttendeeFormFields
               value={attendee}
               onChange={(patch) => updateAttendee(index, patch)}
@@ -137,7 +137,7 @@ export function EditApplicationDialog({
 
         {attendees.length > 1 && (
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-semibold text-foreground">비고</label>
+            <label className="text-body-sm font-semibold text-foreground">비고</label>
             <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} className={attendeeInputClassName} />
           </div>
         )}

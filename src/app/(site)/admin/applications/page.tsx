@@ -122,27 +122,27 @@ export default async function AdminApplicationsPage({
         <AdminNav current="/applications" />
 
         <header className="mb-5">
-          <h1 className="text-2xl font-bold">신청 목록</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">신청 목록</h1>
+          <p className="mt-1 text-body-sm text-muted">
             모든 회차의 신청을 한 곳에서 찾습니다. 접수번호·이름·입금자명·전화번호로 검색할 수 있어요.
           </p>
         </header>
 
         <ApplicationFilters sessions={sessionOptions} />
 
-        <p className="mb-3 text-sm text-muted">
+        <p className="mb-3 text-body-sm text-muted">
           총 <strong className="text-foreground">{total}</strong>건
           {totalPages > 1 && ` · ${page} / ${totalPages} 페이지`}
         </p>
 
         {rows.length === 0 ? (
-          <div className="rounded-lg border border-border py-16 text-center text-sm text-muted">
+          <div className="rounded-lg border border-border py-16 text-center text-body-sm text-muted">
             조건에 맞는 신청이 없습니다.
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border">
-            <table className="w-full min-w-[860px] text-sm">
-              <thead className="border-b border-border text-left text-xs text-muted">
+            <table className="w-full min-w-[860px] text-body-sm">
+              <thead className="border-b border-border text-left text-micro text-muted">
                 <tr>
                   <th className="px-3 py-2.5">접수번호</th>
                   <th className="px-3 py-2.5">신청자</th>
@@ -164,20 +164,20 @@ export default async function AdminApplicationsPage({
                     </td>
                     <td className="px-3 py-2.5">
                       {r.representative_name ?? "-"}
-                      <span className="ml-1.5 text-xs text-muted">{maskPhone(r.representative_phone)}</span>
+                      <span className="ml-1.5 text-micro text-muted">{maskPhone(r.representative_phone)}</span>
                       {r.depositor_name && r.depositor_name !== r.representative_name && (
-                        <span className="ml-1.5 text-xs text-amber-400" title="입금자명이 신청자와 다릅니다">
+                        <span className="ml-1.5 text-micro text-amber-400" title="입금자명이 신청자와 다릅니다">
                           입금 {r.depositor_name}
                         </span>
                       )}
                     </td>
                     <td className="px-3 py-2.5">{r.headcount}명</td>
-                    <td className="px-3 py-2.5 text-xs">
+                    <td className="px-3 py-2.5 text-micro">
                       {formatDateTimeFull(r.session_start_at)}
                       {r.format_label && <span className="ml-1 text-muted">({r.format_label})</span>}
                     </td>
                     <td className={`px-3 py-2.5 ${statusTone(r.status)}`}>{STATUS_LABEL[r.status]}</td>
-                    <td className="px-3 py-2.5 text-xs">
+                    <td className="px-3 py-2.5 text-micro">
                       <span className={r.payment_status === "pending" && r.status !== "cancelled" ? "text-amber-400" : "text-muted"}>
                         {PAYMENT_LABEL[r.payment_status]}
                       </span>
@@ -189,19 +189,19 @@ export default async function AdminApplicationsPage({
                         왜 이 금액인지 목록에서 바로 알 수 있어야 한다.
                       */}
                       {r.discount_krw != null && r.discount_krw > 0 && (
-                        <span className="block text-[11px] text-glow" title={r.coupons ?? undefined}>
+                        <span className="block text-micro text-glow" title={r.coupons ?? undefined}>
                           쿠폰 −{formatKrw(r.discount_krw)}
                         </span>
                       )}
                       {r.coupons && (
-                        <span className="block text-[11px] text-muted">{r.coupons}</span>
+                        <span className="block text-micro text-muted">{r.coupons}</span>
                       )}
                     </td>
-                    <td className="px-3 py-2.5 text-xs text-muted">
+                    <td className="px-3 py-2.5 text-micro text-muted">
                       {formatDateFull(r.created_at)}
                     </td>
                     <td className="px-3 py-2.5">
-                      <Link href={`/sessions/${r.session_id}`} className="text-xs text-glow underline">
+                      <Link href={`/sessions/${r.session_id}`} className="text-micro text-glow underline">
                         회차 →
                       </Link>
                     </td>
@@ -230,7 +230,7 @@ export default async function AdminApplicationsPage({
 function TestBadge() {
   return (
     <span
-      className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 font-sans text-[10px] font-semibold text-amber-400"
+      className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 font-sans text-micro font-semibold text-amber-400"
       title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
     >
       테스트
@@ -253,7 +253,7 @@ function PageLink({
   }
   next.set("page", String(page));
   return (
-    <Link href={`/applications?${next.toString()}`} className="rounded border border-border px-3 py-1.5 text-sm">
+    <Link href={`/applications?${next.toString()}`} className="rounded border border-border px-3 py-1.5 text-body-sm">
       {label}
     </Link>
   );

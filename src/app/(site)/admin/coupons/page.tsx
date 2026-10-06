@@ -30,8 +30,8 @@ export default async function AdminCouponsPage() {
         <AdminNav current="/coupons" />
 
         <header className="mb-5">
-          <h1 className="text-2xl font-bold">쿠폰</h1>
-          <p className="mt-1 text-sm text-muted">
+          <h1 className="text-h2 font-bold">쿠폰</h1>
+          <p className="mt-1 text-body-sm text-muted">
             쿠폰 종류를 만들고 코드를 찍어냅니다. 코드 1장은 한 번만 쓸 수 있고, 신청 1건에 1장만
             적용됩니다.
           </p>

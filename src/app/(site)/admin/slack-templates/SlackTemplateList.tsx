@@ -24,7 +24,7 @@ export type PreviewThemeOption = {
   basis: string;
 };
 
-const field = "rounded border border-border bg-background px-3 py-2 text-sm";
+const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
 
 /** 테마와 무관한 값들. 미리보기에서만 쓰는 샘플이다. */
 const SAMPLE_VARS: Record<string, string> = {
@@ -100,7 +100,7 @@ export function SlackTemplateList({
     <>
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-border p-4">
         <div>
-          <label className="mb-1 block text-xs text-muted">미리보기 기준 테마</label>
+          <label className="mb-1 block text-micro text-muted">미리보기 기준 테마</label>
           <select className={field} value={themeId} onChange={(e) => setThemeId(e.target.value)}>
             {themes.map((t) => (
               <option key={t.id} value={t.id}>
@@ -110,7 +110,7 @@ export function SlackTemplateList({
           </select>
         </div>
         {theme && (
-          <p className="self-end pb-2 text-xs text-muted">
+          <p className="self-end pb-2 text-micro text-muted">
             금액·일시는 <strong className="text-foreground">{theme.name}</strong> 의 실제 값입니다 —{" "}
             {theme.basis}. 참여자는 샘플 3명(대표 1 · 동행 2)입니다.
           </p>

@@ -29,8 +29,8 @@ function toInput(v: Venue): VenueInput {
   };
 }
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-sm";
-const label = "block text-xs font-medium text-muted mb-1";
+const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-medium text-muted mb-1";
 
 export function VenueEditor({ venues }: { venues: Venue[] }) {
   const [editing, setEditing] = useState<VenueInput | null>(null);
@@ -67,7 +67,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-sm ${
+          className={`rounded border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -78,7 +78,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
       <div className="flex justify-end">
         <button
           onClick={() => setEditing({ ...EMPTY })}
-          className="rounded bg-glow px-3 py-2 text-sm text-glow-foreground"
+          className="rounded bg-glow px-3 py-2 text-body-sm text-glow-foreground"
         >
           + 장소 추가
         </button>
@@ -148,7 +148,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
               onChange={(e) => setEditing({ ...editing, coords: e.target.value })}
               placeholder="예: 37.5403064, 127.0851419"
             />
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-micro text-muted">
               구글 지도에서 장소를 마우스 오른쪽 버튼으로 누르면 맨 위에 좌표가 나와요. 눌러서 복사한 뒤 그대로 붙여 넣으면 됩니다.
             </p>
           </div>
@@ -161,13 +161,13 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
               onChange={(e) => setEditing({ ...editing, operating_period: e.target.value })}
               placeholder="예: 2026.09.26 ~ 2027.03.25"
             />
-            <p className="mt-1 text-[11px] text-muted">
+            <p className="mt-1 text-micro text-muted">
               네이버 스마트플레이스(팝업스토어) 등록에 필요해서 화면에 보여줍니다. 종료일 없이
               적으면 등록이 보류돼요. 화면에는 &ldquo;이 장소 운영기간 · (입력한 값)&rdquo; 으로 나옵니다.
             </p>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-body-sm">
             <input
               type="checkbox"
               checked={editing.is_active}
@@ -177,7 +177,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
           </label>
 
           {message?.kind === "err" && (
-            <div className="rounded border border-red-500 px-3 py-2 text-sm text-red-400">
+            <div className="rounded border border-red-500 px-3 py-2 text-body-sm text-red-400">
               {message.text}
             </div>
           )}
@@ -186,13 +186,13 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
             <button
               onClick={submit}
               disabled={pending}
-              className="rounded bg-glow px-4 py-2 text-sm text-glow-foreground disabled:opacity-50"
+              className="rounded bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
             >
               {pending ? "저장 중…" : "저장"}
             </button>
             <button
               onClick={() => setEditing(null)}
-              className="rounded border border-border px-4 py-2 text-sm"
+              className="rounded border border-border px-4 py-2 text-body-sm"
             >
               취소
             </button>
@@ -202,7 +202,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
 
       <div className="space-y-2">
         {venues.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted">
+          <p className="py-8 text-center text-body-sm text-muted">
             등록된 장소가 없습니다. 테마를 만들려면 장소가 먼저 필요합니다.
           </p>
         ) : (
@@ -214,21 +214,21 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
               <div className="min-w-0">
                 <p className="font-medium">
                   {v.name}
-                  {!v.is_active && <span className="ml-2 text-xs text-muted">(사용 안 함)</span>}
+                  {!v.is_active && <span className="ml-2 text-micro text-muted">(사용 안 함)</span>}
                 </p>
-                <p className="mt-1 text-sm text-muted">공개 위치: {v.area_label}</p>
-                <p className="text-xs text-muted">주소: {v.address}</p>
+                <p className="mt-1 text-body-sm text-muted">공개 위치: {v.area_label}</p>
+                <p className="text-micro text-muted">주소: {v.address}</p>
               </div>
               <div className="flex shrink-0 gap-2">
                 <button
                   onClick={() => setEditing(toInput(v))}
-                  className="rounded border border-border px-3 py-1.5 text-xs"
+                  className="rounded border border-border px-3 py-1.5 text-micro"
                 >
                   수정
                 </button>
                 <button
                   onClick={() => remove(v.id, v.name)}
-                  className="rounded border border-red-500/50 px-3 py-1.5 text-xs text-red-400"
+                  className="rounded border border-red-500/50 px-3 py-1.5 text-micro text-red-400"
                 >
                   삭제
                 </button>
