@@ -24,7 +24,7 @@ export default function TermsPage() {
         <h1 className="mb-2 text-display font-extrabold sm:mb-3">이용약관</h1>
         <p className="text-body text-muted">
           wouldyouescape (우주이스케이프)<br />
-          v2 · 시행일자: 2026년 10월 7일
+          v2 · 시행일자: 2026년 10월 8일
         </p>
       </div>
 
@@ -289,12 +289,12 @@ export default function TermsPage() {
         {/* 부칙 */}
         <div className="pt-6 sm:pt-8">
           <h2 className="mb-4 font-semibold text-muted sm:mb-5 text-h3">부칙</h2>
-          <p className="text-muted">이 약관은 2026년 10월 7일부터 시행합니다. 시행일 전까지는 종전 약관(v1.2)이 적용됩니다.</p>
+          <p className="text-muted">이 약관은 2026년 10월 8일부터 시행합니다. 시행일 전까지는 종전 약관(v1.2)이 적용됩니다.</p>
           <ul className="mt-3 ml-4 list-disc space-y-2 text-muted">
             <li>[개정] 2026년 8월 14일 (v1.1): 제8조 환불 기준을 일자 기준에서 시간 기준(행사 시작 48시간 전 100% / 24시간 전 50%)으로 변경</li>
             <li>[개정] 2026년 9월 12일 (v1.2): 제8조 환불 기준을 행사일 기준으로 변경(행사일 4일 전 23:59까지 100% / 3일 전 23:59까지 50% / 2일 전 00:00 이후 환불 불가). 제2조에 &quot;행사일&quot; 정의를 신설하고, 제8조에 취소 시점 판정 기준 조항을 추가. 제9조 참가 연령을 회차 종료 시각 기준으로 구분(22:00 이전 종료 회차 만 16세 이상 / 22:00 이후 종료 회차 만 19세 이상)하고, 미성년자 법정대리인 동의·주류 제한 조항을 신설. 제5조 2항의 연령 관련 신청 거부 사유를 제9조 준용으로 정비.</li>
             <li>
-              [개정] 2026년 10월 7일 (v2): ① 제8조의2(단체 예약의 취소 및 환불)를
+              [개정] 2026년 10월 8일 (v2): ① 제8조의2(단체 예약의 취소 및 환불)를
               신설하여 단체 예약에 예약금·잔금 구조와 행사일 14일/8일/7일 기준의 환불
               규정을 적용(종전에는 제8조 7항의 인원 비례 환불로 읽힐 여지가 있었습니다).
               제2조에 &quot;단체 예약&quot;·&quot;동반 신청&quot; 정의를 신설하고 제8조
@@ -311,7 +311,7 @@ export default function TermsPage() {
             </li>
           </ul>
           <p className="mt-4 text-center text-body-sm text-muted">
-            wouldyouescape (우주이스케이프) · 본 약관은 2026년 10월 7일부터 시행됩니다.
+            wouldyouescape (우주이스케이프) · 본 약관은 2026년 10월 8일부터 시행됩니다.
           </p>
         </div>
       </div>
