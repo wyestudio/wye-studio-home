@@ -57,7 +57,7 @@ function contractChanges(
   return out;
 }
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 const label = "block text-micro text-muted mb-1";
 
 /** datetime-local(로컬 표기) ↔ ISO. 서버는 UTC 로 돈다. */
@@ -324,7 +324,7 @@ export function CampaignEditor({
         사이트 우하단 인스타 버튼 위 말풍선. 말풍선이 알리는 게 결국 이 쿠폰 이벤트라
         쿠폰과 같은 자리에서 켜고 끈다(2026-09-16). 쿠폰을 끄거나 기간이 지나면 같이 사라진다.
       */}
-      <div className="rounded border border-border p-3">
+      <div className="rounded-md border border-border p-3">
         <label className="flex items-center gap-2 text-body-sm">
           <input
             type="checkbox"
@@ -367,7 +367,7 @@ export function CampaignEditor({
         두 장 쓰는 건 언제나 막힙니다.
       </p>
 
-      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
+      {error && <p className="rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
 
       {/*
         계약으로 묶인 쿠폰의 조건을 바꿀 때만 뜬다.
@@ -393,14 +393,14 @@ export function CampaignEditor({
             <button
               onClick={() => save({ ...form, validFrom: toIso(from), validUntil: toIso(until) })}
               disabled={busy}
-              className="rounded border border-amber-400/50 bg-amber-400/10 px-4 py-2 text-body-sm font-semibold text-amber-200 disabled:opacity-50"
+              className="rounded-md border border-amber-400/50 bg-amber-400/10 px-4 py-2 text-body-sm font-semibold text-amber-200 disabled:opacity-50"
             >
               {busy ? "저장 중…" : "합의됐습니다 — 변경"}
             </button>
             <button
               onClick={() => setConfirmChanges(null)}
               disabled={busy}
-              className="rounded border border-border px-4 py-2 text-body-sm disabled:opacity-50"
+              className="rounded-md border border-border px-4 py-2 text-body-sm disabled:opacity-50"
             >
               취소
             </button>
@@ -412,7 +412,7 @@ export function CampaignEditor({
         <button
           onClick={requestSubmit}
           disabled={busy}
-          className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
+          className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           {busy ? "저장 중…" : form.id ? "저장" : "쿠폰 만들기"}
         </button>
@@ -420,13 +420,13 @@ export function CampaignEditor({
           <button
             onClick={remove}
             disabled={busy}
-            className="rounded border border-red-500/40 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
+            className="rounded-md border border-red-500/40 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
           >
             삭제
           </button>
         )}
         {onDone && (
-          <button onClick={onDone} className="rounded border border-border px-4 py-2 text-body-sm text-muted">
+          <button onClick={onDone} className="rounded-md border border-border px-4 py-2 text-body-sm text-muted">
             닫기
           </button>
         )}

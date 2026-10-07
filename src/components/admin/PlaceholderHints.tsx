@@ -40,7 +40,7 @@ export function PlaceholderHints({
               onMouseEnter={() => setHovered(key)}
               onMouseLeave={() => setHovered((h) => (h === key ? null : h))}
               onClick={() => handleCopy(key)}
-              className="rounded border border-border bg-surface px-1.5 py-0.5 font-mono text-micro text-glow transition-colors hover:border-brand"
+              className="rounded-md border border-border bg-surface px-1.5 py-0.5 font-mono text-micro text-glow transition-colors hover:border-brand"
             >
               {copied === key ? "복사됨!" : `{{${key}}}`}
             </button>

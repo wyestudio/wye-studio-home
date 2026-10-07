@@ -10,10 +10,10 @@ import {
   type PublicVenue,
 } from "@/types/catalog";
 
-const field = "w-full rounded border border-border bg-background px-2 py-1.5 text-body-sm";
+const field = "w-full rounded-md border border-border bg-background px-2 py-1.5 text-body-sm";
 // ⚠️ 줄 편집기는 flex 라 w-full 을 쓰면 안 된다. width:100% 인 칸이 basis:auto 로
 //    공간을 다 먹어 나머지 칸이 0 폭으로 찌그러진다(실제로 그랬다).
-const cell = "rounded border border-border bg-background px-2 py-1.5 text-body-sm";
+const cell = "rounded-md border border-border bg-background px-2 py-1.5 text-body-sm";
 
 function emptyBlock(type: ThemeBlockType): ThemeBlock {
   switch (type) {
@@ -100,7 +100,7 @@ export function ContentBlocksEditor({
   return (
     <div>
       {blocks.length === 0 && (
-        <p className="mb-1 rounded border border-dashed border-border py-6 text-center text-body-sm text-muted">
+        <p className="mb-1 rounded-md border border-dashed border-border py-6 text-center text-body-sm text-muted">
           아직 내용이 없습니다. 아래에서 블록을 추가해주세요.
         </p>
       )}
@@ -113,7 +113,7 @@ export function ContentBlocksEditor({
           <div key={i}>
             <div className="rounded-lg border border-border">
               <div className="flex items-center gap-2 border-b border-border bg-fill-subtle px-3 py-2">
-                <span className="shrink-0 rounded bg-muted/20 px-2 py-0.5 text-micro text-muted">
+                <span className="shrink-0 rounded-md bg-muted/20 px-2 py-0.5 text-micro text-muted">
                   {THEME_BLOCK_LABELS[b.type]}
                 </span>
                 <span className="flex-1 truncate text-micro text-muted">
@@ -123,28 +123,28 @@ export function ContentBlocksEditor({
                     "(제목 없음)"}
                 </span>
                 {b.hidden && (
-                  <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-micro text-amber-400">
+                  <span className="shrink-0 rounded-md bg-amber-500/15 px-2 py-0.5 text-micro text-amber-400">
                     숨김
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => patch(i, { hidden: !b.hidden } as Partial<ThemeBlock>)}
-                  className="rounded border border-border px-2 py-1 text-micro"
+                  className="rounded-md border border-border px-2 py-1 text-micro"
                   title="고객 화면에서만 감춥니다. 내용은 그대로 남아요."
                 >
                   {b.hidden ? "다시 보이기" : "숨기기"}
                 </button>
                 <button type="button" onClick={() => move(i, -1)} disabled={i === 0}
-                  className="rounded border border-border px-2 py-1 text-micro disabled:opacity-30">위로</button>
+                  className="rounded-md border border-border px-2 py-1 text-micro disabled:opacity-30">위로</button>
                 <button type="button" onClick={() => move(i, 1)} disabled={i === blocks.length - 1}
-                  className="rounded border border-border px-2 py-1 text-micro disabled:opacity-30">아래로</button>
+                  className="rounded-md border border-border px-2 py-1 text-micro disabled:opacity-30">아래로</button>
                 <button type="button" onClick={() => setOpenIndex(open ? null : i)}
-                  className="rounded border border-border px-2 py-1 text-micro">
+                  className="rounded-md border border-border px-2 py-1 text-micro">
                   {open ? "접기" : "편집"}
                 </button>
                 <button type="button" onClick={() => remove(i)}
-                  className="rounded border border-red-500/40 px-2 py-1 text-micro text-red-400">삭제</button>
+                  className="rounded-md border border-red-500/40 px-2 py-1 text-micro text-red-400">삭제</button>
               </div>
 
               {/* 미리보기 — 고객 화면과 같은 컴포넌트.
@@ -357,7 +357,7 @@ function InsertRow({ onInsert }: { onInsert: (type: ThemeBlockType) => void }) {
 
   if (open) {
     return (
-      <div className="my-2 flex flex-wrap items-center gap-1.5 rounded border border-border p-2">
+      <div className="my-2 flex flex-wrap items-center gap-1.5 rounded-md border border-border p-2">
         {(Object.keys(THEME_BLOCK_LABELS) as ThemeBlockType[]).map((t) => (
           <button
             key={t}
@@ -366,7 +366,7 @@ function InsertRow({ onInsert }: { onInsert: (type: ThemeBlockType) => void }) {
               onInsert(t);
               setOpen(false);
             }}
-            className="rounded border border-border px-3 py-1.5 text-micro hover:border-glow"
+            className="rounded-md border border-border px-3 py-1.5 text-micro hover:border-glow"
           >
             {THEME_BLOCK_LABELS[t]}
           </button>
@@ -464,7 +464,7 @@ function RowsEditor({
           <button
             type="button"
             onClick={() => onChange(items.filter((_, i) => i !== r) as RowBlock["items"])}
-            className="shrink-0 rounded border border-border px-2 py-1.5 text-micro text-muted"
+            className="shrink-0 rounded-md border border-border px-2 py-1.5 text-micro text-muted"
           >
             ×
           </button>
@@ -474,7 +474,7 @@ function RowsEditor({
       <button
         type="button"
         onClick={() => onChange([...items, blank] as RowBlock["items"])}
-        className="rounded border border-dashed border-border px-3 py-1.5 text-micro text-muted"
+        className="rounded-md border border-dashed border-border px-3 py-1.5 text-micro text-muted"
       >
         + 항목 추가
       </button>
@@ -507,14 +507,14 @@ function MiniRows({
   const blank = Object.fromEntries(cols.map((c) => [c.key, ""]));
 
   return (
-    <div className="space-y-1.5 rounded border border-border/70 p-2.5">
+    <div className="space-y-1.5 rounded-md border border-border/70 p-2.5">
       <p className="text-micro font-semibold text-foreground">{label}</p>
       {hint && <p className="text-micro leading-relaxed text-muted">{hint}</p>}
 
       {rows.map((row, r) => (
         <div
           key={r}
-          className={`flex items-start gap-2 ${wrap ? "flex-wrap rounded border border-border/50 p-2" : ""}`}
+          className={`flex items-start gap-2 ${wrap ? "flex-wrap rounded-md border border-border/50 p-2" : ""}`}
         >
           {cols.map((c) =>
             c.options ? (
@@ -547,7 +547,7 @@ function MiniRows({
           <button
             type="button"
             onClick={() => onChange(rows.filter((_, k) => k !== r))}
-            className="shrink-0 rounded border border-border px-2 py-1.5 text-micro text-muted"
+            className="shrink-0 rounded-md border border-border px-2 py-1.5 text-micro text-muted"
           >
             ×
           </button>
@@ -557,7 +557,7 @@ function MiniRows({
       <button
         type="button"
         onClick={() => onChange([...rows, blank])}
-        className="rounded border border-dashed border-border px-3 py-1.5 text-micro text-muted"
+        className="rounded-md border border-dashed border-border px-3 py-1.5 text-micro text-muted"
       >
         + 줄 추가
       </button>

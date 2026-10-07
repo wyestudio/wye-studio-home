@@ -130,10 +130,10 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
             onChange={(e) => setBody(e.target.value)}
             rows={10}
             placeholder={`GRAND OPEN EVENT\n9/26 정식 오픈 기념, 인스타그램에서 5,000원 할인 이벤트를 진행합니다!`}
-            className="w-full rounded border border-border bg-background px-3 py-2 text-body-sm"
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm"
           />
           {(removed.length > 0 || replaced.length > 0) && (
-            <div className="mt-2 rounded bg-amber-500/10 px-3 py-2 text-micro text-amber-300">
+            <div className="mt-2 rounded-md bg-amber-500/10 px-3 py-2 text-micro text-amber-300">
               {removed.length > 0 && <p>문자로 보내지지 않아 빠지는 이모지: {removed.join("  ")}</p>}
               {replaced.length > 0 && (
                 <p>보내지는 기호로 바뀌는 글자: {replaced.map(([a, b]) => `${a} 대신 ${b}`).join(", ")}</p>
@@ -153,16 +153,16 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
               {bytes}바이트 · {bytes > SMS_MAX_BYTES ? "장문(LMS)" : "단문(SMS)"}
             </span>
           </div>
-          <pre className="whitespace-pre-wrap rounded bg-surface p-3 text-body-sm">{preview}</pre>
+          <pre className="whitespace-pre-wrap rounded-md bg-surface p-3 text-body-sm">{preview}</pre>
         </div>
       </div>
 
       {quiet && (
-        <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">
+        <p className="rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">
           지금은 밤 9시~아침 8시라 광고 문자를 보낼 수 없습니다(야간 광고는 별도 동의 필요).
         </p>
       )}
-      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
+      {error && <p className="rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
       {result && (
         <div className="rounded-lg border border-border p-4 text-body-sm">
           <p className="font-semibold text-glow">발송 완료 — {result.sent}건 접수</p>
@@ -189,7 +189,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
               onClick={() =>
                 setSelected(allSelected ? new Set() : new Set(recipients.map((r) => r.phoneHash)))
               }
-              className="rounded border border-border px-3 py-1.5 text-micro"
+              className="rounded-md border border-border px-3 py-1.5 text-micro"
             >
               {allSelected ? "전체 해제" : "전체 선택"}
             </button>
@@ -199,7 +199,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
                 setConfirming(true);
               }}
               disabled={!canSend}
-              className="rounded bg-glow px-4 py-1.5 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
+              className="rounded-md bg-glow px-4 py-1.5 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
             >
               {busy ? "보내는 중…" : `${chosen.length}명에게 보내기`}
             </button>
@@ -255,7 +255,7 @@ export function MarketingSmsPanel({ recipients }: { recipients: MarketingRecipie
         error={error}
         confirmDisabled={!canSend}
       >
-        <pre className="mt-3 max-h-60 overflow-y-auto whitespace-pre-wrap rounded border border-glass-border p-2 text-micro text-muted">
+        <pre className="mt-3 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-md border border-glass-border p-2 text-micro text-muted">
           {preview}
         </pre>
       </ConfirmDialog>

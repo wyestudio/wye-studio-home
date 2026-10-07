@@ -88,7 +88,7 @@ export function MessageTemplateEditor({
       </div>
 
       {blockHints.length > 0 && (
-        <div className="mb-3 rounded border border-border/60 bg-surface/40 p-3">
+        <div className="mb-3 rounded-md border border-border/60 bg-surface/40 p-3">
           <p className="text-micro text-muted">
             인원수만큼 반복되는 블록입니다. 블록 안에 원하는 항목만 골라 쓰세요.
           </p>
@@ -115,14 +115,14 @@ export function MessageTemplateEditor({
               setSaved(false);
             }}
             rows={14}
-            className="w-full p-3 text-body-sm font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-glow"
+            className="w-full p-3 text-body-sm font-mono bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-glow"
           />
 
           <div className="flex items-center gap-3 mt-3">
             <button
               onClick={handleSave}
               disabled={isLoading || !isDirty}
-              className="px-3 py-1.5 text-micro bg-glow text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+              className="px-3 py-1.5 text-micro bg-glow text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
             >
               {isLoading ? "저장중..." : "저장"}
             </button>
@@ -134,7 +134,7 @@ export function MessageTemplateEditor({
 
         <div>
           <p className="text-micro text-muted mb-1.5">실제 발송 예시 (위에서 고른 테마의 실제 값 기준)</p>
-          <div className="h-[calc(100%-1.375rem)] min-h-[280px] whitespace-pre-wrap rounded border border-border bg-background p-3 text-body-sm text-foreground">
+          <div className="h-[calc(100%-1.375rem)] min-h-[280px] whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-body-sm text-foreground">
             {preview}
           </div>
         </div>

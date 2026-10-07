@@ -6,7 +6,7 @@ import { formatPhoneDigits, formatPhoneInput } from "@/lib/phone";
 import type { MarketingOptout } from "@/lib/marketingSmsServer";
 import { addOptout, removeOptout } from "./actions";
 
-const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 /**
  * 수신거부 목록.
@@ -83,13 +83,13 @@ export function OptoutPanel({ optouts }: { optouts: MarketingOptout[] }) {
         <button
           onClick={add}
           disabled={busy || phone.replace(/\D/g, "").length < 10}
-          className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
+          className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           거부 등록
         </button>
       </div>
 
-      {error && <p className="mt-2 rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
+      {error && <p className="mt-2 rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
 
       {optouts.length === 0 ? (
         <p className="mt-4 text-body-sm text-muted">등록된 번호가 없습니다.</p>

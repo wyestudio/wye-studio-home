@@ -29,8 +29,8 @@ function toInput(v: Venue): VenueInput {
   };
 }
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
-const label = "block text-micro font-medium text-muted mb-1";
+const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-semibold text-muted mb-1";
 
 export function VenueEditor({ venues }: { venues: Venue[] }) {
   const [editing, setEditing] = useState<VenueInput | null>(null);
@@ -67,7 +67,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-body-sm ${
+          className={`rounded-md border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -78,7 +78,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
       <div className="flex justify-end">
         <button
           onClick={() => setEditing({ ...EMPTY })}
-          className="rounded bg-glow px-3 py-2 text-body-sm text-glow-foreground"
+          className="rounded-md bg-glow px-3 py-2 text-body-sm text-glow-foreground"
         >
           + 장소 추가
         </button>
@@ -177,7 +177,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
           </label>
 
           {message?.kind === "err" && (
-            <div className="rounded border border-red-500 px-3 py-2 text-body-sm text-red-400">
+            <div className="rounded-md border border-red-500 px-3 py-2 text-body-sm text-red-400">
               {message.text}
             </div>
           )}
@@ -186,13 +186,13 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
             <button
               onClick={submit}
               disabled={pending}
-              className="rounded bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
+              className="rounded-md bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
             >
               {pending ? "저장 중…" : "저장"}
             </button>
             <button
               onClick={() => setEditing(null)}
-              className="rounded border border-border px-4 py-2 text-body-sm"
+              className="rounded-md border border-border px-4 py-2 text-body-sm"
             >
               취소
             </button>
@@ -212,7 +212,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
               className="flex items-start justify-between gap-4 rounded-lg border border-border p-4"
             >
               <div className="min-w-0">
-                <p className="font-medium">
+                <p className="font-semibold">
                   {v.name}
                   {!v.is_active && <span className="ml-2 text-micro text-muted">(사용 안 함)</span>}
                 </p>
@@ -222,13 +222,13 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
               <div className="flex shrink-0 gap-2">
                 <button
                   onClick={() => setEditing(toInput(v))}
-                  className="rounded border border-border px-3 py-1.5 text-micro"
+                  className="rounded-md border border-border px-3 py-1.5 text-micro"
                 >
                   수정
                 </button>
                 <button
                   onClick={() => remove(v.id, v.name)}
-                  className="rounded border border-red-500/50 px-3 py-1.5 text-micro text-red-400"
+                  className="rounded-md border border-red-500/50 px-3 py-1.5 text-micro text-red-400"
                 >
                   삭제
                 </button>

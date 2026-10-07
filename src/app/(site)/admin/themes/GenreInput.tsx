@@ -45,7 +45,7 @@ export function GenreInput({
 
   return (
     <div>
-      <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded border border-border bg-background px-2 py-1.5">
+      <div className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1.5">
         {value.map((g, i) => (
           <span
             key={g}

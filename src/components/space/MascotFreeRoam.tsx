@@ -553,7 +553,7 @@ export function MascotFreeRoam({
             >
               <div className="animate-drift flex flex-col items-center gap-1" style={{ animationDelay: DRIFT_DELAYS[i] }}>
                 <span
-                  className="pointer-events-none rounded bg-black/40 px-1.5 py-0.5 text-micro text-foreground backdrop-blur-sm transition-opacity duration-150"
+                  className="pointer-events-none rounded-md bg-black/40 px-1.5 py-0.5 text-micro text-foreground backdrop-blur-sm transition-opacity duration-150"
                   style={{ opacity: draggingIndex === i ? 1 : 0 }}
                 >
                   {meta.name}

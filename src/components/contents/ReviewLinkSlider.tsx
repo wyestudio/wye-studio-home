@@ -206,7 +206,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
       style={{ height: CARD_HEIGHT }}
     >
       <div className="flex items-center gap-2.5 border-b border-panel-border px-4 py-3">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#03C75A] text-label font-black text-white">
+        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#03C75A] text-label font-extrabold text-white">
           N
         </span>
         <div className="min-w-0">

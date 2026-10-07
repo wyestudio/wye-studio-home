@@ -39,7 +39,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
   }
 
   return (
-    <div className="mx-auto w-full max-w-xl rounded-2xl border border-panel-border bg-panel p-5 sm:max-w-2xl sm:p-8 lg:max-w-3xl lg:p-10">
+    <div className="mx-auto w-full max-w-xl rounded-xl border border-panel-border bg-panel p-5 sm:max-w-2xl sm:p-8 lg:max-w-3xl lg:p-10">
       {/*
         상호명·대략 위치 제목은 두지 않는다. 블록 제목('진행 장소')이 이미 있고,
         주소 줄에 상호명까지 들어 있어 같은 말이 세 번 반복됐다(2026-09-15 사용자 요청).

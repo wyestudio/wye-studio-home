@@ -23,7 +23,7 @@ export type PickerSession = {
   note?: string | null;
 };
 
-const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 /** ISO(UTC) → KST 기준 'YYYY-MM-DD'. `<input type="date">` 가 쓰는 형식이다. */
 export function kstDate(iso: string): string {

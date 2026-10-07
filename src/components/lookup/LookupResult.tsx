@@ -261,7 +261,7 @@ export function LookupResult() {
           )}
           {/* 옛 회차만 그룹/소개팅 구분이 있다. 신규 회차는 카테고리로 대신한다. */}
           {result.format_label && (
-            <span className="rounded bg-fill-strong px-1.5 py-0.5 text-micro text-muted">
+            <span className="rounded-md bg-fill-strong px-1.5 py-0.5 text-micro text-muted">
               {result.format_label}
             </span>
           )}

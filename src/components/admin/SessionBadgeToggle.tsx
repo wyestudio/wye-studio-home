@@ -46,7 +46,7 @@ export function SessionBadgeToggle({
         onClick={toggle}
         disabled={pending}
         title={on ? "고객 화면에서 태그를 뗍니다" : "고객 화면 시각 옆에 '인기' 를 붙입니다"}
-        className={`rounded border px-3 py-1.5 text-micro transition-colors disabled:opacity-50 ${
+        className={`rounded-md border px-3 py-1.5 text-micro transition-colors disabled:opacity-50 ${
           on
             ? "border-glow bg-glow/15 text-glow"
             : "border-border text-muted hover:border-glow hover:text-glow"

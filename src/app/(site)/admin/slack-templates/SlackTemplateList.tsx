@@ -24,7 +24,7 @@ export type PreviewThemeOption = {
   basis: string;
 };
 
-const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 /** 테마와 무관한 값들. 미리보기에서만 쓰는 샘플이다. */
 const SAMPLE_VARS: Record<string, string> = {

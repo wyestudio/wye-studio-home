@@ -146,7 +146,7 @@ export function ApplicationActionMenu({
         ref={buttonRef}
         onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
         disabled={isLoading}
-        className="px-3 py-1 text-micro bg-surface border border-glass-border text-foreground rounded hover:bg-fill disabled:opacity-50 transition-opacity"
+        className="px-3 py-1 text-micro bg-surface border border-glass-border text-foreground rounded-md hover:bg-fill disabled:opacity-50 transition-opacity"
       >
         {isLoading ? "처리중..." : "액션 ▾"}
       </button>

@@ -27,7 +27,7 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
         setOpenId(null);
         setAdding(false);
       }}
-      className={`rounded px-3 py-1.5 text-body-sm ${
+      className={`rounded-md px-3 py-1.5 text-body-sm ${
         tab === key ? "bg-glow text-glow-foreground font-semibold" : "border border-border text-muted"
       }`}
     >
@@ -45,7 +45,7 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
             setAdding((v) => !v);
             setOpenId(null);
           }}
-          className="ml-auto rounded border border-border px-3 py-1.5 text-body-sm"
+          className="ml-auto rounded-md border border-border px-3 py-1.5 text-body-sm"
         >
           {adding ? "취소" : tab === "notice" ? "+ 공지 추가" : "+ 질문 추가"}
         </button>

@@ -20,7 +20,7 @@ export type TemplateRow = {
   updatedAt: string;
 };
 
-const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 const LABELS = Object.fromEntries(
   Object.entries(PLACEHOLDER_INFO).map(([k, v]) => [k, v.label])

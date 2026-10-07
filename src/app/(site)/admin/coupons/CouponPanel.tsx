@@ -8,7 +8,7 @@ import { formatCouponCode } from "@/lib/coupon";
 import { formatKrw, formatDateFull } from "@/lib/format";
 import { toCsv, downloadCsv, kstStamp, parseCsv, readCsvFile, findIssueColumns } from "@/lib/csv";
 
-const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 export type CouponRow = {
   id: string;
@@ -155,7 +155,7 @@ export function CouponPanel({
             setAdding((v) => !v);
             setOpenId(null);
           }}
-          className="rounded border border-border px-3 py-1.5 text-body-sm"
+          className="rounded-md border border-border px-3 py-1.5 text-body-sm"
         >
           {adding ? "취소" : "+ 쿠폰 종류 만들기"}
         </button>
@@ -205,7 +205,7 @@ export function CouponPanel({
                         setOpenId(null);
                         setIssued(null);
                       }}
-                      className="rounded border border-border px-3 py-1.5 text-micro"
+                      className="rounded-md border border-border px-3 py-1.5 text-micro"
                     >
                       코드
                     </button>
@@ -214,7 +214,7 @@ export function CouponPanel({
                         setOpenId(openId === c.id ? null : c.id);
                         setCodesFor(null);
                       }}
-                      className="rounded border border-border px-3 py-1.5 text-micro"
+                      className="rounded-md border border-border px-3 py-1.5 text-micro"
                     >
                       수정
                     </button>
@@ -261,7 +261,7 @@ export function CouponPanel({
                       <button
                         onClick={() => issue(c.id)}
                         disabled={busy || count < 1}
-                        className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
+                        className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
                       >
                         {busy ? "발급 중…" : `${count}장 발급`}
                       </button>
@@ -271,14 +271,14 @@ export function CouponPanel({
                     </p>
 
                     {error && (
-                      <p className="mb-3 rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>
+                      <p className="mb-3 rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>
                     )}
                     {issued && (
-                      <div className="mb-3 rounded bg-glow/10 p-3">
+                      <div className="mb-3 rounded-md bg-glow/10 p-3">
                         <p className="mb-2 text-body-sm text-glow">{issued.length}장 발급했습니다.</p>
                         <textarea
                           readOnly
-                          className="h-24 w-full rounded border border-border bg-background p-2 font-mono text-micro"
+                          className="h-24 w-full rounded-md border border-border bg-background p-2 font-mono text-micro"
                           value={issued.map(formatCouponCode).join("\n")}
                         />
                         <p className="mt-1 text-micro text-muted">
@@ -295,7 +295,7 @@ export function CouponPanel({
                          (되살리려면 actions.ts 의 issueCouponToHandle 을 다시 붙이면 된다)
                     */}
                     {c.key && (
-                      <div className="mb-3 rounded border border-border bg-background/40 p-3">
+                      <div className="mb-3 rounded-md border border-border bg-background/40 p-3">
                         <p className="text-micro font-semibold">발송 기록 CSV 반영</p>
                         <p className="mt-1 text-micro text-muted">
                           외부 발송 도구에서 내보낸 CSV 파일을 그대로 올리면 「받아간 계정」에
@@ -323,12 +323,12 @@ export function CouponPanel({
                             const f = e.dataTransfer.files?.[0];
                             if (f) void loadCsvFile(c.id, f);
                           }}
-                          className={`mt-2 flex flex-col items-center gap-2 rounded border border-dashed px-3 py-5 text-center ${
+                          className={`mt-2 flex flex-col items-center gap-2 rounded-md border border-dashed px-3 py-5 text-center ${
                             dragOver === c.id ? "border-glow bg-glow/5" : "border-border"
                           }`}
                         >
                           <p className="text-micro text-muted">CSV 파일을 여기에 끌어다 놓으세요</p>
-                          <label className="cursor-pointer rounded border border-border px-3 py-1.5 text-micro hover:bg-muted/30">
+                          <label className="cursor-pointer rounded-md border border-border px-3 py-1.5 text-micro hover:bg-muted/30">
                             파일 고르기
                             <input
                               type="file"
@@ -347,7 +347,7 @@ export function CouponPanel({
                           (() => {
                             const 요약 = summarizeCsv(csvInputs[c.id] ?? "");
                             return (
-                              <p className="mt-2 rounded bg-glow/10 px-3 py-2 text-micro">
+                              <p className="mt-2 rounded-md bg-glow/10 px-3 py-2 text-micro">
                                 <strong>{csvNames[c.id] || "붙여넣은 내용"}</strong>
                                 <span className="ml-2 text-muted">
                                   {요약
@@ -363,7 +363,7 @@ export function CouponPanel({
                             type="button"
                             disabled={busyCsv === c.id || !(csvInputs[c.id] ?? "").trim()}
                             onClick={() => void applyCsv(c.id, c.key!)}
-                            className="rounded border border-border px-3 py-2 text-micro hover:bg-muted/30 disabled:opacity-40"
+                            className="rounded-md border border-border px-3 py-2 text-micro hover:bg-muted/30 disabled:opacity-40"
                           >
                             {busyCsv === c.id ? "반영 중…" : "CSV 반영"}
                           </button>
@@ -371,7 +371,7 @@ export function CouponPanel({
                             <button
                               type="button"
                               onClick={() => clearCsv(c.id)}
-                              className="rounded border border-border px-3 py-2 text-micro text-muted hover:bg-muted/30"
+                              className="rounded-md border border-border px-3 py-2 text-micro text-muted hover:bg-muted/30"
                             >
                               비우기
                             </button>
@@ -396,7 +396,7 @@ export function CouponPanel({
 
                         {showPaste === c.id && (
                           <textarea
-                            className="mt-2 h-24 w-full rounded border border-border bg-background p-2 font-mono text-micro"
+                            className="mt-2 h-24 w-full rounded-md border border-border bg-background p-2 font-mono text-micro"
                             placeholder={'"코드","메모","발송여부","인스타아이디","발송일시"\n"E01Y-07TY",...'}
                             value={csvInputs[c.id] ?? ""}
                             onChange={(e) => {
@@ -419,7 +419,7 @@ export function CouponPanel({
                         */}
                         <button
                           type="button"
-                          className="rounded border border-border px-3 py-1.5 text-micro hover:bg-muted/30"
+                          className="rounded-md border border-border px-3 py-1.5 text-micro hover:bg-muted/30"
                           onClick={() =>
                             downloadCsv(
                               `쿠폰_${c.name}_${kstStamp()}.csv`,
@@ -441,7 +441,7 @@ export function CouponPanel({
                     )}
 
                     {mine.length > 0 && (
-                      <div className="max-h-72 overflow-y-auto rounded border border-border">
+                      <div className="max-h-72 overflow-y-auto rounded-md border border-border">
                         <table className="w-full text-micro">
                           <thead className="sticky top-0 bg-background text-left text-muted">
                             <tr>

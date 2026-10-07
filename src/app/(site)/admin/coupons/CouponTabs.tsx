@@ -18,7 +18,7 @@ export function CouponTabs(props: {
   const btn = (key: "manage" | "send", label: string) => (
     <button
       onClick={() => setTab(key)}
-      className={`rounded px-3 py-1.5 text-body-sm ${
+      className={`rounded-md px-3 py-1.5 text-body-sm ${
         tab === key ? "bg-glow font-semibold text-glow-foreground" : "border border-border text-muted"
       }`}
     >

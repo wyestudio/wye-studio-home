@@ -40,7 +40,7 @@ export function GroupBookingCta({
   return (
     <Link
       href={groupBookingHref(entry)}
-      className={`flex items-center justify-between gap-3 rounded-2xl border transition hover:brightness-110 ${
+      className={`flex items-center justify-between gap-3 rounded-xl border transition hover:brightness-110 ${
         lg ? "mt-4 px-5 py-4 sm:mt-5 sm:px-6 sm:py-5" : "mt-3 px-4 py-3.5"
       }`}
       style={{ borderColor: GROUP_ACCENT, backgroundColor: `${GROUP_ACCENT}1f` }}

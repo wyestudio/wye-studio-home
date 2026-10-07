@@ -42,8 +42,8 @@ function toInput(l: UtmLink): UtmLinkInput {
   };
 }
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
-const label = "block text-micro font-medium text-muted mb-1";
+const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-semibold text-muted mb-1";
 
 /** 미리보기는 저장 전 값으로 만들어야 해서 UtmLink 모양으로 맞춘다. */
 function previewOf(input: UtmLinkInput) {
@@ -121,7 +121,7 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-body-sm ${
+          className={`rounded-md border px-3 py-2 text-body-sm ${
             message.kind === "ok"
               ? "border-green-700 bg-green-950/40 text-green-300"
               : "border-red-700 bg-red-950/40 text-red-300"
@@ -134,7 +134,7 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
       {!editing && (
         <button
           onClick={() => setEditing({ ...EMPTY })}
-          className="rounded bg-foreground px-4 py-2 text-body-sm font-medium text-background"
+          className="rounded-md bg-foreground px-4 py-2 text-body-sm font-semibold text-background"
         >
           새 링크 만들기
         </button>
@@ -147,7 +147,7 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
           </h2>
 
           {isCodeManaged && (
-            <div className="mb-4 rounded border border-amber-700 bg-amber-950/30 px-3 py-2 text-body-sm text-amber-200">
+            <div className="mb-4 rounded-md border border-amber-700 bg-amber-950/30 px-3 py-2 text-body-sm text-amber-200">
               이 링크는 <code className="font-mono text-micro">next.config.ts</code> 에 박혀 있어
               <strong> 주소·파라미터를 고쳐도 실제 동작은 바뀌지 않습니다.</strong> 메모와 사용
               여부만 저장됩니다. 동작을 바꾸려면 코드를 고쳐야 합니다.
@@ -269,9 +269,9 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
           </div>
 
           {/* 완성된 주소를 저장 전에 그대로 보여준다. 눈으로 확인하고 저장하게. */}
-          <div className="mt-4 rounded border border-border bg-background p-3">
+          <div className="mt-4 rounded-md border border-border bg-background p-3">
             <div className="mb-1 flex items-baseline justify-between gap-2">
-              <span className="text-micro font-medium text-muted">완성된 주소</span>
+              <span className="text-micro font-semibold text-muted">완성된 주소</span>
               {ready && (
                 <span
                   className={`text-micro ${tooLong ? "font-semibold text-red-400" : "text-muted"}`}
@@ -305,13 +305,13 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
             <button
               onClick={submit}
               disabled={pending}
-              className="rounded bg-foreground px-4 py-2 text-body-sm font-medium text-background disabled:opacity-50"
+              className="rounded-md bg-foreground px-4 py-2 text-body-sm font-semibold text-background disabled:opacity-50"
             >
               {pending ? "저장 중…" : "저장"}
             </button>
             <button
               onClick={() => setEditing(null)}
-              className="rounded border border-border px-4 py-2 text-body-sm"
+              className="rounded-md border border-border px-4 py-2 text-body-sm"
             >
               취소
             </button>
@@ -343,15 +343,15 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
                   className={`border-b border-border/40 align-top ${off ? "opacity-50" : ""}`}
                 >
                   <td className="px-3 py-2">
-                    <div className="font-medium">{l.label}</div>
+                    <div className="font-semibold">{l.label}</div>
                     <div className="mt-0.5 flex flex-wrap gap-1">
                       {l.managed_by === "code" && (
-                        <span className="rounded bg-amber-950/50 px-1.5 py-0.5 text-micro text-amber-300">
+                        <span className="rounded-md bg-amber-950/50 px-1.5 py-0.5 text-micro text-amber-300">
                           코드 고정
                         </span>
                       )}
                       {off && (
-                        <span className="rounded bg-muted/20 px-1.5 py-0.5 text-micro text-muted">
+                        <span className="rounded-md bg-muted/20 px-1.5 py-0.5 text-micro text-muted">
                           중단
                         </span>
                       )}
@@ -371,7 +371,7 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
                         <code className="font-mono text-micro text-foreground">{short}</code>
                         <button
                           onClick={() => copy(short, `${l.id}-short`)}
-                          className="shrink-0 rounded border border-border px-1.5 py-0.5 text-micro"
+                          className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-micro"
                         >
                           {copied === `${l.id}-short` ? "복사됨" : "복사"}
                         </button>
@@ -381,7 +381,7 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
                       <code className="break-all font-mono text-micro text-muted">{url}</code>
                       <button
                         onClick={() => copy(url, l.id)}
-                        className="shrink-0 rounded border border-border px-1.5 py-0.5 text-micro"
+                        className="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-micro"
                       >
                         {copied === l.id ? "복사됨" : "복사"}
                       </button>
@@ -396,14 +396,14 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
                     <div className="flex flex-col items-end gap-1">
                       <button
                         onClick={() => setEditing(toInput(l))}
-                        className="rounded border border-border px-2 py-1 text-micro"
+                        className="rounded-md border border-border px-2 py-1 text-micro"
                       >
                         수정
                       </button>
                       <button
                         onClick={() => toggle(l)}
                         disabled={pending}
-                        className="rounded border border-border px-2 py-1 text-micro disabled:opacity-50"
+                        className="rounded-md border border-border px-2 py-1 text-micro disabled:opacity-50"
                       >
                         {off ? "다시 사용" : "중단"}
                       </button>

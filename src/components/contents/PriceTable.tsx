@@ -84,7 +84,7 @@ export function PriceTable({
           <tr
             className="border-b border-line-subtle bg-fill-subtle text-label text-muted"
           >
-            <th className={`${cellX} ${headY} text-left font-medium`}>인원</th>
+            <th className={`${cellX} ${headY} text-left font-semibold`}>인원</th>
             {/*
               기본가 열 제목도 **자기 열의 색**으로 맞춘다(2026-10-01 요청).
               얼리버드 제목만 색이 있으면 그쪽만 '진짜 가격' 처럼 읽힌다.
@@ -96,7 +96,7 @@ export function PriceTable({
                  칸이 두 금액을 함께 맡는다. 머리글도 거기서 두 줄로 나뉜다.
             */}
             <th
-              className={`${cellX} ${headY} text-right ${hasPromoColumn ? "hidden font-bold sm:table-cell" : "font-medium"}`}
+              className={`${cellX} ${headY} text-right ${hasPromoColumn ? "hidden font-bold sm:table-cell" : "font-semibold"}`}
               style={hasPromoColumn ? { color: accent } : undefined}
             >
               {hasPromoColumn ? "기본가" : "1인당"}

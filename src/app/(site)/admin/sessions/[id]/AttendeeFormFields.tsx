@@ -17,7 +17,7 @@ export const attendeeInputClassName =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-body-sm text-foreground outline-none transition-shadow focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]";
 
 function genderButtonClassName(active: boolean) {
-  return `flex-1 rounded-lg border px-3 py-2 text-body-sm font-medium transition-all ${
+  return `flex-1 rounded-lg border px-3 py-2 text-body-sm font-semibold transition-all ${
     active ? "border-brand bg-brand text-brand-foreground" : "border-border bg-surface text-foreground hover:border-brand"
   }`;
 }

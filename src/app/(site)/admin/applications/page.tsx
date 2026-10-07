@@ -230,7 +230,7 @@ export default async function AdminApplicationsPage({
 function TestBadge() {
   return (
     <span
-      className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 font-sans text-micro font-semibold text-amber-400"
+      className="ml-1.5 rounded-md border border-amber-400/60 px-1 py-0.5 font-sans text-micro font-semibold text-amber-400"
       title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
     >
       테스트
@@ -253,7 +253,7 @@ function PageLink({
   }
   next.set("page", String(page));
   return (
-    <Link href={`/applications?${next.toString()}`} className="rounded border border-border px-3 py-1.5 text-body-sm">
+    <Link href={`/applications?${next.toString()}`} className="rounded-md border border-border px-3 py-1.5 text-body-sm">
       {label}
     </Link>
   );

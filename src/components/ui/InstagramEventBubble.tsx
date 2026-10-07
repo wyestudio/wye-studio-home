@@ -46,7 +46,7 @@ export function InstagramEventBubble({ href, text }: { href: string; text: strin
     // ⚠️ w-max 가 없으면 말풍선이 **버튼 폭(56px)** 안에 갇혀 글자가 세로로 쪼개진다.
     //    바깥 묶음이 좁아서 자리 기준(containing block)도 그만큼 좁기 때문이다.
     <div className="pointer-events-none absolute bottom-full right-0 mb-3 flex w-max justify-end">
-      <div className="event-bubble pointer-events-auto relative flex max-w-[16rem] items-start gap-2 rounded-2xl bg-white py-2.5 pl-3.5 pr-2 shadow-xl shadow-black/30 sm:max-w-[19rem] sm:py-3 sm:pl-4">
+      <div className="event-bubble pointer-events-auto relative flex max-w-[16rem] items-start gap-2 rounded-xl bg-white py-2.5 pl-3.5 pr-2 shadow-xl shadow-black/30 sm:max-w-[19rem] sm:py-3 sm:pl-4">
         <a
           href={href}
           target="_blank"
@@ -73,7 +73,7 @@ export function InstagramEventBubble({ href, text }: { href: string; text: strin
         {/* 꼬리 — 아래 인스타 버튼을 가리킨다. 말풍선과 같은 흰색. */}
         <span
           aria-hidden
-          className="absolute -bottom-[5px] right-6 h-3 w-3 rotate-45 rounded-[2px] bg-white"
+          className="absolute -bottom-[5px] right-6 h-3 w-3 rotate-45 rounded-md bg-white"
         />
       </div>
     </div>

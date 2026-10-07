@@ -11,7 +11,7 @@ import {
 import { formatCouponCode } from "@/lib/coupon";
 import { SessionPicker, type PickerSession } from "@/components/admin/SessionPicker";
 
-const field = "rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 /**
  * 쿠폰 수동 발송.
@@ -150,16 +150,16 @@ export function SendPanel({
         <button
           onClick={load}
           disabled={busy || !selfCampaignId || !friendCampaignId || !sessionId}
-          className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
+          className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           {busy ? "불러오는 중…" : "대상 불러오기"}
         </button>
-        <button onClick={doPreview} className="rounded border border-border px-4 py-2 text-body-sm">
+        <button onClick={doPreview} className="rounded-md border border-border px-4 py-2 text-body-sm">
           문구 미리보기
         </button>
       </div>
 
-      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
+      {error && <p className="rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
 
       {preview && (
         <div className="rounded-lg border border-border p-4">
@@ -167,7 +167,7 @@ export function SendPanel({
             <p className="text-body-sm font-semibold">문구 미리보기</p>
             <button onClick={() => setPreview(null)} className="text-micro text-muted">닫기</button>
           </div>
-          <pre className="whitespace-pre-wrap rounded bg-background p-3 text-body-sm">{preview}</pre>
+          <pre className="whitespace-pre-wrap rounded-md bg-background p-3 text-body-sm">{preview}</pre>
           <p className="mt-2 text-micro text-muted">
             문구는 <strong>설정 › 문자 템플릿</strong>에서 고칠 수 있습니다. 쿠폰번호·기한·링크는
             사람마다 자동으로 바뀝니다.
@@ -206,20 +206,20 @@ export function SendPanel({
             <div className="flex gap-2">
               <button
                 onClick={() => setSelected(new Set(recipients.map((r) => r.phoneHash)))}
-                className="rounded border border-border px-3 py-1.5 text-micro"
+                className="rounded-md border border-border px-3 py-1.5 text-micro"
               >
                 전체 선택
               </button>
               <button
                 onClick={() => setSelected(new Set())}
-                className="rounded border border-border px-3 py-1.5 text-micro"
+                className="rounded-md border border-border px-3 py-1.5 text-micro"
               >
                 선택 해제
               </button>
               <button
                 onClick={() => setConfirming(true)}
                 disabled={busy || selected.size === 0}
-                className="rounded bg-glow px-4 py-1.5 text-micro font-semibold text-glow-foreground disabled:opacity-50"
+                className="rounded-md bg-glow px-4 py-1.5 text-micro font-semibold text-glow-foreground disabled:opacity-50"
               >
                 {selected.size}명에게 발송
               </button>
@@ -236,13 +236,13 @@ export function SendPanel({
               <div className="mt-3 flex gap-2">
                 <button
                   onClick={doSend}
-                  className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground"
+                  className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground"
                 >
                   네, 보냅니다
                 </button>
                 <button
                   onClick={() => setConfirming(false)}
-                  className="rounded border border-border px-4 py-2 text-body-sm text-muted"
+                  className="rounded-md border border-border px-4 py-2 text-body-sm text-muted"
                 >
                   아니요
                 </button>

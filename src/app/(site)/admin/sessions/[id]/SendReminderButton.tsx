@@ -63,7 +63,7 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
       <button
         onClick={handleOpen}
         disabled={isLoading}
-        className="px-3 py-1.5 text-micro bg-glow text-white rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        className="px-3 py-1.5 text-micro bg-glow text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
       >
         {isLoading ? "처리중..." : "하루 전 안내 발송"}
       </button>
@@ -92,7 +92,7 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
             ) : (
               <div>
                 <p className="text-micro font-semibold text-foreground mb-1">받는 사람 ({preview.total}명)</p>
-                <ul className="max-h-32 overflow-y-auto rounded border border-glass-border p-2 text-micro space-y-0.5">
+                <ul className="max-h-32 overflow-y-auto rounded-md border border-glass-border p-2 text-micro space-y-0.5">
                   {preview.recipients.map((r) => (
                     <li key={r.confirmationCode}>
                       {r.name} [{r.phone}] · 접수번호 {r.confirmationCode}
@@ -108,7 +108,7 @@ export function SendReminderButton({ sessionId }: { sessionId: string }) {
             )}
             <div>
               <p className="text-micro font-semibold text-foreground mb-1">발송 내용 (OOO는 받는 사람 이름으로 자동 치환됩니다)</p>
-              <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded border border-glass-border p-2 text-micro text-muted">
+              <pre className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-md border border-glass-border p-2 text-micro text-muted">
                 {preview.messagePreview}
               </pre>
             </div>

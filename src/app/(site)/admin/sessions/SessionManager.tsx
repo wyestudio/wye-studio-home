@@ -8,8 +8,8 @@ import { nextOpening, todayKst } from "@/lib/scheduleRules";
 import { saveSchedule, type ScheduleInput } from "./actions";
 import { formatDateFull, formatDateTimeFull } from "@/lib/format";
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
-const label = "block text-micro font-medium text-muted mb-1";
+const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-semibold text-muted mb-1";
 
 /** 행성 로고를 안 올린 테마가 쓰는 기본 그림. 고객 화면과 같은 규칙. */
 const FALLBACK_LOGO = "/logo-white.png";
@@ -135,7 +135,7 @@ export function SessionManager({
                 />
               </div>
               <div className="border-t border-border p-3">
-                <p className="truncate text-body-sm font-medium">{t.name}</p>
+                <p className="truncate text-body-sm font-semibold">{t.name}</p>
                 <p className="mt-0.5 text-micro text-muted">
                   {s
                     ? `${s.weekdays.map((w) => WEEKDAYS[w].label).join("·")} · ${s.times.length}회차`
@@ -159,7 +159,7 @@ export function SessionManager({
     <div className="space-y-4">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-body-sm ${
+          className={`rounded-md border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -170,7 +170,7 @@ export function SessionManager({
       <div className="flex items-center gap-3">
         <button
           onClick={() => { setThemeId(null); setDraft(null); }}
-          className="rounded border border-border px-3 py-1.5 text-micro"
+          className="rounded-md border border-border px-3 py-1.5 text-micro"
         >
           ← 테마 목록
         </button>
@@ -215,7 +215,7 @@ export function SessionManager({
                         : [...draft.weekdays, d.v].sort(),
                     })
                   }
-                  className={`h-9 w-9 rounded text-body-sm ${
+                  className={`h-9 w-9 rounded-md text-body-sm ${
                     draft.weekdays.includes(d.v)
                       ? "bg-glow text-glow-foreground"
                       : "border border-border text-muted"
@@ -235,7 +235,7 @@ export function SessionManager({
               <div key={i} className="flex items-center gap-1">
                 <input
                   type="time"
-                  className="rounded border border-border bg-background px-2 py-2 text-body-sm"
+                  className="rounded-md border border-border bg-background px-2 py-2 text-body-sm"
                   value={t}
                   onChange={(e) => {
                     const next = [...draft.times];
@@ -246,7 +246,7 @@ export function SessionManager({
                 <button
                   type="button"
                   onClick={() => patch({ times: draft.times.filter((_, x) => x !== i) })}
-                  className="rounded border border-red-500/50 px-2 py-2 text-micro text-red-400"
+                  className="rounded-md border border-red-500/50 px-2 py-2 text-micro text-red-400"
                 >
                   ✕
                 </button>
@@ -255,14 +255,14 @@ export function SessionManager({
             <button
               type="button"
               onClick={() => patch({ times: [...draft.times, "11:30"] })}
-              className="rounded border border-border px-3 py-2 text-micro"
+              className="rounded-md border border-border px-3 py-2 text-micro"
             >
               + 시각 추가
             </button>
           </div>
           <div className="mt-2 flex flex-wrap gap-2 text-micro">
             {times.map((t, i) => (
-              <span key={i} className="rounded bg-muted/15 px-2 py-0.5 text-muted">
+              <span key={i} className="rounded-md bg-muted/15 px-2 py-0.5 text-muted">
                 {t} → 만 {defaultMinAge(t, theme.duration_minutes, theme.min_age_floor)}세 이상
               </span>
             ))}
@@ -296,7 +296,7 @@ export function SessionManager({
               <button
                 type="button"
                 onClick={() => patch({ open_weekday: null })}
-                className={`h-9 rounded px-2.5 text-body-sm ${
+                className={`h-9 rounded-md px-2.5 text-body-sm ${
                   draft.open_weekday === null
                     ? "bg-glow text-glow-foreground"
                     : "border border-border text-muted"
@@ -309,7 +309,7 @@ export function SessionManager({
                   key={d.v}
                   type="button"
                   onClick={() => patch({ open_weekday: d.v })}
-                  className={`h-9 w-9 rounded text-body-sm ${
+                  className={`h-9 w-9 rounded-md text-body-sm ${
                     draft.open_weekday === d.v
                       ? "bg-glow text-glow-foreground"
                       : "border border-border text-muted"
@@ -336,10 +336,10 @@ export function SessionManager({
         </div>
 
         {/* 규칙이 의도대로 걸렸는지는 말보다 실제 날짜를 보여주는 게 빠르다. */}
-        <div className="rounded bg-muted/10 p-3 text-micro">
+        <div className="rounded-md bg-muted/10 p-3 text-micro">
           {next ? (
             <>
-              <p className="font-medium">
+              <p className="font-semibold">
                 다음 공개: <span className="text-glow">{fmtOpensAt(next.opensAt)}</span>
               </p>
               <p className="mt-1 text-muted">
@@ -363,7 +363,7 @@ export function SessionManager({
         <button
           onClick={submit}
           disabled={pending}
-          className="rounded bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
+          className="rounded-md bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
         >
           {pending ? "저장 중…" : "저장하고 회차 만들기"}
         </button>

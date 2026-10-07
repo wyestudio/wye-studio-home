@@ -84,7 +84,7 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
           <button
             onClick={onClose}
             aria-label="닫기"
-            className="shrink-0 rounded px-2 py-1 text-h3 leading-none text-muted hover:text-foreground"
+            className="shrink-0 rounded-md px-2 py-1 text-h3 leading-none text-muted hover:text-foreground"
           >
             ×
           </button>

@@ -88,7 +88,7 @@ function StatusCell({ app }: { app: any }) {
       </span>
       {app.is_internal && (
         <span
-          className="ml-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-micro font-semibold text-amber-400"
+          className="ml-1.5 rounded-md border border-amber-400/60 px-1 py-0.5 text-micro font-semibold text-amber-400"
           title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
         >
           테스트

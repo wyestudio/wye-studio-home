@@ -118,11 +118,11 @@ export default async function AuditLogPage() {
             <table className="w-full min-w-[56rem] text-left">
               <thead className="border-b border-border text-micro text-muted">
                 <tr>
-                  <th className="px-4 py-3 font-medium">시각</th>
-                  <th className="px-4 py-3 font-medium">작업</th>
-                  <th className="px-4 py-3 font-medium">내용</th>
-                  <th className="px-4 py-3 font-medium">대상</th>
-                  <th className="px-4 py-3 font-medium">IP</th>
+                  <th className="px-4 py-3 font-semibold">시각</th>
+                  <th className="px-4 py-3 font-semibold">작업</th>
+                  <th className="px-4 py-3 font-semibold">내용</th>
+                  <th className="px-4 py-3 font-semibold">대상</th>
+                  <th className="px-4 py-3 font-semibold">IP</th>
                 </tr>
               </thead>
               <tbody>

@@ -223,7 +223,7 @@ export function ThemeBlockView({
       */}
       {block.type === "list" && block.variant === "included" && (
         <div
-          className="w-full overflow-hidden rounded-2xl border border-panel-border bg-panel p-6 sm:p-10 lg:p-12"
+          className="w-full overflow-hidden rounded-xl border border-panel-border bg-panel p-6 sm:p-10 lg:p-12"
         >
           {block.headline && (
             <p className="text-h2 font-extrabold leading-snug text-foreground">

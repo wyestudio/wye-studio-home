@@ -976,7 +976,7 @@ export function ApplyForm({
                             type="button"
                             onClick={() => removeCoupon(it.code)}
                             disabled={couponChecking}
-                            className="rounded border border-line px-2 py-0.5 text-micro text-muted disabled:opacity-40"
+                            className="rounded-md border border-line px-2 py-0.5 text-micro text-muted disabled:opacity-40"
                           >
                             빼기
                           </button>

@@ -86,7 +86,7 @@ export function AdminNav({ current }: { current?: string }) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded px-2.5 py-1 text-body-sm transition-colors ${
+                className={`rounded-md px-2.5 py-1 text-body-sm transition-colors ${
                   current === item.href
                     ? "bg-glow text-glow-foreground"
                     : "text-foreground hover:bg-muted/20"

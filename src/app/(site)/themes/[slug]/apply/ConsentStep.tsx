@@ -238,7 +238,7 @@ export function ConsentStep({
         </div>
 
         {it.detail && expanded.has(it.id) && (
-          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-line-subtle bg-fill-subtle p-3 text-body-sm leading-relaxed text-muted sm:max-h-44 sm:p-4">
+          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded-md border border-line-subtle bg-fill-subtle p-3 text-body-sm leading-relaxed text-muted sm:max-h-44 sm:p-4">
             {it.detail}
           </div>
         )}
@@ -253,7 +253,7 @@ export function ConsentStep({
         <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line-subtle pb-2.5 sm:mb-4 sm:pb-3">
           <span className="text-h3 font-bold">{title}</span>
           <span
-            className={`rounded px-1.5 py-0.5 text-micro font-bold sm:px-2 ${
+            className={`rounded-md px-1.5 py-0.5 text-micro font-bold sm:px-2 ${
               tone === "required"
                 ? "bg-[var(--glow)]/15 text-glow"
                 : "bg-fill-strong text-muted"

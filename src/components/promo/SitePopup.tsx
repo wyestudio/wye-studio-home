@@ -172,7 +172,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
       */}
       <div
         className={`animate-scale-in relative z-10 flex max-h-[90dvh] w-full max-w-[26rem] flex-col
-                    overflow-hidden rounded-2xl shadow-2xl ${
+                    overflow-hidden rounded-xl shadow-2xl ${
                       hasImage ? "" : "border border-line bg-background"
                     }`}
       >

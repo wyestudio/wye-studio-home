@@ -268,7 +268,7 @@ export function SessionPicker({
         <p className="mb-2 text-body-sm font-bold text-muted">
           시간 선택
           {selectedDate && (
-            <span className="ml-1.5 font-medium text-muted">
+            <span className="ml-1.5 font-semibold text-muted">
               {kstDayLabel(`${selectedDate}T00:00:00+09:00`)}
             </span>
           )}

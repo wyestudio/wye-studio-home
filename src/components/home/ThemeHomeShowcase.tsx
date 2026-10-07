@@ -334,7 +334,7 @@ function ThemeSlot({
       {locked && (
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-xl bg-black/55">
           <LockIcon shaking={knocked} px={30} />
-          <p className="px-3 text-center text-xs font-medium text-white">
+          <p className="px-3 text-center text-xs font-semibold text-white">
             아직 탐사되지 않은 행성입니다.
           </p>
         </div>
@@ -406,7 +406,7 @@ function ComingSoonSlot({ planetRef }: { planetRef: (el: HTMLDivElement | null) 
 
       {/* 넓은 화면에서는 패널 자체가 없다. 좁은 화면에서만 한 줄. */}
       <div className="flex min-h-28 min-w-0 flex-1 items-center justify-center rounded-xl border border-line-subtle bg-black/40 p-4 sm:hidden">
-        <p className="text-xs font-medium text-muted">아직 탐사되지 않은 행성입니다.</p>
+        <p className="text-xs font-semibold text-muted">아직 탐사되지 않은 행성입니다.</p>
       </div>
     </div>
   );

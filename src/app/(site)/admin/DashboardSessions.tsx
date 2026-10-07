@@ -112,7 +112,7 @@ export function DashboardSessions({
           <button
             key={t.id}
             onClick={() => { setThemeId(t.id); setSelected(""); }}
-            className={`rounded-full px-4 py-2 text-body-sm font-medium transition-colors ${
+            className={`rounded-full px-4 py-2 text-body-sm font-semibold transition-colors ${
               themeId === t.id
                 ? "bg-glow text-glow-foreground"
                 : "border border-border text-muted hover:border-glow"
@@ -164,7 +164,7 @@ export function DashboardSessions({
                           <p className="font-semibold">
                             {kstTime(s.start_at)}
                             {s.format_label && (
-                              <span className="ml-2 rounded bg-muted/20 px-1.5 py-0.5 text-micro font-normal text-muted">
+                              <span className="ml-2 rounded-md bg-muted/20 px-1.5 py-0.5 text-micro font-normal text-muted">
                                 {s.format_label}
                               </span>
                             )}
@@ -180,7 +180,7 @@ export function DashboardSessions({
                         </div>
 
                         <div className="flex shrink-0 flex-col items-end gap-2">
-                          <span className="text-body-sm font-medium">
+                          <span className="text-body-sm font-semibold">
                             {s.status === "cancelled" ? (
                               <span className="text-red-500">비활성화</span>
                             ) : pending ? (
@@ -196,7 +196,7 @@ export function DashboardSessions({
                       <div className="mt-3 flex flex-wrap items-center gap-2">
                         <Link
                           href={`/sessions/${s.id}`}
-                          className="rounded border border-border px-3 py-1.5 text-micro hover:border-glow"
+                          className="rounded-md border border-border px-3 py-1.5 text-micro hover:border-glow"
                         >
                           신청자 보기 →
                         </Link>

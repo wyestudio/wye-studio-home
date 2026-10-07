@@ -87,7 +87,7 @@ export function ManualApplyButton({
           setOpen(true);
         }}
         disabled={isLoading}
-        className="px-3 py-1.5 text-micro bg-brand text-brand-foreground rounded hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
+        className="px-3 py-1.5 text-micro bg-brand text-brand-foreground rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
       >
         수동 등록 (문자 미발송)
       </button>

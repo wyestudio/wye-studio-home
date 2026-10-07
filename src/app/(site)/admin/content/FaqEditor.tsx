@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveFaq, deleteFaq, type FaqInput } from "./actions";
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
+const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 export type FaqRow = {
   id: string;
@@ -89,13 +89,13 @@ export function FaqEditor({ faq, onDone }: { faq?: FaqRow; onDone?: () => void }
         </label>
       </div>
 
-      {error && <p className="rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
+      {error && <p className="rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
 
       <div className="flex gap-2">
         <button
           onClick={submit}
           disabled={busy}
-          className="rounded bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
+          className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
           {busy ? "저장 중…" : form.id ? "저장" : "질문 추가"}
         </button>
@@ -103,13 +103,13 @@ export function FaqEditor({ faq, onDone }: { faq?: FaqRow; onDone?: () => void }
           <button
             onClick={remove}
             disabled={busy}
-            className="rounded border border-red-500/40 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
+            className="rounded-md border border-red-500/40 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
           >
             삭제
           </button>
         )}
         {onDone && (
-          <button onClick={onDone} disabled={busy} className="rounded border border-border px-4 py-2 text-body-sm text-muted">
+          <button onClick={onDone} disabled={busy} className="rounded-md border border-border px-4 py-2 text-body-sm text-muted">
             닫기
           </button>
         )}

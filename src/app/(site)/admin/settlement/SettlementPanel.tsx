@@ -185,19 +185,19 @@ export function SettlementPanel({
             합의 전에는 상계하지 말고 수수료 전액을 지급한 뒤 따로 청구해야 합니다.
           </p>
           <dl className="grid gap-2 text-body-sm sm:grid-cols-3">
-            <div className="rounded border border-border px-3 py-2">
+            <div className="rounded-md border border-border px-3 py-2">
               <dt className="text-micro text-muted">잼핏 쿠폰 할인액</dt>
               <dd className="mt-0.5 font-bold">
                 {formatKrw(rows.reduce((a, r) => a + (r.retainedKrw > 0 ? r.partnerDiscountKrw : 0), 0))}
               </dd>
             </div>
-            <div className="rounded border border-border px-3 py-2">
+            <div className="rounded-md border border-border px-3 py-2">
               <dt className="text-micro text-muted">잼핏 부담 (50%)</dt>
               <dd className="mt-0.5 font-bold text-amber-400">
                 {formatKrw(totals.partnerCouponShareKrw)}
               </dd>
             </div>
-            <div className="rounded border border-glow/30 bg-glow/5 px-3 py-2">
+            <div className="rounded-md border border-glow/30 bg-glow/5 px-3 py-2">
               <dt className="text-micro text-muted">상계하면 지급액</dt>
               <dd className="mt-0.5 font-bold text-glow">{formatKrw(상계후)}</dd>
             </div>
@@ -206,7 +206,7 @@ export function SettlementPanel({
       )}
 
       {needsReview > 0 && (
-        <p className="mb-6 rounded border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-body-sm text-amber-300">
+        <p className="mb-6 rounded-md border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-body-sm text-amber-300">
           ⚠️ 환불 금액을 손으로 정했을 수 있는 건이 {needsReview}건 있습니다. 실제 환불액을 확인하고
           보유액이 맞는지 봐주세요 — 환불 금액은 따로 저장하지 않아 <strong>환불 규정대로</strong> 계산한
           값입니다.
@@ -237,7 +237,7 @@ export function SettlementPanel({
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <input
-            className="min-w-0 flex-1 rounded border border-border bg-background px-3 py-2 text-body-sm"
+            className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-body-sm"
             placeholder="메모 (예: 잼핏에 메일로 전달)"
             value={note}
             maxLength={200}
@@ -263,11 +263,11 @@ export function SettlementPanel({
           </button>
         </div>
         {saveError && (
-          <p className="mt-2 rounded bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{saveError}</p>
+          <p className="mt-2 rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{saveError}</p>
         )}
 
         {snapshots.length > 0 && (
-          <div className="mt-5 overflow-x-auto rounded border border-border">
+          <div className="mt-5 overflow-x-auto rounded-md border border-border">
             <table className="w-full min-w-[640px] text-body-sm">
               <thead className="border-b border-border text-left text-micro text-muted">
                 <tr>
@@ -296,7 +296,7 @@ export function SettlementPanel({
                     <td className="px-3 py-2 text-right">
                       <button
                         type="button"
-                        className="rounded border border-border px-2 py-1 text-micro hover:bg-muted/30"
+                        className="rounded-md border border-border px-2 py-1 text-micro hover:bg-muted/30"
                         onClick={() =>
                           downloadCsv(
                             `잼핏정산_${s.month}_보관본.csv`,

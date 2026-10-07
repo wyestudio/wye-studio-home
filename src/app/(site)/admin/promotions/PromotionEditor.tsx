@@ -43,8 +43,8 @@ export type ThemeOption = {
   tiers: { min_headcount: number; unit_price_krw: number }[];
 };
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
-const label = "block text-micro font-medium text-muted mb-1";
+const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-semibold text-muted mb-1";
 const section = "rounded-lg border border-border p-4 space-y-3";
 
 /** timestamptz → datetime-local 칸에 넣을 'YYYY-MM-DDTHH:mm' (KST). */
@@ -181,7 +181,7 @@ export function PromotionEditor({
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-body-sm ${
+          className={`rounded-md border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -192,7 +192,7 @@ export function PromotionEditor({
       <div className="flex justify-end">
         <button
           onClick={() => setEditing(emptyInput())}
-          className="rounded bg-glow px-3 py-2 text-body-sm text-white"
+          className="rounded-md bg-glow px-3 py-2 text-body-sm text-white"
         >
           + 프로모션 추가
         </button>
@@ -292,7 +292,7 @@ export function PromotionEditor({
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    className="h-9 w-12 rounded border border-border bg-background"
+                    className="h-9 w-12 rounded-md border border-border bg-background"
                     value={editing.accent_color}
                     onChange={(e) => patch({ accent_color: e.target.value })}
                   />
@@ -307,7 +307,7 @@ export function PromotionEditor({
 
             {/* 회차 범위를 비워 두면 1년 치 회차가 전부 대상이 된다. 실제로 겪기 전에 알린다. */}
             {!editing.session_from && !editing.session_to && (
-              <p className="rounded border border-amber-500/50 px-3 py-2 text-micro text-amber-300">
+              <p className="rounded-md border border-amber-500/50 px-3 py-2 text-micro text-amber-300">
                 회차 진행일 범위를 비우면 <strong>앞으로 열린 모든 회차</strong>가 대상이 됩니다.
                 회차는 1년 치가 미리 열려 있습니다.
               </p>
@@ -395,7 +395,7 @@ export function PromotionEditor({
 
                     <button
                       onClick={() => patch({ tiers: editing.tiers.filter((_, x) => x !== i) })}
-                      className="rounded border border-red-500/50 px-2.5 py-2 text-micro text-red-400"
+                      className="rounded-md border border-red-500/50 px-2.5 py-2 text-micro text-red-400"
                     >
                       삭제
                     </button>
@@ -417,7 +417,7 @@ export function PromotionEditor({
                   ],
                 })
               }
-              className="rounded border border-border px-3 py-1.5 text-micro"
+              className="rounded-md border border-border px-3 py-1.5 text-micro"
             >
               + 구간 추가
             </button>
@@ -469,13 +469,13 @@ export function PromotionEditor({
             <button
               onClick={submit}
               disabled={pending}
-              className="rounded bg-glow px-4 py-2 text-body-sm text-white disabled:opacity-50"
+              className="rounded-md bg-glow px-4 py-2 text-body-sm text-white disabled:opacity-50"
             >
               {pending ? "저장 중…" : "저장"}
             </button>
             <button
               onClick={() => setEditing(null)}
-              className="rounded border border-border px-4 py-2 text-body-sm"
+              className="rounded-md border border-border px-4 py-2 text-body-sm"
             >
               취소
             </button>
@@ -502,7 +502,7 @@ export function PromotionEditor({
               <p className="font-semibold">
                 {p.name}{" "}
                 <span
-                  className={`ml-1 rounded px-1.5 py-0.5 text-micro ${
+                  className={`ml-1 rounded-md px-1.5 py-0.5 text-micro ${
                     p.is_active ? "bg-glow text-white" : "bg-muted/20 text-muted"
                   }`}
                 >
@@ -519,20 +519,20 @@ export function PromotionEditor({
             <button
               onClick={() => toggle(p.id, !p.is_active, p.name)}
               disabled={pending}
-              className="rounded border border-border px-3 py-1.5 text-micro disabled:opacity-50"
+              className="rounded-md border border-border px-3 py-1.5 text-micro disabled:opacity-50"
             >
               {p.is_active ? "끄기" : "켜기"}
             </button>
             <button
               onClick={() => setEditing(toInput(p))}
-              className="rounded border border-border px-3 py-1.5 text-micro"
+              className="rounded-md border border-border px-3 py-1.5 text-micro"
             >
               수정
             </button>
             <button
               onClick={() => remove(p.id, p.name)}
               disabled={pending}
-              className="rounded border border-red-500/50 px-3 py-1.5 text-micro text-red-400 disabled:opacity-50"
+              className="rounded-md border border-red-500/50 px-3 py-1.5 text-micro text-red-400 disabled:opacity-50"
             >
               삭제
             </button>

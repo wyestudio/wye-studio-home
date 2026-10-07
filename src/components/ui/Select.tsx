@@ -127,7 +127,7 @@ export function Select({
                 size === "lg" ? "sm:py-3.5" : ""
               } ${
                 value === option.value
-                  ? "bg-brand text-brand-foreground font-medium"
+                  ? "bg-brand text-brand-foreground font-semibold"
                   : "text-foreground hover:bg-brand-soft"
               }`}
             >

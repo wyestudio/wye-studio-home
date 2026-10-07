@@ -78,7 +78,7 @@ function Block({
 
 function Panel({ className = "", children }: { className?: string; children: React.ReactNode }) {
   return (
-    <div className={`rounded-2xl border border-panel-border bg-panel p-5 sm:p-7 ${className}`}>
+    <div className={`rounded-xl border border-panel-border bg-panel p-5 sm:p-7 ${className}`}>
       {children}
     </div>
   );
@@ -424,7 +424,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
         {/* ── 애프터파티 ── */}
         <Block sectionKey="after_party" navLabel="애프터파티">
           <div
-            className="rounded-2xl border-2 p-5 sm:p-7"
+            className="rounded-xl border-2 p-5 sm:p-7"
             style={{ borderColor: GROUP_ACCENT, backgroundColor: `${GROUP_ACCENT}14` }}
           >
             <p
@@ -555,7 +555,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
 
           <div
             id="refund"
-            className="scroll-mt-28 rounded-2xl border border-danger/60 bg-danger-soft p-5 sm:p-7"
+            className="scroll-mt-28 rounded-xl border border-danger/60 bg-danger-soft p-5 sm:p-7"
           >
             <h3 className="text-h3 font-extrabold text-danger">
               단체 예약 취소 · 환불 규정
@@ -594,7 +594,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           id="quote"
           sectionKey="quote"
           navLabel="견적 신청"
-          className="rounded-2xl border border-panel-border bg-panel p-5 sm:p-7"
+          className="rounded-xl border border-panel-border bg-panel p-5 sm:p-7"
         >
           <SectionHeading
             eyebrow="QUOTE"

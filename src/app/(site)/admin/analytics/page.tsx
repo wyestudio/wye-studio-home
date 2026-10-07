@@ -215,8 +215,8 @@ function FunnelRow({
           <span className="ml-2 text-micro text-muted">{pct(value, top)}</span>
         </span>
       </div>
-      <div className="h-2.5 w-full rounded bg-muted/30">
-        <div className="h-full rounded bg-glow" style={{ width: `${width}%` }} />
+      <div className="h-2.5 w-full rounded-md bg-muted/30">
+        <div className="h-full rounded-md bg-glow" style={{ width: `${width}%` }} />
       </div>
       {drop != null && drop > 0 && (
         <p className="mt-1 text-micro text-amber-400/80">
@@ -230,7 +230,7 @@ function FunnelRow({
 /** 박스 맨 위 한 줄 요약. 숫자를 읽기 전에 "그래서 뭔데" 를 먼저 알려준다. */
 function Summary({ text }: { text: string }) {
   return (
-    <p className="mb-3 rounded border border-glow/25 bg-glow/5 px-3 py-2 text-body-sm">{text}</p>
+    <p className="mb-3 rounded-md border border-glow/25 bg-glow/5 px-3 py-2 text-body-sm">{text}</p>
   );
 }
 
@@ -431,7 +431,7 @@ export default function AnalyticsDashboard() {
             */}
             {((data.testDeviceSessions ?? 0) > 0 || (data.internalApplications ?? 0) > 0) && (
               <p className="mb-4 rounded-lg border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-body-sm text-amber-300">
-                <span className="mr-1.5 rounded border border-amber-400/60 px-1 py-0.5 text-micro font-semibold">
+                <span className="mr-1.5 rounded-md border border-amber-400/60 px-1 py-0.5 text-micro font-semibold">
                   테스트
                 </span>
                 테스트 기기 방문 {data.testDeviceSessions ?? 0}회, 신청 {data.internalApplications ?? 0}건은
@@ -589,7 +589,7 @@ export default function AnalyticsDashboard() {
                 hint="(우리 DB)"
               />
               {detailTracked && detailFunnel && detailFunnel.soldOutSessions > 0 && (
-                <p className="mt-3 rounded border border-amber-400/25 bg-amber-400/5 px-3 py-2 text-body-sm">
+                <p className="mt-3 rounded-md border border-amber-400/25 bg-amber-400/5 px-3 py-2 text-body-sm">
                   이 기간에 <strong>{detailFunnel.soldOutSessions.toLocaleString()}명</strong>이{" "}
                   <strong>마감된 회차를 눌러</strong> 봤습니다. 이 사람들은 화면이 어려워서가
                   아니라 <strong>원하는 날짜가 없어서</strong> 빠진 쪽입니다 — 문구가 아니라 회차
@@ -711,7 +711,7 @@ export default function AnalyticsDashboard() {
                                 </span>
                               )}
                             </td>
-                            <td className="py-2 pr-3 text-right font-medium">{s.applications}</td>
+                            <td className="py-2 pr-3 text-right font-semibold">{s.applications}</td>
                             <td className="py-2 pr-3 text-right text-muted">{s.headcount}</td>
                             <td className="py-2 pr-3 text-right">{s.paid}</td>
                             <td className="py-2 text-right">{s.revenueKrw ? won(s.revenueKrw) : "-"}</td>
@@ -756,13 +756,13 @@ export default function AnalyticsDashboard() {
                                   {s.source}
                                 </span>
                               </span>
-                              <span className="shrink-0 font-medium">
+                              <span className="shrink-0 font-semibold">
                                 {s.sessions.toLocaleString()}
                               </span>
                             </div>
-                            <div className="h-1.5 w-full rounded bg-muted/30">
+                            <div className="h-1.5 w-full rounded-md bg-muted/30">
                               <div
-                                className="h-full rounded bg-glow/70"
+                                className="h-full rounded-md bg-glow/70"
                                 style={{ width: `${(s.sessions / top) * 100}%` }}
                               />
                             </div>
@@ -797,13 +797,13 @@ export default function AnalyticsDashboard() {
                                   {p.page}
                                 </span>
                               </span>
-                              <span className="shrink-0 font-medium">
+                              <span className="shrink-0 font-semibold">
                                 {p.sessions.toLocaleString()}
                               </span>
                             </div>
-                            <div className="h-1.5 w-full rounded bg-muted/30">
+                            <div className="h-1.5 w-full rounded-md bg-muted/30">
                               <div
-                                className="h-full rounded bg-glow/70"
+                                className="h-full rounded-md bg-glow/70"
                                 style={{ width: `${(p.sessions / top) * 100}%` }}
                               />
                             </div>
@@ -871,7 +871,7 @@ export default function AnalyticsDashboard() {
                                 는 뜻이라, 같은 줄에서 기호가 두 뜻으로 읽히면 안 된다. */}
                             <td
                               className={`py-2 pr-3 text-right ${
-                                r.applications > 0 ? "font-medium" : "text-muted"
+                                r.applications > 0 ? "font-semibold" : "text-muted"
                               }`}
                             >
                               {r.applications}
@@ -930,7 +930,7 @@ export default function AnalyticsDashboard() {
                       <tr key={d.date} className="border-b border-border/40">
                         <td className="py-2 pr-3">{d.date.slice(5)}</td>
                         <td className="py-2 pr-3 text-right">{v.toLocaleString()}</td>
-                        <td className="py-2 pr-3 text-right font-medium">{d.applications}</td>
+                        <td className="py-2 pr-3 text-right font-semibold">{d.applications}</td>
                         <td className="py-2 pr-3 text-right text-muted">{pct(d.applications, v)}</td>
                         <td className="py-2 pr-3 text-right">{d.paid}</td>
                         <td className="py-2 pr-3 text-right">{d.revenueKrw ? won(d.revenueKrw) : "-"}</td>

@@ -17,8 +17,8 @@ import { ContentBlocksEditor } from "./ContentBlocksEditor";
 import { ImageUploadField } from "./ImageUploadField";
 import { GenreInput } from "./GenreInput";
 
-const field = "w-full rounded border border-border bg-background px-3 py-2 text-body-sm";
-const label = "block text-micro font-medium text-muted mb-1";
+const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
+const label = "block text-micro font-semibold text-muted mb-1";
 const section = "rounded-lg border border-border p-4 space-y-4";
 
 /** 강조색을 안 정한 테마가 쓰는 기본값. 고객 화면의 DEFAULT_ACCENT 와 같아야 한다. */
@@ -189,7 +189,7 @@ export function ThemeEditor({
     <div className="space-y-6">
       {message && (
         <div
-          className={`rounded border px-3 py-2 text-body-sm ${
+          className={`rounded-md border px-3 py-2 text-body-sm ${
             message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
           }`}
         >
@@ -206,7 +206,7 @@ export function ThemeEditor({
         <div className="flex justify-end">
           <button
             onClick={() => setEditing(emptyTheme(activeVenues[0].id))}
-            className="rounded bg-glow px-3 py-2 text-body-sm text-glow-foreground"
+            className="rounded-md bg-glow px-3 py-2 text-body-sm text-glow-foreground"
           >
             + 테마 추가
           </button>
@@ -370,7 +370,7 @@ export function ThemeEditor({
                     <button
                       type="button"
                       onClick={() => patch({ slug: suggestSlug(editing.name) })}
-                      className="shrink-0 rounded border border-border px-3 text-micro"
+                      className="shrink-0 rounded-md border border-border px-3 text-micro"
                     >
                       자동
                     </button>
@@ -419,7 +419,7 @@ export function ThemeEditor({
               <div className="flex items-center gap-2">
                 <input
                   type="color"
-                  className="h-9 w-12 shrink-0 cursor-pointer rounded border border-border bg-background"
+                  className="h-9 w-12 shrink-0 cursor-pointer rounded-md border border-border bg-background"
                   value={/^#[0-9a-fA-F]{6}$/.test(editing.accent_color) ? editing.accent_color : DEFAULT_ACCENT}
                   onChange={(e) => patch({ accent_color: e.target.value })}
                 />
@@ -517,7 +517,7 @@ export function ThemeEditor({
                     </div>
                     <button
                       onClick={() => patch({ tiers: editing.tiers.filter((_, x) => x !== i) })}
-                      className="rounded border border-red-500/50 px-2.5 py-2 text-micro text-red-400"
+                      className="rounded-md border border-red-500/50 px-2.5 py-2 text-micro text-red-400"
                     >
                       삭제
                     </button>
@@ -538,13 +538,13 @@ export function ThemeEditor({
                     ],
                   })
                 }
-                className="rounded border border-border px-3 py-1.5 text-micro"
+                className="rounded-md border border-border px-3 py-1.5 text-micro"
               >
                 + 구간 추가
               </button>
 
-              <div className="rounded bg-muted/10 p-3 text-micro">
-                <p className="mb-1 font-medium">미리보기</p>
+              <div className="rounded-md bg-muted/10 p-3 text-micro">
+                <p className="mb-1 font-semibold">미리보기</p>
                 {[1, 2, 3, 4, 5, 6].map((n) => {
                   const unit = resolveUnitPrice(
                     editing.tiers.map((t) => ({ ...t, theme_id: "" })),
@@ -660,16 +660,16 @@ export function ThemeEditor({
 
           {/* 폼이 길어서 맨 위 메시지가 화면 밖에 있을 수 있다. 버튼 옆에도 보여준다. */}
           {message?.kind === "err" && (
-            <div className="rounded border border-red-500 px-3 py-2 text-body-sm text-red-400">
+            <div className="rounded-md border border-red-500 px-3 py-2 text-body-sm text-red-400">
               {message.text}
             </div>
           )}
 
           <div className="flex flex-wrap gap-2">
-            <button onClick={submit} disabled={pending} className="rounded bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50">
+            <button onClick={submit} disabled={pending} className="rounded-md bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50">
               {pending ? "저장 중…" : "저장"}
             </button>
-            <button onClick={() => setEditing(null)} className="rounded border border-border px-4 py-2 text-body-sm">
+            <button onClick={() => setEditing(null)} className="rounded-md border border-border px-4 py-2 text-body-sm">
               취소
             </button>
             {/* 목록이 행성 격자가 되면서 줄별 삭제 버튼이 사라졌다. 편집 화면에 둔다. */}
@@ -677,7 +677,7 @@ export function ThemeEditor({
               <button
                 onClick={() => remove(editing.id!, editing.name)}
                 disabled={pending}
-                className="ml-auto rounded border border-red-500/50 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
+                className="ml-auto rounded-md border border-red-500/50 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
               >
                 이 테마 삭제
               </button>
@@ -714,17 +714,17 @@ export function ThemeEditor({
                       {(!t.is_active || !t.is_listed || t.is_locked) && (
                         <div className="absolute left-2 top-2 flex flex-col gap-1">
                           {t.is_locked && (
-                            <span className="rounded bg-white/90 px-1.5 py-0.5 text-micro text-black">
+                            <span className="rounded-md bg-white/90 px-1.5 py-0.5 text-micro text-black">
                               🔒 잠금
                             </span>
                           )}
                           {!t.is_active && (
-                            <span className="rounded bg-amber-500/90 px-1.5 py-0.5 text-micro text-black">
+                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-micro text-black">
                               신청 중지
                             </span>
                           )}
                           {!t.is_listed && (
-                            <span className="rounded bg-black/70 px-1.5 py-0.5 text-micro text-white">
+                            <span className="rounded-md bg-black/70 px-1.5 py-0.5 text-micro text-white">
                               목록 숨김
                             </span>
                           )}
@@ -733,7 +733,7 @@ export function ThemeEditor({
                     </div>
 
                     <div className="border-t border-border p-3">
-                      <p className="truncate text-body-sm font-medium">{t.name}</p>
+                      <p className="truncate text-body-sm font-semibold">{t.name}</p>
                       {/* 0 은 '미정'. 숫자 그대로 보이면 데이터가 깨진 것처럼 읽힌다. */}
                       <p className="mt-0.5 text-micro text-muted">
                         난이도 {t.difficulty > 0 ? t.difficulty : "미정"} ·{" "}
