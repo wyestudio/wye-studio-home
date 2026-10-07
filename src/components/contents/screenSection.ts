@@ -36,7 +36,10 @@ export const INTRO_SCREEN_SECTION = "pt-6 pb-7 md:pt-8 md:pb-8";
  * 이 섹션으로 스크롤해 올 때 헤더 밑에 딱 붙게 하는 여백.
  * 목차(SectionNav) · 모바일 탭(DetailTabs) · 신청하기 버튼이 눌렸을 때 쓰인다.
  *
- * ⚠️ 헤더(Header.tsx) 크기를 바꾸면 여기 숫자도 같이 고친다 —
- *    지금 데스크톱 헤더 약 100px, 모바일 헤더 약 64px + 탭 46px.
+ * 모바일 112px = 헤더 64 + 탭 49 (실측)
+ * 데스크톱 72px = 헤더 72 (탭 없음)
+ *
+ * ⚠️ 헤더(Header.tsx) 크기를 바꾸면 여기 숫자도 같이 고친다. CSS 변수를 못 쓴다 —
+ *    scroll-margin 은 Tailwind 가 빌드 때 값으로 박는다.
  */
-export const SCREEN_SCROLL_MARGIN = "scroll-mt-[7rem] md:scroll-mt-[6.25rem]";
+export const SCREEN_SCROLL_MARGIN = "scroll-mt-[7rem] md:scroll-mt-[4.5rem]";

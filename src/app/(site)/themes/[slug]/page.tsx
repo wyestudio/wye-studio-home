@@ -212,11 +212,11 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
       <section
         id="intro"
         suppressHydrationWarning
-        className="grid scroll-mt-28 grid-cols-2 gap-x-3.5 gap-y-3 md:gap-y-2
+        className={`grid ${SCREEN_SCROLL_MARGIN} grid-cols-2 gap-x-3.5 gap-y-3 md:gap-y-2
                    [grid-template-areas:'title_title'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
                    md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-10
                    md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_genres'_'poster_synopsis']
-                   lg:grid-cols-[var(--poster-w,20rem)_minmax(0,1fr)]"
+                   lg:grid-cols-[var(--poster-w,20rem)_minmax(0,1fr)]`}
       >
         <PosterFit sectionId="intro" />
 

@@ -57,7 +57,7 @@ export function ScrollStage({ children }: { children: ReactNode }) {
         // sticky 뷰포트는 원래 "헤더 높이만큼 먼저 스크롤해야" 고정되기 시작한다.
         // 그 빈 스크롤 구간을 없애서 첫 스크롤부터 바로 고정+페이드가 시작되도록
         // 헤더 높이만큼 끌어올린다(Header.tsx가 --header-height로 실측값을 넣어줌).
-        marginTop: "calc(-1 * var(--header-height, 80px))",
+        marginTop: "calc(-1 * var(--header-height, 72px))",
       }}
     >
       <div className="sticky top-0 h-dvh overflow-hidden">

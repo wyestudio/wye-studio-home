@@ -69,7 +69,7 @@ function Block({
       data-screen
       data-section-key={sectionKey}
       data-nav-label={navLabel}
-      className={`scroll-mt-28 ${className}`}
+      className={`scroll-mt-24 ${className}`}
     >
       {children}
     </section>
@@ -555,7 +555,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
 
           <div
             id="refund"
-            className="scroll-mt-28 rounded-xl border border-danger/60 bg-danger-soft p-5 sm:p-7"
+            className="scroll-mt-24 rounded-xl border border-danger/60 bg-danger-soft p-5 sm:p-7"
           >
             <h3 className="text-h3 font-extrabold text-danger">
               단체 예약 취소 · 환불 규정

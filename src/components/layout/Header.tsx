@@ -115,11 +115,20 @@ export function Header() {
     >
       {/* 데스크톱 헤더 */}
       {/*
-        크기(2026-09-15 키움): 테마 상세 첫 화면을 크게 세우고 나니 헤더가 작고 위에 붙어
-        보였다. 로고·글자·메뉴와 위아래 여백을 한 단계씩 키웠다(높이 약 84 → 100px).
-        ⚠️ 높이를 바꾸면 components/contents/screenSection.ts 의 숫자도 같이 고칠 것.
+        크기: **72px** (여백 16 + 로고 40 + 여백 16).
+
+        2026-09-15 에 84 → 100px 로 키웠었다. 이유는 "테마 상세 첫 화면을 크게 세우고
+        나니 헤더가 작고 위에 붙어 보여서" 였는데, 2026-10-05 에 그 첫 화면을 다시
+        줄였다(810 → 672px). **전제가 사라져서** 2026-10-07 에 72px 로 되돌린다 —
+        100px 는 1280×800 화면에서 세로의 12.5% 를 머리말이 가져가는 크기였다.
+
+        ⚠️ 높이를 바꾸면 **같이 고칠 곳**:
+           - components/contents/screenSection.ts 의 SCREEN_SCROLL_MARGIN
+           - DetailTabs.tsx · ScrollStage.tsx 의 var(--header-height) **기본값**
+           (var(--header-height) 를 그대로 쓰는 곳은 아래 useEffect 가 실측해 넣으므로
+            따라온다 — 기본값만 JS 가 돌기 전 한 프레임에 쓰인다)
       */}
-      <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-7 ${isHome ? "bg-transparent" : "bg-background/95 backdrop-blur-md"}`}>
+      <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-4 ${isHome ? "bg-transparent" : "bg-background/95 backdrop-blur-md"}`}>
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5">
             <Image
@@ -128,7 +137,7 @@ export function Header() {
               width={92}
               height={64}
               priority
-              className="h-11 w-auto"
+              className="h-10 w-auto"
             />
             <span className="whitespace-nowrap text-h3 font-extrabold tracking-tight text-foreground">
               우주이스케이프

@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { SCREEN_SCROLL_MARGIN } from "@/components/contents/screenSection";
 import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 import { BookingCalendar } from "@/components/booking/BookingCalendar";
@@ -264,7 +265,7 @@ export function SessionPicker({
 
       {/* 시간 칸은 달력과 같은 높이로 늘어난다. 신청 버튼을 mt-auto 로 밀면
           버튼 아래끝이 달력 아래끝(=포스터 아래끝)과 같은 선에 놓인다. */}
-      <div ref={timeRef} className="flex min-w-0 flex-1 scroll-mt-28 flex-col">
+      <div ref={timeRef} className={`flex min-w-0 flex-1 flex-col ${SCREEN_SCROLL_MARGIN}`}>
         <p className="mb-2 text-body-sm font-semibold text-muted">
           시간 선택
           {selectedDate && (
