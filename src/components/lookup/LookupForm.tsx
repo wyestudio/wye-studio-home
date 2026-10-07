@@ -131,6 +131,24 @@ export function LookupForm() {
         <span aria-hidden className="apply-submit-fill" />
         <span className="apply-submit-label">{pending ? "조회 중..." : "조회하기"}</span>
       </button>
+
+      {/*
+        접수번호를 잃어버린 사람이 갈 곳이 없었다(2026-10-08 진단 R01). 형식 검증만
+        있고 "어디서 찾나" 는 아무 데도 없었다. 접수번호는 신청 완료 문자에 들어간다
+        (src/lib/smsV2.ts 의 '· 접수번호: {{confirmation_code}}').
+      */}
+      <p className="text-center text-body-sm leading-relaxed text-muted">
+        접수번호는 신청 완료 문자에 적혀 있습니다. 찾기 어려우시면{" "}
+        <a
+          href="http://pf.kakao.com/_EGNBX/chat"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-foreground underline decoration-dotted underline-offset-4"
+        >
+          카카오톡 채널
+        </a>
+        로 문의해 주세요.
+      </p>
     </form>
   );
 }
