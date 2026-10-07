@@ -252,7 +252,7 @@ export function ThemeBlockView({
                     {item.emoji}
                   </span>
                 )}
-                <p className="font-bold text-foreground text-h3">{item.title}</p>
+                <p className="font-semibold text-foreground text-h3">{item.title}</p>
                 {item.desc && (
                   <p className="mt-1.5 text-body text-muted sm:mt-2">
                     {item.desc}
@@ -289,7 +289,7 @@ export function ThemeBlockView({
                 <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-micro font-extrabold text-brand-foreground">
                   STEP {i + 1}
                 </span>
-                <p className="mb-2 font-bold text-foreground text-h3">
+                <p className="mb-2 font-semibold text-foreground text-h3">
                   {step.emoji} {step.title}
                 </p>
                 <p className="text-body text-muted">{step.desc}</p>
@@ -309,7 +309,7 @@ export function ThemeBlockView({
                   </span>
                 )}
                 <div>
-                  <p className="font-bold text-foreground text-h3">{card.title}</p>
+                  <p className="font-semibold text-foreground text-h3">{card.title}</p>
                   {card.desc && (
                     // 설명은 RichText 로 그린다 — 운영자가 **굵게** 와 [문구](주소)
                     // 링크를 쓸 수 있어야 한다(FOR YOU 카드에서 단체 예약으로 보냄).
@@ -339,7 +339,7 @@ export function ThemeBlockView({
                 <p className="text-label font-extrabold" style={{ color: accent }}>
                   {i + 1}
                 </p>
-                <p className="mt-0.5 font-bold text-foreground sm:mt-1 text-h3">{t.title}</p>
+                <p className="mt-0.5 font-semibold text-foreground sm:mt-1 text-h3">{t.title}</p>
                 {t.desc && (
                   <p className="mt-1 text-body text-muted sm:mt-2">{t.desc}</p>
                 )}
@@ -356,11 +356,11 @@ export function ThemeBlockView({
               key={i}
               className="flex gap-4 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-6 lg:p-7"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-bold text-danger sm:h-9 sm:w-9">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-semibold text-danger sm:h-9 sm:w-9">
                 {i + 1}
               </span>
               <div className="flex flex-col gap-1 sm:gap-1.5">
-                <p className="font-bold text-foreground text-h3">{p.title}</p>
+                <p className="font-semibold text-foreground text-h3">{p.title}</p>
                 {p.desc && (
                   <p className="text-body text-muted">{p.desc}</p>
                 )}
@@ -424,7 +424,7 @@ function ReviewsBlock({
               >
                 {s.value}
               </p>
-              <p className="mt-2.5 text-body font-bold text-foreground sm:mt-3">{s.label}</p>
+              <p className="mt-2.5 text-body font-semibold text-foreground sm:mt-3">{s.label}</p>
               {s.note && <p className="mt-1 text-body-sm leading-relaxed text-muted">{s.note}</p>}
             </div>
           ))}

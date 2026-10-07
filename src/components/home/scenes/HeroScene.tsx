@@ -101,7 +101,7 @@ function ScrollCue() {
       {/* 얇아서 안 보인다는 제보(2026-09-14) — 굵기·크기를 올리고 별 배경에서도
           읽히도록 어두운 그림자를 깔았다. */}
       <span
-        className="font-mono text-xs font-bold tracking-[0.38em] text-white"
+        className="font-mono text-xs font-semibold tracking-[0.38em] text-white"
         style={{ textShadow: "0 1px 6px rgb(0 0 0 / 0.75)" }}
       >
         SCROLL

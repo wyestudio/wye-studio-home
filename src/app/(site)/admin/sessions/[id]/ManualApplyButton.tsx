@@ -125,7 +125,7 @@ export function ManualApplyButton({
           {attendees.map((attendee, index) => (
             <div key={index} className="rounded-xl border border-border p-3 flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <p className="text-micro font-bold text-muted">
+                <p className="text-micro font-semibold text-muted">
                   {index === 0 ? (attendees.length > 1 ? "대표 신청자" : "신청자") : `동행자 ${index}`}
                 </p>
                 {!isDatingSession && attendees.length > 1 && (

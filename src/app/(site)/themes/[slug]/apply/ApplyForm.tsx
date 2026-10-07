@@ -680,7 +680,7 @@ export function ApplyForm({
             <p className="font-semibold text-h3">{themeName}</p>
             {categoryName && (
               <span
-                className="rounded-full border px-2 py-0.5 text-micro font-bold sm:px-2.5"
+                className="rounded-full border px-2 py-0.5 text-micro font-semibold sm:px-2.5"
                 style={{
                   color: accentColor,
                   borderColor: `${accentColor}59`,
@@ -787,7 +787,7 @@ export function ApplyForm({
             {tiers.length > 0 && (
               <div className="rounded-lg border border-line bg-fill p-4 sm:p-6">
                 <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
-                  <p className="text-body font-bold">인원별 참가비</p>
+                  <p className="text-body font-semibold">인원별 참가비</p>
                   {/*
                     얼리버드 회차임을 여기서 한 번 더 알린다. 얼리버드가 아닌 회차를
                     고른 사람에게는 promo 가 null 이라 이 배지도, 아래 얼리버드 칸도
@@ -1039,7 +1039,7 @@ export function ApplyForm({
             type="button"
             onClick={goNext}
             disabled={busy}
-            className="w-full rounded-lg px-6 py-4 text-h3 font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:py-[18px]"
+            className="w-full rounded-lg px-6 py-4 text-h3 font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:py-[18px]"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
             {pending

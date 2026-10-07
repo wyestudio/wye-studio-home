@@ -32,7 +32,7 @@ export default async function SmsTemplatesPage() {
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-h2 font-bold mb-2">문자 포맷 관리</h1>
+          <h1 className="text-h2 font-semibold mb-2">문자 포맷 관리</h1>
           <p className="text-muted">
             본문에 {"{{변수}}"} 형태로 플레이스홀더를 넣으면 발송 시 실제 값으로 치환됩니다. 변경사항은 저장 즉시 다음 발송부터 적용됩니다.
           </p>

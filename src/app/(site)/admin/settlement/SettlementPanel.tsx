@@ -73,7 +73,7 @@ function Table({ rows, 제목 }: { rows: SettlementRow[]; 제목: string }) {
                     {r.needsReview && <span className="ml-1" title="규정과 다르게 환불했을 수 있어요">⚠️</span>}
                   </td>
                   <td className="px-3 py-2 text-right">{formatKrw(r.retainedKrw)}</td>
-                  <td className="px-3 py-2 text-right font-bold text-glow">{formatKrw(r.commissionKrw)}</td>
+                  <td className="px-3 py-2 text-right font-semibold text-glow">{formatKrw(r.commissionKrw)}</td>
                   <td className="px-3 py-2 text-right text-amber-400">
                     {r.partnerCouponShareKrw > 0 ? `−${formatKrw(r.partnerCouponShareKrw)}` : "-"}
                   </td>
@@ -151,21 +151,21 @@ export function SettlementPanel({
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="rounded-lg border border-border bg-background/50 p-4">
           <p className="text-micro text-muted">성과 인정 예약</p>
-          <p className="mt-1 text-h2 font-bold">{totals.count}건</p>
+          <p className="mt-1 text-h2 font-semibold">{totals.count}건</p>
           <p className="mt-1 text-micro text-muted">{totals.headcount}명</p>
         </div>
         <div className="rounded-lg border border-border bg-background/50 p-4">
           <p className="text-micro text-muted">보유액 합계</p>
-          <p className="mt-1 text-h2 font-bold">{formatKrw(totals.retainedKrw)}</p>
+          <p className="mt-1 text-h2 font-semibold">{formatKrw(totals.retainedKrw)}</p>
           <p className="mt-1 text-micro text-muted">수수료의 기준</p>
         </div>
         <div className="rounded-lg border border-border bg-background/50 p-4">
           <p className="text-micro text-muted">이번 달 수수료 (5%)</p>
-          <p className="mt-1 text-h2 font-bold">{formatKrw(정산전)}</p>
+          <p className="mt-1 text-h2 font-semibold">{formatKrw(정산전)}</p>
         </div>
         <div className="rounded-lg border border-glow/40 bg-glow/5 p-4">
           <p className="text-micro text-muted">지급할 금액</p>
-          <p className="mt-1 text-h2 font-bold text-glow">{formatKrw(상계전)}</p>
+          <p className="mt-1 text-h2 font-semibold text-glow">{formatKrw(상계전)}</p>
           <p className="mt-1 text-micro text-muted">
             {차감합계 > 0 ? `차감 −${formatKrw(차감합계)} 반영` : "상계 없이"}
           </p>
@@ -187,19 +187,19 @@ export function SettlementPanel({
           <dl className="grid gap-2 text-body-sm sm:grid-cols-3">
             <div className="rounded-md border border-border px-3 py-2">
               <dt className="text-micro text-muted">잼핏 쿠폰 할인액</dt>
-              <dd className="mt-0.5 font-bold">
+              <dd className="mt-0.5 font-semibold">
                 {formatKrw(rows.reduce((a, r) => a + (r.retainedKrw > 0 ? r.partnerDiscountKrw : 0), 0))}
               </dd>
             </div>
             <div className="rounded-md border border-border px-3 py-2">
               <dt className="text-micro text-muted">잼핏 부담 (50%)</dt>
-              <dd className="mt-0.5 font-bold text-amber-400">
+              <dd className="mt-0.5 font-semibold text-amber-400">
                 {formatKrw(totals.partnerCouponShareKrw)}
               </dd>
             </div>
             <div className="rounded-md border border-glow/30 bg-glow/5 px-3 py-2">
               <dt className="text-micro text-muted">상계하면 지급액</dt>
-              <dd className="mt-0.5 font-bold text-glow">{formatKrw(상계후)}</dd>
+              <dd className="mt-0.5 font-semibold text-glow">{formatKrw(상계후)}</dd>
             </div>
           </dl>
         </div>

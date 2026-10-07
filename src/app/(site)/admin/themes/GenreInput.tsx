@@ -60,7 +60,7 @@ export function GenreInput({
             >
               <Chevron dir="left" className="h-3 w-3" />
             </button>
-            <span className="font-bold">#{g}</span>
+            <span className="font-semibold">#{g}</span>
             <button
               type="button"
               onClick={() => move(i, 1)}

@@ -39,7 +39,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         <div className="space-y-6">
           <div>
-            <h1 className="text-h2 font-bold">관리자 로그인</h1>
+            <h1 className="text-h2 font-semibold">관리자 로그인</h1>
             <p className="text-body-sm text-muted mt-1">운영 대시보드에 접근하려면 비밀번호를 입력해주세요.</p>
           </div>
 

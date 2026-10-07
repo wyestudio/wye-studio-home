@@ -39,7 +39,7 @@ export default async function AdminThemesPage() {
         <AdminNav current="/themes" />
 
         <header className="mb-6">
-          <h1 className="text-h2 font-bold">테마</h1>
+          <h1 className="text-h2 font-semibold">테마</h1>
           <p className="mt-1 text-body-sm text-muted">
             판매하는 방탈출 컨텐츠입니다. 가격·정원·소요시간·장소를 여기서 정하면{" "}
             <strong>회차가 물려받습니다.</strong> 회차를 열 때는 날짜만 고르면 됩니다.

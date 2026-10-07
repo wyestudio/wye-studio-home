@@ -27,7 +27,7 @@ export default async function InternalDevicePage() {
 
       <div className="mb-6 rounded-lg border border-line px-4 py-4">
         <p className="text-body-sm text-muted">이 브라우저</p>
-        <p className={`mt-1 text-h3 font-bold ${on ? "text-glow" : ""}`}>
+        <p className={`mt-1 text-h3 font-semibold ${on ? "text-glow" : ""}`}>
           {on ? "테스트 기기로 표시됨" : "표시 안 됨 (일반 방문자로 집계)"}
         </p>
       </div>

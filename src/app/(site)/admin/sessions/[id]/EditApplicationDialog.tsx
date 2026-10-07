@@ -126,7 +126,7 @@ export function EditApplicationDialog({
 
         {attendees.map((attendee, index) => (
           <div key={attendee.id} className="rounded-xl border border-border p-3 flex flex-col gap-3">
-            <p className="text-micro font-bold text-muted">{attendee.isRepresentative ? "대표 신청자" : `동행자 ${index}`}</p>
+            <p className="text-micro font-semibold text-muted">{attendee.isRepresentative ? "대표 신청자" : `동행자 ${index}`}</p>
             <AttendeeFormFields
               value={attendee}
               onChange={(patch) => updateAttendee(index, patch)}

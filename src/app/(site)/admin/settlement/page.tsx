@@ -40,7 +40,7 @@ export default async function SettlementPage({
         <AdminNav current="/settlement" />
 
         <header className="mb-5">
-          <h1 className="text-h2 font-bold">잼핏 정산</h1>
+          <h1 className="text-h2 font-semibold">잼핏 정산</h1>
           <p className="mt-1 text-body-sm text-muted">
             잼핏(ZAMFIT) 제휴계약에 따른 성과형 예약 수수료입니다. 정산기간은 매월 1일~말일,
             지급은 <strong className="text-foreground">익월 10일까지</strong>입니다(제8조).

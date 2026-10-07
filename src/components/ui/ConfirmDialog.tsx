@@ -42,7 +42,7 @@ export function ConfirmDialog({
                     border ${danger ? "border-danger/40" : "border-line"}
                     bg-background/95 p-6 shadow-2xl shadow-black/60 animate-scale-in`}
       >
-        <h2 className={`text-h3 font-bold ${danger ? "text-danger" : "text-foreground"}`}>{title}</h2>
+        <h2 className={`text-h3 font-semibold ${danger ? "text-danger" : "text-foreground"}`}>{title}</h2>
         <p className="mt-2 text-body-sm leading-relaxed text-muted">{message}</p>
         {children}
         {error && (
@@ -62,7 +62,7 @@ export function ConfirmDialog({
             type="button"
             onClick={onConfirm}
             disabled={confirmDisabled}
-            className={`flex-1 rounded-lg px-4 py-3 text-body-sm font-bold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${
+            className={`flex-1 rounded-lg px-4 py-3 text-body-sm font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 ${
               danger
                 ? "bg-danger text-white"
                 : "bg-glow text-glow-foreground"

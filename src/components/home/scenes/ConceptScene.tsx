@@ -26,7 +26,7 @@ export function ConceptScene({
         {CIRCLES.map((circle) => (
           <div
             key={circle.label}
-            className={`flex h-28 w-28 flex-shrink-0 items-center justify-center rounded-full ${circle.color} text-lg font-bold sm:h-40 sm:w-40 sm:text-2xl`}
+            className={`flex h-28 w-28 flex-shrink-0 items-center justify-center rounded-full ${circle.color} text-lg font-semibold sm:h-40 sm:w-40 sm:text-2xl`}
             style={{ color: "var(--background)" }}
           >
             {circle.label}

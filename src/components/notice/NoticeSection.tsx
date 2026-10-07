@@ -73,7 +73,7 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-            <h3 className="font-bold text-h3">
+            <h3 className="font-semibold text-h3">
               {notice.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
               {notice.title}
             </h3>

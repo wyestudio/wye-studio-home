@@ -95,7 +95,7 @@ export default async function AuditLogPage() {
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/audit" />
 
-        <h1 className="mb-1 text-h2 font-bold">감사로그</h1>
+        <h1 className="mb-1 text-h2 font-semibold">감사로그</h1>
         <p className="mb-6 text-body-sm text-muted">
           어드민에서 실행한 되돌리기 어려운 작업의 기록입니다. 최근 {PAGE_SIZE}건까지 보여줍니다.
           {" "}

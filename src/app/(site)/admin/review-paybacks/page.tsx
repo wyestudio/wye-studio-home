@@ -56,7 +56,7 @@ export default async function AdminReviewPaybacksPage() {
           ← 돌아가기
         </Link>
 
-        <h1 className="text-h2 font-bold mb-8">후기 페이백 신청 목록 ({rows.length}건)</h1>
+        <h1 className="text-h2 font-semibold mb-8">후기 페이백 신청 목록 ({rows.length}건)</h1>
 
         {rows.length === 0 ? (
           <p className="text-muted py-4">아직 신청이 없습니다.</p>

@@ -25,7 +25,7 @@ export default function AboutPage() {
     <div className="pt-10 sm:pt-16 lg:pt-20">
       <div className={WRAP}>
         <Reveal className="mb-10 text-center sm:mb-16">
-          <p className="mb-2 text-body-sm font-bold uppercase tracking-[0.3em] text-muted sm:mb-3">
+          <p className="mb-2 text-body-sm font-semibold uppercase tracking-[0.3em] text-muted sm:mb-3">
             Identity
           </p>
           <h1 className="text-display font-extrabold">About</h1>
@@ -47,7 +47,7 @@ export default function AboutPage() {
                 🧢
               </span>
               <div>
-                <p className="font-bold text-h3">케이프를 소개합니다</p>
+                <p className="font-semibold text-h3">케이프를 소개합니다</p>
                 <p className="text-h3 text-muted sm:mt-1">
                   우주이스케이프의 마스코트예요. 새 행성을 찾아다니느라 늘 바빠요.
                 </p>
@@ -68,7 +68,7 @@ export default function AboutPage() {
             {PRINCIPLES.map((p, i) => (
               <Reveal key={p.title} delay={i * 0.08}>
                 <HudCard className="flex h-full flex-col gap-2 p-5 text-center sm:gap-3 sm:p-7 lg:p-8">
-                  <p className="font-bold text-h3">{p.title}</p>
+                  <p className="font-semibold text-h3">{p.title}</p>
                   <p className="text-h3 text-muted">{p.desc}</p>
                 </HudCard>
               </Reveal>

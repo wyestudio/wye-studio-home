@@ -123,7 +123,7 @@ export function BookingCalendar({
         >
           <Chevron dir="left" className="h-5 w-5" />
         </button>
-        <p className="font-bold">
+        <p className="font-semibold">
           {Number(y)}년 {Number(m)}월
         </p>
         <button
@@ -174,7 +174,7 @@ export function BookingCalendar({
               aria-pressed={isSelected}
               className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-body-sm transition-colors
                 ${disabled ? "text-disabled" : "hover:bg-fill-strong"}
-                ${isSelected ? "font-bold" : ""}
+                ${isSelected ? "font-semibold" : ""}
                 ${isToday && !isSelected ? "ring-1 ring-line-strong" : ""}`}
               style={isSelected ? { backgroundColor: dayColor, color: "#0a0a12" } : undefined}
             >

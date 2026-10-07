@@ -69,7 +69,7 @@ export default async function AdminGroupBookingsPage() {
           ← 돌아가기
         </Link>
 
-        <h1 className="mb-2 text-h2 font-bold">단체 예약 문의</h1>
+        <h1 className="mb-2 text-h2 font-semibold">단체 예약 문의</h1>
         <p className="mb-8 text-body-sm text-muted">
           전체 {rows.length}건 · 미응대 {pending}건 ·{" "}
           <Link href="/group" className="text-glow hover:underline">
@@ -105,7 +105,7 @@ export default async function AdminGroupBookingsPage() {
                     <td className={`${td} whitespace-nowrap text-micro`}>
                       {formatDateTimeFull(r.created_at)}
                     </td>
-                    <td className={`${td} whitespace-nowrap font-bold`}>{r.headcount}명</td>
+                    <td className={`${td} whitespace-nowrap font-semibold`}>{r.headcount}명</td>
                     <td className={`${td} whitespace-nowrap`}>
                       {r.preferred_date ?? <span className="text-muted">날짜 미정</span>}
                       <br />

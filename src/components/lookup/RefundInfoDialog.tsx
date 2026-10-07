@@ -40,7 +40,7 @@ export function RefundInfoDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade-in">
       <div className="max-h-[85vh] w-full max-w-sm overflow-y-auto rounded-xl border border-danger/40 bg-background/95 p-6 shadow-2xl shadow-black/60 animate-scale-in sm:max-w-md sm:p-8">
-        <h2 className="text-h2 font-bold text-danger">환불 계좌를 알려주세요</h2>
+        <h2 className="text-h2 font-semibold text-danger">환불 계좌를 알려주세요</h2>
         <p className="mt-2 text-body leading-relaxed text-muted">
           입력하신 계좌로 환불해 드립니다. 취소는 되돌릴 수 없습니다.
         </p>
@@ -107,7 +107,7 @@ export function RefundInfoDialog({
             type="button"
             disabled={!isValid}
             onClick={onConfirm}
-            className="flex-1 rounded-lg bg-danger px-4 py-3 text-body font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:py-4"
+            className="flex-1 rounded-lg bg-danger px-4 py-3 text-body font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:py-4"
           >
             취소 및 환불 요청
           </button>

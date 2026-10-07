@@ -123,7 +123,7 @@ function Fallback({ slug, accent, message }: { slug: string; accent: string; mes
       <p className="font-semibold text-h3">{message}</p>
       <Link
         href={`/themes/${slug}`}
-        className="mt-6 inline-block rounded-lg px-5 py-3 text-h3 font-bold sm:mt-8 sm:px-7 sm:py-4"
+        className="mt-6 inline-block rounded-lg px-5 py-3 text-h3 font-semibold sm:mt-8 sm:px-7 sm:py-4"
         style={{ backgroundColor: accent, color: "#0a0a12" }}
       >
         날짜 선택하러 가기

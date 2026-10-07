@@ -196,7 +196,7 @@ export default async function AdminDashboard() {
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/" />
 
-        <h1 className="mb-6 text-h2 font-bold">대시보드</h1>
+        <h1 className="mb-6 text-h2 font-semibold">대시보드</h1>
 
         {/* ── 처리 대기 ── */}
         <section className="mb-6">
@@ -209,7 +209,7 @@ export default async function AdminDashboard() {
                 className="rounded-lg border border-border p-4 transition-colors hover:bg-muted/10"
               >
                 <p className="text-micro text-muted">{t.label}</p>
-                <p className={`mt-1 text-h2 font-bold ${t.count > 0 ? toneClass[t.tone] : "text-muted"}`}>
+                <p className={`mt-1 text-h2 font-semibold ${t.count > 0 ? toneClass[t.tone] : "text-muted"}`}>
                   {t.count}
                   <span className="ml-1 text-body-sm font-normal text-muted">건</span>
                 </p>

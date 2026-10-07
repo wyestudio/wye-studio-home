@@ -210,7 +210,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
           N
         </span>
         <div className="min-w-0">
-          <p className="truncate text-label font-bold text-foreground">{link.author || "네이버 블로그"}</p>
+          <p className="truncate text-label font-semibold text-foreground">{link.author || "네이버 블로그"}</p>
           {link.date && <p className="text-micro text-muted">{link.date}</p>}
         </div>
       </div>
@@ -229,7 +229,7 @@ function NaverCard({ link, accent }: { link: ReviewLink; accent: string }) {
 
       <div className="flex shrink-0 flex-col p-4">
         {link.title && (
-          <p className="line-clamp-3 text-body-sm font-bold leading-relaxed text-foreground">
+          <p className="line-clamp-3 text-body-sm font-semibold leading-relaxed text-foreground">
             {link.title}
           </p>
         )}

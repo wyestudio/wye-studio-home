@@ -99,7 +99,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
           href={naverUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#03C75A] px-3 py-3 text-body font-bold text-white transition-opacity hover:opacity-90 sm:py-3.5"
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#03C75A] px-3 py-3 text-body font-semibold text-white transition-opacity hover:opacity-90 sm:py-3.5"
         >
           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor" aria-hidden>
             <path d="M16.27 12.84 7.44 0H0v24h7.73V11.16L16.56 24H24V0h-7.73z" />
@@ -110,7 +110,7 @@ export function VenueCard({ venue, accent }: { venue: PublicVenue; accent: strin
           href={kakaoUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-3 py-3 text-body font-bold text-[#191919] transition-opacity hover:opacity-90 sm:py-3.5"
+          className="flex items-center justify-center gap-2 rounded-xl bg-[#FEE500] px-3 py-3 text-body font-semibold text-[#191919] transition-opacity hover:opacity-90 sm:py-3.5"
         >
           카카오맵
         </a>

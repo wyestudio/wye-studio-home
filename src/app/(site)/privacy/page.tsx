@@ -47,7 +47,7 @@ export default function PrivacyPage() {
 
         {/* 제1조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-1" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-1" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제1조 (개인정보 처리 목적)
           </h2>
           <div className="space-y-2 text-muted">
@@ -93,7 +93,7 @@ export default function PrivacyPage() {
 
         {/* 제2조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-2" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-2" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제2조 (수집하는 개인정보 항목)
           </h2>
           <div className="space-y-4 text-muted">
@@ -186,7 +186,7 @@ export default function PrivacyPage() {
 
         {/* 제3조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-3" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-3" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제3조 (동행자 개인정보 제공 관련)
           </h2>
           {/* p 안에 div 를 넣으면 HTML 규칙 위반이라 화면이 뜰 때 오류가 났다(hydration). 바깥을 div 로. */}
@@ -202,7 +202,7 @@ export default function PrivacyPage() {
 
         {/* 제4조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-4" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-4" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제4조 (개인정보의 보유 및 이용 기간)
           </h2>
           <p className="mb-3 text-muted">
@@ -283,7 +283,7 @@ export default function PrivacyPage() {
 
         {/* 제5조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-5" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-5" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제5조 (개인정보의 파기 절차 및 방법)
           </h2>
           <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -300,7 +300,7 @@ export default function PrivacyPage() {
 
         {/* 제6조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-6" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-6" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제6조 (개인정보의 제3자 제공)
           </h2>
           <p className="text-muted">
@@ -310,7 +310,7 @@ export default function PrivacyPage() {
 
         {/* 제7조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-7" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-7" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제7조 (개인정보 처리의 위탁)
           </h2>
           <p className="mb-3 text-muted">
@@ -344,7 +344,7 @@ export default function PrivacyPage() {
 
         {/* 제8조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-8" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-8" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제8조 (개인정보의 국외 이전)
           </h2>
           <p className="mb-3 text-muted">
@@ -389,7 +389,7 @@ export default function PrivacyPage() {
 
         {/* 제9조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-9" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-9" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제9조 (개인정보의 자동 수집 장치 설치·운영 및 거부)
           </h2>
           <p className="mb-3 text-muted">
@@ -407,7 +407,7 @@ export default function PrivacyPage() {
 
         {/* 제10조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-10" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-10" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제10조 (마케팅 정보 제공 동의 및 수신거부)
           </h2>
           <p className="mb-3 text-muted">
@@ -428,7 +428,7 @@ export default function PrivacyPage() {
 
         {/* 제11조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-11" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-11" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제11조 (사진 및 영상 활용)
           </h2>
           <p className="text-muted">
@@ -438,7 +438,7 @@ export default function PrivacyPage() {
 
         {/* 제12조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-12" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-12" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제12조 (만 14세 미만 아동의 개인정보 처리)
           </h2>
           <p className="text-muted">
@@ -448,7 +448,7 @@ export default function PrivacyPage() {
 
         {/* 제13조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-13" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-13" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제13조 (정보주체의 권리·의무 및 행사방법)
           </h2>
           <p className="mb-3 text-muted">
@@ -468,7 +468,7 @@ export default function PrivacyPage() {
 
         {/* 제14조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-14" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-14" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제14조 (개인정보의 안전성 확보 조치)
           </h2>
           <p className="mb-3 text-muted">
@@ -484,7 +484,7 @@ export default function PrivacyPage() {
 
         {/* 제15조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-15" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-15" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제15조 (개인정보 보호책임자)
           </h2>
           <p className="mb-3 text-muted">
@@ -516,7 +516,7 @@ export default function PrivacyPage() {
 
         {/* 제16조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-16" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-16" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제16조 (권익침해 구제방법)
           </h2>
           <p className="mb-3 text-muted">
@@ -532,7 +532,7 @@ export default function PrivacyPage() {
 
         {/* 제17조 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 id="article-17" className="mb-3 border-l-2 border-glow pl-3 font-bold sm:mb-4 text-h3">
+          <h2 id="article-17" className="mb-3 border-l-2 border-glow pl-3 font-semibold sm:mb-4 text-h3">
             제17조 (개인정보처리방침의 변경)
           </h2>
           <p className="text-muted">

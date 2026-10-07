@@ -96,14 +96,14 @@ export function PriceTable({
                  칸이 두 금액을 함께 맡는다. 머리글도 거기서 두 줄로 나뉜다.
             */}
             <th
-              className={`${cellX} ${headY} text-right ${hasPromoColumn ? "hidden font-bold sm:table-cell" : "font-semibold"}`}
+              className={`${cellX} ${headY} text-right ${hasPromoColumn ? "hidden font-semibold sm:table-cell" : "font-semibold"}`}
               style={hasPromoColumn ? { color: accent } : undefined}
             >
               {hasPromoColumn ? "기본가" : "1인당"}
             </th>
             {hasPromoColumn && (
               <th
-                className={`${cellX} ${headY} text-right font-bold`}
+                className={`${cellX} ${headY} text-right font-semibold`}
                 style={{ color: promo!.accentColor }}
               >
                 {/*
@@ -153,7 +153,7 @@ export function PriceTable({
                 }
               >
                 <td
-                  className={`${cellX} ${cellY} ${best ? "font-bold" : ""}`}
+                  className={`${cellX} ${cellY} ${best ? "font-semibold" : ""}`}
                   style={best ? { boxShadow: `inset 4px 0 0 0 ${accent}` } : undefined}
                 >
                   {/*
@@ -186,7 +186,7 @@ export function PriceTable({
                 */}
                 {/* ⚠️ 프로모션이 있으면 모바일에서는 감춘다 — 아래 칸이 두 금액을 함께 보여준다. */}
                 <td
-                  className={`${cellX} ${cellY} text-right font-bold ${hasPromoColumn ? "hidden sm:table-cell" : ""}`}
+                  className={`${cellX} ${cellY} text-right font-semibold ${hasPromoColumn ? "hidden sm:table-cell" : ""}`}
                   style={{ color: accent }}
                 >
                   {formatKrw(unit)}
@@ -215,7 +215,7 @@ export function PriceTable({
                              안 보이면 표가 '할인 안내문' 처럼 읽힌다(2026-10-01 요청).
                              색만 빼고 굵기는 남긴다.
                         */}
-                        <span className="font-bold text-muted sm:hidden">
+                        <span className="font-semibold text-muted sm:hidden">
                           {formatKrw(unit)}
                         </span>
                         <span className="inline-flex items-center justify-end gap-1 sm:contents">
@@ -279,7 +279,7 @@ export function PriceTableEarlyBirdNote({
     <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-line-subtle bg-fill-subtle px-4 py-3 text-body-sm text-muted sm:flex-row sm:items-center sm:justify-between">
       <p>
         <span aria-hidden="true">🚀</span> 회차가{" "}
-        <strong className="font-bold" style={{ color: accent }}>
+        <strong className="font-semibold" style={{ color: accent }}>
           {badgeLabel} 표시
         </strong>
         되어 있으면 해당 금액이 적용됩니다.

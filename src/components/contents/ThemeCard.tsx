@@ -96,7 +96,7 @@ export function ThemeCard({
       {/* lg:p-5 였다 — 카드 아래 글자 묶음이 포스터만큼 두꺼워 보였다(2026-10-05). */}
       <div className="border-t border-line-subtle p-3 sm:p-4">
         {/* 글꼴은 테마마다 다르다 — 어드민에서 고른다. */}
-        <p className={`truncate text-h3 font-bold text-white ${titleFontClass}`}>
+        <p className={`truncate text-h3 font-semibold text-white ${titleFontClass}`}>
           {name}
         </p>
         {/* 0 은 '미정' 이라 감춘다 — "난이도 0 · 0분" 은 고장으로 읽힌다. */}

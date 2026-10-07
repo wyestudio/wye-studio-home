@@ -212,7 +212,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
             <Link
               href={popup.link_url}
               onClick={close}
-              className="block rounded-lg bg-glow px-5 py-3 text-center text-body font-bold text-white transition-opacity hover:opacity-90"
+              className="block rounded-lg bg-glow px-5 py-3 text-center text-body font-semibold text-white transition-opacity hover:opacity-90"
             >
               {popup.link_label}
             </Link>
@@ -242,7 +242,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
           <button
             type="button"
             onClick={close}
-            className="rounded-lg px-4 py-1.5 text-body-sm font-bold text-foreground transition-colors hover:bg-fill-strong hover:text-white"
+            className="rounded-lg px-4 py-1.5 text-body-sm font-semibold text-foreground transition-colors hover:bg-fill-strong hover:text-white"
           >
             닫기
           </button>

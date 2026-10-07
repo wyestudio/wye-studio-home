@@ -58,7 +58,7 @@ export default async function AdminPromotionsPage() {
         <AdminNav current="/promotions" />
 
         <header className="mb-6">
-          <h1 className="text-h2 font-bold">프로모션</h1>
+          <h1 className="text-h2 font-semibold">프로모션</h1>
           <p className="mt-1 text-body-sm text-muted">
             기간 한정 할인(얼리버드)을 관리합니다.{" "}
             <strong>여기 금액이 그대로 고객 청구액이 됩니다</strong> — 켜는 즉시 조건에 맞는

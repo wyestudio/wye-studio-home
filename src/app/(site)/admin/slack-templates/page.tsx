@@ -22,7 +22,7 @@ export default async function SlackTemplatesPage() {
         <AdminNav current="/slack-templates" />
 
         <header className="mb-6">
-          <h1 className="mb-2 text-h2 font-bold">슬랙 포맷 관리</h1>
+          <h1 className="mb-2 text-h2 font-semibold">슬랙 포맷 관리</h1>
           <p className="text-body-sm text-muted">
             슬랙으로 나가는 알림 문구입니다. 본문에 {"{{변수}}"} 를 넣으면 발송 시 실제 값으로
             바뀌고, {"{{#attendees}} … {{/attendees}}"} 블록은 참여자 수만큼 반복됩니다. 저장 즉시

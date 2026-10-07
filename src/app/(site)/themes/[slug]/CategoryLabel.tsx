@@ -20,7 +20,7 @@ export function CategoryLabel({
 
   return (
     <p className="mb-1.5 flex items-center gap-1.5 sm:mb-2">
-      <span className="text-body-sm font-bold tracking-[0.12em]" style={{ color: accent }}>
+      <span className="text-body-sm font-semibold tracking-[0.12em]" style={{ color: accent }}>
         {category.name}
       </span>
       {description && <InfoTooltip text={description} label={`${category.name} 설명 보기`} />}

@@ -118,7 +118,7 @@ function NumberedList({
             {i + 1}
           </span>
           <div className="min-w-0">
-            <p className="font-bold text-foreground text-h3">{item.title}</p>
+            <p className="font-semibold text-foreground text-h3">{item.title}</p>
             <p className="mt-1 text-body leading-relaxed text-muted">{item.desc}</p>
           </div>
         </li>
@@ -275,7 +275,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
               >
                 <p className="text-micro text-muted">{t.label}</p>
                 <p
-                  className="mt-0.5 font-bold text-h3"
+                  className="mt-0.5 font-semibold text-h3"
                   style={t.accent ? { color: GROUP_ACCENT } : undefined}
                 >
                   {t.value}
@@ -321,7 +321,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                   {/* nowrap: 좁은 폭에서 '(조정' / '가능)' 으로 괄호가 쪼개진다. */}
                   {s.note && (
                     <span
-                      className="ml-1 whitespace-nowrap font-bold"
+                      className="ml-1 whitespace-nowrap font-semibold"
                       style={{ color: GROUP_ACCENT }}
                     >
                       ({s.note})
@@ -403,7 +403,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                   key={m.title}
                   className="rounded-xl border border-panel-border bg-background/60 px-4 py-3.5"
                 >
-                  <p className="font-bold text-foreground">{m.title}</p>
+                  <p className="font-semibold text-foreground">{m.title}</p>
                   <p className="mt-1 text-micro leading-relaxed text-muted">{m.desc}</p>
                 </div>
               ))}
@@ -428,12 +428,12 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             style={{ borderColor: GROUP_ACCENT, backgroundColor: `${GROUP_ACCENT}14` }}
           >
             <p
-              className="text-micro font-bold uppercase tracking-[0.3em]"
+              className="text-micro font-semibold uppercase tracking-[0.3em]"
               style={{ color: GROUP_ACCENT }}
             >
               After Party
             </p>
-            <p className="mt-3 font-bold text-h3">놀다 헤어지기 아쉽다면?</p>
+            <p className="mt-3 font-semibold text-h3">놀다 헤어지기 아쉽다면?</p>
             <h2
               className="text-h2 font-extrabold leading-tight"
               style={{ color: GROUP_ACCENT }}
@@ -571,7 +571,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
                 >
                   <dt className="text-muted">{r.when}</dt>
                   <dd
-                    className={`shrink-0 text-right font-bold ${
+                    className={`shrink-0 text-right font-semibold ${
                       r.danger ? "text-danger" : "text-foreground"
                     }`}
                   >
@@ -617,7 +617,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             href="http://pf.kakao.com/_EGNBX"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-h-[52px] w-full items-center justify-center rounded-full border px-6 font-bold"
+            className="flex min-h-[52px] w-full items-center justify-center rounded-full border px-6 font-semibold"
             style={{ borderColor: GROUP_ACCENT, color: GROUP_ACCENT }}
           >
             카카오톡 채널 &lsquo;우주이스케이프&rsquo; 문의

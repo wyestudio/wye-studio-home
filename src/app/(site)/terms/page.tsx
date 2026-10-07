@@ -28,11 +28,11 @@ export default function TermsPage() {
       <div className="space-y-6 text-h3 leading-relaxed text-foreground sm:space-y-8 sm:leading-[1.8]">
         {/* 제1장 총칙 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 className="mb-4 font-bold text-muted sm:mb-5 text-h3">제1장 총칙</h2>
+          <h2 className="mb-4 font-semibold text-muted sm:mb-5 text-h3">제1장 총칙</h2>
 
           <div className="mb-6 space-y-3 sm:space-y-5">
             <div>
-              <h3 id="article-1" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-1" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제1조 (목적)
               </h3>
               <p>
@@ -41,7 +41,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-2" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-2" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제2조 (용어의 정의)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -54,7 +54,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-3" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-3" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제3조 (약관의 게시 및 개정)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -65,7 +65,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-4" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-4" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제4조 (약관 외 준칙)
               </h3>
               <p>
@@ -77,11 +77,11 @@ export default function TermsPage() {
 
         {/* 제2장 서비스 이용계약 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 className="mb-4 font-bold text-muted sm:mb-5 text-h3">제2장 서비스 이용계약</h2>
+          <h2 className="mb-4 font-semibold text-muted sm:mb-5 text-h3">제2장 서비스 이용계약</h2>
 
           <div className="space-y-3">
             <div>
-              <h3 id="article-5" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-5" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제5조 (이용계약의 성립)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -100,7 +100,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-6" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-6" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제6조 (상품 구성 및 운영 시간)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -118,7 +118,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-7" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-7" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제7조 (예약 및 결제)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -132,7 +132,7 @@ export default function TermsPage() {
 
         {/* 제3장 취소 및 환불 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h3 id="article-8" className="mb-4 border-l-2 border-glow pl-3 font-bold text-h3">
+          <h3 id="article-8" className="mb-4 border-l-2 border-glow pl-3 font-semibold text-h3">
             제8조 (취소 및 환불)
           </h3>
           <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -155,7 +155,7 @@ export default function TermsPage() {
 
         {/* 제9조 미성년자 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h3 id="article-9" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+          <h3 id="article-9" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
             제9조 (참가 연령 및 미성년자의 이용)
           </h3>
           <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -175,11 +175,11 @@ export default function TermsPage() {
 
         {/* 제3장 이용자 및 회사의 권리와 의무 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 className="mb-4 font-bold text-muted sm:mb-5 text-h3">제3장 이용자 및 회사의 권리와 의무</h2>
+          <h2 className="mb-4 font-semibold text-muted sm:mb-5 text-h3">제3장 이용자 및 회사의 권리와 의무</h2>
 
           <div className="space-y-3">
             <div>
-              <h3 id="article-10" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-10" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제10조 (이용자의 의무)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -199,7 +199,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-11" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-11" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제11조 (콘텐츠 저작권 및 비밀유지)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -209,7 +209,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-12" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-12" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제12조 (촬영물의 이용)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -219,7 +219,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-13" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-13" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제13조 (회사의 의무 및 면책)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -234,11 +234,11 @@ export default function TermsPage() {
 
         {/* 제4장 기타 */}
         <div className="border-b border-border/40 pb-6 sm:pb-8">
-          <h2 className="mb-4 font-bold text-muted sm:mb-5 text-h3">제4장 기타</h2>
+          <h2 className="mb-4 font-semibold text-muted sm:mb-5 text-h3">제4장 기타</h2>
 
           <div className="space-y-3">
             <div>
-              <h3 id="article-14" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-14" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제14조 (분쟁해결)
               </h3>
               <ol className="ml-4 list-decimal space-y-2 text-muted">
@@ -248,7 +248,7 @@ export default function TermsPage() {
             </div>
 
             <div>
-              <h3 id="article-15" className="mb-2 border-l-2 border-glow pl-3 font-bold sm:mb-3 text-h3">
+              <h3 id="article-15" className="mb-2 border-l-2 border-glow pl-3 font-semibold sm:mb-3 text-h3">
                 제15조 (개인정보보호)
               </h3>
               <p>
@@ -260,7 +260,7 @@ export default function TermsPage() {
 
         {/* 부칙 */}
         <div className="pt-6 sm:pt-8">
-          <h2 className="mb-4 font-bold text-muted sm:mb-5 text-h3">부칙</h2>
+          <h2 className="mb-4 font-semibold text-muted sm:mb-5 text-h3">부칙</h2>
           <p className="text-muted">이 약관은 2026년 9월 12일부터 시행합니다.</p>
           <ul className="mt-3 ml-4 list-disc space-y-2 text-muted">
             <li>[개정] 2026년 8월 14일 (v1.1): 제8조 환불 기준을 일자 기준에서 시간 기준(행사 시작 48시간 전 100% / 24시간 전 50%)으로 변경</li>

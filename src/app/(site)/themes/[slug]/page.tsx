@@ -272,7 +272,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         {synopsis && (
           <div data-fit-bottom className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3">
             <p
-              className="mb-2 text-micro font-bold uppercase tracking-[0.3em]"
+              className="mb-2 text-micro font-semibold uppercase tracking-[0.3em]"
               style={{ color: accent }}
             >
               Synopsis

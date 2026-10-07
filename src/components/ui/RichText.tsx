@@ -38,13 +38,13 @@ const LINK_PARTS = /^\[([^\]\n]+)\]\(((?:https?:\/\/|\/)[^\s)]*)\)$/;
  *    카드 안의 단체 예약 링크를 아무도 못 봤다). 굵게까지 준다. 색을 바꿔야 하는
  *    자리는 `linkClassName` 으로 통째로 갈아끼운다.
  */
-const LINK_CLASS = "font-bold underline underline-offset-2 hover:text-foreground";
+const LINK_CLASS = "font-semibold underline underline-offset-2 hover:text-foreground";
 
 /** 굵게만 처리한 조각들. 링크 안쪽 문구에도 그대로 쓴다. */
 function withBold(text: string) {
   return text.split(BOLD_SPLIT).map((chunk, i) =>
     IS_BOLD.test(chunk) ? (
-      <strong key={i} className="font-bold text-foreground">
+      <strong key={i} className="font-semibold text-foreground">
         {chunk.slice(2, -2)}
       </strong>
     ) : (

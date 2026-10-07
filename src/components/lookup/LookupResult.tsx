@@ -154,7 +154,7 @@ export function LookupResult() {
         <p className="mt-1 text-h3 text-muted sm:mt-3">다음 기회에 뵙겠습니다. (제발)</p>
         <Link
           href="/contents"
-          className="mt-6 inline-block rounded-lg px-5 py-3 text-h3 font-bold sm:mt-8 sm:px-7 sm:py-4"
+          className="mt-6 inline-block rounded-lg px-5 py-3 text-h3 font-semibold sm:mt-8 sm:px-7 sm:py-4"
           style={{ backgroundColor: DEFAULT_ACCENT, color: "#0a0a12" }}
         >
           다른 콘텐츠 보기
@@ -222,7 +222,7 @@ export function LookupResult() {
       {/* ── 입금 안내: 계좌는 문자로만 ── */}
       {result.lifecycleStatus === "awaiting_payment" && (
         <div className="rounded-xl border-2 p-5 sm:p-7 lg:p-8" style={{ borderColor: accent }}>
-          <h2 className="text-center font-bold text-h3">입금 안내를 문자로 보내드렸어요</h2>
+          <h2 className="text-center font-semibold text-h3">입금 안내를 문자로 보내드렸어요</h2>
           <p className="mt-2 text-center text-body text-muted sm:mt-3">
             <strong className="text-foreground">
               {representative ? formatPhoneDigits(representative.phone) : ""}
@@ -246,10 +246,10 @@ export function LookupResult() {
       {/* ── 신청 내용 ── */}
       <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
         <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 sm:mb-4">
-          <h2 className="font-bold text-h3">{result.theme_name}</h2>
+          <h2 className="font-semibold text-h3">{result.theme_name}</h2>
           {result.category_name && (
             <span
-              className="rounded-full border px-2 py-0.5 text-micro font-bold sm:px-2.5 sm:py-1"
+              className="rounded-full border px-2 py-0.5 text-micro font-semibold sm:px-2.5 sm:py-1"
               style={{
                 color: accent,
                 borderColor: `${accent}59`,
@@ -330,7 +330,7 @@ export function LookupResult() {
 
         <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
           <div className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
-            <p className="mb-1 text-body-sm font-bold text-muted">
+            <p className="mb-1 text-body-sm font-semibold text-muted">
               {isGroup ? "대표 신청자 (본인)" : "신청자"}
             </p>
             <AttendeeDisplay attendee={representative} />
@@ -340,7 +340,7 @@ export function LookupResult() {
             <CompanionPager count={companions.length}>
               {(index) => (
                 <div className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
-                  <p className="mb-1 text-body-sm font-bold text-muted">동행자 {index + 1}</p>
+                  <p className="mb-1 text-body-sm font-semibold text-muted">동행자 {index + 1}</p>
                   <AttendeeDisplay attendee={companions[index]} />
                 </div>
               )}
@@ -351,7 +351,7 @@ export function LookupResult() {
         {/* 요청사항은 더 이상 받지 않지만, 예전 신청에는 남아 있다. */}
         {result.notes && (
           <div className="mt-4 rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:mt-6 sm:p-5">
-            <p className="mb-1 text-body-sm font-bold text-muted">요청사항</p>
+            <p className="mb-1 text-body-sm font-semibold text-muted">요청사항</p>
             <p className="whitespace-pre-wrap text-body">{result.notes}</p>
           </div>
         )}

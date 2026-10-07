@@ -71,7 +71,7 @@ export default async function AdminSponsorshipsPage() {
           ← 돌아가기
         </Link>
 
-        <h1 className="text-h2 font-bold mb-8">협찬 신청 목록</h1>
+        <h1 className="text-h2 font-semibold mb-8">협찬 신청 목록</h1>
 
         <section className="mb-12">
           <h2 className="text-h3 font-semibold mb-3">그룹 방탈출 크리에이터 협찬 ({(groupApplications ?? []).length}건)</h2>

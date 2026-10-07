@@ -29,7 +29,7 @@ export function SectionHeading({
   return (
     <div className={`${align === "center" ? "text-center" : "text-left"} ${className}`}>
       <p
-        className={`text-micro font-bold uppercase tracking-[0.3em] text-muted ${title ? (lg ? "mb-2 sm:mb-3" : "mb-2") : ""}`}
+        className={`text-micro font-semibold uppercase tracking-[0.3em] text-muted ${title ? (lg ? "mb-2 sm:mb-3" : "mb-2") : ""}`}
         style={eyebrowColor ? { color: eyebrowColor } : undefined}
       >
         {eyebrow}

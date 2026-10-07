@@ -40,7 +40,7 @@ function ChipGroup({
             onClick={() => onPick(o.code)}
             className={`min-h-[44px] rounded-full px-4 text-body-sm transition ${
               on
-                ? "bg-[#f082f4] font-bold text-[#141414]"
+                ? "bg-[#f082f4] font-semibold text-[#141414]"
                 : "border border-line bg-fill text-foreground hover:border-line-strong"
             }`}
           >
@@ -54,7 +54,7 @@ function ChipGroup({
 
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
-    <label htmlFor={htmlFor} className="block text-body-sm font-bold text-foreground">
+    <label htmlFor={htmlFor} className="block text-body-sm font-semibold text-foreground">
       {children}
     </label>
   );
@@ -210,7 +210,7 @@ export function QuoteForm() {
           ].map(([k, v]) => (
             <div key={k} className="flex gap-2 py-1">
               <dt className="w-12 shrink-0">{k}</dt>
-              <dd className="font-bold text-foreground">{v}</dd>
+              <dd className="font-semibold text-foreground">{v}</dd>
             </div>
           ))}
         </dl>
@@ -246,7 +246,7 @@ export function QuoteForm() {
       </div>
 
       <fieldset className="flex flex-col gap-2 border-0 p-0">
-        <legend className="mb-2 text-body-sm font-bold text-foreground">연락 수단</legend>
+        <legend className="mb-2 text-body-sm font-semibold text-foreground">연락 수단</legend>
         <ChipGroup options={CONTACT_METHODS} value={contactMethod} onPick={edit(setContactMethod)} />
         <label htmlFor="q-contact" className="mt-2 text-micro text-muted">
           연락처 (선택한 수단의 전화번호 · 카카오톡 ID · 이메일)
@@ -277,12 +277,12 @@ export function QuoteForm() {
       </div>
 
       <fieldset className="border-0 p-0">
-        <legend className="mb-2 text-body-sm font-bold text-foreground">예상 이용 시간</legend>
+        <legend className="mb-2 text-body-sm font-semibold text-foreground">예상 이용 시간</legend>
         <ChipGroup options={PREFERRED_TIMES} value={preferredTime} onPick={edit(setPreferredTime)} />
       </fieldset>
 
       <fieldset className="border-0 p-0">
-        <legend className="mb-2 text-body-sm font-bold text-foreground">모임 성격</legend>
+        <legend className="mb-2 text-body-sm font-semibold text-foreground">모임 성격</legend>
         <ChipGroup options={GROUP_KINDS} value={groupKind} onPick={edit(setGroupKind)} />
       </fieldset>
 
@@ -301,7 +301,7 @@ export function QuoteForm() {
       </div>
 
       {error && (
-        <p role="alert" className="text-body-sm font-bold text-danger">
+        <p role="alert" className="text-body-sm font-semibold text-danger">
           {error}
         </p>
       )}

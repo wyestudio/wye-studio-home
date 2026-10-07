@@ -20,7 +20,7 @@ export default async function AdminUtmPage() {
         <AdminNav current="/utm" />
 
         <header className="mb-6">
-          <h1 className="text-h2 font-bold">유입경로 링크</h1>
+          <h1 className="text-h2 font-semibold">유입경로 링크</h1>
           <p className="mt-1 text-body-sm text-muted">
             채널마다 뿌리는 링크를 여기서 만들고 관리합니다. 빈칸을 채우면 주소가 자동으로
             조립되고, 매체는 정해진 값 중에서만 고를 수 있어 오타로 통계가 갈라지는 일이

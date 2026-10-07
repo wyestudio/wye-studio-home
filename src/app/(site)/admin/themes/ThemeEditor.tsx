@@ -250,7 +250,7 @@ export function ThemeEditor({
                       <option key={key} value={key}>{f.label}</option>
                     ))}
                   </select>
-                  <p className={`mt-2 text-center text-body font-bold ${themeTitleFontClass(editing.title_font)}`}>
+                  <p className={`mt-2 text-center text-body font-semibold ${themeTitleFontClass(editing.title_font)}`}>
                     {editing.name || "테마명"}
                   </p>
                   <p className="mt-1 text-micro text-muted">
@@ -263,7 +263,7 @@ export function ThemeEditor({
                 <div>
                   <label className={label}>테마 이름 *</label>
                   <input
-                    className={`${field} text-h3 font-bold`}
+                    className={`${field} text-h3 font-semibold`}
                     value={editing.name}
                     onChange={(e) => patch({ name: e.target.value })}
                   />

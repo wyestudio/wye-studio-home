@@ -71,7 +71,7 @@ export function ThemeSpecTiles({
         <SpecTile label="소요시간">
           <SpecValue>
             <span className={BIG_NUMBER}>{durationMinutes}</span>
-            <span className="-ml-2.5 text-body font-bold text-muted">분</span>
+            <span className="-ml-2.5 text-body font-semibold text-muted">분</span>
             <SmallNote>({hoursLabel(durationMinutes)})</SmallNote>
           </SpecValue>
         </SpecTile>
@@ -92,7 +92,7 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
               key={g}
               // 태그는 라벨이다. 데스크톱에서 16px(sm:text-base)이라 장르 칸이 본문처럼
               // 커 보였고, 그 높이가 포스터까지 끌어올렸다.
-              className="rounded-full border px-2.5 py-1 text-label font-bold sm:px-3.5"
+              className="rounded-full border px-2.5 py-1 text-label font-semibold sm:px-3.5"
               style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
             >
               #{g}
@@ -115,7 +115,7 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
 function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col justify-center rounded-xl border border-line-subtle bg-fill-subtle px-3 py-2.5 sm:px-5 sm:py-3">
-      <dt className="mb-1.5 text-label font-bold text-muted">{label}</dt>
+      <dt className="mb-1.5 text-label font-semibold text-muted">{label}</dt>
       <dd>{children}</dd>
     </div>
   );
@@ -154,7 +154,7 @@ function BaselineStrut() {
 /** 데스크톱(lg)에서만 보이는 보조 표기. 모바일은 칸이 좁아 뺀다. */
 function SmallNote({ children }: { children: React.ReactNode }) {
   // 칸이 좁아져도 '4 / 5' 가 두 줄로 꺾이지 않게.
-  return <span className="hidden whitespace-nowrap text-body-sm font-bold text-muted lg:inline">{children}</span>;
+  return <span className="hidden whitespace-nowrap text-body-sm font-semibold text-muted lg:inline">{children}</span>;
 }
 
 /**

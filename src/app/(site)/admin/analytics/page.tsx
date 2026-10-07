@@ -181,7 +181,7 @@ function Kpi({
   return (
     <div className="rounded-lg border border-border bg-background/50 p-4">
       <p className="text-micro text-muted">{label}</p>
-      <p className={`mt-1 text-h2 font-bold ${color}`}>{value}</p>
+      <p className={`mt-1 text-h2 font-semibold ${color}`}>{value}</p>
       {sub && <p className="mt-1 text-micro text-muted">{sub}</p>}
     </div>
   );
@@ -394,7 +394,7 @@ export default function AnalyticsDashboard() {
 
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="mb-1 text-h2 font-bold">분석</h1>
+            <h1 className="mb-1 text-h2 font-semibold">분석</h1>
             <p className="text-body-sm text-muted">
               방문(GA4)과 신청·입금(우리 DB)을 같이 봅니다. 방문 수만 보면 장사가 되는지 알 수
               없어서, <strong className="text-foreground">방문 대비 신청 전환율</strong>을 가장

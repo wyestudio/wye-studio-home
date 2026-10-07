@@ -31,10 +31,10 @@ export function ProcessScene({
         <ol className="flex flex-col gap-6 border-l border-glass-border pl-6">
           {STEPS.map((step) => (
             <li key={step.n} className={`relative ${step.muted ? "text-muted" : ""}`}>
-              <span className="absolute -left-[31px] flex h-6 w-6 items-center justify-center rounded-full border border-glow bg-brand-soft text-[11px] font-bold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
+              <span className="absolute -left-[31px] flex h-6 w-6 items-center justify-center rounded-full border border-glow bg-brand-soft text-[11px] font-semibold text-glow shadow-[0_0_10px_-2px_var(--glow)]">
                 {step.n}
               </span>
-              <p className="font-bold">{step.label}</p>
+              <p className="font-semibold">{step.label}</p>
               <p className="text-sm text-muted">{step.desc}</p>
             </li>
           ))}

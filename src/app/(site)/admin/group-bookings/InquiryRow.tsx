@@ -53,7 +53,7 @@ export function InquiryRow({
           type="button"
           onClick={save}
           disabled={pending || !dirty}
-          className="rounded-lg bg-brand px-3 py-1.5 text-body-sm font-bold text-brand-foreground disabled:opacity-40"
+          className="rounded-lg bg-brand px-3 py-1.5 text-body-sm font-semibold text-brand-foreground disabled:opacity-40"
         >
           {pending ? "저장 중…" : "저장"}
         </button>

@@ -251,9 +251,9 @@ export function ConsentStep({
     return (
       <section className="rounded-lg border border-line p-4 sm:p-6">
         <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line-subtle pb-2.5 sm:mb-4 sm:pb-3">
-          <span className="text-h3 font-bold">{title}</span>
+          <span className="text-h3 font-semibold">{title}</span>
           <span
-            className={`rounded-md px-1.5 py-0.5 text-micro font-bold sm:px-2 ${
+            className={`rounded-md px-1.5 py-0.5 text-micro font-semibold sm:px-2 ${
               tone === "required"
                 ? "bg-[var(--glow)]/15 text-glow"
                 : "bg-fill-strong text-muted"
@@ -298,7 +298,7 @@ export function ConsentStep({
           className="h-5 w-5 shrink-0 accent-[var(--glow)] lg:h-6 lg:w-6"
         />
         <span className="flex min-w-0 flex-col sm:flex-row sm:items-center sm:gap-3">
-          <span className="text-body font-bold text-h3">전체 동의합니다</span>
+          <span className="text-body font-semibold text-h3">전체 동의합니다</span>
           <span className="text-body-sm text-muted">필수·선택 항목에 모두 동의합니다.</span>
         </span>
       </label>

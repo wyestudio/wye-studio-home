@@ -122,7 +122,7 @@ export default async function AdminApplicationsPage({
         <AdminNav current="/applications" />
 
         <header className="mb-5">
-          <h1 className="text-h2 font-bold">신청 목록</h1>
+          <h1 className="text-h2 font-semibold">신청 목록</h1>
           <p className="mt-1 text-body-sm text-muted">
             모든 회차의 신청을 한 곳에서 찾습니다. 접수번호·이름·입금자명·전화번호로 검색할 수 있어요.
           </p>

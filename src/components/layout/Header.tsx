@@ -136,7 +136,7 @@ export function Header() {
           </Link>
         </div>
         {/* 데스크톱 네비게이션 */}
-        <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-h3 font-bold text-muted">
+        <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-h3 font-semibold text-muted">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return item.enabled === false ? null : (
@@ -191,7 +191,7 @@ export function Header() {
         {isMenuOpen && (
           <div className="border-t border-border bg-background">
             <div className="mx-auto max-w-5xl px-5 py-3">
-              <nav className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-body font-bold text-muted">
+              <nav className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-body font-semibold text-muted">
                 {navItems.map((item) => {
                   const isActive = pathname === item.href;
                   return item.enabled === false ? null : (

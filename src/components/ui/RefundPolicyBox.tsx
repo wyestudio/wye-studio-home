@@ -14,7 +14,7 @@ export function RefundPolicyBox() {
   return (
     // 신청 완료·조회 결과 화면 크기(2026-09-15 키움)에 맞춰 sm·lg 에서 한 단계씩 키운다.
     <div className="rounded-xl border border-danger/40 bg-danger/[0.07] p-5 sm:p-7 lg:p-8">
-      <p className="text-h3 font-bold text-danger">취소·환불 규정</p>
+      <p className="text-h3 font-semibold text-danger">취소·환불 규정</p>
 
       <ul className="mt-3 space-y-1.5 sm:mt-4 sm:space-y-2.5">
         {REFUND_TIERS.map((tier) => (
@@ -22,7 +22,7 @@ export function RefundPolicyBox() {
             <span className="text-muted">{tier.when} 취소</span>
             <span
               className={
-                tier.tone === "danger" ? "font-bold text-danger" : "font-semibold text-foreground"
+                tier.tone === "danger" ? "font-semibold text-danger" : "font-semibold text-foreground"
               }
             >
               {tier.result}

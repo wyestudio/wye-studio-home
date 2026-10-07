@@ -17,7 +17,7 @@ function FaqRow({ item, reduceMotion }: { item: FaqItem; reduceMotion: boolean }
         className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
         aria-expanded={open}
       >
-        <span className="font-bold">{item.q}</span>
+        <span className="font-semibold">{item.q}</span>
         <span
           aria-hidden
           className="shrink-0 text-h3 text-muted"

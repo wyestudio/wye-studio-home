@@ -142,7 +142,7 @@ export function InstagramScene({
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
       <div ref={areaRef} className="mx-auto flex h-full w-full max-w-6xl flex-col justify-center gap-5">
         <div ref={headerRef} className="shrink-0 text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.3em] text-glow">INSTAGRAM</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-glow">INSTAGRAM</p>
           <h2 className="mt-2 text-xl font-extrabold sm:text-2xl">소식은 인스타에 먼저 올라와요</h2>
           <a
             href={`https://www.instagram.com/${HANDLE}/`}

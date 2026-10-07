@@ -144,7 +144,7 @@ export function SectionNav({ accent }: { accent: string }) {
                     </span>
                     <span
                       className={`max-w-[11.5rem] truncate pr-1 text-label transition-colors ${
-                        on ? "font-bold" : "font-semibold text-muted group-hover/item:text-white"
+                        on ? "font-semibold" : "font-semibold text-muted group-hover/item:text-white"
                       }`}
                       style={on ? { color: accent, textShadow: `0 0 8px ${accent}66` } : undefined}
                     >

@@ -276,7 +276,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-h2 font-bold mb-2">
+            <h1 className="text-h2 font-semibold mb-2">
               {session.session_type} {session.theme_name}
             </h1>
             <p className="text-muted">{formatDateTimeFull(session.start_at)}</p>
@@ -330,7 +330,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         {/* 확정 목록 — 입금 전 건이 위로 오도록 정렬 */}
         <div className="mb-10">
-          <h2 className="text-h3 font-bold mb-3">확정 목록 ({confirmedApps.length})</h2>
+          <h2 className="text-h3 font-semibold mb-3">확정 목록 ({confirmedApps.length})</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
@@ -373,7 +373,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         {/* 대기 목록 */}
         <div className="mb-10">
-          <h2 className="text-h3 font-bold mb-3">대기 목록 ({waitingApps.length})</h2>
+          <h2 className="text-h3 font-semibold mb-3">대기 목록 ({waitingApps.length})</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
@@ -412,7 +412,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
         {/* 취소 목록 — 환불 미완료 건이 위로 오도록 정렬 */}
         <div className="mb-10">
-          <h2 className="text-h3 font-bold mb-3">취소 목록 ({cancelledApps.length})</h2>
+          <h2 className="text-h3 font-semibold mb-3">취소 목록 ({cancelledApps.length})</h2>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>

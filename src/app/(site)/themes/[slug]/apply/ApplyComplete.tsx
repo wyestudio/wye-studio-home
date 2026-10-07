@@ -131,7 +131,7 @@ export function ApplyComplete({
       {/* ── 입금 안내: 계좌는 문자로만 ── */}
       {!isWaiting && (
         <div className="rounded-xl border-2 p-5 sm:p-7 lg:p-8" style={{ borderColor: accentColor }}>
-          <h2 className="text-center font-bold text-h3">입금 안내를 문자로 보내드렸어요</h2>
+          <h2 className="text-center font-semibold text-h3">입금 안내를 문자로 보내드렸어요</h2>
           <p className="mt-2 text-center text-h3 text-muted">
             <strong className="text-foreground">{representativePhone}</strong> 으로 입금하실 계좌와
             금액을 보냈습니다.
@@ -161,7 +161,7 @@ export function ApplyComplete({
 
       {/* ── 제출한 내용 ── */}
       <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
-        <h2 className="mb-2 font-bold sm:mb-3 text-h3">신청 정보</h2>
+        <h2 className="mb-2 font-semibold sm:mb-3 text-h3">신청 정보</h2>
 
         <Row label="테마" value={themeName} />
         <Row label="일시" value={sessionLabel} />
@@ -195,7 +195,7 @@ export function ApplyComplete({
         <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
           {attendees.map((a, i) => (
             <div key={i} className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
-              <p className="mb-1 text-label font-bold text-muted">
+              <p className="mb-1 text-label font-semibold text-muted">
                 {i === 0 ? (attendees.length > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${i}`}
               </p>
               <Row
@@ -236,7 +236,7 @@ export function ApplyComplete({
         <div className="mt-4 flex flex-wrap justify-center gap-2 sm:mt-6 sm:gap-3">
           <Link
             href="/lookup"
-            className="rounded-lg px-4 py-2.5 text-body font-bold sm:px-6 sm:py-3.5"
+            className="rounded-lg px-4 py-2.5 text-body font-semibold sm:px-6 sm:py-3.5"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
             참여 내역 조회

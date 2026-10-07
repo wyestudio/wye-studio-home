@@ -68,7 +68,7 @@ export function DetailTabs({ accent }: { accent: string }) {
               setActive(t.id);
               scrollToScreen(el);
             }}
-            className={`flex-1 border-b-2 py-3 text-center text-body-sm font-bold transition-colors ${
+            className={`flex-1 border-b-2 py-3 text-center text-body-sm font-semibold transition-colors ${
               on ? "" : "border-transparent text-muted"
             }`}
             style={on ? { borderColor: accent, color: accent } : undefined}

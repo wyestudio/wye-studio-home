@@ -100,9 +100,9 @@ export function ApplyComplete({
         {/* 2열: 신청 정보 | 신청자 정보 */}
         <div className="grid grid-cols-2 divide-x divide-border">
           <div className="flex flex-col gap-2 pr-6">
-            <p className="text-body-sm font-bold text-muted">신청 정보</p>
+            <p className="text-body-sm font-semibold text-muted">신청 정보</p>
             <div className="flex items-center gap-2">
-              <ThemeTag sessionType={sessionType} className="text-h3 font-bold" />
+              <ThemeTag sessionType={sessionType} className="text-h3 font-semibold" />
               <span className="text-micro font-semibold text-muted">
                 {themeName}
               </span>
@@ -112,7 +112,7 @@ export function ApplyComplete({
           </div>
 
           <div className="flex flex-col gap-2 pl-6">
-            <p className="text-body-sm font-bold text-muted">신청자 정보</p>
+            <p className="text-body-sm font-semibold text-muted">신청자 정보</p>
             <ul className="flex flex-col gap-1.5 text-body-sm">
               {attendees.map((attendee, i) => (
                 <li key={i} className="text-foreground">
