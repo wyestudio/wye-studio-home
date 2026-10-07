@@ -339,7 +339,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           eyebrowColor={accent}
           size="lg"
         />
-        <div className="mx-auto w-full max-w-3xl lg:max-w-4xl">
+        <div className="mx-auto w-full max-w-4xl">
           <Suspense fallback={<div className="text-body-sm text-muted">불러오는 중…</div>}>
             <SessionPicker
               themeSlug={theme.slug}

@@ -328,7 +328,7 @@ export function ThemeBlockView({
         ))}
 
       {block.type === "timetable" && (
-        <div className="mx-auto flex w-full max-w-xl flex-col sm:max-w-2xl lg:max-w-3xl">
+        <div className="mx-auto flex w-full max-w-3xl flex-col">
           {block.items.map((t, i) => (
             <div key={i} className="flex gap-4 pb-6 last:pb-0 sm:gap-6 sm:pb-10">
               <div className="flex flex-col items-center">
@@ -371,7 +371,7 @@ export function ThemeBlockView({
       )}
 
       {block.type === "faq" && (
-        <div className="mx-auto w-full max-w-4xl">
+        <div className="mx-auto w-full max-w-3xl">
           <FlatFaqAccordion
             items={block.items}
             size="lg"
@@ -412,7 +412,7 @@ function ReviewsBlock({
            보여줘야 "우리가 지어낸 값" 으로 읽히지 않는다.
       */}
       {block.stats.length > 0 && (
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:max-w-3xl">
+        <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
           {block.stats.map((s, i) => (
             <div
               key={i}

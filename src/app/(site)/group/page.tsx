@@ -232,7 +232,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
   const entry = isGroupEntry(rawFrom) ? rawFrom : null;
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pb-20 pt-6 sm:pt-10 lg:max-w-3xl">
+    <main className="mx-auto max-w-3xl px-5 pb-20 pt-6 sm:pt-10">
       <div className="mb-6">
         <Link
           href="/themes/baotalchul"

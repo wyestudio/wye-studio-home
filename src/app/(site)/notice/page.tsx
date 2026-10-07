@@ -23,7 +23,7 @@ export default async function NoticePage() {
   return (
     // 폭·위아래 여백은 테마 상세의 새 비율에 맞춰 넓게(2026-09-15).
     // 세로 가운데 정렬은 하지 않는다 — 탭을 바꾸면 내용 길이가 달라져 목록이 위아래로 튄다.
-    <div className="mx-auto max-w-2xl px-5 py-12 sm:max-w-3xl sm:py-20 lg:max-w-4xl lg:py-24">
+    <div className="mx-auto max-w-3xl px-5 py-12 sm:py-20 lg:py-24">
       <NoticeTabs notices={notices} faqs={faqs} />
       <KakaoChannelButton />
     </div>
