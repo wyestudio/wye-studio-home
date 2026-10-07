@@ -204,11 +204,11 @@ export function ThemeBlockView({
 
       {/* 짧은 주석 한 줄로 쓰이는 자리라 제목들과 같이 가운데로 둔다. */}
       {block.type === "text" && (
-        <RichText text={block.body} className="block text-center text-body leading-relaxed" />
+        <RichText text={block.body} className="mx-auto block max-w-3xl text-center text-body leading-relaxed" />
       )}
 
       {block.type === "image" && block.src && (
-        <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-line">
+        <div className="relative mx-auto aspect-[16/9] w-full max-w-4xl overflow-hidden rounded-xl border border-line">
           <Image src={block.src} alt={block.alt || block.title} fill className="object-cover" />
         </div>
       )}
@@ -223,7 +223,7 @@ export function ThemeBlockView({
       */}
       {block.type === "list" && block.variant === "included" && (
         <div
-          className="w-full overflow-hidden rounded-xl border border-panel-border bg-panel p-6 sm:p-10 lg:p-12"
+          className="mx-auto w-full max-w-4xl overflow-hidden rounded-xl border border-panel-border bg-panel p-6 sm:p-10 lg:p-12"
         >
           {block.headline && (
             <p className="text-h2 font-extrabold leading-snug text-foreground">
@@ -280,7 +280,7 @@ export function ThemeBlockView({
       {block.type === "list" &&
         block.variant !== "included" &&
         (block.variant === "step" ? (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-5 sm:grid-cols-3">
             {block.items.map((step, i) => (
               <div
                 key={i}
@@ -297,7 +297,7 @@ export function ThemeBlockView({
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+          <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
             {block.items.map((card, i) => (
               <div
                 key={i}
@@ -350,7 +350,7 @@ export function ThemeBlockView({
       )}
 
       {block.type === "callout" && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+        <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
           {block.items.map((p, i) => (
             <div
               key={i}
