@@ -49,7 +49,7 @@ export function GenreInput({
         {value.map((g, i) => (
           <span
             key={g}
-            className="inline-flex items-center gap-0.5 rounded-full border border-border bg-white/5 py-0.5 pl-1 pr-1 text-micro"
+            className="inline-flex items-center gap-0.5 rounded-full border border-border bg-fill py-0.5 pl-1 pr-1 text-micro"
           >
             <button
               type="button"

@@ -27,8 +27,8 @@ export function CompanionPager({
           onClick={() => setIndex((i) => i - 1)}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-body-sm transition-all ${
             isFirst
-              ? "pointer-events-none border-white/15 text-muted opacity-30"
-              : "border-white/25 text-foreground hover:border-white/50"
+              ? "pointer-events-none border-line text-muted opacity-30"
+              : "border-line text-foreground hover:border-line-strong"
           }`}
         >
           <Chevron dir="left" />
@@ -42,8 +42,8 @@ export function CompanionPager({
           onClick={() => setIndex((i) => i + 1)}
           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-body-sm transition-all ${
             isLast
-              ? "pointer-events-none border-white/15 text-muted opacity-30"
-              : "border-white/25 text-foreground hover:border-white/50"
+              ? "pointer-events-none border-line text-muted opacity-30"
+              : "border-line text-foreground hover:border-line-strong"
           }`}
         >
           <Chevron dir="right" />

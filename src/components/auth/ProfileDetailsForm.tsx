@@ -37,7 +37,7 @@ export function ProfileDetailsForm({ redirectTo }: { redirectTo: string }) {
           id="birthYear"
           name="birthYear"
           required
-          className="w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-body-sm outline-none focus:border-white/50"
+          className="w-full rounded-lg border border-line bg-fill px-3 py-2.5 text-body-sm outline-none focus:border-line-strong"
           defaultValue=""
         >
           <option value="" disabled>선택</option>

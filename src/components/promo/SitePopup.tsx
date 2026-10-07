@@ -137,7 +137,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
         <div className={`px-5 ${hasImage ? "pt-4" : "pt-6"} pb-1`}>
           <RichText
             text={popup.body}
-            className="block whitespace-pre-wrap text-body leading-relaxed text-white/90"
+            className="block whitespace-pre-wrap text-body leading-relaxed text-foreground"
           />
         </div>
       )}
@@ -173,7 +173,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
       <div
         className={`animate-scale-in relative z-10 flex max-h-[90dvh] w-full max-w-[26rem] flex-col
                     overflow-hidden rounded-2xl shadow-2xl ${
-                      hasImage ? "" : "border border-white/15 bg-background"
+                      hasImage ? "" : "border border-line bg-background"
                     }`}
       >
         {/* 닫기 X. 글자가 아니라 SVG 다 — 본문 글꼴에 없는 기호를 쓰면 기기마다 다르게 보인다. */}
@@ -181,7 +181,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
           type="button"
           onClick={close}
           aria-label="닫기"
-          className="absolute right-2.5 top-2.5 z-10 rounded-full bg-black/55 p-2 text-white/80 backdrop-blur transition-colors hover:bg-black/75 hover:text-white"
+          className="absolute right-2.5 top-2.5 z-10 rounded-full bg-black/55 p-2 text-foreground backdrop-blur transition-colors hover:bg-black/75 hover:text-white"
         >
           <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
             <path
@@ -227,7 +227,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
         */}
         <div
           className={`flex shrink-0 items-center justify-between px-4 py-3 ${
-            hasImage ? "bg-black/55 backdrop-blur" : "border-t border-white/10"
+            hasImage ? "bg-black/55 backdrop-blur" : "border-t border-line-subtle"
           }`}
         >
           <label className="flex cursor-pointer select-none items-center gap-2 py-1 pr-2 text-body-sm text-muted">
@@ -242,7 +242,7 @@ export function SitePopup({ popup }: { popup: Popup }) {
           <button
             type="button"
             onClick={close}
-            className="rounded-lg px-4 py-1.5 text-body-sm font-bold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-lg px-4 py-1.5 text-body-sm font-bold text-foreground transition-colors hover:bg-fill-strong hover:text-white"
           >
             닫기
           </button>

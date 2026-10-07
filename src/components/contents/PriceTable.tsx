@@ -77,12 +77,12 @@ export function PriceTable({
        열이 화면에 들어가게 만드는 것이 먼저고, 이건 마지막 안전망이다.
   */
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/15">
+    <div className="overflow-x-auto rounded-xl border border-line">
       {/* ⚠️ 모바일 글씨는 한 단계 낮다 — 세 칸을 390px 안에 넣기 위해서다. */}
       <table className={`w-full ${lg ? "text-body text-h3" : "text-body"}`}>
         <thead>
           <tr
-            className="border-b border-white/12 bg-white/[0.04] text-label text-muted"
+            className="border-b border-line-subtle bg-fill-subtle text-label text-muted"
           >
             <th className={`${cellX} ${headY} text-left font-medium`}>인원</th>
             {/*
@@ -143,7 +143,7 @@ export function PriceTable({
               */
               <tr
                 key={n}
-                className="border-b border-white/8 last:border-0"
+                className="border-b border-line-subtle last:border-0"
                 style={
                   best
                     ? {
@@ -276,7 +276,7 @@ export function PriceTableEarlyBirdNote({
   accent: string;
 }) {
   return (
-    <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-body-sm text-white/75 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-line-subtle bg-fill-subtle px-4 py-3 text-body-sm text-muted sm:flex-row sm:items-center sm:justify-between">
       <p>
         <span aria-hidden="true">🚀</span> 회차가{" "}
         <strong className="font-bold" style={{ color: accent }}>

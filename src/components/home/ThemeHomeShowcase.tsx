@@ -109,7 +109,7 @@ export function ThemeHomeShowcase({ themes }: { themes: HomeThemeCard[]; dense?:
 
   if (themes.length === 0) {
     return (
-      <div className="mx-auto max-w-4xl rounded-xl border border-white/15 bg-white/5 p-8 text-center">
+      <div className="mx-auto max-w-4xl rounded-xl border border-line bg-fill p-8 text-center">
         <p className="font-semibold">준비 중인 콘텐츠가 곧 공개됩니다.</p>
       </div>
     );
@@ -291,12 +291,12 @@ function ThemeSlot({
   const panel = (
     <div
       className="relative flex min-h-28 min-w-0 flex-1 items-center overflow-hidden rounded-xl
-                 border border-white/12 bg-background p-4 opacity-100 transition-all duration-500
+                 border border-line-subtle bg-background p-4 opacity-100 transition-all duration-500
                  sm:min-h-0 sm:flex-none
                  sm:[@media(hover:hover)]:-translate-x-3 sm:[@media(hover:hover)]:opacity-0
                  sm:[@media(hover:hover)]:peer-hover:translate-x-0
                  sm:[@media(hover:hover)]:peer-hover:opacity-100
-                 sm:[@media(hover:hover)]:peer-hover:border-white/25"
+                 sm:[@media(hover:hover)]:peer-hover:border-line"
       style={{ borderLeftColor: accent, borderLeftWidth: 2 }}
     >
       <div className="flex w-full gap-4 sm:gap-5">
@@ -304,7 +304,7 @@ function ThemeSlot({
           포스터는 '미션 파일' 처럼 패널 왼쪽에 끼워둔다.
           비율은 4:5 그대로 — 원본이 그 비율이라 더 세로로 늘리면 잘린다.
         */}
-        <div className="relative hidden aspect-[4/5] w-36 shrink-0 overflow-hidden rounded-lg border border-white/12 sm:block lg:w-44">
+        <div className="relative hidden aspect-[4/5] w-36 shrink-0 overflow-hidden rounded-lg border border-line-subtle sm:block lg:w-44">
           <PosterImage src={theme.hero_image_path} alt={`${theme.name} 포스터`} sizes="176px" />
         </div>
 
@@ -392,21 +392,21 @@ function ComingSoonSlot({ planetRef }: { planetRef: (el: HTMLDivElement | null) 
         className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full sm:h-24 sm:w-24"
       >
         <div
-          className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10"
+          className="absolute inset-0 rounded-full ring-1 ring-inset ring-line-subtle"
           style={{
             background:
               "radial-gradient(circle at 34% 30%, rgba(255,255,255,0.16) 0%, transparent 48%), " +
               "radial-gradient(circle at 50% 50%, #5b5b66 0%, #3a3a44 62%, #26262e 100%)",
           }}
         />
-        <span className="absolute inset-0 flex items-center justify-center text-2xl font-extrabold text-white/70 sm:text-3xl">
+        <span className="absolute inset-0 flex items-center justify-center text-2xl font-extrabold text-muted sm:text-3xl">
           ?
         </span>
       </div>
 
       {/* 넓은 화면에서는 패널 자체가 없다. 좁은 화면에서만 한 줄. */}
-      <div className="flex min-h-28 min-w-0 flex-1 items-center justify-center rounded-xl border border-white/10 bg-black/40 p-4 sm:hidden">
-        <p className="text-xs font-medium text-white/55">아직 탐사되지 않은 행성입니다.</p>
+      <div className="flex min-h-28 min-w-0 flex-1 items-center justify-center rounded-xl border border-line-subtle bg-black/40 p-4 sm:hidden">
+        <p className="text-xs font-medium text-muted">아직 탐사되지 않은 행성입니다.</p>
       </div>
     </div>
   );

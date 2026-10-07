@@ -238,7 +238,7 @@ export function ConsentStep({
         </div>
 
         {it.detail && expanded.has(it.id) && (
-          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-white/10 bg-white/[0.03] p-3 text-body-sm leading-relaxed text-muted sm:max-h-44 sm:p-4">
+          <div className="ml-7 mt-2 max-h-32 overflow-y-auto rounded border border-line-subtle bg-fill-subtle p-3 text-body-sm leading-relaxed text-muted sm:max-h-44 sm:p-4">
             {it.detail}
           </div>
         )}
@@ -249,14 +249,14 @@ export function ConsentStep({
   function group(title: string, tone: "required" | "optional", list: Item[]) {
     if (list.length === 0) return null;
     return (
-      <section className="rounded-lg border border-white/15 p-4 sm:p-6">
-        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-white/10 pb-2.5 sm:mb-4 sm:pb-3">
+      <section className="rounded-lg border border-line p-4 sm:p-6">
+        <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-line-subtle pb-2.5 sm:mb-4 sm:pb-3">
           <span className="text-h3 font-bold">{title}</span>
           <span
             className={`rounded px-1.5 py-0.5 text-micro font-bold sm:px-2 ${
               tone === "required"
                 ? "bg-[var(--glow)]/15 text-glow"
-                : "bg-white/10 text-muted"
+                : "bg-fill-strong text-muted"
             }`}
           >
             {tone === "required" ? "필수" : "선택"}
@@ -290,7 +290,7 @@ export function ConsentStep({
         (360px 실측, 2026-10-04 제보). 모바일은 위아래로 쌓고 넓은 화면에서만
         나란히 둔다 — 문구는 그대로 두고 배치로 푼다.
       */}
-      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-white/20 bg-white/5 px-4 py-3.5 sm:px-6 sm:py-5">
+      <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-fill px-4 py-3.5 sm:px-6 sm:py-5">
         <input
           type="checkbox"
           checked={allChecked}

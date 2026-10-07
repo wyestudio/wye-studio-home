@@ -78,8 +78,8 @@ export function SectionNav({ accent }: { accent: string }) {
     "group-hover/nav:max-w-[14rem] group-hover/nav:opacity-100 " +
     "group-focus-within/nav:max-w-[14rem] group-focus-within/nav:opacity-100";
   const panelOn =
-    "group-hover/nav:border-white/10 group-hover/nav:bg-background/90 group-hover/nav:backdrop-blur-md " +
-    "group-focus-within/nav:border-white/10 group-focus-within/nav:bg-background/90 group-focus-within/nav:backdrop-blur-md";
+    "group-hover/nav:border-line-subtle group-hover/nav:bg-background/90 group-hover/nav:backdrop-blur-md " +
+    "group-focus-within/nav:border-line-subtle group-focus-within/nav:bg-background/90 group-focus-within/nav:backdrop-blur-md";
 
   return (
     <nav
@@ -137,14 +137,14 @@ export function SectionNav({ accent }: { accent: string }) {
 
                   <span className={`flex items-center whitespace-nowrap ${reveal}`}>
                     <span
-                      className={`ml-3 w-5 font-mono text-micro tabular-nums ${on ? "" : "text-white/35"}`}
+                      className={`ml-3 w-5 font-mono text-micro tabular-nums ${on ? "" : "text-disabled"}`}
                       style={on ? { color: accent } : undefined}
                     >
                       {pad(i + 1)}
                     </span>
                     <span
                       className={`max-w-[11.5rem] truncate pr-1 text-label transition-colors ${
-                        on ? "font-bold" : "font-medium text-white/60 group-hover/item:text-white"
+                        on ? "font-bold" : "font-medium text-muted group-hover/item:text-white"
                       }`}
                       style={on ? { color: accent, textShadow: `0 0 8px ${accent}66` } : undefined}
                     >

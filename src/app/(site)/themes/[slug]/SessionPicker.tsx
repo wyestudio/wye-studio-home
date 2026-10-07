@@ -174,7 +174,7 @@ export function SessionPicker({
 
   if (sessions.length === 0) {
     return (
-      <div className="rounded-lg border border-white/15 bg-white/5 p-8 text-center">
+      <div className="rounded-lg border border-line bg-fill p-8 text-center">
         <p className="font-semibold">현재 예정된 회차가 없습니다.</p>
         <p className="mt-2 text-body-sm text-muted">
           새 일정이 열리면 공지와 인스타그램으로 안내드립니다.
@@ -235,7 +235,7 @@ export function SessionPicker({
     {missedNotice && (
       <p
         role="status"
-        className="rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-body-sm text-white/85"
+        className="rounded-lg border border-line bg-fill px-4 py-3 text-body-sm text-foreground"
       >
         <span className="font-semibold text-foreground">
           {kstDayLabel(`${missedNotice}T00:00:00+09:00`)}
@@ -268,14 +268,14 @@ export function SessionPicker({
         <p className="mb-2 text-body-sm font-bold text-muted">
           시간 선택
           {selectedDate && (
-            <span className="ml-1.5 font-medium text-white/70">
+            <span className="ml-1.5 font-medium text-muted">
               {kstDayLabel(`${selectedDate}T00:00:00+09:00`)}
             </span>
           )}
         </p>
 
         {daySessions.length === 0 ? (
-          <p className="rounded-lg border border-white/15 bg-white/5 p-4 text-body-sm text-muted">
+          <p className="rounded-lg border border-line bg-fill p-4 text-body-sm text-muted">
             이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
           </p>
         ) : (
@@ -318,7 +318,7 @@ export function SessionPicker({
                   //    고를 수 없는 건 위 onClick 이 early return 으로 막는다.
                   aria-disabled={!s.bookable}
                   className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-40 lg:px-5 lg:py-4 ${
-                    isActive ? "border-transparent" : "border-white/20 hover:border-white/40"
+                    isActive ? "border-transparent" : "border-line hover:border-line-strong"
                   }`}
                   style={
                     isActive
@@ -457,7 +457,7 @@ function BookingCta({
     });
 
   const inner = !accepting ? (
-    <div className="rounded-lg border border-white/15 bg-white/5 px-6 py-4 text-center">
+    <div className="rounded-lg border border-line bg-fill px-6 py-4 text-center">
       <p className="font-semibold">현재 신청을 받고 있지 않습니다.</p>
       <p className="mt-1 text-body-sm text-muted">신청이 열리면 공지로 안내드릴게요.</p>
     </div>
@@ -473,7 +473,7 @@ function BookingCta({
   ) : (
     <button
       disabled
-      className="w-full cursor-not-allowed rounded-lg border border-white/15 px-6 py-4 text-center text-body font-bold text-muted"
+      className="w-full cursor-not-allowed rounded-lg border border-line px-6 py-4 text-center text-body font-bold text-muted"
     >
       {label}
     </button>
@@ -489,7 +489,7 @@ function BookingCta({
         표식이다 — globals.css 의 body:has(.mobile-cta-bar) 규칙이 읽는다.
       */}
       {stuck && accepting && (
-        <div className="mobile-cta-bar fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-background/95 p-3 backdrop-blur sm:hidden">
+        <div className="mobile-cta-bar fixed inset-x-0 bottom-0 z-40 border-t border-line-subtle bg-background/95 p-3 backdrop-blur sm:hidden">
           {href ? (
             <a
               href={href}

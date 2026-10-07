@@ -48,7 +48,7 @@ import { GroupBookingCta } from "@/components/group/GroupBookingCta";
      나란히 놓인다.
 */
 const field =
-  "h-12 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-input outline-none focus:border-white/50 sm:h-14 text-h3";
+  "h-12 w-full rounded-lg border border-line bg-fill px-3 text-input outline-none focus:border-line-strong sm:h-14 text-h3";
 const fieldInvalid =
   "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 text-h3";
 const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
@@ -675,7 +675,7 @@ export function ApplyForm({
         )}
 
         {/* ── 회차 요약 ── */}
-        <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
+        <div className="rounded-lg border border-line bg-fill p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <p className="font-semibold text-h3">{themeName}</p>
             {categoryName && (
@@ -697,7 +697,7 @@ export function ApplyForm({
         {/* ══ 1. 정보입력 ══ */}
         {step === 0 && (
           <div className="space-y-4 sm:space-y-5">
-            <div className="space-y-1.5 rounded-lg border border-white/15 bg-white/5 px-4 py-3 text-body text-muted sm:px-5 sm:py-4">
+            <div className="space-y-1.5 rounded-lg border border-line bg-fill px-4 py-3 text-body text-muted sm:px-5 sm:py-4">
               <p>참여자 확인을 위해 정확한 정보를 입력해주세요.</p>
               <p>연령 확인이 필요한 회차는 현장에서 신분증 확인이 진행될 수 있습니다.</p>
             </div>
@@ -785,7 +785,7 @@ export function ApplyForm({
               바로 아래 총액이 어떻게 나온 값인지도 같이 읽힌다.
             */}
             {tiers.length > 0 && (
-              <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
+              <div className="rounded-lg border border-line bg-fill p-4 sm:p-6">
                 <div className="mb-3 flex items-center justify-between gap-2 sm:mb-4">
                   <p className="text-body font-bold">인원별 참가비</p>
                   {/*
@@ -811,7 +811,7 @@ export function ApplyForm({
               </div>
             )}
 
-            <div className="rounded-lg border border-white/15 bg-white/5 p-4 sm:p-6">
+            <div className="rounded-lg border border-line bg-fill p-4 sm:p-6">
               {/*
                 최종 금액.
 
@@ -868,7 +868,7 @@ export function ApplyForm({
                       )}
 
                       {hasDiscount && (
-                        <div className="mt-2 flex items-baseline justify-between gap-3 border-t border-white/10 pt-2 sm:mt-3 sm:pt-3">
+                        <div className="mt-2 flex items-baseline justify-between gap-3 border-t border-line-subtle pt-2 sm:mt-3 sm:pt-3">
                           <span className="flex flex-wrap items-center gap-2">
                             <span className="text-h3 font-semibold">
                               입금하실 금액
@@ -902,7 +902,7 @@ export function ApplyForm({
             </div>
 
             {/* 입력란은 하나의 카드로 묶는다 */}
-            <div className="space-y-4 rounded-lg border border-white/15 p-4 sm:space-y-6 sm:p-6">
+            <div className="space-y-4 rounded-lg border border-line p-4 sm:space-y-6 sm:p-6">
               <div>
                 <label className={label} htmlFor="couponCode">쿠폰 코드</label>
                 <div className="flex items-center gap-2">
@@ -948,7 +948,7 @@ export function ApplyForm({
                     type="button"
                     onClick={verifyCoupon}
                     disabled={couponChecking || !couponCode || total === null}
-                    className="shrink-0 self-stretch rounded-lg border border-white/30 px-4 py-2.5 text-body font-semibold disabled:opacity-40 sm:px-5"
+                    className="shrink-0 self-stretch rounded-lg border border-line-strong px-4 py-2.5 text-body font-semibold disabled:opacity-40 sm:px-5"
                   >
                     {couponChecking ? "확인 중…" : "적용"}
                   </button>
@@ -976,7 +976,7 @@ export function ApplyForm({
                             type="button"
                             onClick={() => removeCoupon(it.code)}
                             disabled={couponChecking}
-                            className="rounded border border-white/20 px-2 py-0.5 text-micro text-muted disabled:opacity-40"
+                            className="rounded border border-line px-2 py-0.5 text-micro text-muted disabled:opacity-40"
                           >
                             빼기
                           </button>
@@ -1032,7 +1032,7 @@ export function ApplyForm({
       </div>
 
       {/* 고정 하단 버튼 */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-background/95 p-4 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line-subtle bg-background/95 p-4 backdrop-blur">
         {/* 폭은 page.tsx 의 main 과 같게(lg:max-w-3xl) 맞춘다 — 다르면 버튼만 폼보다 좁거나 넓어 보인다. */}
         <div className="mx-auto max-w-2xl px-1 lg:max-w-3xl">
           <button

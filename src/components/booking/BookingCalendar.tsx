@@ -57,9 +57,9 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 */
 const ARROW_BUTTON =
   // ⚠️ 44×44 — 손가락 기준 최소 크기다(2026-10-05). 36×36 이었다.
-    "flex h-11 w-11 items-center justify-center rounded-lg border border-white/20 " +
-  "text-white/85 transition-colors hover:border-white/45 hover:bg-white/10 hover:text-white " +
-  "disabled:border-white/10 disabled:text-white/20 disabled:hover:bg-transparent";
+    "flex h-11 w-11 items-center justify-center rounded-lg border border-line " +
+  "text-foreground transition-colors hover:border-line-strong hover:bg-fill-strong hover:text-white " +
+  "disabled:border-line-subtle disabled:text-disabled disabled:hover:bg-transparent";
 
 export function BookingCalendar({
   /** 회차가 있는 날짜 → 신청 가능 여부 · 얼리버드 여부 */
@@ -112,7 +112,7 @@ export function BookingCalendar({
   const [y, m] = month.split("-");
 
   return (
-    <div className="rounded-xl border border-white/15 bg-white/[0.03] p-3">
+    <div className="rounded-xl border border-line bg-fill-subtle p-3">
       <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
@@ -173,9 +173,9 @@ export function BookingCalendar({
               aria-label={`${Number(m)}월 ${day}일${earlyBird ? ` ${promoLabel}` : ""}${note ? ` ${note}` : ""}`}
               aria-pressed={isSelected}
               className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-body-sm transition-colors
-                ${disabled ? "text-white/20" : "hover:bg-white/10"}
+                ${disabled ? "text-disabled" : "hover:bg-fill-strong"}
                 ${isSelected ? "font-bold" : ""}
-                ${isToday && !isSelected ? "ring-1 ring-white/25" : ""}`}
+                ${isToday && !isSelected ? "ring-1 ring-line-strong" : ""}`}
               style={isSelected ? { backgroundColor: dayColor, color: "#0a0a12" } : undefined}
             >
               <span className={note ? "leading-none" : ""}>{day}</span>
@@ -210,7 +210,7 @@ export function BookingCalendar({
         한 가지뿐이라 범례를 그리지 않는다.
       */}
       {promoColor && (
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-white/10 pt-2.5">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-line-subtle pt-2.5">
           <LegendDot color={promoColor} label={promoLabel} />
           <LegendDot color={accentColor} label="일반" />
           {/* 흐린 점은 '그날 고를 회차가 없다' 는 뜻 하나다 — 자리가 없든 이미 지났든. */}

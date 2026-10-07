@@ -146,7 +146,7 @@ export function ApplyComplete({
       <div className="mt-6 flex items-center gap-3">
         <Link
           href="/contents"
-          className="inline-flex flex-1 items-center justify-center rounded-full border border-glass-border bg-surface px-5 py-3 text-body-sm font-semibold text-foreground transition-all hover:bg-white/5"
+          className="inline-flex flex-1 items-center justify-center rounded-full border border-glass-border bg-surface px-5 py-3 text-body-sm font-semibold text-foreground transition-all hover:bg-fill"
         >
           목록으로
         </Link>

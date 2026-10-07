@@ -50,7 +50,7 @@ export type ThemeCardProps = {
   테마 상세의 큰 포스터와 비율이 너무 달라 보였다.
 */
 const BASE =
-  "basis-[calc((100%-1.25rem)/2)] overflow-hidden border border-white/12 bg-white/[0.03] " +
+  "basis-[calc((100%-1.25rem)/2)] overflow-hidden border border-line-subtle bg-fill-subtle " +
   "sm:basis-[calc((100%-2.5rem)/3)]";
 
 /** 테마 목록의 포스터 카드 한 장. */
@@ -76,7 +76,7 @@ export function ThemeCard({
 
   const body = (
     <>
-      <div className="relative aspect-[4/5] w-full overflow-hidden bg-white/[0.02]">
+      <div className="relative aspect-[4/5] w-full overflow-hidden bg-fill-subtle">
         <PosterImage
           src={posterPath}
           alt={`${name} 포스터`}
@@ -94,7 +94,7 @@ export function ThemeCard({
       </div>
 
       {/* lg:p-5 였다 — 카드 아래 글자 묶음이 포스터만큼 두꺼워 보였다(2026-10-05). */}
-      <div className="border-t border-white/12 p-3 sm:p-4">
+      <div className="border-t border-line-subtle p-3 sm:p-4">
         {/* 글꼴은 테마마다 다르다 — 어드민에서 고른다. */}
         <p className={`truncate text-h3 font-bold text-white ${titleFontClass}`}>
           {name}
@@ -142,7 +142,7 @@ export function ThemeCard({
   return (
     <Link
       href={`/themes/${slug}`}
-      className={`group ${BASE} transition-colors duration-200 hover:border-white/30`}
+      className={`group ${BASE} transition-colors duration-200 hover:border-line-strong`}
     >
       {body}
     </Link>

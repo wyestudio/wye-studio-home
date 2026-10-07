@@ -146,7 +146,7 @@ export function ApplicationActionMenu({
         ref={buttonRef}
         onClick={() => (menuOpen ? setMenuOpen(false) : openMenu())}
         disabled={isLoading}
-        className="px-3 py-1 text-micro bg-surface border border-glass-border text-foreground rounded hover:bg-white/5 disabled:opacity-50 transition-opacity"
+        className="px-3 py-1 text-micro bg-surface border border-glass-border text-foreground rounded hover:bg-fill disabled:opacity-50 transition-opacity"
       >
         {isLoading ? "처리중..." : "액션 ▾"}
       </button>
@@ -168,7 +168,7 @@ export function ApplicationActionMenu({
                   setMenuOpen(false);
                   setEditSaved(false);
                 }}
-                className="block w-full px-3 py-2 text-left text-micro text-foreground hover:bg-white/5 transition-colors"
+                className="block w-full px-3 py-2 text-left text-micro text-foreground hover:bg-fill transition-colors"
               >
                 정보 수정
               </button>
@@ -180,7 +180,7 @@ export function ApplicationActionMenu({
                     setMenuOpen(false);
                     setError(null);
                   }}
-                  className={`block w-full px-3 py-2 text-left text-micro hover:bg-white/5 transition-colors ${
+                  className={`block w-full px-3 py-2 text-left text-micro hover:bg-fill transition-colors ${
                     ACTIONS[key].danger ? "text-danger" : "text-foreground"
                   }`}
                 >

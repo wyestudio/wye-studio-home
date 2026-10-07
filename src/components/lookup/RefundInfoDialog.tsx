@@ -5,7 +5,7 @@ import { formatKrw } from "@/lib/format";
 // 신청 폼과 같은 입력칸 — 반투명 카드 위에 올리는 모양.
 // 큰 화면에서는 테마 상세 비율에 맞춰 한 단계 키운다.
 const field =
-  "w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2.5 text-body outline-none focus:border-white/50 sm:px-4 sm:py-3.5";
+  "w-full rounded-lg border border-line bg-fill px-3 py-2.5 text-body outline-none focus:border-line-strong sm:px-4 sm:py-3.5";
 const label = "block text-body-sm font-medium text-muted mb-1.5";
 
 export function RefundInfoDialog({
@@ -45,7 +45,7 @@ export function RefundInfoDialog({
           입력하신 계좌로 환불해 드립니다. 취소는 되돌릴 수 없습니다.
         </p>
 
-        <div className="mt-4 rounded-lg border border-white/15 bg-white/5 p-4 text-center sm:mt-6 sm:p-5">
+        <div className="mt-4 rounded-lg border border-line bg-fill p-4 text-center sm:mt-6 sm:p-5">
           <p className="text-body-sm text-muted">환불 예정 금액</p>
           <p className="mt-1 text-h2 font-extrabold text-foreground">{formatKrw(refundAmount)}</p>
         </div>
@@ -99,7 +99,7 @@ export function RefundInfoDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-body font-semibold text-foreground transition-colors hover:bg-white/5 sm:py-4"
+            className="flex-1 rounded-lg border border-line px-4 py-3 text-body font-semibold text-foreground transition-colors hover:bg-fill sm:py-4"
           >
             닫기
           </button>

@@ -14,7 +14,7 @@ import type { AttendeeForm } from "./ApplyForm";
  * ⚠️ 높이 48px(h-12) 은 터치 영역 기준이다(Apple HIG 44pt · Material 48dp).
  */
 const field =
-  "h-12 w-full rounded-lg border border-white/20 bg-white/5 px-3 text-input outline-none focus:border-white/50 sm:h-14 text-h3";
+  "h-12 w-full rounded-lg border border-line bg-fill px-3 text-input outline-none focus:border-line-strong sm:h-14 text-h3";
 const fieldInvalid =
   "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 text-h3";
 const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
@@ -88,7 +88,7 @@ export function AttendeeFields({
   return (
     <div
       className={`rounded-lg border p-4 sm:p-6 ${
-        isConflict ? "border-danger bg-danger-soft" : "border-white/15"
+        isConflict ? "border-danger bg-danger-soft" : "border-line"
       }`}
     >
       <p className="mb-3 text-h3 font-semibold sm:mb-4">
@@ -134,7 +134,7 @@ export function AttendeeFields({
                 type="button"
                 onClick={onNicknameCheck}
                 disabled={nicknameCheckState === "checking"}
-                className="h-12 shrink-0 rounded-lg border border-white/25 px-3 text-body-sm font-semibold disabled:opacity-50 sm:h-14 sm:px-4"
+                className="h-12 shrink-0 rounded-lg border border-line px-3 text-body-sm font-semibold disabled:opacity-50 sm:h-14 sm:px-4"
               >
                 {nicknameCheckState === "checking" ? "확인 중…" : "중복확인"}
               </button>

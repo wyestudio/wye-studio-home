@@ -227,7 +227,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         */}
         <div
           data-poster
-          className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-white/15 bg-surface [grid-area:poster]
+          className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-line bg-surface [grid-area:poster]
                      md:opacity-0 md:[[data-poster-fit=done]_&]:opacity-100"
         >
           <PosterImage
@@ -283,7 +283,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
               break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
             */}
             <p
-              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.7] text-white/90 sm:pl-5"
+              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.7] text-foreground sm:pl-5"
               style={{ borderColor: `${accent}80` }}
             >
               {synopsis}
@@ -306,7 +306,7 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         >
           <RichText
             text={introNotice}
-            className="block text-body-sm leading-relaxed text-white/85"
+            className="block text-body-sm leading-relaxed text-foreground"
           />
         </div>
       )}

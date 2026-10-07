@@ -37,7 +37,7 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
             <li key={n.id}>
               <button
                 onClick={() => setOpen(n)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-white/5 sm:gap-5 sm:px-6 sm:py-5 lg:px-7 lg:py-6"
+                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-fill sm:gap-5 sm:px-6 sm:py-5 lg:px-7 lg:py-6"
               >
                 <span className="min-w-0 flex-1 truncate text-h3">
                   {n.is_pinned && <span className="mr-1.5 text-glow">📌</span>}

@@ -91,14 +91,14 @@ export function Select({
         className={`flex min-h-12 w-full items-center justify-between rounded-lg border px-3 py-2.5 text-input text-foreground outline-none transition-shadow ${
           size === "lg" ? "sm:py-3.5 lg:py-4" : ""
         } ${
-          variant === "glass" ? "bg-white/5" : "bg-surface px-4"
+          variant === "glass" ? "bg-fill" : "bg-surface px-4"
         } ${
           invalid
             ? "border-danger bg-danger-soft text-danger"
             : isOpen
               ? "border-brand focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
               : variant === "glass"
-                ? "border-white/20 focus:border-white/50"
+                ? "border-line focus:border-line-strong"
                 : "border-border focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
         }`}
       >

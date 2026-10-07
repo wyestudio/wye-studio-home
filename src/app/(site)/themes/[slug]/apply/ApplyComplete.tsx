@@ -27,7 +27,7 @@ function CopyIcon() {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0 sm:py-2.5">
+    <div className="flex items-baseline justify-between gap-4 border-b border-line-subtle py-2 last:border-0 sm:py-2.5">
       <span className="shrink-0 text-label text-muted">{label}</span>
       <span className="text-right text-h3">{value}</span>
     </div>
@@ -101,7 +101,7 @@ export function ApplyComplete({
       </div>
 
       {/* ── 접수번호 ── */}
-      <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center sm:p-8 lg:p-10">
+      <div className="rounded-xl border border-line bg-fill p-6 text-center sm:p-8 lg:p-10">
         <p className="text-label text-muted">접수번호</p>
         <div className="mt-1 flex items-center justify-center gap-2 sm:mt-2 sm:gap-3">
           <p className="text-display font-extrabold tracking-wider" style={{ color: accentColor }}>
@@ -111,7 +111,7 @@ export function ApplyComplete({
             type="button"
             onClick={copy}
             aria-label="접수번호 복사"
-            className="flex h-11 shrink-0 items-center gap-1 rounded-lg border border-white/20 px-3 text-body-sm text-muted transition-colors hover:border-white/40 hover:text-foreground"
+            className="flex h-11 shrink-0 items-center gap-1 rounded-lg border border-line px-3 text-body-sm text-muted transition-colors hover:border-line-strong hover:text-foreground"
           >
             {copied ? <>복사됨</> : <CopyIcon />}
           </button>
@@ -137,13 +137,13 @@ export function ApplyComplete({
             금액을 보냈습니다.
           </p>
           <div className="mt-4 grid gap-3 sm:mt-5 sm:grid-cols-2 sm:gap-4">
-            <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
+            <div className="rounded-lg bg-fill p-4 text-center sm:p-5 lg:p-6">
               <p className="text-label text-muted">입금액</p>
               <p className="mt-1 text-h1 font-extrabold" style={{ color: accentColor }}>
                 {formatKrw(result.amountKrw)}
               </p>
             </div>
-            <div className="rounded-lg bg-white/5 p-4 text-center sm:p-5 lg:p-6">
+            <div className="rounded-lg bg-fill p-4 text-center sm:p-5 lg:p-6">
               <p className="text-label text-muted">입금자명</p>
               <p className="mt-1 text-h1 font-extrabold" style={{ color: accentColor }}>
                 {depositorName}
@@ -160,7 +160,7 @@ export function ApplyComplete({
       )}
 
       {/* ── 제출한 내용 ── */}
-      <div className="rounded-xl border border-white/15 p-5 sm:p-7 lg:p-8">
+      <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
         <h2 className="mb-2 font-bold sm:mb-3 text-h3">신청 정보</h2>
 
         <Row label="테마" value={themeName} />
@@ -194,7 +194,7 @@ export function ApplyComplete({
 
         <div className="mt-4 space-y-3 sm:mt-5 sm:space-y-4">
           {attendees.map((a, i) => (
-            <div key={i} className="rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:p-5">
+            <div key={i} className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
               <p className="mb-1 text-label font-bold text-muted">
                 {i === 0 ? (attendees.length > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${i}`}
               </p>
@@ -228,7 +228,7 @@ export function ApplyComplete({
       <RefundPolicyBox />
 
       {/* ── 다음 ── */}
-      <div className="rounded-lg border border-white/15 bg-white/5 p-5 text-center text-h3 sm:p-7 lg:p-8">
+      <div className="rounded-lg border border-line bg-fill p-5 text-center text-h3 sm:p-7 lg:p-8">
         <p className="font-semibold">참여 내역은 언제든 확인할 수 있어요</p>
         <p className="mt-1 text-muted sm:mt-2">
           휴대폰 번호와 접수번호 <strong>{result.confirmationCode}</strong>로 조회하실 수 있습니다.
@@ -241,7 +241,7 @@ export function ApplyComplete({
           >
             참여 내역 조회
           </Link>
-          <Link href="/contents" className="rounded-lg border border-white/25 px-4 py-2.5 text-body sm:px-6 sm:py-3.5">
+          <Link href="/contents" className="rounded-lg border border-line px-4 py-2.5 text-body sm:px-6 sm:py-3.5">
             다른 콘텐츠 보기
           </Link>
         </div>

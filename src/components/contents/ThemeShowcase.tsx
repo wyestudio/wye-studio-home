@@ -34,7 +34,7 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
       <SectionHeading eyebrow="CONTENTS" size="lg" />
 
       {themes.length === 0 ? (
-        <div className="mt-10 rounded-xl border border-white/15 bg-white/5 p-10 text-center sm:mt-12 sm:p-14">
+        <div className="mt-10 rounded-xl border border-line bg-fill p-10 text-center sm:mt-12 sm:p-14">
           <p className="font-semibold text-h3">현재 공개된 콘텐츠가 없습니다.</p>
           <p className="mt-2 text-body text-muted">새 콘텐츠가 준비되면 안내드릴게요.</p>
         </div>

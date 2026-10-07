@@ -46,7 +46,7 @@ export function DetailTabs({ accent }: { accent: string }) {
          비쳐 보이지 않는다. 겹치는 부분은 헤더가 위에서 덮는다.
     */
     <nav
-      className="sticky top-[var(--header-height,52px)] z-10 -mx-5 mb-2 flex border-b border-white/10 bg-background
+      className="sticky top-[var(--header-height,52px)] z-10 -mx-5 mb-2 flex border-b border-line-subtle bg-background
                  before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-background
                  transition-transform duration-300 ease-out
                  [html[data-header-hidden]_&]:-translate-y-[var(--header-height,52px)]

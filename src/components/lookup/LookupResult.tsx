@@ -20,7 +20,7 @@ const DEFAULT_ACCENT = "#3dffb0";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-white/8 py-2 last:border-0 sm:py-3">
+    <div className="flex items-baseline justify-between gap-4 border-b border-line-subtle py-2 last:border-0 sm:py-3">
       <span className="shrink-0 text-body-sm text-muted">{label}</span>
       <span className="text-right text-h3">{value}</span>
     </div>
@@ -188,7 +188,7 @@ export function LookupResult() {
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* ── 접수번호 ── */}
-      <div className="rounded-xl border border-white/15 bg-white/5 p-6 text-center sm:p-8 lg:p-10">
+      <div className="rounded-xl border border-line bg-fill p-6 text-center sm:p-8 lg:p-10">
         <div className="mb-3 flex justify-center">
           <Badge tone={LIFECYCLE_TONE[result.lifecycleStatus]}>
             {LIFECYCLE_LABEL[result.lifecycleStatus]}
@@ -203,7 +203,7 @@ export function LookupResult() {
             type="button"
             onClick={() => copyCode(result.confirmation_code)}
             aria-label="접수번호 복사"
-            className="flex shrink-0 items-center gap-1 rounded-lg border border-white/20 px-2.5 py-1.5 text-body-sm text-muted transition-colors hover:border-white/40 hover:text-foreground sm:px-3 sm:py-2"
+            className="flex shrink-0 items-center gap-1 rounded-lg border border-line px-2.5 py-1.5 text-body-sm text-muted transition-colors hover:border-line-strong hover:text-foreground sm:px-3 sm:py-2"
           >
             {copied ? <>복사됨</> : <CopyIcon />}
           </button>
@@ -229,7 +229,7 @@ export function LookupResult() {
             </strong>{" "}
             으로 입금하실 계좌와 금액을 보냈습니다.
           </p>
-          <div className="mt-4 rounded-lg bg-white/5 p-4 text-center sm:mt-6 sm:p-6">
+          <div className="mt-4 rounded-lg bg-fill p-4 text-center sm:mt-6 sm:p-6">
             <p className="text-body-sm text-muted">입금하실 금액</p>
             <p className="mt-1 text-h1 font-extrabold" style={{ color: accent }}>
               {formatKrw(result.amount_krw)}
@@ -244,7 +244,7 @@ export function LookupResult() {
       )}
 
       {/* ── 신청 내용 ── */}
-      <div className="rounded-xl border border-white/15 p-5 sm:p-7 lg:p-8">
+      <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
         <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 sm:mb-4">
           <h2 className="font-bold text-h3">{result.theme_name}</h2>
           {result.category_name && (
@@ -261,7 +261,7 @@ export function LookupResult() {
           )}
           {/* 옛 회차만 그룹/소개팅 구분이 있다. 신규 회차는 카테고리로 대신한다. */}
           {result.format_label && (
-            <span className="rounded bg-white/10 px-1.5 py-0.5 text-micro text-muted">
+            <span className="rounded bg-fill-strong px-1.5 py-0.5 text-micro text-muted">
               {result.format_label}
             </span>
           )}
@@ -329,7 +329,7 @@ export function LookupResult() {
         ) : null}
 
         <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
-          <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:p-5">
+          <div className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
             <p className="mb-1 text-body-sm font-bold text-muted">
               {isGroup ? "대표 신청자 (본인)" : "신청자"}
             </p>
@@ -339,7 +339,7 @@ export function LookupResult() {
           {companions.length > 0 && (
             <CompanionPager count={companions.length}>
               {(index) => (
-                <div className="rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:p-5">
+                <div className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
                   <p className="mb-1 text-body-sm font-bold text-muted">동행자 {index + 1}</p>
                   <AttendeeDisplay attendee={companions[index]} />
                 </div>
@@ -350,7 +350,7 @@ export function LookupResult() {
 
         {/* 요청사항은 더 이상 받지 않지만, 예전 신청에는 남아 있다. */}
         {result.notes && (
-          <div className="mt-4 rounded-lg border border-white/12 bg-white/[0.03] p-4 sm:mt-6 sm:p-5">
+          <div className="mt-4 rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:mt-6 sm:p-5">
             <p className="mb-1 text-body-sm font-bold text-muted">요청사항</p>
             <p className="whitespace-pre-wrap text-body">{result.notes}</p>
           </div>
@@ -364,14 +364,14 @@ export function LookupResult() {
       <div className="flex flex-wrap gap-2 sm:gap-3">
         <Link
           href="/lookup"
-          className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-h3 sm:py-4"
+          className="flex-1 rounded-lg border border-line px-4 py-3 text-center text-h3 sm:py-4"
         >
           다시 조회
         </Link>
         {result.theme_slug && (
           <Link
             href={`/themes/${result.theme_slug}`}
-            className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-center text-h3 sm:py-4"
+            className="flex-1 rounded-lg border border-line px-4 py-3 text-center text-h3 sm:py-4"
           >
             테마 보기
           </Link>

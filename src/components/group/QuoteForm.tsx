@@ -16,7 +16,7 @@ import {
 } from "@/lib/groupBooking";
 
 const field =
-  "w-full rounded-lg border border-white/20 bg-white/5 px-3.5 py-3 text-body outline-none focus:border-[#f082f4] sm:py-3.5";
+  "w-full rounded-lg border border-line bg-fill px-3.5 py-3 text-body outline-none focus:border-[#f082f4] sm:py-3.5";
 
 /** 고르는 칸(알약 버튼) 한 줄. 손가락으로 누르는 크기(44px) 를 지킨다. */
 function ChipGroup({
@@ -41,7 +41,7 @@ function ChipGroup({
             className={`min-h-[44px] rounded-full px-4 text-body-sm transition ${
               on
                 ? "bg-[#f082f4] font-bold text-[#141414]"
-                : "border border-white/20 bg-white/5 text-foreground hover:border-white/40"
+                : "border border-line bg-fill text-foreground hover:border-line-strong"
             }`}
           >
             {o.label}
@@ -217,7 +217,7 @@ export function QuoteForm() {
         <button
           type="button"
           onClick={() => setDone(null)}
-          className="min-h-[44px] rounded-full border border-white/20 px-5 text-body-sm text-foreground hover:border-white/40"
+          className="min-h-[44px] rounded-full border border-line px-5 text-body-sm text-foreground hover:border-line-strong"
         >
           내용 수정해서 다시 신청
         </button>

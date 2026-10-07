@@ -25,7 +25,7 @@ export default async function InternalDevicePage() {
         기기·브라우저마다 따로 켜야 하고, 인스타·카카오톡 안에서 여는 창도 따로입니다.
       </p>
 
-      <div className="mb-6 rounded-lg border border-white/20 px-4 py-4">
+      <div className="mb-6 rounded-lg border border-line px-4 py-4">
         <p className="text-body-sm text-muted">이 브라우저</p>
         <p className={`mt-1 text-h3 font-bold ${on ? "text-glow" : ""}`}>
           {on ? "테스트 기기로 표시됨" : "표시 안 됨 (일반 방문자로 집계)"}
@@ -35,7 +35,7 @@ export default async function InternalDevicePage() {
       <form action={on ? turnOffInternalDevice : turnOnInternalDevice}>
         <button
           type="submit"
-          className="w-full rounded-lg border border-white/30 px-4 py-3 text-body font-semibold"
+          className="w-full rounded-lg border border-line-strong px-4 py-3 text-body font-semibold"
         >
           {on ? "표시 끄기" : "이 브라우저를 테스트 기기로 표시"}
         </button>

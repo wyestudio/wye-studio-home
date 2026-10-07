@@ -114,7 +114,7 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
  */
 function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col justify-center rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-5 sm:py-3">
+    <div className="flex flex-col justify-center rounded-xl border border-line-subtle bg-fill-subtle px-3 py-2.5 sm:px-5 sm:py-3">
       <dt className="mb-1.5 text-label font-bold text-muted">{label}</dt>
       <dd>{children}</dd>
     </div>

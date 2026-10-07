@@ -112,7 +112,7 @@ export function ContentBlocksEditor({
         return (
           <div key={i}>
             <div className="rounded-lg border border-border">
-              <div className="flex items-center gap-2 border-b border-border bg-white/[0.02] px-3 py-2">
+              <div className="flex items-center gap-2 border-b border-border bg-fill-subtle px-3 py-2">
                 <span className="shrink-0 rounded bg-muted/20 px-2 py-0.5 text-micro text-muted">
                   {THEME_BLOCK_LABELS[b.type]}
                 </span>
@@ -160,7 +160,7 @@ export function ContentBlocksEditor({
               </div>
 
               {open && (
-                <div className="space-y-2 border-t border-border bg-white/[0.02] p-3">
+                <div className="space-y-2 border-t border-border bg-fill-subtle p-3">
                   {/* ⚠️ 두 칸 다 field(w-full) 를 쓰면 안 된다 — 라벨 칸이 폭을 다 먹어
                       제목 칸이 실처럼 찌그러진다(실제로 그랬다). 위 cell 주석과 같은 문제. */}
                   <div className="flex gap-2">

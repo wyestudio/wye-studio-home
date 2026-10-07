@@ -208,7 +208,7 @@ export function ThemeBlockView({
       )}
 
       {block.type === "image" && block.src && (
-        <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-white/15">
+        <div className="relative aspect-[16/9] overflow-hidden rounded-xl border border-line">
           <Image src={block.src} alt={block.alt || block.title} fill className="object-cover" />
         </div>
       )}

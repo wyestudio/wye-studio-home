@@ -39,7 +39,7 @@ export function ConfirmDialog({
       */}
       <div
         className={`w-full ${wide ? "max-w-lg" : "max-w-sm"} max-h-[85vh] overflow-y-auto rounded-xl
-                    border ${danger ? "border-danger/40" : "border-white/15"}
+                    border ${danger ? "border-danger/40" : "border-line"}
                     bg-background/95 p-6 shadow-2xl shadow-black/60 animate-scale-in`}
       >
         <h2 className={`text-h3 font-bold ${danger ? "text-danger" : "text-foreground"}`}>{title}</h2>
@@ -54,7 +54,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 rounded-lg border border-white/25 px-4 py-3 text-body-sm font-semibold text-foreground transition-colors hover:bg-white/5"
+            className="flex-1 rounded-lg border border-line px-4 py-3 text-body-sm font-semibold text-foreground transition-colors hover:bg-fill"
           >
             {cancelLabel}
           </button>
