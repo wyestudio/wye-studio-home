@@ -46,11 +46,20 @@ export function DetailTabs({ accent }: { accent: string }) {
          비쳐 보이지 않는다. 겹치는 부분은 헤더가 위에서 덮는다.
     */
     <nav
+      /*
+        ⚠️ **xl:hidden 이다. SectionNav 의 `xl:block` 과 짝이다 — 둘을 같은
+           경계에 두지 않으면 어느 한쪽도 없는 구간이 생긴다.**
+           전에는 sm:hidden 이라 640~1279px 에서 섹션 이동 수단이 아예 없었다
+           (9,000px 짜리 상세를 통째로 스크롤해야 했다, 2026-10-08 실측).
+           고치면서 lg:hidden 으로 뒀더니 공백이 1024~1279 로 옮겨갔을 뿐이었다.
+           목차를 lg 로 내리는 방법도 있었지만 SectionNav 는 `fixed left-6` 이라
+           1024px 창에서 본문 위에 겹친다 — 그래서 탭 쪽을 xl 까지 넓혔다.
+      */
       className="sticky top-[var(--header-height,64px)] z-10 -mx-5 mb-2 flex border-b border-line-subtle bg-background
                  before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full before:h-24 before:bg-background
                  transition-transform duration-300 ease-out
                  [html[data-header-hidden]_&]:-translate-y-[var(--header-height,64px)]
-                 sm:hidden"
+                 sm:justify-center xl:hidden"
       aria-label="섹션 이동"
     >
       {TABS.map((t) => {
@@ -68,7 +77,7 @@ export function DetailTabs({ accent }: { accent: string }) {
               setActive(t.id);
               scrollToScreen(el);
             }}
-            className={`flex-1 border-b-2 py-3 text-center text-body-sm font-semibold transition-colors ${
+            className={`flex-1 border-b-2 py-3 text-center text-body-sm font-semibold transition-colors sm:min-w-[10rem] sm:flex-none ${
               on ? "" : "border-transparent text-muted"
             }`}
             style={on ? { borderColor: accent, color: accent } : undefined}
