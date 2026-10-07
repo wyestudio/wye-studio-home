@@ -20,9 +20,13 @@ export const metadata: Metadata = {
  * ⚠️ 수집 항목(제2조)·보유기간(제4조)을 고치면 이 날짜도 같이 고친다. 내용은
  *    바뀌었는데 날짜가 예전 그대로면 "언제부터 이 내용이었나" 를 증명할 수 없다.
  *
- * 2026-10-02: 단체 예약 견적 신청(제2조 4항·제4조) 추가.
+ * 2026-10-02 (v2): 단체 예약 견적 신청(제2조 4항·제4조) 추가.
+ * 2026-10-14 (v3): 성별을 필수 항목에서 **선택 항목**으로 옮김. 신청 폼은 처음부터
+ *   '성별 (선택)' 이었는데 방침·동의 화면만 필수로 적혀 있었다 — 비워도 되는 칸을
+ *   필수라고 알린 셈이라 개인정보보호법 제22조의 필수·선택 구분 고지에 어긋났다.
  */
-const EFFECTIVE_DATE = "2026년 10월 2일";
+const EFFECTIVE_DATE = "2026년 10월 14일";
+const VERSION = "v3";
 
 export default function PrivacyPage() {
   // 긴 문서라 가운데 정렬 대신 읽기 편한 크기로만 키운다(테마 상세 비율에 맞춤, 2026-09-15).
@@ -36,7 +40,7 @@ export default function PrivacyPage() {
         <h1 className="mb-2 text-display font-extrabold sm:mb-3">개인정보처리방침</h1>
         <p className="text-body text-muted">
           wouldyouescape (우주이스케이프)<br />
-          시행일자: {EFFECTIVE_DATE}
+          {VERSION} · 시행일자: {EFFECTIVE_DATE}
         </p>
       </div>
 
@@ -123,10 +127,6 @@ export default function PrivacyPage() {
                       <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">원활한 체험 운영</td>
                     </tr>
                     <tr>
-                      <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">성별</td>
-                      <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">팀 구성 운영 참고</td>
-                    </tr>
-                    <tr>
                       <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">출생년도</td>
                       <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">팀 구성 및 난이도 운영 참고</td>
                     </tr>
@@ -145,7 +145,11 @@ export default function PrivacyPage() {
 
             <div>
               <p className="font-semibold">2. 선택 항목</p>
+              <p className="mt-1 text-body-sm text-muted">
+                아래 항목은 동의하지 않아도 예약 신청이 제한되지 않습니다.
+              </p>
               <ul className="ml-4 list-disc space-y-1">
+                <li>성별(팀 구성 운영 참고)</li>
                 <li>사전 설문 응답</li>
                 <li>팀 편성 참고 정보(같은 팀 희망 여부 및 요청사항)</li>
                 <li>닉네임(현장 호칭 및 팀 편성 참고용)</li>
@@ -538,6 +542,17 @@ export default function PrivacyPage() {
           <p className="text-muted">
             본 개인정보처리방침은 관련 법령 또는 서비스 변경에 따라 수정될 수 있으며, 변경 사항은 홈페이지를 통해 안내합니다.
           </p>
+          <p className="mt-4 font-semibold">변경 이력</p>
+          <ul className="ml-4 mt-2 list-disc space-y-2 text-muted">
+            <li>v1 (2026년 8월 11일 시행): 최초 제정</li>
+            <li>v2 (2026년 10월 2일 시행): 단체 예약 견적 신청 시 수집하는 항목(제2조 4항)과 그 보유기간(제4조)을 추가</li>
+            <li>
+              v3 (2026년 10월 14일 시행): 성별을 제2조 1항 필수 항목에서 제2조 2항
+              <strong> 선택 항목</strong>으로 옮김. 신청 화면은 이전부터 성별을 선택 입력으로
+              운영해 왔으며, 이를 방침에 맞춰 바로잡은 것입니다. 성별을 입력하지 않아도 예약
+              신청은 제한되지 않습니다.
+            </li>
+          </ul>
         </div>
 
         {/* 부칙 */}
