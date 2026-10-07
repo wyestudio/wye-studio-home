@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import {
   getThemeBySlug,
   getPublicSessionsForTheme,
@@ -12,8 +11,15 @@ import {
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
 import { getActivePromotion, promotionTiersForTheme } from "@/lib/promotions";
-import { isEarlyBirdSession, maxDiscountLabel, promotionUnitPrice } from "@/lib/promotion";
-import { ThemeSpecTiles, ThemeGenreTile } from "@/components/contents/ThemeSpecs";
+import {
+  isEarlyBirdSession,
+  maxDiscountLabel,
+  promotionUnitPrice,
+} from "@/lib/promotion";
+import {
+  ThemeSpecTiles,
+  ThemeGenreTile,
+} from "@/components/contents/ThemeSpecs";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import {
@@ -24,7 +30,11 @@ import {
 import { RichText } from "@/components/ui/RichText";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
-import { normalizeThemeContent, tidySynopsis, type ThemeContent } from "@/types/catalog";
+import {
+  normalizeThemeContent,
+  tidySynopsis,
+  type ThemeContent,
+} from "@/types/catalog";
 import { hasGroupBooking } from "@/lib/groupBooking";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
@@ -45,7 +55,8 @@ import { posterFitInlineScript } from "./posterFitScript";
 */
 export const dynamic = "force-dynamic";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
 const DEFAULT_ACCENT = "#3dffb0";
 
 export async function generateMetadata({
@@ -100,8 +111,20 @@ export async function generateMetadata({
   };
 }
 
-export default async function ThemeDetailPage({ params }: PageProps<"/themes/[slug]">) {
+export default async function ThemeDetailPage({
+  params,
+  searchParams,
+}: PageProps<"/themes/[slug]">) {
   const { slug } = await params;
+  /*
+    주소의 ?d=(처음 열 날짜)를 **서버에서** 읽어 SessionPicker 에 내려준다.
+
+    ⚠️ 클라이언트에서 next/navigation 훅으로 읽으면 Suspense 경계가 필요한데,
+       그 경계가 운영 빌드에서 postponed 로 남아 달력이 '불러오는 중…' 에서
+       멈췄다(2026-10-07). 개발 빌드에서는 재현되지 않아 더 늦게 발견됐다.
+  */
+  const sp = await searchParams;
+  const dParam = typeof sp?.d === "string" ? sp.d : null;
 
   const theme = await getThemeBySlug(slug);
   if (!theme) notFound();
@@ -145,7 +168,9 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
     받을 수 없는 할인가를 표에 세워 두는 꼴이 된다.
   */
   const promoUsable =
-    activePromo !== null && promoTiers.length > 0 && sessions.some((s) => s.earlyBird && s.bookable);
+    activePromo !== null &&
+    promoTiers.length > 0 &&
+    sessions.some((s) => s.earlyBird && s.bookable);
 
   // 배너의 '최대 N% OFF'. 운영자가 문구를 직접 적었으면 그게 이긴다.
   const promoHighlight = promoUsable
@@ -156,15 +181,20 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
             base: t.unit_price_krw,
             promo: promotionUnitPrice(promoTiers, t.min_headcount),
           }))
-          .filter((p): p is { base: number; promo: number } => p.promo !== null)
+          .filter(
+            (p): p is { base: number; promo: number } => p.promo !== null,
+          ),
       )
     : null;
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
   // 조인 결과라 타입에 없다. 없으면 카테고리 줄을 통째로 생략한다.
   const category =
-    (theme as { theme_categories?: { name: string; description: string | null } | null })
-      .theme_categories ?? null;
+    (
+      theme as {
+        theme_categories?: { name: string; description: string | null } | null;
+      }
+    ).theme_categories ?? null;
   // 옛 4칸 구조(for_you/steps/timetable/precautions)로 저장된 테마도 읽어준다.
   // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
   const content: ThemeContent = normalizeThemeContent(theme.content);
@@ -209,117 +239,136 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
         data-section-key="intro"
         className={INTRO_SCREEN_SECTION}
       >
-      <section
-        id="intro"
-        suppressHydrationWarning
-        className={`grid ${SCREEN_SCROLL_MARGIN} grid-cols-2 gap-x-3.5 gap-y-3 md:gap-y-2
+        <section
+          id="intro"
+          suppressHydrationWarning
+          className={`grid ${SCREEN_SCROLL_MARGIN} grid-cols-2 gap-x-3.5 gap-y-3 md:gap-y-2
                    [grid-template-areas:'title_title'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
                    md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-10
                    md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_genres'_'poster_synopsis']
                    lg:grid-cols-[var(--poster-w,20rem)_minmax(0,1fr)]`}
-      >
-        <PosterFit sectionId="intro" />
+        >
+          <PosterFit sectionId="intro" />
 
-        {/*
+          {/*
           데스크톱은 크기를 맞추기 전까지 투명하게 둔다(data-poster-fit=done 이 붙으면 보임).
           맞추기는 바로 아래 인라인 스크립트가 화면이 그려지기 전에 끝내므로 기다림은 없다.
           맞추기 전 크기(기본 20rem)로 한 번 그려졌다가 커지는 모습을 보이지 않으려는 것이다.
         */}
-        <div
-          data-poster
-          className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-line bg-surface [grid-area:poster]
+          <div
+            data-poster
+            className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-line bg-surface [grid-area:poster]
                      md:opacity-0 md:[[data-poster-fit=done]_&]:opacity-100"
-        >
-          <PosterImage
-            src={theme.hero_image_path}
-            alt={`${theme.name} 포스터`}
-            sizes="(min-width: 768px) 460px, 50vw"
-            priority
-          />
-        </div>
+          >
+            <PosterImage
+              src={theme.hero_image_path}
+              alt={`${theme.name} 포스터`}
+              sizes="(min-width: 768px) 460px, 50vw"
+              priority
+            />
+          </div>
 
-        <div data-fit-top className="mb-2 min-w-0 self-start [grid-area:title] md:mb-3">
-          {/*
+          <div
+            data-fit-top
+            className="mb-2 min-w-0 self-start [grid-area:title] md:mb-3"
+          >
+            {/*
             제목 위에 카테고리(강조색 작은 글씨 + 설명 물음표), 아래 줄에 테마명 / 오른쪽 끝에 공유.
             카테고리를 제목 옆 알약으로 두면 장르 태그와 구분이 안 됐다(CategoryLabel 참고).
           */}
-          {category && <CategoryLabel category={category} accent={accent} />}
-          <div className="flex items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <h1 className="text-h1 font-extrabold">{theme.name}</h1>
+            {category && <CategoryLabel category={category} accent={accent} />}
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-h1 font-extrabold">{theme.name}</h1>
+              </div>
+              <div className="shrink-0">
+                <ShareButton
+                  url={`${SITE_URL}/themes/${theme.slug}`}
+                  title={theme.name}
+                />
+              </div>
             </div>
-            <div className="shrink-0">
-              <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
-            </div>
+
+            {/* 장소는 여기서 뺐다. 상세 정보의 '진행 장소' 블록(ThemeBlocks)이 보여준다. */}
           </div>
 
-          {/* 장소는 여기서 뺐다. 상세 정보의 '진행 장소' 블록(ThemeBlocks)이 보여준다. */}
-        </div>
+          {/* 모바일은 포스터 높이만큼 늘어나야 해서 self-start 를 데스크톱에만 준다. */}
+          <div
+            data-fit-bottom
+            className="min-w-0 [grid-area:specs] md:self-start"
+          >
+            <ThemeSpecTiles
+              difficulty={theme.difficulty}
+              durationMinutes={theme.duration_minutes}
+              accent={accent}
+            />
+          </div>
 
-        {/* 모바일은 포스터 높이만큼 늘어나야 해서 self-start 를 데스크톱에만 준다. */}
-        <div data-fit-bottom className="min-w-0 [grid-area:specs] md:self-start">
-          <ThemeSpecTiles
-            difficulty={theme.difficulty}
-            durationMinutes={theme.duration_minutes}
-            accent={accent}
-          />
-        </div>
+          <div
+            data-fit-bottom
+            className="min-w-0 self-start [grid-area:genres]"
+          >
+            <ThemeGenreTile genres={genres} accent={accent} />
+          </div>
 
-        <div data-fit-bottom className="min-w-0 self-start [grid-area:genres]">
-          <ThemeGenreTile genres={genres} accent={accent} />
-        </div>
-
-        {synopsis && (
-          <div data-fit-bottom className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3">
-            <p
-              className="mb-2 text-micro font-semibold uppercase tracking-[0.3em]"
-              style={{ color: accent }}
+          {synopsis && (
+            <div
+              data-fit-bottom
+              className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3"
             >
-              Synopsis
-            </p>
-            {/*
+              <p
+                className="mb-2 text-micro font-semibold uppercase tracking-[0.3em]"
+                style={{ color: accent }}
+              >
+                Synopsis
+              </p>
+              {/*
               pre-wrap: 입력한 줄바꿈과 **띄어쓰기 개수까지** 그대로 보여준다.
               pre-line 이면 빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
               break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
             */}
-            <p
-              className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.7] text-foreground sm:pl-5"
-              style={{ borderColor: `${accent}80` }}
-            >
-              {synopsis}
-            </p>
+              <p
+                className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.7] text-foreground sm:pl-5"
+                style={{ borderColor: `${accent}80` }}
+              >
+                {synopsis}
+              </p>
+            </div>
+          )}
+        </section>
 
-          </div>
-        )}
-      </section>
-
-      {/*
+        {/*
         강조 안내(themes.intro_notice). 포스터·정보 묶음 **바깥 아래**에 가로로 길게 둔다.
         ⚠️ 안쪽(시놉시스 아래)에 두면 오른쪽 칸이 길어져 포스터 높이 맞추기(PosterFit)가
            같이 늘어난다 — 포스터와 정보의 아래끝이 어긋났다(2026-09-16).
         읽히는 순서는 그대로다: 시놉시스 → 이 안내 → 신청하기.
       */}
-      {introNotice && (
-        <div
-          className="mt-4 rounded-xl border px-4 py-3 sm:px-5 sm:py-3.5"
-          style={{ borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
-        >
-          <RichText
-            text={introNotice}
-            className="block text-body-sm leading-relaxed text-foreground"
-          />
-        </div>
-      )}
-      {/*
+        {introNotice && (
+          <div
+            className="mt-4 rounded-xl border px-4 py-3 sm:px-5 sm:py-3.5"
+            style={{
+              borderColor: `${accent}59`,
+              backgroundColor: `${accent}14`,
+            }}
+          >
+            <RichText
+              text={introNotice}
+              className="block text-body-sm leading-relaxed text-foreground"
+            />
+          </div>
+        )}
+        {/*
         첫 로드 때 포스터 크기를 화면이 그려지기 전에 맞춘다(posterFitScript.ts).
         다른 화면에서 넘어올 때는 이 스크립트가 돌지 않아 PosterFit 이 맡는다.
       */}
-      <script dangerouslySetInnerHTML={{ __html: posterFitInlineScript("intro") }} />
-      {/* 스크립트가 꺼진 브라우저에서 포스터가 영영 투명하게 남지 않게 */}
-      <noscript>
-        <style>{`#intro [data-poster]{opacity:1!important}`}</style>
-      </noscript>
-      <ScrollToBookingButton accent={accent} themeName={theme.name} />
+        <script
+          dangerouslySetInnerHTML={{ __html: posterFitInlineScript("intro") }}
+        />
+        {/* 스크립트가 꺼진 브라우저에서 포스터가 영영 투명하게 남지 않게 */}
+        <noscript>
+          <style>{`#intro [data-poster]{opacity:1!important}`}</style>
+        </noscript>
+        <ScrollToBookingButton accent={accent} themeName={theme.name} />
       </div>
 
       {/* ── 날짜 선택 ── '신청하기' 로 스크롤해 오면 헤더 밑에 붙는다(SCREEN_SCROLL_MARGIN). */}
@@ -340,28 +389,29 @@ export default async function ThemeDetailPage({ params }: PageProps<"/themes/[sl
           size="lg"
         />
         <div className="mx-auto w-full max-w-4xl">
-          <Suspense fallback={<div className="text-body-sm text-muted">불러오는 중…</div>}>
-            <SessionPicker
-              themeSlug={theme.slug}
-              themeName={theme.name}
-              sessions={sessions}
-              accentColor={accent}
-              accepting={acceptingApplications}
-              openingDate={theme.opening_date}
-              promo={
-                promoUsable
-                  ? {
-                      badgeLabel: activePromo!.promo.badge_label,
-                      accentColor: activePromo!.promo.accent_color,
-                      bannerTitle: activePromo!.promo.banner_title || activePromo!.promo.name,
-                      bannerBody: activePromo!.promo.banner_body,
-                      bannerHighlight: promoHighlight,
-                      bannerNote: activePromo!.promo.banner_note,
-                    }
-                  : null
-              }
-            />
-          </Suspense>
+          <SessionPicker
+            initialDateParam={dParam}
+            themeSlug={theme.slug}
+            themeName={theme.name}
+            sessions={sessions}
+            accentColor={accent}
+            accepting={acceptingApplications}
+            openingDate={theme.opening_date}
+            promo={
+              promoUsable
+                ? {
+                    badgeLabel: activePromo!.promo.badge_label,
+                    accentColor: activePromo!.promo.accent_color,
+                    bannerTitle:
+                      activePromo!.promo.banner_title ||
+                      activePromo!.promo.name,
+                    bannerBody: activePromo!.promo.banner_body,
+                    bannerHighlight: promoHighlight,
+                    bannerNote: activePromo!.promo.banner_note,
+                  }
+                : null
+            }
+          />
         </div>
       </section>
 

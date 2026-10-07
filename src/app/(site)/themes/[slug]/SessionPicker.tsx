@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { SCREEN_SCROLL_MARGIN } from "@/components/contents/screenSection";
 import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
@@ -87,6 +87,7 @@ export function SessionPicker({
   accepting,
   openingDate,
   promo = null,
+  initialDateParam = null,
 }: {
   themeSlug: string;
   /** GA4 에 실어 보낼 테마명. 다른 이벤트들과 같은 값(theme.name)이어야 한다. */
@@ -102,9 +103,17 @@ export function SessionPicker({
    * 어느 회차가 대상인지는 각 회차의 earlyBird 가 들고 있다(서버 판정).
    */
   promo?: PickerPromotion | null;
+  /**
+   * 주소의 ?d= 값. **서버가 읽어 내려준다.**
+   *
+   * 예전에는 이 컴포넌트가 그 값을 next/navigation 훅으로 직접 읽었다. 그 훅은
+   * Suspense 경계를 요구하는데, 운영 빌드에서 경계가 postponed 상태로 남아
+   * **달력이 영영 '불러오는 중…' 에서 멈췄다**(2026-10-07, 운영 빌드에서만 재현).
+   * 값은 서버가 이미 들고 있으므로 prop 으로 받는다.
+   */
+  initialDateParam?: string | null;
 }) {
   const router = useRouter();
-  const params = useSearchParams();
   const timeRef = useRef<HTMLDivElement>(null);
 
   // 날짜별로 묶는다 (하루에 여러 회차가 있으므로).
@@ -152,7 +161,7 @@ export function SessionPicker({
       return upcoming ?? dates[dates.length - 1] ?? "";
     })();
 
-    const q = params.get("d");
+    const q = initialDateParam;
     if (!q || !byDate.has(q)) return { initialDate: fallback, missedDate: null };
     // 링크가 가리킨 날에 아직 신청할 수 있는 회차가 있으면 그대로 연다.
     if (byDate.get(q)!.some((s) => s.bookable)) return { initialDate: q, missedDate: null };
@@ -193,7 +202,7 @@ export function SessionPicker({
     setSelectedId(null);
     // 스스로 날짜를 골랐으면 '마감돼서 옮겼다' 안내는 더 보여주지 않는다.
     setMissedNotice(null);
-    const next = new URLSearchParams(params.toString());
+    const next = new URLSearchParams(window.location.search);
     next.set("d", d);
     router.replace(`/themes/${themeSlug}?${next.toString()}`, { scroll: false });
     // 좁은 화면에서는 시간 목록이 달력 아래라 화면 밖에 있다. 눈에 보이게 옮겨준다.
