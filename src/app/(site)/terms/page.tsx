@@ -16,7 +16,10 @@ export default function TermsPage() {
   // 긴 문서라 가운데 정렬 대신 읽기 편한 크기로만 키운다(테마 상세 비율에 맞춤, 2026-09-15).
   // 모바일은 그대로, 넓은 화면에서 본문·조항 제목·표 글씨를 한 단계씩.
   return (
-    <div className="mx-auto max-w-3xl px-5 py-12 sm:py-16 lg:max-w-4xl lg:py-20">
+    // id="print-doc": 인쇄하면 이 안쪽만 종이에 나간다(globals.css 의 @media print).
+    // 약관도 방침과 같이 보관·제출용 문서로 쓰이므로 같은 방식으로 뽑는다 —
+    // 글을 두 벌로 두면 한쪽만 고치는 날이 온다.
+    <div id="print-doc" className="mx-auto max-w-3xl px-5 py-12 sm:py-16 lg:max-w-4xl lg:py-20">
       <div className="mb-12 text-center sm:mb-16">
         <h1 className="mb-2 text-display font-extrabold sm:mb-3">이용약관</h1>
         <p className="text-body text-muted">
