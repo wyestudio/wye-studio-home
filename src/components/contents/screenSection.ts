@@ -45,9 +45,15 @@ export const SCREEN_SECTION = "py-8 md:py-16";
  *    시놉시스로 차 있어 해당하지 않는다. 다른 블록에 이 값을 쓰지 말 것.
  * ⚠️ 높이는 var(--header-height) 를 빼서 헤더를 따라간다(Header.tsx 가 실측해 넣는다).
  *    svh 를 쓰는 건 모바일 주소창이 접힐 때 화면이 튀지 않게 하기 위함이다.
+ *
+ * ⚠️ **세로 가운데 정렬을 쓰지 않는다.** 가운데에 두면 남는 공간이 위아래로 반씩
+ *    갈리는데, 3단계에서 소개 내용을 줄여 놓은 터라 1272px 높이 창에서 위 여백만
+ *    295px 이 됐다("살짝 과하다", 2026-10-07). 대신 위 여백을 화면 높이에
+ *    비례시키고(12svh) 32~176px 로 묶었다 — 남는 공간은 신청하기 버튼 **아래**로
+ *    간다. 1272px 창에서 약 152px, 800px 노트북에서 약 96px 이다.
  */
 export const INTRO_SCREEN_SECTION =
-  "pt-6 pb-7 md:pt-8 md:pb-8 md:flex md:flex-col md:justify-center md:min-h-[calc(100svh-var(--header-height,72px))]";
+  "pt-6 pb-7 md:pb-8 md:flex md:flex-col md:min-h-[calc(100svh-var(--header-height,72px))] md:pt-[clamp(2rem,12svh,11rem)]";
 
 /**
  * 이 섹션으로 스크롤해 올 때 헤더 밑에 딱 붙게 하는 여백.
