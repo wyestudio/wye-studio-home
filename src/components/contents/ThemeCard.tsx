@@ -48,10 +48,14 @@ export type ThemeCardProps = {
   모서리는 둥글리지 않는다 — 각진 쪽이 더 정제돼 보인다는 결정.
   넓은 화면도 3열까지만(2026-09-15). 4열이면 포스터가 한 장 240px 남짓이라
   테마 상세의 큰 포스터와 비율이 너무 달라 보였다.
+
+  ⚠️ 3열 전환은 **md(768px)** 부터다. sm(640px)이었을 때 640px 경계에서 카드가
+     290 → 187px 으로 한 번에 36% 줄었다(실측). 포스터가 4:5 라 187×234 가 되어
+     제목이 겨우 읽히는 크기였다. 640~767 은 2열로 둔다.
 */
 const BASE =
   "basis-[calc((100%-1.25rem)/2)] overflow-hidden border border-line-subtle bg-fill-subtle " +
-  "sm:basis-[calc((100%-2.5rem)/3)]";
+  "md:basis-[calc((100%-2.5rem)/3)]";
 
 /** 테마 목록의 포스터 카드 한 장. */
 export function ThemeCard({
@@ -132,7 +136,12 @@ export function ThemeCard({
             knock();
           }
         }}
-        className={`${BASE} cursor-not-allowed select-none`}
+        /*
+          준비 중 카드는 **보조 위계**로 둔다(2026-10-08). 지금 목록 두 장 중 한 장이
+          잠겨 있는데 실제 테마와 같은 무게로 서 있어 목록이 절반 비어 보였다.
+          크기는 그대로 둔다 — 줄이면 격자가 어긋난다. 밝기만 낮춘다.
+        */
+        className={`${BASE} cursor-not-allowed select-none opacity-60 transition-opacity hover:opacity-80`}
       >
         {body}
       </div>
