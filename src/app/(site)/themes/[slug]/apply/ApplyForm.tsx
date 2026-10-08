@@ -123,6 +123,8 @@ export function ApplyForm({
   sessionLabel,
   minAge,
   maxGroupSize,
+  minGroupSize = null,
+  recommendedGroupSize = null,
   tiers,
   accentColor,
   themeId,
@@ -145,6 +147,16 @@ export function ApplyForm({
   sessionLabel: string;
   minAge: number;
   maxGroupSize: number | null;
+  /**
+   * 신청 가능한 **최소** 인원(null = 1). 노말모드는 2인부터다.
+   *
+   * ⚠️ 화면만 막는 게 아니다 — 가격표에 구간이 없는 인원으로 제출하면 DB 가
+   *    "이 테마의 요금이 설정되지 않았습니다" 로 거부한다. 그 문구는 1인
+   *    신청자에게는 오해를 부르므로, 애초에 고를 수 없게 한다.
+   */
+  minGroupSize?: number | null;
+  /** 권장 인원 상한. 신청 상한(maxGroupSize)과 **다르다** — 넘겨도 신청은 된다. */
+  recommendedGroupSize?: number | null;
   tiers: ThemePriceTier[];
   accentColor: string;
   /**
@@ -155,7 +167,14 @@ export function ApplyForm({
   promo?: PriceTablePromo | null;
 }) {
   const [step, setStep] = useState(0);
-  const [attendees, setAttendees] = useState<AttendeeForm[]>([emptyAttendee()]);
+  /*
+    처음 인원. **1 로 고정하면 안 된다** — 하한이 2 인 테마(노말모드)에서
+    선택지에 없는 값으로 시작하고, 그대로 제출하면 DB 가 요금 미설정으로
+    거부한다. minGroupSize 는 props 라 여기서 바로 읽을 수 있다.
+  */
+  const [attendees, setAttendees] = useState<AttendeeForm[]>(() =>
+    Array.from({ length: Math.max(1, minGroupSize ?? 1) }, () => emptyAttendee())
+  );
   const [activeIndex, setActiveIndex] = useState(0);
   const [consents, setConsents] = useState<ConsentState>({ ...EMPTY_CONSENTS });
   const [depositorName, setDepositorName] = useState("");
@@ -191,6 +210,12 @@ export function ApplyForm({
 
   const headcount = attendees.length;
   const maxAttendees = maxGroupSize ?? DEFAULT_MAX_ATTENDEES;
+  const minAttendees = Math.max(1, Math.min(minGroupSize ?? 1, maxAttendees));
+  /** 고를 수 있는 인원. 하한이 1 이 아닌 테마(노말모드 2인~)가 있다. */
+  const attendeeOptions = Array.from(
+    { length: Math.max(0, maxAttendees - minAttendees + 1) },
+    (_, i) => minAttendees + i
+  );
 
   /*
     GA4 신청 퍼널.
@@ -710,11 +735,24 @@ export function ApplyForm({
                 size="lg"
                 value={String(headcount)}
                 onChange={(v) => setCount(Number(v))}
-                options={Array.from({ length: maxAttendees }, (_, i) => i + 1).map((n) => ({
+                options={attendeeOptions.map((n) => ({
                   value: String(n),
-                  label: `${n}명`,
+                  label:
+                    recommendedGroupSize && n > recommendedGroupSize
+                      ? `${n}명 (권장 인원 초과)`
+                      : `${n}명`,
                 }))}
               />
+              {/*
+                권장 인원은 신청 상한과 다르다 — 넘겨도 신청은 된다. 노말모드는
+                2~4인 권장인데 6인까지 받는다. 막지 않고 알려만 준다.
+              */}
+              {recommendedGroupSize && maxAttendees > recommendedGroupSize && (
+                <p className="mt-1.5 text-micro text-muted">
+                  권장 인원 {minAttendees}~{recommendedGroupSize}명 · 최대 {maxAttendees}명까지
+                  신청할 수 있어요.
+                </p>
+              )}
               {/*
                 10명 이상은 이 폼으로 신청할 수 없다(인원 선택 상한이 그보다 낮다).
                 예전에는 카카오톡 채널로 보냈는데, 거기서는 조건·금액·절차를 운영자가

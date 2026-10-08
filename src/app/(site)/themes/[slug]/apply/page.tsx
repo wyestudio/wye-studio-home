@@ -2,7 +2,14 @@ import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getThemeBySlug, getPublicSessionsForTheme, attachStats, isBookable } from "@/lib/themes";
+import {
+  getThemeBySlug,
+  getThemeVariants,
+  getPublicSessionsForTheme,
+  attachStats,
+  isBookable,
+} from "@/lib/themes";
+import { modeKey } from "../ModePicker";
 // 날짜 형식은 완료 화면·참여내역 조회와 같아야 한다. 한 화면 안에서 회차 일시와
 // 신청일이 다른 모양이면 같은 종류의 값으로 읽히지 않는다.
 import { formatDateTimeFull } from "@/lib/format";
@@ -27,22 +34,49 @@ export default async function ApplyPage({
   const { slug } = await params;
   const { session: sessionId } = await searchParams;
 
-  const theme = await getThemeBySlug(slug);
+  const base = await getThemeBySlug(slug);
 
   // 쿠폰 링크(/c/{코드})로 들어왔으면 쿠키에 코드가 담겨 있다. 손으로 칠 일이 없다.
   const couponCode = (await cookies()).get("wye_coupon")?.value ?? "";
 
-  if (!theme) notFound();
+  if (!base) notFound();
 
-  const accent = theme.accent_color || DEFAULT_ACCENT;
+  const accent = base.accent_color || DEFAULT_ACCENT;
 
   // 회차를 안 골랐거나 잘못된 회차면 선택 화면으로 돌려보낸다.
   if (typeof sessionId !== "string" || !sessionId) {
     return <Fallback slug={slug} accent={accent} message="먼저 날짜와 시간을 선택해주세요." />;
   }
 
-  const sessions = await attachStats(await getPublicSessionsForTheme(theme.id));
-  const target = sessions.find((s) => s.id === sessionId);
+  /*
+    모드(파티/노말) 해석 — **주소가 아니라 회차로 정한다.**
+
+    상세 화면은 ?mode= 로 모드를 오가지만, 신청 화면까지 그 값을 들고 올 필요는
+    없다. 회차 id 하나면 어느 테마(=모드)의 회차인지 유일하게 정해지기 때문이다.
+    주소에 의존하면 ?mode 가 빠진 옛 링크나 손으로 고친 주소에서 **파티 가격으로
+    노말 회차를 신청**하는 일이 생긴다.
+
+    ⚠️ 모드가 없는 테마는 변형 목록이 비어 있어 자기 자신만 본다 — 종전과 같다.
+  */
+  const variants = base.variant_group ? await getThemeVariants(base.variant_group) : [];
+  const candidates = variants.length > 0 ? variants : [base];
+
+  let theme = base;
+  let sessions = await attachStats(await getPublicSessionsForTheme(base.id));
+  let target = sessions.find((s) => s.id === sessionId);
+  if (!target) {
+    for (const c of candidates) {
+      if (c.id === base.id) continue;
+      const ss = await attachStats(await getPublicSessionsForTheme(c.id));
+      const hit = ss.find((s) => s.id === sessionId);
+      if (hit) {
+        theme = c;
+        sessions = ss;
+        target = hit;
+        break;
+      }
+    }
+  }
 
   if (!target) {
     return (
@@ -94,13 +128,21 @@ export default async function ApplyPage({
         categoryName={
           (theme as { theme_categories?: { name: string } | null }).theme_categories?.name ?? null
         }
-        backHref={`/themes/${slug}`}
+        // 돌아갈 때 모드를 유지한다. 노말모드로 신청하다 '날짜 다시 선택' 을
+        // 눌렀는데 파티모드 달력이 뜨면 방금 보던 회차가 사라진 것처럼 보인다.
+        backHref={
+          theme.id !== base.id
+            ? `/themes/${slug}?mode=${modeKey(base.slug, theme.slug)}`
+            : `/themes/${slug}`
+        }
         groupBooking={hasGroupBooking(slug)}
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={formatDateTimeFull(target.start_at)}
         minAge={target.min_age}
         maxGroupSize={theme.max_group_size}
+        minGroupSize={theme.min_group_size}
+        recommendedGroupSize={theme.recommended_group_size}
         tiers={theme.tiers}
         accentColor={accent}
         promo={
