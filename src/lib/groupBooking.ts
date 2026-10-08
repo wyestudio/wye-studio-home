@@ -10,7 +10,7 @@
  *    여기 있는 것은 전부 화면에 그대로 보이는 문구다.
  */
 
-/** 단체 예약 안내 페이지 주소. 상세 페이지의 연결 4곳이 전부 이 값을 쓴다. */
+/** 단체 예약 안내 페이지 주소. 상세 페이지의 연결이 전부 이 값을 쓴다. */
 export const GROUP_BOOKING_PATH = "/group";
 
 /**
@@ -118,10 +118,12 @@ export function isInquiryStatus(code: string): code is InquiryStatusCode {
 /**
  * 상세 페이지에서 단체 예약 페이지로 들어온 **진입 지점**.
  *
- * 어느 자리의 링크가 실제로 눌리는지 모르면 네 군데를 늘릴지 줄일지 판단할 수
+ * 어느 자리의 링크가 실제로 눌리는지 모르면 자리를 늘릴지 줄일지 판단할 수
  * 없다. GA4 의 `section_key` 칸에 이 값이 들어간다(analytics.ts 의 GROUP_EVENT).
  */
 export const GROUP_ENTRY = {
+  /** 상세 첫 화면, 모드 선택 창 옆의 PRIVATE ROOM 패널 */
+  intro: "detail_intro",
   /** 상세 PRICE 섹션 아래 안내 카드 */
   price: "detail_price",
   /** 신청 1단계 인원 선택 아래 한 줄 */
@@ -142,7 +144,7 @@ export function isGroupEntry(v: string): v is GroupEntryKey {
  * 진입 지점을 달아 둔 안내 페이지 주소.
  *
  * 왜 클릭 핸들러가 아니라 주소에 담는가
- *   네 군데 중 **두 곳(FAQ · FOR YOU 카드)은 어드민이 적는 문구 안의 링크**다.
+ *   그중 **두 곳(FAQ · FOR YOU 카드)은 어드민이 적는 문구 안의 링크**다.
  *   거기에는 자바스크립트를 끼울 자리가 없다. 주소에 담아 두면 도착한 페이지가
  *   한 번에 집계하므로 네 곳을 같은 방법으로 잴 수 있다.
  *

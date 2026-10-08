@@ -36,7 +36,8 @@ import {
   tidySynopsis,
   type ThemeContent,
 } from "@/types/catalog";
-import { hasGroupBooking } from "@/lib/groupBooking";
+import { GROUP_ENTRY, hasGroupBooking } from "@/lib/groupBooking";
+import { PrivateRoomPanel } from "@/components/group/PrivateRoomPanel";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { SectionNav } from "./SectionNav";
@@ -215,6 +216,14 @@ export default async function ThemeDetailPage({
     : null;
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
+  /*
+    모드가 둘 이상일 때만 첫 화면을 두 칸으로 쪼갠다.
+
+    ⚠️ 이 판정을 빼면 **모드가 없는 테마에서 오른쪽 칸이 통째로 빈다.** 운영에는
+       아직 variant_group 이 없어서 전 테마가 여기에 걸린다 — 격자만 깔고 채울 게
+       없으면 포스터가 화면 왼쪽 절반에 혼자 남는다.
+  */
+  const hasModes = variants.length >= 2;
   // 조인 결과라 타입에 없다. 없으면 카테고리 줄을 통째로 생략한다.
   const category =
     (
@@ -264,7 +273,11 @@ export default async function ThemeDetailPage({
       >
         <section
           id="intro"
-          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-x-10 md:gap-y-5`}
+          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 ${
+            hasModes
+              ? "md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-x-10 md:gap-y-5"
+              : "md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:items-start md:gap-x-10 md:gap-y-5"
+          }`}
         >
           {/*
             제목 줄 — 두 칸 위에 걸친다.
@@ -298,7 +311,7 @@ export default async function ThemeDetailPage({
             ⚠️ 모바일은 포스터와 시놉시스를 가로로 나란히 둔다. 세로로 쌓으면
                첫 화면이 포스터만으로 꽉 찬다.
           */}
-          <div className="min-w-0">
+          <div className="min-w-0 md:col-start-1 md:row-start-2">
             <div
               className={
                 synopsis
@@ -351,10 +364,36 @@ export default async function ThemeDetailPage({
                무엇을 보고 있는지 모른 채 숫자부터 읽게 된다.
                데스크톱에서는 자동 배치가 알아서 2행 오른쪽 칸에 앉힌다.
           */}
-          <ModeBox variants={variants} active={theme} baseSlug={base.slug} accent={accent} />
+          <ModeBox
+            variants={variants}
+            active={theme}
+            baseSlug={base.slug}
+            accent={accent}
+            className="md:col-start-2 md:row-start-2"
+          />
 
-          {/* 고른 모드의 스펙. 데스크톱에서는 3행 왼쪽 칸(포스터 아래)로 간다. */}
-          <div className="flex min-w-0 flex-col gap-4">
+          {/*
+            단체 예약 — 모드 옆에 세우는 **세 번째 선택지**. 모드 창 바로 아래에
+            둬야 "고를 수 있는 길" 로 읽힌다(2026-10-08 시안).
+            ⚠️ 모드가 아니라 **base 테마** 기준으로 판정한다. 변형 테마의 slug 는
+               `baotalchul-normal` 이라 그대로 넣으면 노말모드에서만 사라진다.
+          */}
+          {hasGroupBooking(base.slug) && (
+            <PrivateRoomPanel
+              entry={GROUP_ENTRY.intro}
+              className={hasModes ? "md:col-start-2 md:row-start-3" : "md:col-span-2"}
+            />
+          )}
+
+          {/*
+            고른 모드의 스펙.
+            모드가 있으면 포스터 아래(1열 3행), 없으면 옛 배치대로 포스터 오른쪽.
+          */}
+          <div
+            className={`flex min-w-0 flex-col gap-4 ${
+              hasModes ? "md:col-start-1 md:row-start-3" : "md:col-start-2 md:row-start-2"
+            }`}
+          >
             <ThemeSpecTiles
               difficulty={theme.difficulty}
               durationMinutes={theme.duration_minutes}
@@ -474,7 +513,9 @@ export default async function ThemeDetailPage({
           }
           // 단체 예약을 받는 테마만 가격표 아래에 안내 카드를 붙인다 —
           // 안내 페이지의 조건(3시간·10~24명·단독 진행)이 테마별로 다르다.
-          groupBooking={hasGroupBooking(theme.slug)}
+          // base 기준이다. 변형 테마의 slug(baotalchul-normal)로 보면
+          // 노말모드에서만 단체 안내가 사라진다.
+          groupBooking={hasGroupBooking(base.slug)}
           promo={
             promoUsable
               ? {

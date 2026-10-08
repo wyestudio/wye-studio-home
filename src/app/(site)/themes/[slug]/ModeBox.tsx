@@ -39,12 +39,15 @@ export function ModeBox({
   active,
   baseSlug,
   accent,
+  className = "",
 }: {
   variants: ThemeDetail[];
   active: ThemeDetail;
   baseSlug: string;
   /** 고른 모드의 강조색. */
   accent: string;
+  /** 격자 안에서의 자리. 자리는 **부르는 쪽이** 정한다(감싸는 div 를 두면 격자 칸이 그 div 가 된다). */
+  className?: string;
 }) {
   if (variants.length < 2) return null;
 
@@ -57,7 +60,7 @@ export function ModeBox({
 
   return (
     <div
-      className="overflow-hidden rounded-xl border border-line bg-fill-subtle"
+      className={`overflow-hidden rounded-xl border border-line bg-fill-subtle ${className}`}
       style={{ boxShadow: `3px 3px 0 ${accent}2e` }}
     >
       {/* 창 머리 — 게임 창의 타이틀바 */}
