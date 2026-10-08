@@ -55,9 +55,17 @@ export function ThemeBlocks({
   venue = null,
   promo = null,
   groupBooking = false,
+  priceModeToggle = null,
 }: {
   blocks: ThemeBlock[];
   accent: string;
+  /**
+   * 가격표 블록 위에 끼울 모드 전환 토글.
+   *
+   * 모드마다 가격이 달라서, 여기서 바로 두 모드를 오가며 비교할 수 있어야 한다.
+   * 블록 컴포넌트가 모드를 알 필요는 없으므로 **만들어진 조각을 받기만** 한다.
+   */
+  priceModeToggle?: React.ReactNode;
   /** 가격표 블록이 쓸 요금 구간. 블록이 아니라 테마가 들고 있는 값이다. */
   tiers?: ThemePriceTier[];
   maxGroupSize?: number | null;
@@ -112,6 +120,7 @@ export function ThemeBlocks({
                 venue={venue}
                 promo={promo}
                 groupBooking={groupBooking}
+                priceModeToggle={priceModeToggle}
               />
             </div>
           ))}
@@ -141,6 +150,7 @@ export function ThemeBlockView({
   venue = null,
   promo = null,
   groupBooking = false,
+  priceModeToggle = null,
 }: {
   block: ThemeBlock;
   accent: string;
@@ -149,6 +159,8 @@ export function ThemeBlockView({
   venue?: PublicVenue | null;
   promo?: ThemeBlocksPromo | null;
   groupBooking?: boolean;
+  /** 가격표 블록 위에 끼울 조각(모드 전환 토글). 가격 블록에서만 쓰인다. */
+  priceModeToggle?: React.ReactNode;
 }) {
   // 제목은 전부 가운데. 블록마다 왼쪽/가운데가 섞이면 시선이 계속 튄다.
   // included 도 라벨·제목을 달 수 있다. 다만 기본은 비워 두는 쪽이다 —
@@ -173,6 +185,7 @@ export function ThemeBlockView({
       */}
       {block.type === "price" && (
         <div className="mx-auto w-full max-w-3xl">
+          {priceModeToggle}
           <PriceTable
             tiers={tiers}
             maxGroupSize={maxGroupSize}

@@ -107,10 +107,8 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
 /**
  * 칸 하나. 소제목(dt) + 내용(dd). 칸이 늘어나면 내용은 세로 가운데에 선다.
  *
- * ⚠️ 데스크톱 세로 여백을 py-4(16px)에서 py-3(12px)으로 줄였다. 이 칸 높이가
- *    오른쪽 칸 전체 높이를 밀어 올리고, 그게 **포스터 크기까지 끌어올린다**
- *    (PosterFit — 포스터는 오른쪽 칸 높이를 따라간다). 담긴 건 두 줄뿐인데
- *    칸이 102px 이었다 (2026-10-05 실측).
+ * ⚠️ 데스크톱 세로 여백은 py-3(12px)이다. py-4 로 두면 담긴 게 두 줄뿐인데
+ *    칸이 102px 까지 커졌다 (2026-10-05 실측).
  */
 function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (

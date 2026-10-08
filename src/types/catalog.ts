@@ -339,6 +339,22 @@ export type Theme = {
   min_group_size: number | null;
   /** 화면에 '권장'으로 보여줄 인원 상한. 신청 상한(max_group_size)과 **다르다**. */
   recommended_group_size: number | null;
+  /** 모드 선택 창의 한 줄 요약. */
+  mode_summary: string | null;
+  /** 모드 차이 항목. 아이콘은 화면이 아는 키만 그린다(ModeHighlightIcon). */
+  mode_highlights: ThemeModeHighlight[];
+};
+
+/**
+ * 모드 선택 창에 줄줄이 보여줄 차이 항목.
+ *
+ * ⚠️ icon 은 **화면이 아는 키**만 그린다. 운영자가 오타를 내도 화면이 깨지지
+ *    않아야 해서, 모르는 키는 아이콘 없이 글자만 보여준다.
+ */
+export type ThemeModeHighlight = {
+  icon: string | null;
+  label: string;
+  value: string;
 };
 
 export type ThemeWithTiers = Theme & { tiers: ThemePriceTier[] };

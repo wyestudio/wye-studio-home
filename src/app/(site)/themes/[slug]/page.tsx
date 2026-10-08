@@ -39,13 +39,12 @@ import {
 import { hasGroupBooking } from "@/lib/groupBooking";
 import { SessionPicker, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
-import { PosterFit } from "./PosterFit";
 import { SectionNav } from "./SectionNav";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
-import { ModePicker, modeKey } from "./ModePicker";
+import { ModeBox, modeKey } from "./ModeBox";
+import { ModeToggle } from "./ModeToggle";
 import { SectionViewTracker } from "./SectionViewTracker";
-import { posterFitInlineScript } from "./posterFitScript";
 
 /*
   이 페이지는 동적으로 그린다. 대신 **데이터에 캐시가 걸려 있다**
@@ -243,16 +242,12 @@ export default async function ThemeDetailPage({
         날짜 선택은 아래 별도 섹션으로 내렸다 — 포스터 옆을 달력이 차지하고 있어
         정작 테마 정보가 작은 글씨 한 줄로 밀려나 있었다.
 
-        같은 요소를 화면 폭에 따라 다르게 배치한다(grid-template-areas):
-          모바일   제목 / [포스터 | 난이도·시간] / 장르 / 시놉시스
-          데스크톱 [포스터 | 제목 · 난이도·시간 · 장르 · 시놉시스]
-        요소를 두 번 그리지 않으려고 순서 대신 영역 이름으로 자리를 정한다.
+        배치(2026-10-08 시안):
+          데스크톱  왼쪽 = 테마가 무엇인지(포스터·시놉시스·스펙·장르)
+                   오른쪽 = 어떻게 플레이할지(게임식 모드 선택 창)
+          모바일    같은 순서로 세로. 포스터와 시놉시스만 가로로 나란히.
 
-        포스터는 **어느 화면에서도 4:5 그대로**다(잘리지 않게). 높이 맞추기는 이렇게:
-          모바일   포스터 옆 난이도·시간 두 칸이 포스터 높이만큼 늘어난다.
-                   장르까지 옆에 두면 포스터보다 훨씬 길어져서 장르만 아래로 내렸다.
-          데스크톱 PosterFit 이 오른쪽 높이를 재서 포스터 칸 폭(--poster-w)을 정한다.
-                   오른쪽 요소는 전부 md:self-start — 늘어나 있으면 잰 높이가 틀어진다.
+        포스터는 **어느 화면에서도 4:5 그대로**다(잘리지 않게).
       */}
       {/*
         첫 화면: 소개 블록. 높이는 내용에 맡기고 아래 여백만 둔다 — 예전에는 화면
@@ -269,124 +264,108 @@ export default async function ThemeDetailPage({
       >
         <section
           id="intro"
-          suppressHydrationWarning
-          className={`grid ${SCREEN_SCROLL_MARGIN} grid-cols-2 gap-x-3.5 gap-y-3 md:gap-y-2
-                   [grid-template-areas:'title_title'_'mode_mode'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
-                   md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_auto_1fr] md:gap-x-10
-                   md:[grid-template-areas:'poster_title'_'poster_mode'_'poster_specs'_'poster_genres'_'poster_synopsis']
-                   lg:grid-cols-[var(--poster-w,20rem)_minmax(0,1fr)]`}
+          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-x-10 md:gap-y-5`}
         >
-          <PosterFit sectionId="intro" />
-
           {/*
-          데스크톱은 크기를 맞추기 전까지 투명하게 둔다(data-poster-fit=done 이 붙으면 보임).
-          맞추기는 바로 아래 인라인 스크립트가 화면이 그려지기 전에 끝내므로 기다림은 없다.
-          맞추기 전 크기(기본 20rem)로 한 번 그려졌다가 커지는 모습을 보이지 않으려는 것이다.
-        */}
-          <div
-            data-poster
-            className="relative aspect-[4/5] self-start overflow-hidden rounded-xl border border-line bg-surface [grid-area:poster]
-                     md:opacity-0 md:[[data-poster-fit=done]_&]:opacity-100"
-          >
-            <PosterImage
-              src={theme.hero_image_path}
-              alt={`${theme.name} 포스터`}
-              sizes="(min-width: 768px) 460px, 50vw"
-              priority
-            />
-          </div>
-
-          <div
-            data-fit-top
-            className="mb-2 min-w-0 self-start [grid-area:title] md:mb-3"
-          >
-            {/*
-            제목 위에 카테고리(강조색 작은 글씨 + 설명 물음표), 아래 줄에 테마명 / 오른쪽 끝에 공유.
+            제목 줄 — 두 칸 위에 걸친다.
+            카테고리(강조색 작은 글씨 + 설명 물음표)를 위에, 테마명을 아래, 공유를 오른쪽 끝에.
             카테고리를 제목 옆 알약으로 두면 장르 태그와 구분이 안 됐다(CategoryLabel 참고).
           */}
+          <div className="min-w-0 md:col-span-2">
             {category && <CategoryLabel category={category} accent={accent} />}
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 {/*
-                  ⚠️ **base.name 이다.** 테마명 자체는 「바-ㅇ탈출 (노말모드)」처럼
-                     모드를 달고 있어야 한다 — 문자·어드민·정산이 그 이름을 쓴다.
-                     하지만 화면에서는 바로 위 탭이 이미 모드를 말하므로, 제목에까지
-                     넣으면 같은 말이 두 번 나온다.
+                  ⚠️ **base.name 이다.** 테마명 자체는 모드를 달고 있을 수 있는데
+                     (문자·어드민·정산이 그 이름을 쓴다), 화면에서는 모드 창이 이미
+                     모드를 말하므로 제목에까지 넣으면 같은 말이 두 번 나온다.
                 */}
                 <h1 className="text-h1 font-extrabold">{base.name}</h1>
               </div>
               <div className="shrink-0">
-                <ShareButton
-                  url={`${SITE_URL}/themes/${theme.slug}`}
-                  title={theme.name}
-                />
+                <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
               </div>
             </div>
-
-            {/* 장소는 여기서 뺐다. 상세 정보의 '진행 장소' 블록(ThemeBlocks)이 보여준다. */}
           </div>
 
           {/*
-            모드 선택(파티/노말). 테마명 아래 · 스펙 위다 — 테마가 무엇인지 먼저
-            읽히고 그다음에 고르는 순서가 되게. 모드가 하나뿐이면 아무것도 안 그린다.
-          */}
-          <ModePicker
-            variants={variants}
-            activeId={theme.id}
-            baseSlug={base.slug}
-            accent={accent}
-            className="mb-3 self-start [grid-area:mode] md:mb-4"
-          />
+            왼쪽 — 테마가 무엇인지. 포스터·시놉시스·난이도/시간·장르.
 
-          {/* 모바일은 포스터 높이만큼 늘어나야 해서 self-start 를 데스크톱에만 준다. */}
-          <div
-            data-fit-bottom
-            className="min-w-0 [grid-area:specs] md:self-start"
-          >
+            ⚠️ 예전에는 포스터 높이를 오른쪽 칸 높이에 맞췄다(PosterFit). 오른쪽이
+               '제목+스펙+시놉시스' 라 길이가 들쭉날쭉했기 때문이다. 지금은 오른쪽이
+               모드 창 하나라 맞출 대상이 없고, 포스터는 제 칸 폭을 그냥 채운다.
+               그래서 PosterFit 과 인라인 스크립트를 걷어냈다(2026-10-08).
+            ⚠️ 모바일은 포스터와 시놉시스를 가로로 나란히 둔다. 세로로 쌓으면
+               첫 화면이 포스터만으로 꽉 찬다.
+          */}
+          <div className="min-w-0">
+            <div
+              className={
+                synopsis
+                  ? "grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-1 sm:gap-4"
+                  : // 시놉시스가 없으면 옆자리가 비어 포스터만 혼자 쪼그라든다.
+                    // 좁은 화면에서는 적당히 키우되 **화면을 다 먹지는 않게** 묶어 둔다.
+                    "max-w-[14rem] sm:max-w-none"
+              }
+            >
+              <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-line bg-surface">
+                <PosterImage
+                  src={theme.hero_image_path}
+                  alt={`${theme.name} 포스터`}
+                  sizes="(min-width: 768px) 420px, 40vw"
+                  priority
+                />
+              </div>
+
+              {synopsis && (
+                <div className="min-w-0">
+                  <p
+                    className="mb-2 text-micro font-semibold uppercase tracking-[0.3em]"
+                    style={{ color: accent }}
+                  >
+                    Synopsis
+                  </p>
+                  {/*
+                    pre-wrap: 입력한 줄바꿈과 **띄어쓰기 개수까지** 그대로 보여준다.
+                    pre-line 이면 빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
+                    break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
+                  */}
+                  <p
+                    className="whitespace-pre-wrap break-words border-l-2 pl-3 text-body leading-[1.7] text-foreground sm:pl-4"
+                    style={{ borderColor: `${accent}80` }}
+                  >
+                    {synopsis}
+                  </p>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/*
+            오른쪽 — 어떻게 플레이할지. 게임에서 모드를 고르는 창을 본떴다.
+            모드가 하나뿐인 테마에서는 아무것도 안 그린다(ModeBox 가 null 을 낸다).
+
+            ⚠️ **소스 순서가 곧 모바일 순서다.** 그래서 모드 창을 난이도·시간·장르
+               **앞**에 둔다 — 그 값들이 전부 '고른 모드의 값' 이라, 뒤에 놓으면
+               무엇을 보고 있는지 모른 채 숫자부터 읽게 된다.
+               데스크톱에서는 자동 배치가 알아서 2행 오른쪽 칸에 앉힌다.
+          */}
+          <ModeBox variants={variants} active={theme} baseSlug={base.slug} accent={accent} />
+
+          {/* 고른 모드의 스펙. 데스크톱에서는 3행 왼쪽 칸(포스터 아래)로 간다. */}
+          <div className="flex min-w-0 flex-col gap-4">
             <ThemeSpecTiles
               difficulty={theme.difficulty}
               durationMinutes={theme.duration_minutes}
               accent={accent}
             />
-          </div>
-
-          <div
-            data-fit-bottom
-            className="min-w-0 self-start [grid-area:genres]"
-          >
             <ThemeGenreTile genres={genres} accent={accent} />
           </div>
-
-          {synopsis && (
-            <div
-              data-fit-bottom
-              className="mt-2 min-w-0 self-start [grid-area:synopsis] md:mt-3"
-            >
-              <p
-                className="mb-2 text-micro font-semibold uppercase tracking-[0.3em]"
-                style={{ color: accent }}
-              >
-                Synopsis
-              </p>
-              {/*
-              pre-wrap: 입력한 줄바꿈과 **띄어쓰기 개수까지** 그대로 보여준다.
-              pre-line 이면 빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
-              break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
-            */}
-              <p
-                className="whitespace-pre-wrap break-words border-l-2 pl-4 text-h3 font-normal leading-[1.7] text-foreground sm:pl-5"
-                style={{ borderColor: `${accent}80` }}
-              >
-                {synopsis}
-              </p>
-            </div>
-          )}
         </section>
 
         {/*
         강조 안내(themes.intro_notice). 포스터·정보 묶음 **바깥 아래**에 가로로 길게 둔다.
-        ⚠️ 안쪽(시놉시스 아래)에 두면 오른쪽 칸이 길어져 포스터 높이 맞추기(PosterFit)가
-           같이 늘어난다 — 포스터와 정보의 아래끝이 어긋났다(2026-09-16).
         읽히는 순서는 그대로다: 시놉시스 → 이 안내 → 신청하기.
       */}
         {introNotice && (
@@ -403,17 +382,6 @@ export default async function ThemeDetailPage({
             />
           </div>
         )}
-        {/*
-        첫 로드 때 포스터 크기를 화면이 그려지기 전에 맞춘다(posterFitScript.ts).
-        다른 화면에서 넘어올 때는 이 스크립트가 돌지 않아 PosterFit 이 맡는다.
-      */}
-        <script
-          dangerouslySetInnerHTML={{ __html: posterFitInlineScript("intro") }}
-        />
-        {/* 스크립트가 꺼진 브라우저에서 포스터가 영영 투명하게 남지 않게 */}
-        <noscript>
-          <style>{`#intro [data-poster]{opacity:1!important}`}</style>
-        </noscript>
         <ScrollToBookingButton accent={accent} themeName={theme.name} />
       </div>
 
@@ -440,12 +408,13 @@ export default async function ThemeDetailPage({
           ⚠️ 모드를 바꾸면 고른 날짜(?d=)는 버린다 — 모드마다 여는 요일이 달라
              넘겨봐야 없는 날이고, 남겨 두면 '마감' 뿐인 첫 화면이 된다.
         */}
-        <ModePicker
+        <ModeToggle
           variants={variants}
           activeId={theme.id}
           baseSlug={base.slug}
           accent={accent}
           className="mx-auto mb-5 w-full max-w-4xl sm:mb-6"
+          anchor="booking"
         />
         <div className="mx-auto w-full max-w-4xl">
           <SessionPicker
@@ -486,6 +455,23 @@ export default async function ThemeDetailPage({
           tiers={theme.tiers}
           maxGroupSize={theme.max_group_size}
           venue={theme.venue}
+          priceModeToggle={
+            /*
+              id 를 **여기서** 붙인다. ThemeBlocks 안에 두면 신청 3단계처럼
+              가격표를 쓰는 다른 화면에도 같은 id 가 생긴다.
+            */
+            <div id="price" className={SCREEN_SCROLL_MARGIN}>
+              <ModeToggle
+                variants={variants}
+                activeId={theme.id}
+                baseSlug={base.slug}
+                accent={accent}
+                className="mb-4"
+                label="가격 비교"
+                anchor="price"
+              />
+            </div>
+          }
           // 단체 예약을 받는 테마만 가격표 아래에 안내 카드를 붙인다 —
           // 안내 페이지의 조건(3시간·10~24명·단독 진행)이 테마별로 다르다.
           groupBooking={hasGroupBooking(theme.slug)}
