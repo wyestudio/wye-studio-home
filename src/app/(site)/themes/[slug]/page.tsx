@@ -224,6 +224,19 @@ export default async function ThemeDetailPage({
        없으면 포스터가 화면 왼쪽 절반에 혼자 남는다.
   */
   const hasModes = variants.length >= 2;
+  /*
+    **테마에 딸린 것**과 **모드에 딸린 것**을 가른다.
+
+    시놉시스·포스터는 테마의 것이다 — 같은 「바-ㅇ탈출」인 이상 모드를 바꿨다고
+    이야기와 그림이 달라질 리 없다(2026-10-08 대표님). 그래서 **대표 모드(첫 번째)
+    것을 두 모드가 같이 쓴다.**
+
+    ⚠️ DB 의 노말 행에 같은 글을 복사해 넣지 않는다. 두 벌이 되면 **반드시 한쪽만
+       고치는 날이 온다.** 어드민에서 시놉시스를 고칠 자리는 파티(대표) 행 하나다.
+    ⚠️ 카테고리·장르·난이도·소요시간·가격·인원·상세블록은 반대로 **모드의 것**이라
+       theme 에서 그대로 읽는다.
+  */
+  const themeLevel = variants[0] ?? base;
   // 조인 결과라 타입에 없다. 없으면 카테고리 줄을 통째로 생략한다.
   const category =
     (
@@ -236,7 +249,7 @@ export default async function ThemeDetailPage({
   const content: ThemeContent = normalizeThemeContent(theme.content);
   // 컬럼(p30)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const genres = theme.genres ?? [];
-  const synopsis = tidySynopsis(theme.description);
+  const synopsis = tidySynopsis(themeLevel.description);
   // 칸(p38)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const introNotice = theme.intro_notice?.trim() || "";
 
@@ -323,7 +336,7 @@ export default async function ThemeDetailPage({
             >
               <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-line bg-surface">
                 <PosterImage
-                  src={theme.hero_image_path}
+                  src={themeLevel.hero_image_path}
                   alt={`${theme.name} 포스터`}
                   sizes="(min-width: 768px) 420px, 40vw"
                   priority
