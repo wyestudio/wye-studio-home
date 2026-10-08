@@ -111,6 +111,68 @@ async function _getThemeBySlug(slug: string): Promise<ThemeDetail | null> {
 }
 
 /**
+ * 같은 묶음(variant_group)에 속한 모드들. 모드가 없는 테마면 자기 자신 하나.
+ *
+ * 바-ㅇ탈출은 파티모드·노말모드 **두 테마 행**으로 나뉘어 있다. 상세 화면은
+ * 주소 하나(/themes/baotalchul)에서 ?mode= 로 둘을 오간다. 그래서 화면을 그리기
+ * 전에 묶음 전체를 읽어 와야 한다 — 고르지 않은 모드도 선택지에 이름·시간·가격을
+ * 보여줘야 하기 때문이다.
+ *
+ * ⚠️ 정렬은 sort_order 다. **첫 번째가 기본 모드**(파티)가 되도록 어드민에서
+ *    sort_order 를 잡는다. 여기서 이름으로 추측하지 않는다.
+ * ⚠️ is_listed 로 거르지 않는다. 노말모드는 목록에 안 나오지만(is_listed=false)
+ *    상세에서는 골라야 하므로 여기서 빠지면 안 된다.
+ */
+export const getThemeVariants = unstable_cache(
+  _getThemeVariants,
+  ["theme-variants"],
+  { revalidate: 300, tags: [THEMES_TAG] }
+);
+
+// ⚠️ 장소도 같이 읽는다. 모드마다 장소가 다를 수 있고(2부 없는 노말모드를 다른
+//    방에서 돌릴 수 있다), 무엇보다 화면이 theme.venue 를 그대로 쓴다.
+
+async function _getThemeVariants(variantGroup: string): Promise<ThemeDetail[]> {
+  const supabase = createPublicClient();
+
+  const { data, error } = await supabase
+    .from("themes")
+    .select("*, theme_categories(name, description)")
+    .eq("variant_group", variantGroup)
+    .eq("is_active", true)
+    .order("sort_order");
+  if (error) throw error;
+  const themes = (data ?? []) as Theme[];
+  if (themes.length === 0) return [];
+
+  const { data: tiers } = await supabase
+    .from("theme_price_tiers")
+    .select("*")
+    .in("theme_id", themes.map((t) => t.id))
+    .order("min_headcount");
+
+  const byTheme = new Map<string, ThemePriceTier[]>();
+  for (const t of (tiers ?? []) as ThemePriceTier[]) {
+    byTheme.set(t.theme_id, [...(byTheme.get(t.theme_id) ?? []), t]);
+  }
+
+  const { data: venues } = await supabase
+    .from("theme_public_venue")
+    .select("theme_id, area_label, parking_note, map_url, name, address, lat, lng, operating_period")
+    .in("theme_id", themes.map((t) => t.id));
+  const venueByTheme = new Map<string, PublicVenue>();
+  for (const v of (venues ?? []) as (PublicVenue & { theme_id: string })[]) {
+    venueByTheme.set(v.theme_id, v);
+  }
+
+  return themes.map((t) => ({
+    ...t,
+    tiers: byTheme.get(t.id) ?? [],
+    venue: venueByTheme.get(t.id) ?? null,
+  }));
+}
+
+/**
  * 해당 테마에서 **고객 화면에 보일** 회차들. 취소된 회차와 아직 공개 시각이
  * 안 된 회차만 뺀다 — 지난 회차는 '마감' 으로 남긴다.
  * session_view 를 쓰는 이유는 가격·정원·장소의 override 규칙이 그 안에만

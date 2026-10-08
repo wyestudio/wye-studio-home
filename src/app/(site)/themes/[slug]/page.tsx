@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   getThemeBySlug,
+  getThemeVariants,
   getPublicSessionsForTheme,
   attachStats,
   remainingSeats,
@@ -42,6 +43,7 @@ import { PosterFit } from "./PosterFit";
 import { SectionNav } from "./SectionNav";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
+import { ModePicker, modeKey } from "./ModePicker";
 import { SectionViewTracker } from "./SectionViewTracker";
 import { posterFitInlineScript } from "./posterFitScript";
 
@@ -126,8 +128,34 @@ export default async function ThemeDetailPage({
   const sp = await searchParams;
   const dParam = typeof sp?.d === "string" ? sp.d : null;
 
-  const theme = await getThemeBySlug(slug);
-  if (!theme) notFound();
+  const base = await getThemeBySlug(slug);
+  if (!base) notFound();
+
+  /*
+    모드(바-ㅇ탈출 파티/노말).
+
+    한 테마를 모드로 나눌 때 **테마 행을 하나 더** 만들었다(마이그레이션
+    20261008063528). 주소는 /themes/baotalchul 하나로 두고 ?mode= 로 오간다.
+
+    ⚠️ 아래 전부 — 스펙·장르·시놉시스·가격표·상세블록·회차·프로모션 — 가 고른
+       모드의 테마를 본다. 그래서 여기서 theme 을 바꿔 두고, 밑에서는 모드를
+       다시 신경 쓰지 않는다.
+    ⚠️ ?mode 가 이 묶음에 없는 값이면 **기본 모드로 떨어뜨린다.** 주소는 누구나
+       고칠 수 있어서, 모르는 값에 404 를 주면 공유 링크가 깨진 것처럼 보인다.
+  */
+  const variants = base.variant_group ? await getThemeVariants(base.variant_group) : [];
+  const modeParam = typeof sp?.mode === "string" ? sp.mode : null;
+  const theme =
+    (modeParam
+      ? variants.find(
+          (v) =>
+            modeKey(base.slug, v.slug) === modeParam ||
+            v.slug === modeParam ||
+            v.id === modeParam
+        )
+      : null) ??
+    variants[0] ??
+    base;
 
   // is_active 는 '신청 받기' 여부일 뿐이다. 꺼져 있어도 페이지는 보여준다.
   // 잠긴 테마는 신청도 받지 않는다 — 목록·홈에서 못 들어오게 막아둔 곳을
@@ -243,9 +271,9 @@ export default async function ThemeDetailPage({
           id="intro"
           suppressHydrationWarning
           className={`grid ${SCREEN_SCROLL_MARGIN} grid-cols-2 gap-x-3.5 gap-y-3 md:gap-y-2
-                   [grid-template-areas:'title_title'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
-                   md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr] md:gap-x-10
-                   md:[grid-template-areas:'poster_title'_'poster_specs'_'poster_genres'_'poster_synopsis']
+                   [grid-template-areas:'title_title'_'mode_mode'_'poster_specs'_'genres_genres'_'synopsis_synopsis']
+                   md:grid-cols-[var(--poster-w,18rem)_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_auto_1fr] md:gap-x-10
+                   md:[grid-template-areas:'poster_title'_'poster_mode'_'poster_specs'_'poster_genres'_'poster_synopsis']
                    lg:grid-cols-[var(--poster-w,20rem)_minmax(0,1fr)]`}
         >
           <PosterFit sectionId="intro" />
@@ -279,7 +307,13 @@ export default async function ThemeDetailPage({
             {category && <CategoryLabel category={category} accent={accent} />}
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="text-h1 font-extrabold">{theme.name}</h1>
+                {/*
+                  ⚠️ **base.name 이다.** 테마명 자체는 「바-ㅇ탈출 (노말모드)」처럼
+                     모드를 달고 있어야 한다 — 문자·어드민·정산이 그 이름을 쓴다.
+                     하지만 화면에서는 바로 위 탭이 이미 모드를 말하므로, 제목에까지
+                     넣으면 같은 말이 두 번 나온다.
+                */}
+                <h1 className="text-h1 font-extrabold">{base.name}</h1>
               </div>
               <div className="shrink-0">
                 <ShareButton
@@ -291,6 +325,18 @@ export default async function ThemeDetailPage({
 
             {/* 장소는 여기서 뺐다. 상세 정보의 '진행 장소' 블록(ThemeBlocks)이 보여준다. */}
           </div>
+
+          {/*
+            모드 선택(파티/노말). 테마명 아래 · 스펙 위다 — 테마가 무엇인지 먼저
+            읽히고 그다음에 고르는 순서가 되게. 모드가 하나뿐이면 아무것도 안 그린다.
+          */}
+          <ModePicker
+            variants={variants}
+            activeId={theme.id}
+            baseSlug={base.slug}
+            accent={accent}
+            className="mb-3 self-start [grid-area:mode] md:mb-4"
+          />
 
           {/* 모바일은 포스터 높이만큼 늘어나야 해서 self-start 를 데스크톱에만 준다. */}
           <div
@@ -387,6 +433,19 @@ export default async function ThemeDetailPage({
           className="mb-6 sm:mb-10"
           eyebrowColor={accent}
           size="lg"
+        />
+        {/*
+          회차 선택에서도 모드를 오간다. 토요일 1회차(파티) ↔ 일요일 6회차(노말)를
+          달력에서 바로 비교할 수 있어야 한다는 요청(2026-10-08).
+          ⚠️ 모드를 바꾸면 고른 날짜(?d=)는 버린다 — 모드마다 여는 요일이 달라
+             넘겨봐야 없는 날이고, 남겨 두면 '마감' 뿐인 첫 화면이 된다.
+        */}
+        <ModePicker
+          variants={variants}
+          activeId={theme.id}
+          baseSlug={base.slug}
+          accent={accent}
+          className="mx-auto mb-5 w-full max-w-4xl sm:mb-6"
         />
         <div className="mx-auto w-full max-w-4xl">
           <SessionPicker

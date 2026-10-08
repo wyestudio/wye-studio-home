@@ -323,6 +323,22 @@ export type Theme = {
   sort_order: number;
   created_at: string;
   updated_at: string;
+
+  /*
+    모드(바-ㅇ탈출 파티/노말). 한 테마를 모드로 나눌 때 **테마 행을 하나 더**
+    만들고 아래 값으로 묶는다 — 가격·회차·스펙이 전부 테마 단위라 그게 가장
+    적게 고치는 길이었다(2026-10-08, 마이그레이션 20261008063528 참고).
+  */
+  /** 같은 테마의 다른 모드끼리 같은 값. null 이면 모드가 없는 단독 테마다. */
+  variant_group: string | null;
+  /** 모드 탭에 보여줄 짧은 이름(파티모드/노말모드). **테마명과 별개다.** */
+  variant_label: string | null;
+  /** 허용 참여 횟수. **null 이면 재참여 무제한**(노말모드). 판정은 DB 가 한다. */
+  reparticipation_limit: number | null;
+  /** 신청 가능한 최소 인원(null = 1). 가격표에 구간이 없는 인원을 막는다. */
+  min_group_size: number | null;
+  /** 화면에 '권장'으로 보여줄 인원 상한. 신청 상한(max_group_size)과 **다르다**. */
+  recommended_group_size: number | null;
 };
 
 export type ThemeWithTiers = Theme & { tiers: ThemePriceTier[] };
