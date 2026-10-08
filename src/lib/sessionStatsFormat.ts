@@ -13,6 +13,14 @@ export type SessionDisplayRow = {
   id: string;
   theme_name: string | null;
   format_label: string | null;
+  /**
+   * 모드(파티모드/노말모드). 한 테마가 모드로 나뉜 경우에만 값이 있다.
+   *
+   * ⚠️ 테마명은 두 모드가 **똑같다**(둘 다 '바-ㅇ탈출'). 어드민 목록에서
+   *    회차를 구분하려면 이 값을 같이 보여줘야 한다 — 요일로도 갈리지만
+   *    (파티 토 / 노말 일) 그 규칙이 영원하지는 않다.
+   */
+  theme_mode: string | null;
   is_legacy: boolean;
   capacity_confirm_line: number | null;
   capacity_max: number | null;

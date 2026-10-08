@@ -17,7 +17,7 @@ export default async function AdminCouponsPage() {
       .order("code"),
     supabase.from("themes").select("id, name").order("sort_order"),
     // 발송 대상은 "이 회차에 참여한 사람" 으로 고른다.
-    supabase.from("session_display").select("id, theme_id, theme_name, format_label, start_at")
+    supabase.from("session_display").select("id, theme_id, theme_name, format_label, start_at, theme_mode")
       .order("start_at", { ascending: false }),
     supabase.from("sms_templates").select("key, label").like("key", "coupon%").order("label"),
   ]);
@@ -49,7 +49,7 @@ export default async function AdminCouponsPage() {
               start_at: s.start_at as string,
               theme_id: (s.theme_id as string | null) ?? null,
               theme_name: (s.theme_name as string | null) ?? "(테마 없음)",
-              note: (s.format_label as string | null) ?? null,
+              note: (s.format_label as string | null) ?? (s.theme_mode as string | null) ?? null,
             }))}
             templates={(templatesRes.data ?? []) as { key: string; label: string }[]}
           />

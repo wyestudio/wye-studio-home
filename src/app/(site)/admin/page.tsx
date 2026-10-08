@@ -156,6 +156,9 @@ export default async function AdminDashboard() {
       status: s.status,
       opens_at: s.opens_at,
       theme_name: s.theme_name,
+      // 모드가 있으면 배지로 보여준다(파티모드/노말모드). 옛 회차는 null 이라
+      // format_label(소개팅/그룹)이 그대로 쓰인다 — 배지 자리를 새로 만들지 않는다.
+      theme_mode: s.theme_mode ?? null,
       format_label: s.format_label,
       capacity_line: formatCapacityLine(s),
       headcount_line: stats ? formatHeadcountLine(s, stats) : "확정 0명 · 대기 0명",

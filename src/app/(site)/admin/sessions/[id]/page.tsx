@@ -278,6 +278,15 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
           <div>
             <h1 className="text-h2 font-semibold mb-2">
               {session.session_type} {session.theme_name}
+              {/*
+                모드 배지. 테마명이 두 모드 모두 '바-ㅇ탈출' 이라, 이게 없으면
+                회차 상세만 보고는 파티인지 노말인지 알 수 없다.
+              */}
+              {session.theme_mode && (
+                <span className="ml-2 rounded-md bg-muted/20 px-2 py-0.5 text-micro font-normal text-muted align-middle">
+                  {session.theme_mode}
+                </span>
+              )}
             </h1>
             <p className="text-muted">{formatDateTimeFull(session.start_at)}</p>
             <p className="text-body-sm mt-1">

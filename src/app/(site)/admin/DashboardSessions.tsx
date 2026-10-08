@@ -19,6 +19,8 @@ export type DashboardSession = {
   opens_at: string | null;
   theme_name: string | null;
   format_label: string | null;
+  /** 파티모드/노말모드. 모드가 없는 테마는 null. */
+  theme_mode?: string | null;
   capacity_line: string;
   headcount_line: string;
   unpaid: number;
@@ -163,9 +165,9 @@ export function DashboardSessions({
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold">
                             {kstTime(s.start_at)}
-                            {s.format_label && (
+                            {(s.format_label ?? s.theme_mode) && (
                               <span className="ml-2 rounded-md bg-muted/20 px-1.5 py-0.5 text-micro font-normal text-muted">
-                                {s.format_label}
+                                {s.format_label ?? s.theme_mode}
                               </span>
                             )}
                           </p>

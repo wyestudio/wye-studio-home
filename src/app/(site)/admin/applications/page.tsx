@@ -85,7 +85,7 @@ export default async function AdminApplicationsPage({
     // 테마명이 붙은 session_display 를 쓴다 — 필터가 테마로 먼저 좁히기 때문이다.
     supabase
       .from("session_display")
-      .select("id, start_at, theme_id, theme_name, format_label")
+      .select("id, start_at, theme_id, theme_name, format_label, theme_mode")
       .order("start_at", { ascending: false }),
   ]);
 
@@ -113,7 +113,9 @@ export default async function AdminApplicationsPage({
     start_at: s.start_at as string,
     theme_id: (s.theme_id as string | null) ?? null,
     theme_name: (s.theme_name as string | null) ?? "(테마 없음)",
-    note: (s.format_label as string | null) ?? null,
+    // 모드가 있으면 그걸 보조 표기로 쓴다. 테마명이 두 모드 모두 '바-ㅇ탈출' 이라
+    // 이게 없으면 목록에서 두 회차가 글자 그대로 똑같아 보인다.
+    note: (s.format_label as string | null) ?? (s.theme_mode as string | null) ?? null,
   }));
 
   return (

@@ -136,6 +136,7 @@ export async function sendApplicationConfirmationSmsV2(params: {
 export type SessionDisplay = {
   id: string;
   theme_name: string | null;
+  theme_mode: string | null;
   start_at: string;
   end_at: string | null;
   min_age: number | null;
@@ -149,7 +150,7 @@ export async function getSessionDisplay(sessionId: string): Promise<SessionDispl
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("session_display")
-    .select("id, theme_name, start_at, end_at, min_age, public_path, venue_address, venue_parking_note")
+    .select("id, theme_name, theme_mode, start_at, end_at, min_age, public_path, venue_address, venue_parking_note")
     .eq("id", sessionId)
     .single();
   if (error) {
@@ -162,6 +163,12 @@ export async function getSessionDisplay(sessionId: string): Promise<SessionDispl
 function baseVars(sd: SessionDisplay) {
   return {
     theme_name: sd.theme_name ?? "",
+    /*
+      모드(파티모드/노말모드). 테마명은 두 모드가 똑같으므로, 모드까지 알려야
+      하는 문자는 {{theme_name}} {{theme_mode}} 로 함께 쓴다.
+      ⚠️ 모드가 없는 테마는 빈 문자열이다 — 템플릿에 넣어 둬도 글자가 남지 않는다.
+    */
+    theme_mode: sd.theme_mode ?? "",
     event_date: eventDate(sd.start_at),
     start_time: startTime(sd.start_at),
     duration: sd.end_at ? formatDuration(sd.start_at, sd.end_at) : "-",

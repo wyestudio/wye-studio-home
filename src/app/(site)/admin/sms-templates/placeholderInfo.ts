@@ -10,6 +10,8 @@
 export const PLACEHOLDER_INFO: Record<string, { label: string; example: string }> = {
   name: { label: "신청자 이름", example: "홍길동" },
   theme_name: { label: "테마명", example: "바-ㅇ탈출" },
+  // 테마명은 파티·노말 두 모드가 같다. 모드까지 알려야 하면 함께 쓴다.
+  theme_mode: { label: "모드", example: "노말모드" },
   product_label: { label: "그룹/소개팅 파티형 방탈출 표기", example: "그룹 파티형 방탈출" },
   event_date: { label: "진행 날짜", example: "8/29(토)" },
   start_time: { label: "시작 시각", example: "13:00" },
