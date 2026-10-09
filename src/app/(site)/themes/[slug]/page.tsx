@@ -253,6 +253,18 @@ export default async function ThemeDetailPage({
   // 칸(p38)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const introNotice = theme.intro_notice?.trim() || "";
 
+  // 자리가 두 군데(모드 있을 때 왼쪽 / 없을 때 오른쪽)라 한 번만 만들어 돌려 쓴다.
+  const specTiles = (
+    <div className="flex min-w-0 flex-col gap-4">
+      <ThemeSpecTiles
+        difficulty={theme.difficulty}
+        durationMinutes={theme.duration_minutes}
+        accent={accent}
+      />
+      <ThemeGenreTile genres={genres} accent={accent} />
+    </div>
+  );
+
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20">
       {/* 모바일에서만 — 소개 / 회차 선택 / 상세 정보 사이를 오가는 탭 */}
@@ -286,11 +298,7 @@ export default async function ThemeDetailPage({
       >
         <section
           id="intro"
-          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 ${
-            hasModes
-              ? "md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] md:items-start md:gap-x-10 md:gap-y-5"
-              : "md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:items-start md:gap-x-10 md:gap-y-5"
-          }`}
+          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:items-start md:gap-x-10 md:gap-y-5`}
         >
           {/*
             제목 줄 — 두 칸 위에 걸친다.
@@ -324,7 +332,15 @@ export default async function ThemeDetailPage({
             ⚠️ 모바일은 포스터와 시놉시스를 가로로 나란히 둔다. 세로로 쌓으면
                첫 화면이 포스터만으로 꽉 찬다.
           */}
-          <div className="min-w-0 md:col-start-1 md:row-start-2">
+          {/*
+            왼쪽 묶음 — 포스터 · 시놉시스 · 스펙.
+
+            ⚠️ **칸마다 묶음 하나씩**이다. 예전에는 네 조각을 격자에 직접 넣고
+               col-start/row-start 로 자리를 줬는데, 행 높이가 **가장 큰 조각**에
+               맞춰지는 바람에 모드 창 아래로 83px 이 비었다(2026-10-09 지적).
+               묶음으로 싸면 각자 제 내용만큼만 쌓인다.
+          */}
+          <div className="flex min-w-0 flex-col gap-4">
             <div
               className={
                 synopsis
@@ -366,57 +382,29 @@ export default async function ThemeDetailPage({
               )}
             </div>
 
-          </div>
-
-
-          {/*
-            고른 모드의 스펙 — 난이도·소요시간 두 칸, 그 아래 장르 한 줄.
-
-            ⚠️ **모드 창보다 앞에 둔다.** 좁은 화면에서는 소스 순서가 곧 화면
-               순서인데, 포스터 바로 뒤가 아니면 '테마가 무엇인가' 가 모드 선택에
-               끊긴다(2026-10-09 시안). 데스크톱 자리는 아래 class 가 따로 정한다.
-            모드가 있으면 포스터 아래(1열 3행), 없으면 옛 배치대로 포스터 오른쪽.
-          */}
-          <div
-            className={`flex min-w-0 flex-col gap-4 ${
-              hasModes ? "md:col-start-1 md:row-start-3" : "md:col-start-2 md:row-start-2"
-            }`}
-          >
-            <ThemeSpecTiles
-              difficulty={theme.difficulty}
-              durationMinutes={theme.duration_minutes}
-              accent={accent}
-            />
-            <ThemeGenreTile genres={genres} accent={accent} />
+            {/*
+              고른 모드의 스펙 — 난이도 · 소요시간 · 장르.
+              모드가 있을 때만 왼쪽에 둔다. 모드가 없으면 왼쪽은 포스터뿐이라
+              오른쪽이 통째로 비므로, 아래에서 오른쪽 묶음에 넣는다.
+            */}
+            {hasModes && specTiles}
           </div>
 
           {/*
-            오른쪽 — 어떻게 플레이할지. 게임에서 모드를 고르는 창을 본떴다.
-            모드가 하나뿐인 테마에서는 아무것도 안 그린다(ModeBox 가 null 을 낸다).
-
-            ⚠️ 자리는 class 로 정한다(2행 오른쪽 칸). 좁은 화면에서는 포스터·스펙
-               **뒤**에 와서, 테마를 먼저 보고 모드를 고르는 순서가 된다.
+            오른쪽 묶음 — 어떻게 플레이할지. 모드 창과 단체 창이 **붙어서** 쌓인다.
+            모드가 하나뿐인 테마에서는 ModeBox 가 null 이라 스펙이 그 자리를 메운다.
           */}
-          <ModeBox
-            variants={variants}
-            active={theme}
-            baseSlug={base.slug}
-            accent={accent}
-            className="md:col-start-2 md:row-start-2"
-          />
-
-          {/*
-            단체 예약 — 모드 옆에 세우는 **세 번째 선택지**. 모드 창 바로 아래에
-            둬야 "고를 수 있는 길" 로 읽힌다(2026-10-08 시안).
-            ⚠️ 모드가 아니라 **base 테마** 기준으로 판정한다. 변형 테마의 slug 는
-               `baotalchul-normal` 이라 그대로 넣으면 노말모드에서만 사라진다.
-          */}
-          {hasGroupBooking(base.slug) && (
-            <PrivateRoomPanel
-              entry={GROUP_ENTRY.intro}
-              className={hasModes ? "md:col-start-2 md:row-start-3" : "md:col-span-2"}
-            />
-          )}
+          <div className="flex min-w-0 flex-col gap-4">
+            <ModeBox variants={variants} active={theme} baseSlug={base.slug} accent={accent} />
+            {!hasModes && specTiles}
+            {/*
+              단체 예약 — 모드 옆에 세우는 **세 번째 선택지**. 모드 창 바로 아래에
+              둬야 "고를 수 있는 길" 로 읽힌다(2026-10-08 시안).
+              ⚠️ 모드가 아니라 **base 테마** 기준으로 판정한다. 변형 테마의 slug 는
+                 `baotalchul-normal` 이라 그대로 넣으면 노말모드에서만 사라진다.
+            */}
+            {hasGroupBooking(base.slug) && <PrivateRoomPanel entry={GROUP_ENTRY.intro} />}
+          </div>
         </section>
 
         {/*
