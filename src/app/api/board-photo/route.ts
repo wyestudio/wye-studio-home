@@ -91,5 +91,15 @@ export async function POST(request: NextRequest) {
   }
 
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(key);
-  return NextResponse.json({ ok: true, url: data.publicUrl, key });
+
+  // QR 에 담을 주소는 **그림 파일이 아니라 받아가는 화면**(/photo/...)이다.
+  // 그림 주소를 그대로 주면 참가자 폰에 사진만 덩그러니 뜨고, 저장하는 길이
+  // "길게 누르기" 하나뿐이라 모르는 사람은 못 가져간다.
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
+  return NextResponse.json({
+    ok: true,
+    url: `${site.replace(/\/$/, "")}/photo/${key}`,
+    imageUrl: data.publicUrl,
+    key,
+  });
 }
