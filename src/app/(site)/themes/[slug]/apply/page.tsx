@@ -9,7 +9,7 @@ import {
   attachStats,
   isBookable,
 } from "@/lib/themes";
-import { modeKey } from "../ModePicker";
+import { modeKey } from "../ModeBox";
 // 날짜 형식은 완료 화면·참여내역 조회와 같아야 한다. 한 화면 안에서 회차 일시와
 // 신청일이 다른 모양이면 같은 종류의 값으로 읽히지 않는다.
 import { formatDateTimeFull } from "@/lib/format";

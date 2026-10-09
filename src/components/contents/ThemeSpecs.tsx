@@ -1,18 +1,19 @@
 /**
- * 테마 상세 상단의 핵심 정보 — 난이도 · 소요시간 · 장르.
+ * 테마의 한 줄 정보 — 난이도 · 플레이타임 · 장르.
  *
  * 방탈출 손님이 테마를 고를 때 제일 먼저 보는 셋이다. 예전에는 제목 아래
- * 작은 회색 글씨 한 줄(🔒🔒🔒🔒 난이도 4/5 · ⏱ 3시간)이라 그냥 지나쳤다.
- * 방탈출 사이트들이 공통으로 쓰는 '스펙 요약' 처럼 크게 세운다.
+ * 작은 회색 글씨 한 줄(🔒🔒🔒🔒 난이도 4/5 · ⏱ 3시간)이라 그냥 지나쳤고,
+ * 그 다음에는 테두리 있는 큰 칸 세 개였는데 **자리를 너무 먹었다**.
  *
- * 난이도는 자물쇠, 소요시간은 '180분' 하나만 크게 둔다. 보조 표기(4 / 5, 3시간)는
- * 가로가 넉넉한 데스크톱(lg)에서만 옆에 작게 붙인다 — 모바일은 포스터 옆 칸이
- * 좁아 두 줄로 밀리고, 같은 정보를 두 번 읽게 된다.
+ * 지금은 시안(2026-10-08 baotalchul-mode-design.html)대로 **박스 없이**
+ * 윗선 하나 긋고 '라벨 ― 값' 줄로 적는다. 포스터를 크게 쓰려면 이 아래가
+ * 가벼워야 한다.
  *
- * 상세 페이지는 난이도·소요시간(ThemeSpecTiles)과 장르(ThemeGenreTile)를 **따로**
- * 내보낸다. 어드민 미리보기는 둘을 붙인 ThemeSpecs 를 쓴다.
+ * 폭에 따라 방향이 다르다.
+ *   좁을 때  — 난이도 · 플레이타임을 두 칸으로 나누고 라벨을 값 위에 올린다.
+ *   sm 이상  — 한 줄에 하나씩, 라벨은 왼쪽 값은 오른쪽.
  *
- * 0 은 '미정'(아직 만들지 않은 테마)이다. 해당 칸을 통째로 감춘다 —
+ * 0 은 '미정'(아직 만들지 않은 테마)이다. 해당 줄을 통째로 감춘다 —
  * "난이도 0/5 · 0분" 은 고장으로 읽힌다.
  */
 export function ThemeSpecs({
@@ -26,140 +27,52 @@ export function ThemeSpecs({
   genres: string[];
   accent: string;
 }) {
-  return (
-    <div className="space-y-2 sm:space-y-3">
-      <ThemeSpecTiles difficulty={difficulty} durationMinutes={durationMinutes} accent={accent} />
-      <ThemeGenreTile genres={genres} accent={accent} />
-    </div>
-  );
-}
-
-/**
- * 난이도 · 소요시간 두 칸.
- *
- * 폭에 따라 방향이 다르다.
- *   좁을 때  — 두 칸이 나란히. 세로로 쌓으면 세 줄을 먹어서 모드 선택 창이 첫
- *              화면 밖으로 밀린다.
- *   md 이상  — 한 줄에 한 칸씩(3행). 칸이 425px 이라 자물쇠 줄(164px)과 보조
- *              표기가 여유 있게 들어간다.
- *
- * ⚠️ md 이상에서 두 칸을 나란히 두지 말 것. 칸이 206px 로 반 토막 나는데 자물쇠
- *    줄만 164px 이라 보조 표기가 **칸 밖으로 잘린다**(2026-10-09 실측: 칸 106px /
- *    내용 205px 로 깨진 적이 있다).
- */
-export function ThemeSpecTiles({
-  difficulty,
-  durationMinutes,
-  accent,
-}: {
-  difficulty: number;
-  durationMinutes: number;
-  accent: string;
-}) {
   const showDifficulty = difficulty > 0;
   const showDuration = durationMinutes > 0;
-  if (!showDifficulty && !showDuration) return null;
+  if (!showDifficulty && !showDuration && genres.length === 0) return null;
 
   return (
-    <dl className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-1">
-      {showDifficulty && (
-        <SpecTile label="난이도">
-          <SpecValue>
-            {/* 옆 칸의 '180' 과 같은 크기의 보이지 않는 글자. 이 줄의 글자 기준선을 옆 칸과
-                똑같이 만들어 '4 / 5' 가 '분' 과 같은 선에 앉게 한다. */}
-            <BaselineStrut />
-            <LockRow rating={difficulty} accent={accent} />
-            <SmallNote>{difficulty} / 5</SmallNote>
-          </SpecValue>
-        </SpecTile>
+    <dl className="border-t border-line-subtle pt-3.5">
+      {(showDifficulty || showDuration) && (
+        <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-1 sm:gap-y-0">
+          {showDifficulty && (
+            <SpecRow label="난이도">
+              <LockRow rating={difficulty} accent={accent} />
+            </SpecRow>
+          )}
+          {showDuration && (
+            <SpecRow label="플레이타임">
+              <span className="text-body-sm font-bold tabular-nums">{durationMinutes}분</span>
+              <span className="ml-1.5 text-micro text-muted">({hoursLabel(durationMinutes)})</span>
+            </SpecRow>
+          )}
+        </div>
       )}
-      {showDuration && (
-        <SpecTile label="소요시간">
-          <SpecValue>
-            <span className={BIG_NUMBER}>{durationMinutes}</span>
-            <span className="-ml-1.5 text-body-sm font-semibold text-muted">분</span>
-            <SmallNote>({hoursLabel(durationMinutes)})</SmallNote>
-          </SpecValue>
-        </SpecTile>
-      )}
-    </dl>
-  );
-}
 
-/** 장르 칸. 난이도·소요시간과 같은 모양에 소제목을 단다. 태그 수가 들쭉날쭉해 높이는 고정하지 않는다. */
-export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: string }) {
-  if (genres.length === 0) return null;
-  return (
-    <dl>
-      <SpecTile label="장르">
-        <ul className="flex flex-wrap gap-1.5">
+      {genres.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-x-2.5 gap-y-1">
+          <dt className="sr-only">장르</dt>
           {genres.map((g) => (
-            <li
-              key={g}
-              // 태그는 라벨이다. 데스크톱에서 16px(sm:text-base)이라 장르 칸이 본문처럼
-              // 커 보였고, 그 높이가 포스터까지 끌어올렸다.
-              className="rounded-full border px-2.5 py-0.5 text-micro font-semibold sm:px-3"
-              style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
-            >
+            // ⚠️ 알약(테두리+바탕)이 아니라 **그냥 글씨**다. 알약으로 두면 장르가
+            //    네 개일 때 두 줄로 늘어서 포스터 아래가 다시 무거워진다.
+            <dd key={g} className="text-micro text-muted">
               #{g}
-            </li>
+            </dd>
           ))}
-        </ul>
-      </SpecTile>
+        </div>
+      )}
     </dl>
   );
 }
 
-/**
- * 칸 하나. 소제목(dt) + 내용(dd). 칸이 늘어나면 내용은 세로 가운데에 선다.
- *
- * ⚠️ 여백을 늘리지 말 것. py-4 로 뒀을 때 담긴 게 두 줄뿐인데 칸이 102px 까지
- *    커졌다(2026-10-05 실측). 2026-10-09 에 "쓸데없이 자리를 많이 먹는다" 는
- *    의견으로 글자·여백을 **토큰 한 단계씩** 더 내렸다.
- */
-function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
+/** 줄 하나. 좁을 때는 라벨이 값 위에, sm 이상에서는 라벨 왼쪽 · 값 오른쪽. */
+function SpecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col justify-center rounded-xl border border-line-subtle bg-fill-subtle px-3 py-2 sm:px-4 sm:py-2.5">
-      <dt className="mb-1 text-micro font-semibold text-muted">{label}</dt>
-      <dd>{children}</dd>
+    <div className="sm:flex sm:items-center sm:justify-between sm:gap-3 sm:py-1.5">
+      <dt className="mb-1.5 text-micro text-muted sm:mb-0">{label}</dt>
+      <dd className="flex min-w-0 items-baseline">{children}</dd>
     </div>
   );
-}
-
-/** 소요시간 큰 숫자. 난이도 칸의 BaselineStrut 도 같은 글자 크기를 써야 기준선이 맞는다. */
-// ⚠️ h3 급이다. 36px(H1 급) → h2 → h3 로 두 번 내렸다. 더 내리면 본문과 구별이 안 된다.
-const BIG_NUMBER = "text-h3 font-extrabold leading-none";
-
-/**
- * 난이도·소요시간 값 줄.
- *
- * 줄 안의 요소를 **글자 기준선(baseline)** 으로 맞춘다. 가운데 정렬(items-center)이었을 땐
- * 작은 글씨 '3시간' 이 큰 숫자의 세로 가운데에 떠서 '분' 보다 위로 붕 떠 보였다.
- * 줄 높이는 고정하고 아래로 붙여(items-end) 두 칸의 기준선 높이가 같게 한다.
- */
-function SpecValue({ children }: { children: React.ReactNode }) {
-  // 높이는 담긴 것 중 가장 큰 것(숫자 18px · 자물쇠 24px)에 맞춘다. 글자를 줄이고도
-  // 예전 높이를 그대로 두면 아래가 비어 칸만 높아진다.
-  return (
-    <div className="flex h-6 items-end sm:h-7">
-      <div className="flex items-baseline gap-3">{children}</div>
-    </div>
-  );
-}
-
-/** 폭 0 의 보이지 않는 큰 글자. 난이도 줄에 숫자가 없어도 옆 칸과 같은 기준선을 만든다. */
-function BaselineStrut() {
-  return (
-    <span aria-hidden className={`${BIG_NUMBER} invisible -mr-2 inline-block w-0 overflow-hidden`}>
-      0
-    </span>
-  );
-}
-
-/** 데스크톱(lg)에서만 보이는 보조 표기. 모바일은 칸이 좁아 뺀다. */
-function SmallNote({ children }: { children: React.ReactNode }) {
-  // 칸이 좁아져도 '4 / 5' 가 두 줄로 꺾이지 않게.
-  return <span className="hidden whitespace-nowrap text-label font-semibold text-muted lg:inline">{children}</span>;
 }
 
 /**
@@ -175,35 +88,34 @@ export function hoursLabel(minutes: number) {
 }
 
 /**
- * 자물쇠 5개. 이모지(🔒)는 기기마다 모양·색이 달라 강조색을 입힐 수 없어서 SVG 로 그린다.
+ * 자물쇠. 이모지(🔒)는 기기마다 모양·색이 달라 강조색을 입힐 수 없어서 SVG 로 그린다.
  *
- * ⚠️ 크기는 lg 에서만 키운다. md(태블릿)는 두 칸이 나란히 서는데 칸 폭이 좁아
- *    큰 자물쇠 5개가 넘친다.
+ * ⚠️ **켜진 개수만 그린다**(시안). 예전에는 다섯 개를 그리고 남는 걸 흐리게 뒀는데,
+ *    박스를 걷어낸 지금은 줄이 좁아 다섯 개가 값 자리를 다 먹는다.
+ *    정확한 수치는 aria-label 이 읽어 준다.
  */
 function LockRow({ rating, accent, max = 5 }: { rating: number; accent: string; max?: number }) {
   return (
-    <span className="flex items-center gap-1 lg:gap-1" role="img" aria-label={`난이도 ${rating} / ${max}`}>
-      {Array.from({ length: max }, (_, i) => {
-        const on = i < rating;
-        return (
-          <svg
-            key={i}
-            viewBox="0 0 16 16"
-            aria-hidden
-            className="h-4 w-4 lg:h-6 lg:w-6"
-            style={{ color: on ? accent : "rgba(255,255,255,0.22)" }}
-          >
-            <path
-              d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-            <rect x="2.75" y="7" width="10.5" height="7.5" rx="1.75" fill="currentColor" />
-          </svg>
-        );
-      })}
+    <span
+      className="flex items-center gap-1"
+      role="img"
+      aria-label={`난이도 ${rating} / ${max}`}
+      style={{ color: accent }}
+    >
+      {Array.from({ length: Math.min(rating, max) }, (_, i) => (
+        // 시안의 lock-keyhole — 고리 + 몸통 + 열쇠구멍
+        <svg key={i} viewBox="0 0 16 16" aria-hidden className="h-4 w-4">
+          <path
+            d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+          <rect x="2.75" y="7" width="10.5" height="7.5" rx="1.75" fill="currentColor" />
+          <circle cx="8" cy="10.4" r="1.15" fill="var(--color-background)" />
+        </svg>
+      ))}
     </span>
   );
 }

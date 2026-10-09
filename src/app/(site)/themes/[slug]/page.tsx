@@ -18,8 +18,7 @@ import {
   promotionUnitPrice,
 } from "@/lib/promotion";
 import {
-  ThemeSpecTiles,
-  ThemeGenreTile,
+  ThemeSpecs,
 } from "@/components/contents/ThemeSpecs";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -254,15 +253,13 @@ export default async function ThemeDetailPage({
   const introNotice = theme.intro_notice?.trim() || "";
 
   // 자리가 두 군데(모드 있을 때 왼쪽 / 없을 때 오른쪽)라 한 번만 만들어 돌려 쓴다.
-  const specTiles = (
-    <div className="flex min-w-0 flex-col gap-4">
-      <ThemeSpecTiles
-        difficulty={theme.difficulty}
-        durationMinutes={theme.duration_minutes}
-        accent={accent}
-      />
-      <ThemeGenreTile genres={genres} accent={accent} />
-    </div>
+  const specs = (
+    <ThemeSpecs
+      difficulty={theme.difficulty}
+      durationMinutes={theme.duration_minutes}
+      genres={genres}
+      accent={accent}
+    />
   );
 
   return (
@@ -298,7 +295,7 @@ export default async function ThemeDetailPage({
       >
         <section
           id="intro"
-          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start md:gap-x-10 md:gap-y-5`}
+          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 md:grid-cols-[minmax(0,0.65fr)_minmax(0,1.35fr)] md:items-start md:gap-x-7 md:gap-y-5`}
         >
           {/*
             제목 줄 — 두 칸 위에 걸친다.
@@ -341,24 +338,33 @@ export default async function ThemeDetailPage({
                묶음으로 싸면 각자 제 내용만큼만 쌓인다.
           */}
           <div className="flex min-w-0 flex-col gap-4">
+            {/*
+              포스터 + 시놉시스.
+
+              ⚠️ 폭에 따라 방향이 **반대**다 — 시안도 그렇다.
+                 좁을 때  : 포스터 7rem 을 왼쪽에, 시놉시스를 오른쪽에 가로로.
+                            세로로 쌓으면 포스터(4:5)만 436px 이라 첫 화면이 포스터
+                            하나로 꽉 찬다(2026-10-09 실측).
+                 sm 이상  : 포스터가 칸 전체 폭, 시놉시스는 그 아래.
+              ⚠️ 데스크톱 포스터 폭은 격자 비율이 정한다. 여기서 max-w 로 묶지 말 것 —
+                 묶으면 오른쪽 모드 창과 높이가 안 맞는다.
+              ⚠️ 시안은 0.85fr(포스터 404px)인데 **0.65fr(309px)로 줄였다.** 시안대로
+                 두면 왼쪽이 741px 이라 오른쪽 모드 창(610)보다 131px 길고, 소개
+                 섹션이 983px 이 된다. 0.65 에서 좌우가 621 : 610 으로 맞는다
+                 (2026-10-09 실측, 대표님이 "시안보다 살짝 작아도 무방" 하다 하심).
+            */}
             <div
               className={
                 synopsis
-                  ? // 어느 폭에서나 가로로 나란히. 데스크톱에서 세로로 쌓았더니
-                    // 포스터(4:5)만 500px 이라 첫 화면을 혼자 다 먹었다(2026-10-09).
-                    // 13rem 을 넘기지 말 것 — 시놉시스 글 폭이 193px 아래로 내려가면
-                    // '> [YES]  [NO]' 줄이 꺾여 아트웍이 깨진다(2026-10-09 실측).
-                    "grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-4 md:grid-cols-[13rem_minmax(0,1fr)] md:gap-6"
-                  : // 시놉시스가 없으면 옆자리가 비어 포스터만 혼자 쪼그라든다.
-                    // 좁은 화면에서는 적당히 키우되 **화면을 다 먹지는 않게** 묶어 둔다.
-                    "max-w-[14rem] sm:max-w-none"
+                  ? "grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-1 sm:gap-3"
+                  : "max-w-[7rem] sm:max-w-none"
               }
             >
               <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-line bg-surface">
                 <PosterImage
                   src={themeLevel.hero_image_path}
                   alt={`${theme.name} 포스터`}
-                  sizes="(min-width: 768px) 420px, 40vw"
+                  sizes="(min-width: 640px) 420px, 7rem"
                   priority
                 />
               </div>
@@ -366,53 +372,42 @@ export default async function ThemeDetailPage({
               {synopsis && (
                 <div className="min-w-0">
                   <p
-                    className="mb-2 text-micro font-semibold uppercase tracking-[0.3em]"
+                    className="mb-1.5 font-galmuri text-micro tracking-[0.2em]"
                     style={{ color: accent }}
                   >
-                    Synopsis
+                    SYNOPSIS
                   </p>
-                  {/*
-                    pre-wrap: 입력한 줄바꿈과 **띄어쓰기 개수까지** 그대로 보여준다.
-                    pre-line 이면 빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
-                    break-words: 빈칸 없이 긴 줄이 모바일 화면 밖으로 삐져나가지 않게.
-                  */}
-                  <p
-                    className="whitespace-pre-wrap break-words border-l-2 pl-3 text-body leading-[1.7] text-foreground sm:pl-4"
-                    style={{ borderColor: `${accent}80` }}
-                  >
-                    {synopsis}
-                  </p>
+                  <SynopsisText text={synopsis} accent={accent} />
                 </div>
               )}
             </div>
 
-            {/*
-              고른 모드의 스펙 — 난이도 · 소요시간 · 장르.
-              모드가 있을 때만 왼쪽에 둔다. 모드가 없으면 왼쪽은 포스터뿐이라
-              오른쪽이 통째로 비므로, 아래에서 오른쪽 묶음에 넣는다.
-            */}
-            {hasModes && specTiles}
+            {hasModes && specs}
           </div>
 
           {/*
-            오른쪽 묶음 — 어떻게 플레이할지. 모드 창과 단체 창이 **붙어서** 쌓인다.
+            오른쪽 묶음 — 어떻게 플레이할지.
             모드가 하나뿐인 테마에서는 ModeBox 가 null 이라 스펙이 그 자리를 메운다.
           */}
           <div className="flex min-w-0 flex-col gap-4">
             <ModeBox variants={variants} active={theme} baseSlug={base.slug} accent={accent} />
-            {!hasModes && specTiles}
-            {/*
-              단체 예약 — 모드 옆에 세우는 **세 번째 선택지**. 모드 창 바로 아래에
-              둬야 "고를 수 있는 길" 로 읽힌다(2026-10-08 시안).
-              ⚠️ 모드가 아니라 **base 테마** 기준으로 판정한다. 변형 테마의 slug 는
-                 `baotalchul-normal` 이라 그대로 넣으면 노말모드에서만 사라진다.
-            */}
-            {hasGroupBooking(base.slug) && <PrivateRoomPanel entry={GROUP_ENTRY.intro} />}
+            {!hasModes && specs}
           </div>
         </section>
 
         <ScrollToBookingButton accent={accent} themeName={theme.name} />
       </div>
+
+      {/*
+        단체 예약 — 포스터와 모드 창 **둘 다의 아래**, 가로로 길게(2026-10-09 대표님).
+        ⚠️ 첫 화면(intro-screen) **밖**이다. 안에 두면 소개 섹션이 한 화면을 넘긴다.
+           여기까지는 스크롤해서 봐도 된다고 정했다.
+        ⚠️ 모드가 아니라 **base 테마** 기준으로 판정한다. 변형 테마의 slug 는
+           `baotalchul-normal` 이라 그대로 넣으면 노말모드에서만 사라진다.
+      */}
+      {hasGroupBooking(base.slug) && (
+        <PrivateRoomPanel entry={GROUP_ENTRY.intro} className="mt-6" />
+      )}
 
       {/*
         강조 안내(themes.intro_notice).
@@ -565,5 +560,39 @@ export default async function ThemeDetailPage({
       {/* 접속 팝업. 운영자가 이 화면을 노출 대상으로 고른 팝업만 뜬다. */}
       <SitePopupMount page="theme_detail" />
     </main>
+  );
+}
+
+/**
+ * 시놉시스.
+ *
+ * ⚠️ `>` 로 시작하는 줄은 **아트웍**이다(`> [YES]   [NO]`). 도트 글꼴에 강조색으로
+ *    따로 그린다 — 본문과 같이 흘리면 그냥 깨진 문장으로 보인다.
+ *    같은 규칙을 generateMetadata 도 쓴다(검색 설명에서 이 줄을 뺀다).
+ * ⚠️ pre-wrap: 입력한 줄바꿈과 **띄어쓰기 개수까지** 그대로 보여준다. pre-line 이면
+ *    빈칸 여러 개가 한 칸으로 합쳐져 운영자가 잡은 모양이 무너진다.
+ */
+function SynopsisText({ text, accent }: { text: string; accent: string }) {
+  const lines = text.split("\n");
+  const isArt = (line: string) => line.trim().startsWith(">");
+  const body = lines.filter((l) => !isArt(l)).join("\n").trim();
+  const art = lines.filter(isArt).join("\n").trim();
+
+  return (
+    <div className="border-l-2 pl-3 sm:pl-4" style={{ borderColor: `${accent}80` }}>
+      {body && (
+        <p className="whitespace-pre-wrap break-words text-body-sm leading-[1.7] text-muted">
+          {body}
+        </p>
+      )}
+      {art && (
+        <p
+          className="mt-2 whitespace-pre-wrap break-words font-galmuri text-micro leading-[1.6]"
+          style={{ color: accent }}
+        >
+          {art}
+        </p>
+      )}
+    </div>
   );
 }
