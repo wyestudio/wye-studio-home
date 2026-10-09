@@ -368,14 +368,34 @@ export default async function ThemeDetailPage({
 
           </div>
 
+
+          {/*
+            고른 모드의 스펙 — 난이도·소요시간 두 칸, 그 아래 장르 한 줄.
+
+            ⚠️ **모드 창보다 앞에 둔다.** 좁은 화면에서는 소스 순서가 곧 화면
+               순서인데, 포스터 바로 뒤가 아니면 '테마가 무엇인가' 가 모드 선택에
+               끊긴다(2026-10-09 시안). 데스크톱 자리는 아래 class 가 따로 정한다.
+            모드가 있으면 포스터 아래(1열 3행), 없으면 옛 배치대로 포스터 오른쪽.
+          */}
+          <div
+            className={`flex min-w-0 flex-col gap-4 ${
+              hasModes ? "md:col-start-1 md:row-start-3" : "md:col-start-2 md:row-start-2"
+            }`}
+          >
+            <ThemeSpecTiles
+              difficulty={theme.difficulty}
+              durationMinutes={theme.duration_minutes}
+              accent={accent}
+            />
+            <ThemeGenreTile genres={genres} accent={accent} />
+          </div>
+
           {/*
             오른쪽 — 어떻게 플레이할지. 게임에서 모드를 고르는 창을 본떴다.
             모드가 하나뿐인 테마에서는 아무것도 안 그린다(ModeBox 가 null 을 낸다).
 
-            ⚠️ **소스 순서가 곧 모바일 순서다.** 그래서 모드 창을 난이도·시간·장르
-               **앞**에 둔다 — 그 값들이 전부 '고른 모드의 값' 이라, 뒤에 놓으면
-               무엇을 보고 있는지 모른 채 숫자부터 읽게 된다.
-               데스크톱에서는 자동 배치가 알아서 2행 오른쪽 칸에 앉힌다.
+            ⚠️ 자리는 class 로 정한다(2행 오른쪽 칸). 좁은 화면에서는 포스터·스펙
+               **뒤**에 와서, 테마를 먼저 보고 모드를 고르는 순서가 된다.
           */}
           <ModeBox
             variants={variants}
@@ -397,23 +417,6 @@ export default async function ThemeDetailPage({
               className={hasModes ? "md:col-start-2 md:row-start-3" : "md:col-span-2"}
             />
           )}
-
-          {/*
-            고른 모드의 스펙.
-            모드가 있으면 포스터 아래(1열 3행), 없으면 옛 배치대로 포스터 오른쪽.
-          */}
-          <div
-            className={`flex min-w-0 flex-col gap-4 ${
-              hasModes ? "md:col-start-1 md:row-start-3" : "md:col-start-2 md:row-start-2"
-            }`}
-          >
-            <ThemeSpecTiles
-              difficulty={theme.difficulty}
-              durationMinutes={theme.duration_minutes}
-              accent={accent}
-            />
-            <ThemeGenreTile genres={genres} accent={accent} />
-          </div>
         </section>
 
         {/*

@@ -10,8 +10,7 @@
  * 좁아 두 줄로 밀리고, 같은 정보를 두 번 읽게 된다.
  *
  * 상세 페이지는 난이도·소요시간(ThemeSpecTiles)과 장르(ThemeGenreTile)를 **따로**
- * 배치한다. 모바일에서 장르만 포스터 아래로 내려가기 때문이다. 어드민 미리보기는
- * 둘을 붙인 ThemeSpecs 를 쓴다.
+ * 내보낸다. 어드민 미리보기는 둘을 붙인 ThemeSpecs 를 쓴다.
  *
  * 0 은 '미정'(아직 만들지 않은 테마)이다. 해당 칸을 통째로 감춘다 —
  * "난이도 0/5 · 0분" 은 고장으로 읽힌다.
@@ -38,8 +37,10 @@ export function ThemeSpecs({
 /**
  * 난이도 · 소요시간 두 칸.
  *
- * 모바일은 포스터 옆에 위아래로 쌓이고, **포스터 높이만큼 늘어난다**(부모가 stretch
- * 해 주면 h-full + auto-rows-fr 로 두 칸이 반씩 나눠 가진다). 데스크톱은 나란히 두 칸.
+ * ⚠️ **어느 폭에서나 두 칸이 나란히 선다.** 좁을 때 세로로 쌓았더니 난이도·소요시간·
+ *    장르가 한 줄씩 세 줄을 먹어서, 모드 선택 창이 첫 화면 밖으로 밀렸다
+ *    (2026-10-09 시안대로 되돌림). 보조 표기(4 / 5 · 3시간)는 lg 에서만 나와서
+ *    좁은 칸에서도 한 줄로 들어간다.
  */
 export function ThemeSpecTiles({
   difficulty,
@@ -55,7 +56,7 @@ export function ThemeSpecTiles({
   if (!showDifficulty && !showDuration) return null;
 
   return (
-    <dl className="grid h-full auto-rows-fr gap-2 sm:gap-3 md:h-auto md:auto-rows-auto md:grid-cols-2">
+    <dl className="grid grid-cols-2 gap-2 sm:gap-3">
       {showDifficulty && (
         <SpecTile label="난이도">
           <SpecValue>
