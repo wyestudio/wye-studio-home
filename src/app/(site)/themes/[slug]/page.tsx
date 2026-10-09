@@ -298,7 +298,7 @@ export default async function ThemeDetailPage({
       >
         <section
           id="intro"
-          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 md:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] md:items-start md:gap-x-10 md:gap-y-5`}
+          className={`grid ${SCREEN_SCROLL_MARGIN} gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start md:gap-x-10 md:gap-y-5`}
         >
           {/*
             제목 줄 — 두 칸 위에 걸친다.
@@ -344,7 +344,11 @@ export default async function ThemeDetailPage({
             <div
               className={
                 synopsis
-                  ? "grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-1 sm:gap-4"
+                  ? // 어느 폭에서나 가로로 나란히. 데스크톱에서 세로로 쌓았더니
+                    // 포스터(4:5)만 500px 이라 첫 화면을 혼자 다 먹었다(2026-10-09).
+                    // 13rem 을 넘기지 말 것 — 시놉시스 글 폭이 193px 아래로 내려가면
+                    // '> [YES]  [NO]' 줄이 꺾여 아트웍이 깨진다(2026-10-09 실측).
+                    "grid grid-cols-[7rem_minmax(0,1fr)] items-center gap-4 md:grid-cols-[13rem_minmax(0,1fr)] md:gap-6"
                   : // 시놉시스가 없으면 옆자리가 비어 포스터만 혼자 쪼그라든다.
                     // 좁은 화면에서는 적당히 키우되 **화면을 다 먹지는 않게** 묶어 둔다.
                     "max-w-[14rem] sm:max-w-none"
@@ -407,26 +411,30 @@ export default async function ThemeDetailPage({
           </div>
         </section>
 
-        {/*
-        강조 안내(themes.intro_notice). 포스터·정보 묶음 **바깥 아래**에 가로로 길게 둔다.
-        읽히는 순서는 그대로다: 시놉시스 → 이 안내 → 신청하기.
-      */}
-        {introNotice && (
-          <div
-            className="mt-4 rounded-xl border px-4 py-3 sm:px-5 sm:py-3.5"
-            style={{
-              borderColor: `${accent}59`,
-              backgroundColor: `${accent}14`,
-            }}
-          >
-            <RichText
-              text={introNotice}
-              className="block text-body-sm leading-relaxed text-foreground"
-            />
-          </div>
-        )}
         <ScrollToBookingButton accent={accent} themeName={theme.name} />
       </div>
+
+      {/*
+        강조 안내(themes.intro_notice).
+
+        ⚠️ **첫 화면(intro-screen) 밖**에 둔다. 안에 두면 공지 + 위아래 여백으로
+           92px 을 먹어 소개 섹션이 한 화면을 넘겼다(2026-10-09 실측).
+           내용도 "정식 오픈 회차는 …" 처럼 **회차 이야기**라 여기가 제 자리다.
+      */}
+      {introNotice && (
+        <div
+          className="mt-6 rounded-xl border px-4 py-3 sm:px-5 sm:py-3.5"
+          style={{
+            borderColor: `${accent}59`,
+            backgroundColor: `${accent}14`,
+          }}
+        >
+          <RichText
+            text={introNotice}
+            className="block text-body-sm leading-relaxed text-foreground"
+          />
+        </div>
+      )}
 
       {/* ── 날짜 선택 ── '신청하기' 로 스크롤해 오면 헤더 밑에 붙는다(SCREEN_SCROLL_MARGIN). */}
       <section

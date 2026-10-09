@@ -72,10 +72,12 @@ export function ModeBox({
       </div>
 
       <div className="px-4 py-4 sm:px-5 sm:py-5">
-        <p className="text-h3 font-extrabold">오늘의 플레이는?</p>
-        <p className="mt-1 text-body-sm text-muted">모드를 눌러 비교해보세요.</p>
-
-        <div role="group" aria-label="모드 선택" className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+        {/*
+          ⚠️ 소제목("오늘의 플레이는?" + 안내 한 줄)을 뺐다 — 바로 위 타이틀바가
+             이미 SELECT MODE 라고 말하고, 버튼 두 개가 보이면 고르라는 뜻은
+             설명 없이 전달된다. 두 줄이 52px 이었고 첫 화면이 그만큼 밀렸다.
+        */}
+        <div role="group" aria-label="모드 선택" className="grid grid-cols-2 gap-2 sm:gap-3">
           {variants.map((v) => {
             const on = v.id === active.id;
             const c = v.accent_color || accent;
@@ -120,7 +122,8 @@ export function ModeBox({
         )}
 
         {highlights.length > 0 && (
-          <ul className="mt-4 flex flex-col gap-2">
+          /* 2×2 로 접는다. 네 줄로 세우면 269px 이라 모드창 높이의 절반을 먹었다. */
+          <ul className="mt-4 grid gap-2 md:grid-cols-2">
             {highlights.map((h, i) => (
               <li
                 key={`${h.label}-${i}`}
