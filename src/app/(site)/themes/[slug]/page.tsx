@@ -43,7 +43,7 @@ import { SectionNav } from "./SectionNav";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
 import { ModeBox, modeKey } from "./ModeBox";
-import { ModeToggle } from "./ModeToggle";
+import { ModeHud } from "./ModeHud";
 import { SectionViewTracker } from "./SectionViewTracker";
 
 /*
@@ -448,20 +448,6 @@ export default async function ThemeDetailPage({
           eyebrowColor={accent}
           size="lg"
         />
-        {/*
-          회차 선택에서도 모드를 오간다. 토요일 1회차(파티) ↔ 일요일 6회차(노말)를
-          달력에서 바로 비교할 수 있어야 한다는 요청(2026-10-08).
-          ⚠️ 모드를 바꾸면 고른 날짜(?d=)는 버린다 — 모드마다 여는 요일이 달라
-             넘겨봐야 없는 날이고, 남겨 두면 '마감' 뿐인 첫 화면이 된다.
-        */}
-        <ModeToggle
-          variants={variants}
-          activeId={theme.id}
-          baseSlug={base.slug}
-          accent={accent}
-          className="mx-auto mb-5 w-full max-w-4xl sm:mb-6"
-          anchor="booking"
-        />
         <div className="mx-auto w-full max-w-4xl">
           <SessionPicker
             initialDateParam={dParam}
@@ -501,23 +487,6 @@ export default async function ThemeDetailPage({
           tiers={theme.tiers}
           maxGroupSize={theme.max_group_size}
           venue={theme.venue}
-          priceModeToggle={
-            /*
-              id 를 **여기서** 붙인다. ThemeBlocks 안에 두면 신청 3단계처럼
-              가격표를 쓰는 다른 화면에도 같은 id 가 생긴다.
-            */
-            <div id="price" className={SCREEN_SCROLL_MARGIN}>
-              <ModeToggle
-                variants={variants}
-                activeId={theme.id}
-                baseSlug={base.slug}
-                accent={accent}
-                className="mb-4"
-                label="가격 비교"
-                anchor="price"
-              />
-            </div>
-          }
           // 단체 예약을 받는 테마만 가격표 아래에 안내 카드를 붙인다 —
           // 안내 페이지의 조건(3시간·10~24명·단독 진행)이 테마별로 다르다.
           // base 기준이다. 변형 테마의 slug(baotalchul-normal)로 보면
@@ -548,6 +517,15 @@ export default async function ThemeDetailPage({
           className="mt-0 md:mt-0"
         />
       </div>
+
+      {/*
+        스크롤을 따라다니는 모드 전환 패드.
+        예전에는 회차 선택 위·가격표 위에 토글을 따로 박아 뒀는데, 블록이 늘 때마다
+        또 박아야 했다. 하나로 띄워 두고 어디서든 바꾼다(2026-10-09 대표님).
+        ⚠️ 모드를 바꾸면 고른 날짜(?d=)는 버린다 — 모드마다 여는 요일이 달라
+           넘겨봐야 없는 날이고, 남겨 두면 '마감' 뿐인 달력이 된다.
+      */}
+      <ModeHud variants={variants} activeId={theme.id} baseSlug={base.slug} accent={accent} />
 
       {/* 넓은 화면 왼쪽 목차 — 지금 보는 블록 표시 + 눌러서 이동 */}
       <SectionNav accent={accent} />

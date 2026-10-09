@@ -624,6 +624,11 @@ body:has(.admin-shell) header {
   body:has(.mobile-cta-bar) .kakao-float {
     bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   }
+
+  /* 모드 전환 패드도 같은 막대를 비켜 간다(테마 상세). */
+  body:has(.mobile-cta-bar) .mode-hud {
+    bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* 우하단 이벤트 말풍선 — 스르륵 떠오른 뒤 아주 천천히 위아래로 움직인다.
