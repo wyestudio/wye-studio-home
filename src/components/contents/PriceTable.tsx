@@ -39,6 +39,16 @@ export function PriceTable({
 
   // 마지막 구간부터는 단가가 같으므로 "N인 이상" 한 줄로 묶는다.
   const lastTierFrom = Math.max(...tiers.map((t) => t.min_headcount));
+  /*
+    마지막 줄에 '이상' 을 붙일지.
+
+    ⚠️ 예전에는 **상한이 없을 때만** 붙였는데, 그러면 노말모드처럼
+       '구간은 4인까지 · 신청은 6인까지' 인 테마에서 5·6인이 자기 줄을 못 찾는다
+       (2026-10-09 지적). 상한이 마지막 구간보다 크면 '이상' 이 사실이다.
+    ⚠️ 상한이 마지막 구간과 같으면(4인 구간 · 4인 상한) 붙이지 않는다 —
+       더 받지 않는데 '이상' 이라고 적으면 거짓말이 된다.
+  */
+  const lastRowIsOpenEnded = maxGroupSize === null || maxGroupSize > lastTierFrom;
   const rows = Array.from({ length: lastTierFrom }, (_, i) => i + 1).map((n) => ({
     n,
     unit: resolveUnitPrice(tiers, n),
@@ -164,7 +174,7 @@ export function PriceTable({
                        겹치면 색이 뜻을 두 개 갖게 되어 둘 다 안 읽힌다.
                   */}
                   <span className="inline-flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
-                    <span>{n}인{isLast && maxGroupSize === null ? " 이상" : ""}</span>
+                    <span>{n}인{isLast && lastRowIsOpenEnded ? " 이상" : ""}</span>
                     {best && (
                       <span
                         // 배지는 12px(text-micro) 아래로 내리지 않는다 — 9px 이었다
@@ -265,6 +275,37 @@ export function PriceTable({
  * ⚠️ 표 안이 아니라 **표 바깥 아래**에 둔다. 표 안에 넣으면 금액 줄과 같은
  *    무게로 읽혀서, 안내가 가격의 일부처럼 보인다.
  */
+/**
+ * 표 아래 '권장 인원' 안내.
+ *
+ * 왜 필요한가 — 표에는 가격 구간만 있어서 "몇 명이 제일 좋은가" 가 안 보인다.
+ * 노말모드는 2~4인을 권하면서 6인까지 받는데, 표만 보면 그 둘을 구분할 수 없다.
+ *
+ * ⚠️ 권장 인원과 신청 상한은 **다른 값**이다. 넘겨도 신청은 된다 — 막는 게 아니라
+ *    알려 주는 줄이다(신청 폼의 안내와 같은 규칙).
+ */
+export function PriceTableRecommendedNote({
+  min,
+  recommended,
+  max,
+}: {
+  min: number;
+  recommended: number;
+  /** 신청 상한. 권장보다 클 때만 '최대 N인' 을 덧붙인다. */
+  max: number | null;
+}) {
+  return (
+    <p className="mt-3 rounded-lg border border-line-subtle bg-fill-subtle px-4 py-3 text-body-sm text-muted">
+      권장 인원은{" "}
+      <strong className="font-semibold text-foreground">
+        {min}~{recommended}인
+      </strong>
+      입니다.
+      {max !== null && max > recommended && ` 최대 ${max}인까지 신청할 수 있어요.`}
+    </p>
+  );
+}
+
 export function PriceTableEarlyBirdNote({
   badgeLabel,
   note,

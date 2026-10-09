@@ -3,7 +3,12 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
-import { PriceTable, PriceTableEarlyBirdNote, type PriceTablePromo } from "@/components/contents/PriceTable";
+import {
+  PriceTable,
+  PriceTableEarlyBirdNote,
+  PriceTableRecommendedNote,
+  type PriceTablePromo,
+} from "@/components/contents/PriceTable";
 import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import { VenueCard } from "@/components/contents/VenueCard";
@@ -54,6 +59,8 @@ export function ThemeBlocks({
   accent,
   tiers = [],
   maxGroupSize = null,
+  minGroupSize = null,
+  recommendedGroupSize = null,
   venue = null,
   promo = null,
   groupBooking = false,
@@ -69,6 +76,9 @@ export function ThemeBlocks({
   /** 가격표 블록이 쓸 요금 구간. 블록이 아니라 테마가 들고 있는 값이다. */
   tiers?: ThemePriceTier[];
   maxGroupSize?: number | null;
+  minGroupSize?: number | null;
+  /** 권장 인원 상한. 신청 상한과 **다르다** — 넘겨도 신청은 된다. */
+  recommendedGroupSize?: number | null;
   /** 장소 블록이 쓸 공개용 장소 정보. 이것도 테마가 들고 있는 값이다. */
   venue?: PublicVenue | null;
   /** 켜져 있는 프로모션. 가격표 블록에만 쓰인다. */
@@ -117,6 +127,8 @@ export function ThemeBlocks({
                 accent={accent}
                 tiers={tiers}
                 maxGroupSize={maxGroupSize}
+                minGroupSize={minGroupSize}
+                recommendedGroupSize={recommendedGroupSize}
                 venue={venue}
                 promo={promo}
                 groupBooking={groupBooking}
@@ -146,6 +158,8 @@ export function ThemeBlockView({
   accent,
   tiers = [],
   maxGroupSize = null,
+  minGroupSize = null,
+  recommendedGroupSize = null,
   venue = null,
   promo = null,
   groupBooking = false,
@@ -154,6 +168,9 @@ export function ThemeBlockView({
   accent: string;
   tiers?: ThemePriceTier[];
   maxGroupSize?: number | null;
+  minGroupSize?: number | null;
+  /** 권장 인원 상한. 신청 상한과 **다르다** — 넘겨도 신청은 된다. */
+  recommendedGroupSize?: number | null;
   venue?: PublicVenue | null;
   promo?: ThemeBlocksPromo | null;
   groupBooking?: boolean;
@@ -189,6 +206,15 @@ export function ThemeBlockView({
             size="lg"
             promo={promo}
           />
+          {/* 몇 명이 제일 좋은지는 표만 봐서는 안 보인다. 권장 인원이 정해진
+              모드(노말)에서만 한 줄 붙인다. */}
+          {recommendedGroupSize !== null && (
+            <PriceTableRecommendedNote
+              min={minGroupSize ?? 1}
+              recommended={recommendedGroupSize}
+              max={maxGroupSize}
+            />
+          )}
           {/* 안내 줄은 **테마 상세의 가격표 아래에만** 둔다. 신청 3단계에는
               이미 고른 회차가 있어서 "얼리버드 표시된 회차" 를 다시 찾을 일이 없다. */}
           {promo && (

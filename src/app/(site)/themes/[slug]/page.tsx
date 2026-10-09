@@ -486,6 +486,8 @@ export default async function ThemeDetailPage({
           accent={accent}
           tiers={theme.tiers}
           maxGroupSize={theme.max_group_size}
+          minGroupSize={theme.min_group_size}
+          recommendedGroupSize={theme.recommended_group_size}
           venue={theme.venue}
           // 단체 예약을 받는 테마만 가격표 아래에 안내 카드를 붙인다 —
           // 안내 페이지의 조건(3시간·10~24명·단독 진행)이 테마별로 다르다.
