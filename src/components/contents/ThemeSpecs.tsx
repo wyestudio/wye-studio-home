@@ -37,10 +37,12 @@ export function ThemeSpecs({
 /**
  * 난이도 · 소요시간 두 칸.
  *
- * ⚠️ **어느 폭에서나 두 칸이 나란히 선다.** 좁을 때 세로로 쌓았더니 난이도·소요시간·
- *    장르가 한 줄씩 세 줄을 먹어서, 모드 선택 창이 첫 화면 밖으로 밀렸다
- *    (2026-10-09 시안대로 되돌림). 보조 표기(4 / 5 · 3시간)는 lg 에서만 나와서
- *    좁은 칸에서도 한 줄로 들어간다.
+ * 폭에 따라 방향이 **반대**다 (2026-10-09).
+ *   좁을 때  — 두 칸이 나란히. 세로로 쌓으면 난이도·소요시간·장르가 세 줄을 먹어서
+ *              모드 선택 창이 첫 화면 밖으로 밀린다. 보조 표기(4 / 5 · 3시간)는
+ *              lg 에서만 나오므로 좁은 칸에도 한 줄로 들어간다.
+ *   md 이상  — 한 줄에 한 칸씩. 여기서는 스펙이 **포스터 아래 왼쪽 칸(약 400px)** 에
+ *              들어가는데, 그 폭을 둘로 쪼개면 칸이 되레 답답해진다.
  */
 export function ThemeSpecTiles({
   difficulty,
@@ -56,7 +58,7 @@ export function ThemeSpecTiles({
   if (!showDifficulty && !showDuration) return null;
 
   return (
-    <dl className="grid grid-cols-2 gap-2 sm:gap-3">
+    <dl className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-1">
       {showDifficulty && (
         <SpecTile label="난이도">
           <SpecValue>
