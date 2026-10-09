@@ -133,8 +133,26 @@ export function VenueMap({
       cancelled = true;
       observer.disconnect();
       authFailureListeners.delete(onAuthFailure);
-      map?.destroy?.();
+      /*
+        ⚠️ try/catch 를 지우지 말 것. 네이버 지도의 destroy() 는 React 가 지도
+           칸을 이미 떼어낸 뒤에 불리면 내부에서 터진다
+           ("Cannot read properties of null (reading 'isArray')", 2026-10-09 실측).
+           **정리 단계에서 던진 예외는 React 가 트리 전체를 무너뜨려** 화면이
+           통째로 하얗게 되거나 개발 모드에서 오류 오버레이가 덮는다.
+           지도는 어차피 사라지는 참이라 정리에 실패해도 잃을 게 없다.
+      */
+      try {
+        map?.destroy?.();
+      } catch {
+        // 지도는 이미 DOM 에서 빠졌다. 더 할 일이 없다.
+      }
     };
+    /*
+      ⚠️ accent 가 바뀌면 지도를 **다시 만든다**(핀 색이 강조색이라서). 지도는
+         불러올 때마다 이용량 1건이다 — 모드마다 색이 달라서, 두 모드 모두 장소
+         블록을 갖게 되면 모드를 토글할 때마다 건수가 는다. 그때는 핀만 다시
+         그리도록 쪼갤 것.
+    */
   }, [lat, lng, name, accent]);
 
   if (!KEY_ID || failed) return null;
