@@ -26,13 +26,14 @@ export type ThemeBlocksPromo = PriceTablePromo & {
  * 운영자가 적은 문구 안의 링크(FOR YOU 카드 설명 · FAQ 답변)는 기본 모양이면
  * 본문 색 그대로라 **눈에 안 띈다**(2026-10-02 지적).
  *
- * ⚠️ 색이 아니라 **밝기와 밑줄**로 띄운다(2026-10-08 결정). 이 링크들이 앉는
- *    본문은 전부 muted(흐린 회색)라, 굵은 흰 글씨 + 밑줄이면 색 없이도 충분히
- *    도드라진다. 예전엔 안내 페이지 자홍(#f082f4)을 썼는데 노말모드 분홍과 28°
- *    차이라 모드 강조색처럼 보였다 — 상세에서 색은 모드와 할인만 맡는다.
+ * ⚠️ 안내 페이지와 같은 **자홍**으로 띄운다. 단체로 가는 길(상단 PRIVATE ROOM ·
+ *    가격표 아래 카드 · 이 링크 · /group)은 전부 한 색이라야 같은 곳으로 간다는 게
+ *    보인다. 한때 무채색으로 내렸던 건 노말모드가 분홍이던 시절 얘기다(2026-10-09).
+ * ⚠️ Tailwind 는 소스에 적힌 클래스 문자열을 훑어 만든다 — GROUP_ACCENT 로 조립하지
+ *    말고 literal 로 적는다(groupBooking.ts 주석 참고).
  */
 const GROUP_LINK_CLASS =
-  "font-extrabold text-foreground underline underline-offset-4 hover:text-muted";
+  "font-extrabold text-[#f082f4] underline underline-offset-4 hover:text-[#f6a8f9]";
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];

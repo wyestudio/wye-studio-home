@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Chevron } from "@/components/ui/Chevron";
 import {
+  GROUP_ACCENT,
   GROUP_ENTRY,
   GROUP_HEADCOUNT_MIN,
   groupBookingHref,
@@ -20,11 +21,11 @@ import {
  * ⚠️ 한 줄짜리 작은 글씨(`※ …`)로 두면 아무도 안 본다(2026-10-02 지적). 두 자리
  *    모두 **같은 모양의 카드**로 세운다 — 크기만 다르다.
  *
- * ⚠️ **색을 쓰지 않는다**(2026-10-08 결정). 예전엔 안내 페이지 색(GROUP_ACCENT,
- *    자홍 298°)을 그대로 썼는데, 노말모드 분홍(326°)과 28° 차이라 **모드 강조색의
- *    일부처럼** 보였다. 상세에서 색이 맡는 역할은 모드와 할인 둘뿐이고, 단체는
- *    테두리와 자리로 구분한다 — 같은 이유로 PrivateRoomPanel 도 무채색이다.
- *    GROUP_ACCENT 는 안내 페이지(/group) 안에서만 쓴다. 거긴 경쟁할 색이 없다.
+ * ⚠️ 색은 **안내 페이지와 같은 자홍(GROUP_ACCENT)** 이다. 상단 PRIVATE ROOM 패널,
+ *    본문 속 링크, 눌러서 가는 /group 까지 **단체로 가는 길은 전부 한 색**이라야
+ *    같은 곳으로 간다는 게 보인다.
+ *    한때 무채색으로 내린 적이 있는데, 그때는 노말모드가 분홍이라 자홍과 ΔE 34 로
+ *    가까웠기 때문이다. 노말이 시안으로 바뀌어 그 이유가 사라졌다(2026-10-09).
  *
  * ⚠️ 단체 예약을 받는 테마에서만 그린다 — 판정은 부르는 쪽에서 `hasGroupBooking()`
  *    으로 한다. 안내 페이지 내용이 테마별로 다르기 때문이다.
@@ -45,12 +46,16 @@ export function GroupBookingCta({
   return (
     <Link
       href={groupBookingHref(entry)}
-      className={`flex items-center justify-between gap-3 rounded-xl border border-line-strong bg-fill transition hover:bg-fill-strong ${
+      className={`flex items-center justify-between gap-3 rounded-xl border transition hover:brightness-110 ${
         lg ? "mt-4 px-5 py-4 sm:mt-5 sm:px-6 sm:py-5" : "mt-3 px-4 py-3.5"
       }`}
+      style={{ borderColor: GROUP_ACCENT, backgroundColor: `${GROUP_ACCENT}1f` }}
     >
       <span className="min-w-0">
-        <span className={`block font-extrabold ${lg ? "text-h3" : "text-body"}`}>
+        <span
+          className={`block font-extrabold ${lg ? "text-h3" : "text-body"}`}
+          style={{ color: GROUP_ACCENT }}
+        >
           {title}
         </span>
         <span
@@ -59,8 +64,8 @@ export function GroupBookingCta({
           {desc}
         </span>
       </span>
-      {/* Chevron 은 currentColor 를 쓴다 — 감싸는 칸에서 색을 준다. */}
-      <span className="shrink-0 text-muted">
+      {/* Chevron 은 currentColor 를 쓴다 — 강조색은 감싸는 칸에서 준다. */}
+      <span className="shrink-0" style={{ color: GROUP_ACCENT }}>
         <Chevron className={lg ? "h-5 w-5" : "h-4 w-4"} />
       </span>
     </Link>
