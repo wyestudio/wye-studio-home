@@ -9,9 +9,13 @@
  * 윗선 하나 긋고 '라벨 ― 값' 줄로 적는다. 포스터를 크게 쓰려면 이 아래가
  * 가벼워야 한다.
  *
- * 폭에 따라 방향이 다르다.
- *   좁을 때  — 난이도 · 플레이타임을 두 칸으로 나누고 라벨을 값 위에 올린다.
- *   sm 이상  — 한 줄에 하나씩, 라벨은 왼쪽 값은 오른쪽.
+ * ⚠️ **어느 폭에서나 라벨 왼쪽 · 값 오른쪽**이다. 좁을 때 두 칸으로 쪼개 봤더니
+ *    값들이 화면 가운데 어중간하게 떠서 **왼쪽으로 쏠려 보였다**(2026-10-09 지적).
+ *    양 끝에 붙이면 포스터·시놉시스 줄과 좌우 끝이 맞는다.
+ *
+ * ⚠️ 글자 크기는 globals.css 의 역할표를 따른다 — 라벨은 text-label, 값은
+ *    text-body, 보조는 text-body-sm. 보기에 커 보인다고 임의로 내리지 말 것.
+ *    한 단계씩 내렸다가 모바일에서 너무 작아져 되돌린 적이 있다(2026-10-09).
  *
  * 0 은 '미정'(아직 만들지 않은 테마)이다. 해당 줄을 통째로 감춘다 —
  * "난이도 0/5 · 0분" 은 고장으로 읽힌다.
@@ -33,29 +37,27 @@ export function ThemeSpecs({
 
   return (
     <dl className="border-t border-line-subtle pt-3.5">
-      {(showDifficulty || showDuration) && (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-1 sm:gap-y-0">
-          {showDifficulty && (
-            <SpecRow label="난이도">
-              <LockRow rating={difficulty} accent={accent} />
-            </SpecRow>
-          )}
-          {showDuration && (
-            <SpecRow label="플레이타임">
-              <span className="text-body-sm font-bold tabular-nums">{durationMinutes}분</span>
-              <span className="ml-1.5 text-micro text-muted">({hoursLabel(durationMinutes)})</span>
-            </SpecRow>
-          )}
-        </div>
+      {showDifficulty && (
+        <SpecRow label="난이도">
+          <LockRow rating={difficulty} accent={accent} />
+        </SpecRow>
+      )}
+      {showDuration && (
+        <SpecRow label="플레이타임">
+          <span className="text-body font-semibold tabular-nums">{durationMinutes}분</span>
+          <span className="ml-1.5 text-body-sm text-muted">({hoursLabel(durationMinutes)})</span>
+        </SpecRow>
       )}
 
       {genres.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-x-2.5 gap-y-1">
+        <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
           <dt className="sr-only">장르</dt>
           {genres.map((g) => (
-            // ⚠️ 알약(테두리+바탕)이 아니라 **그냥 글씨**다. 알약으로 두면 장르가
-            //    네 개일 때 두 줄로 늘어서 포스터 아래가 다시 무거워진다.
-            <dd key={g} className="text-micro text-muted">
+            <dd
+              key={g}
+              className="rounded-full border px-2.5 py-1 text-label font-semibold sm:px-3.5"
+              style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
+            >
               #{g}
             </dd>
           ))}
@@ -65,11 +67,11 @@ export function ThemeSpecs({
   );
 }
 
-/** 줄 하나. 좁을 때는 라벨이 값 위에, sm 이상에서는 라벨 왼쪽 · 값 오른쪽. */
+/** 줄 하나. 라벨은 왼쪽 끝, 값은 오른쪽 끝. */
 function SpecRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="sm:flex sm:items-center sm:justify-between sm:gap-3 sm:py-1.5">
-      <dt className="mb-1.5 text-micro text-muted sm:mb-0">{label}</dt>
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <dt className="shrink-0 text-label text-muted">{label}</dt>
       <dd className="flex min-w-0 items-baseline">{children}</dd>
     </div>
   );

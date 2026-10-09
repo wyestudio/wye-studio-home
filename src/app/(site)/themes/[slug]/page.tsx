@@ -581,13 +581,13 @@ function SynopsisText({ text, accent }: { text: string; accent: string }) {
   return (
     <div className="border-l-2 pl-3 sm:pl-4" style={{ borderColor: `${accent}80` }}>
       {body && (
-        <p className="whitespace-pre-wrap break-words text-body-sm leading-[1.7] text-muted">
+        <p className="whitespace-pre-wrap break-words text-body leading-[1.7] text-muted">
           {body}
         </p>
       )}
       {art && (
         <p
-          className="mt-2 whitespace-pre-wrap break-words font-galmuri text-micro leading-[1.6]"
+          className="mt-2 whitespace-pre-wrap break-words font-galmuri text-label leading-[1.6]"
           style={{ color: accent }}
         >
           {art}

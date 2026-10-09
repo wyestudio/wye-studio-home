@@ -652,6 +652,18 @@ html[data-event-bubble-off] .event-bubble {
   }
 }
 
+/* 모드를 바꿨을 때 능력치 칸이 오른쪽에서 톡 들어온다(테마 상세의 SELECT MODE).
+
+   ⚠️ steps(3,end) 다. 부드럽게 흐르면 도트 게임이 아니라 그냥 웹 애니메이션이
+      된다 — 시안이 같은 값을 쓴다.
+   ⚠️ 칸마다 조금씩 늦게 시작해 **위에서 아래로 장착되는** 것처럼 보이게 한다.
+      지연은 ModeBox 가 inline style 로 준다.
+   ⚠️ 글자가 흔들려 읽기 힘들지 않도록 이동 거리는 5px 로 짧게 둔다. */
+@keyframes mode-swap {
+  from { transform: translateX(5px); opacity: 0.35; }
+  to   { transform: none;            opacity: 1; }
+}
+
 /* 잠긴 자리를 눌렀을 때 자물쇠가 제자리에서 한 번 튕긴다.
    게임에서 해금 전 스테이지를 눌렀을 때의 "안 열림" 신호와 같은 동작.
 

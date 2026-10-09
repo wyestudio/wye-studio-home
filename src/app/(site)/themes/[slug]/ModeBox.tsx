@@ -79,7 +79,7 @@ export function ModeBox({
 
       <div className="px-4 pb-4 pt-5 sm:px-5">
         <p className="text-h3 font-extrabold">오늘의 플레이는?</p>
-        <p className="mt-1 text-micro text-muted">모드를 눌러 비교해보세요.</p>
+        <p className="mt-1 text-body-sm text-muted">모드를 눌러 비교해보세요.</p>
 
         <div role="group" aria-label="모드 선택" className="mt-5 grid grid-cols-2 gap-2.5">
           {variants.map((v) => {
@@ -116,10 +116,10 @@ export function ModeBox({
                   </span>
                   {v.variant_label ?? v.name}
                 </span>
-                <span className="mt-1.5 block text-micro text-muted">{modeTagline(v)}</span>
+                <span className="mt-1.5 block text-label text-muted">{modeTagline(v)}</span>
                 <span className="mt-3 block font-mono text-h2 font-extrabold leading-none tabular-nums">
                   {v.duration_minutes}
-                  <span className="ml-0.5 text-micro font-normal text-muted">분</span>
+                  <span className="ml-0.5 text-label font-normal text-muted">분</span>
                 </span>
               </Link>
             );
@@ -127,24 +127,39 @@ export function ModeBox({
         </div>
 
         {active.mode_summary && (
-          <p className="mb-4 mt-6 text-body font-extrabold">{active.mode_summary}</p>
+          <p
+            key={active.id}
+            className="mb-4 mt-6 text-body font-extrabold motion-safe:animate-[mode-swap_180ms_steps(3,end)_both]"
+          >
+            {active.mode_summary}
+          </p>
         )}
 
         {highlights.length > 0 && (
-          <div className="relative border-t border-line pt-6">
-            {/* 게임의 '스킬 목록' 머리글. 항목이 능력치처럼 읽히게 한다. */}
+          <div className="border-t border-line pt-5">
+            {/*
+              게임의 '스킬 목록' 머리글. 항목이 능력치처럼 읽히게 한다.
+              ⚠️ 예전에는 absolute 로 띄워 뒀는데 윗선·글자·첫 칸이 4px 안에 몰려
+                 답답했다(2026-10-09 지적). 보통 흐름에 두고 간격을 눈에 보이게 준다.
+            */}
             <span
               aria-hidden
-              className="absolute left-0 top-2 font-galmuri text-micro tracking-[0.1em] text-muted"
+              className="mb-3.5 block font-galmuri text-micro tracking-[0.1em] text-muted"
             >
               ◆ MODE SKILLS
             </span>
-            <ul className="flex flex-col gap-2.5">
+            {/*
+              ⚠️ key 에 모드 id 를 넣는다. 모드를 바꾸면 이 묶음이 **다시 마운트**돼서
+                 장착 모션(mode-swap)이 매번 처음부터 돈다 — key 가 없으면 React 가
+                 같은 DOM 을 재사용해 글자만 슬쩍 바뀐다.
+            */}
+            <ul key={active.id} className="flex flex-col gap-2.5">
               {highlights.map((h, i) => (
                 <li
                   key={`${h.label}-${i}`}
                   // 모서리를 깎지 않고 단단한 그림자를 둔다 — 도트 게임의 칸 느낌.
-                  className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 border border-line bg-fill-subtle px-3 py-2.5 shadow-[3px_3px_0_var(--color-line-subtle)]"
+                  className="relative grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 border border-line bg-fill-subtle px-3 py-2.5 shadow-[3px_3px_0_var(--color-line-subtle)] motion-safe:animate-[mode-swap_180ms_steps(3,end)_both]"
+                  style={{ animationDelay: `${i * 35}ms` }}
                 >
                   <span
                     aria-hidden
@@ -161,7 +176,7 @@ export function ModeBox({
                   <span className="font-galmuri text-micro tracking-[0.02em] text-muted">
                     {h.label}
                   </span>
-                  <span className="text-label font-semibold">{h.value}</span>
+                  <span className="text-body font-semibold">{h.value}</span>
                 </li>
               ))}
             </ul>
@@ -180,12 +195,17 @@ function modeTagline(v: ThemeDetail) {
 }
 
 /**
- * 차이 항목 아이콘. 시안의 lucide 아이콘(users · swords · gamepad-2 · sparkles)을
- * 같은 모양으로 직접 그렸다.
+ * 차이 항목 아이콘. 시안의 lucide 아이콘을 같은 모양으로 직접 그렸다.
+ *
+ * ⚠️ **모드마다 다른 아이콘을 쓴다**(2026-10-09 대표님). 같은 아이콘에 글자만
+ *    바뀌면 모드를 바꿨다는 느낌이 안 난다.
+ *      파티 users · swords · gamepad · sparkles   (여럿이 겨루는 쪽)
+ *      노말 person · handshake · puzzle · focus    (우리끼리 푸는 쪽)
+ *    어느 항목이 어느 아이콘을 쓸지는 **DB(mode_highlights[].icon)** 가 정한다.
  *
  * ⚠️ **아는 키만 그린다.** 운영자가 오타를 내거나 새 키를 쓰면 아이콘 없이
  *    글자만 나온다 — 화면이 깨지는 것보다 낫다.
- * ⚠️ 외부 아이콘 라이브러리를 들이지 않는다. 네 개뿐이라 SVG 로 직접 그린다.
+ * ⚠️ 외부 아이콘 라이브러리를 들이지 않는다. 여덟 개뿐이라 SVG 로 직접 그린다.
  */
 function ModeIcon({ name }: { name: string | null }) {
   const common = {
@@ -200,7 +220,7 @@ function ModeIcon({ name }: { name: string | null }) {
   };
   switch (name) {
     // users — 두 사람
-    case "people":
+    case "users":
       return (
         <svg {...common}>
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -210,7 +230,7 @@ function ModeIcon({ name }: { name: string | null }) {
         </svg>
       );
     // swords — 교차한 두 검
-    case "play":
+    case "swords":
       return (
         <svg {...common}>
           <path d="M14.5 17.5 3 6V3h3l11.5 11.5" />
@@ -221,7 +241,7 @@ function ModeIcon({ name }: { name: string | null }) {
         </svg>
       );
     // gamepad-2 — 게임패드
-    case "fun":
+    case "gamepad":
       return (
         <svg {...common}>
           <path d="M6 11h4M8 9v4M15 12h.01M18 10h.01" />
@@ -229,11 +249,50 @@ function ModeIcon({ name }: { name: string | null }) {
         </svg>
       );
     // sparkles — 반짝임
-    case "recommend":
+    case "sparkles":
       return (
         <svg {...common}>
           <path d="M9.9 3.3 11.4 7.3a1 1 0 0 0 .6.6l4 1.5-4 1.5a1 1 0 0 0-.6.6l-1.5 4-1.5-4a1 1 0 0 0-.6-.6l-4-1.5 4-1.5a1 1 0 0 0 .6-.6z" />
           <path d="M18 5v4M20 7h-4M17 16v3M18.5 17.5h-3" />
+        </svg>
+      );
+    // user — 한 사람
+    case "person":
+      return (
+        <svg {...common}>
+          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      );
+    // handshake — 맞잡은 손
+    case "handshake":
+      return (
+        // ⚠️ 18px 에서 뭉개지지 않게 lucide 원본 경로를 쓴다. 직접 단순화해 그렸더니
+        //    손 모양이 안 읽혔다(2026-10-09).
+        <svg {...common}>
+          <path d="m11 17 2 2a1 1 0 1 0 3-3" />
+          <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
+          <path d="m21 3 1 11h-2" />
+          <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3" />
+          <path d="M3 4h8" />
+        </svg>
+      );
+    // puzzle — 퍼즐 조각
+    case "puzzle":
+      return (
+        <svg {...common}>
+          <path d="M15.4 3.5a2 2 0 0 0-3.9.5V6H9a2 2 0 0 0-2 2v2.5H4.9a2 2 0 1 0 0 4H7V17a2 2 0 0 0 2 2h2.5v-2.1a2 2 0 1 1 4 0V19H18a2 2 0 0 0 2-2v-2.5h-2.1a2 2 0 1 1 0-4H20V8a2 2 0 0 0-2-2h-2.5V4a2 2 0 0 0-.1-.5" />
+        </svg>
+      );
+    // focus — 네 귀퉁이 + 가운데 점
+    case "focus":
+      return (
+        <svg {...common}>
+          <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+          <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+          <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+          <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       );
     default:
