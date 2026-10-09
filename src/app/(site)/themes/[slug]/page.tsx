@@ -309,7 +309,7 @@ export default async function ThemeDetailPage({
                 <h1 className="text-h1 font-extrabold">{base.name}</h1>
               </div>
               <div className="shrink-0">
-                <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} />
+                <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} accent={accent} />
               </div>
             </div>
           </div>
