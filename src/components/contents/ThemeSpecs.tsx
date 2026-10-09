@@ -77,7 +77,7 @@ export function ThemeSpecTiles({
         <SpecTile label="소요시간">
           <SpecValue>
             <span className={BIG_NUMBER}>{durationMinutes}</span>
-            <span className="-ml-2.5 text-body font-semibold text-muted">분</span>
+            <span className="-ml-1.5 text-body-sm font-semibold text-muted">분</span>
             <SmallNote>({hoursLabel(durationMinutes)})</SmallNote>
           </SpecValue>
         </SpecTile>
@@ -92,13 +92,13 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
   return (
     <dl>
       <SpecTile label="장르">
-        <ul className="flex flex-wrap gap-1.5 sm:gap-2">
+        <ul className="flex flex-wrap gap-1.5">
           {genres.map((g) => (
             <li
               key={g}
               // 태그는 라벨이다. 데스크톱에서 16px(sm:text-base)이라 장르 칸이 본문처럼
               // 커 보였고, 그 높이가 포스터까지 끌어올렸다.
-              className="rounded-full border px-2.5 py-1 text-label font-semibold sm:px-3.5"
+              className="rounded-full border px-2.5 py-0.5 text-micro font-semibold sm:px-3"
               style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
             >
               #{g}
@@ -113,21 +113,22 @@ export function ThemeGenreTile({ genres, accent }: { genres: string[]; accent: s
 /**
  * 칸 하나. 소제목(dt) + 내용(dd). 칸이 늘어나면 내용은 세로 가운데에 선다.
  *
- * ⚠️ 데스크톱 세로 여백은 py-3(12px)이다. py-4 로 두면 담긴 게 두 줄뿐인데
- *    칸이 102px 까지 커졌다 (2026-10-05 실측).
+ * ⚠️ 여백을 늘리지 말 것. py-4 로 뒀을 때 담긴 게 두 줄뿐인데 칸이 102px 까지
+ *    커졌다(2026-10-05 실측). 2026-10-09 에 "쓸데없이 자리를 많이 먹는다" 는
+ *    의견으로 글자·여백을 **토큰 한 단계씩** 더 내렸다.
  */
 function SpecTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col justify-center rounded-xl border border-line-subtle bg-fill-subtle px-3 py-2.5 sm:px-5 sm:py-3">
-      <dt className="mb-1.5 text-label font-semibold text-muted">{label}</dt>
+    <div className="flex flex-col justify-center rounded-xl border border-line-subtle bg-fill-subtle px-3 py-2 sm:px-4 sm:py-2.5">
+      <dt className="mb-1 text-micro font-semibold text-muted">{label}</dt>
       <dd>{children}</dd>
     </div>
   );
 }
 
 /** 소요시간 큰 숫자. 난이도 칸의 BaselineStrut 도 같은 글자 크기를 써야 기준선이 맞는다. */
-// ⚠️ 섹션 제목(text-h2)과 같은 급이다. 예전에는 36px 이라 페이지 제목(H1)만큼 컸다.
-const BIG_NUMBER = "text-h2 font-extrabold leading-none";
+// ⚠️ h3 급이다. 36px(H1 급) → h2 → h3 로 두 번 내렸다. 더 내리면 본문과 구별이 안 된다.
+const BIG_NUMBER = "text-h3 font-extrabold leading-none";
 
 /**
  * 난이도·소요시간 값 줄.
@@ -137,10 +138,10 @@ const BIG_NUMBER = "text-h2 font-extrabold leading-none";
  * 줄 높이는 고정하고 아래로 붙여(items-end) 두 칸의 기준선 높이가 같게 한다.
  */
 function SpecValue({ children }: { children: React.ReactNode }) {
-  // 높이는 담긴 것 중 가장 큰 것(숫자 28px · 자물쇠 28px)에 맞춘다. 숫자가 36px
-  // 이던 시절의 h-10(40px)을 그대로 두면 아래가 4px 비어 칸만 높아진다.
+  // 높이는 담긴 것 중 가장 큰 것(숫자 18px · 자물쇠 24px)에 맞춘다. 글자를 줄이고도
+  // 예전 높이를 그대로 두면 아래가 비어 칸만 높아진다.
   return (
-    <div className="flex h-8 items-end sm:h-9">
+    <div className="flex h-6 items-end sm:h-7">
       <div className="flex items-baseline gap-3">{children}</div>
     </div>
   );
@@ -149,7 +150,7 @@ function SpecValue({ children }: { children: React.ReactNode }) {
 /** 폭 0 의 보이지 않는 큰 글자. 난이도 줄에 숫자가 없어도 옆 칸과 같은 기준선을 만든다. */
 function BaselineStrut() {
   return (
-    <span aria-hidden className={`${BIG_NUMBER} invisible -mr-3 inline-block w-0 overflow-hidden`}>
+    <span aria-hidden className={`${BIG_NUMBER} invisible -mr-2 inline-block w-0 overflow-hidden`}>
       0
     </span>
   );
@@ -158,7 +159,7 @@ function BaselineStrut() {
 /** 데스크톱(lg)에서만 보이는 보조 표기. 모바일은 칸이 좁아 뺀다. */
 function SmallNote({ children }: { children: React.ReactNode }) {
   // 칸이 좁아져도 '4 / 5' 가 두 줄로 꺾이지 않게.
-  return <span className="hidden whitespace-nowrap text-body-sm font-semibold text-muted lg:inline">{children}</span>;
+  return <span className="hidden whitespace-nowrap text-label font-semibold text-muted lg:inline">{children}</span>;
 }
 
 /**
@@ -181,7 +182,7 @@ export function hoursLabel(minutes: number) {
  */
 function LockRow({ rating, accent, max = 5 }: { rating: number; accent: string; max?: number }) {
   return (
-    <span className="flex items-center gap-1 lg:gap-1.5" role="img" aria-label={`난이도 ${rating} / ${max}`}>
+    <span className="flex items-center gap-1 lg:gap-1" role="img" aria-label={`난이도 ${rating} / ${max}`}>
       {Array.from({ length: max }, (_, i) => {
         const on = i < rating;
         return (
@@ -189,7 +190,7 @@ function LockRow({ rating, accent, max = 5 }: { rating: number; accent: string; 
             key={i}
             viewBox="0 0 16 16"
             aria-hidden
-            className="h-5 w-5 lg:h-7 lg:w-7"
+            className="h-4 w-4 lg:h-6 lg:w-6"
             style={{ color: on ? accent : "rgba(255,255,255,0.22)" }}
           >
             <path
