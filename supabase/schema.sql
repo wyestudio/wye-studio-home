@@ -30,11 +30,84 @@ CREATE TYPE public.application_result AS (
 );
 
 --
+-- Name: promotions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.promotions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    kind text DEFAULT 'early_bird'::text NOT NULL,
+    is_active boolean DEFAULT false NOT NULL,
+    applies_from timestamp with time zone,
+    applies_until timestamp with time zone,
+    session_from date,
+    session_to date,
+    days_before integer DEFAULT 7 NOT NULL,
+    badge_label text DEFAULT '얼리버드'::text NOT NULL,
+    banner_title text,
+    banner_body text,
+    banner_highlight text,
+    banner_note text,
+    accent_color text DEFAULT '#ff73b4'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT promotions_accent_color_check CHECK ((accent_color ~ '^#[0-9a-fA-F]{6}$'::text)),
+    CONSTRAINT promotions_days_before_check CHECK ((days_before >= 0)),
+    CONSTRAINT promotions_kind_check CHECK ((kind = 'early_bird'::text)),
+    CONSTRAINT promotions_period_order CHECK (((applies_from IS NULL) OR (applies_until IS NULL) OR (applies_from <= applies_until))),
+    CONSTRAINT promotions_session_range_order CHECK (((session_from IS NULL) OR (session_to IS NULL) OR (session_from <= session_to)))
+);
+
+--
+-- Name: TABLE promotions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.promotions IS '기간 한정 할인(얼리버드 등). 켜진 행은 한 번에 하나. 금액은 promotion_price_tiers 에 인당 고정가로.';
+
+--
+-- Name: COLUMN promotions.days_before; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.promotions.days_before IS '회차 진행일 기준 며칠 전까지 신청해야 적용되는가. KST 날짜 차이로 판정한다.';
+
+--
+-- Name: active_promotion(timestamp with time zone, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.active_promotion(p_start_at timestamp with time zone, p_now timestamp with time zone DEFAULT now()) RETURNS SETOF public.promotions
+    LANGUAGE sql STABLE
+    AS $$
+  select *
+    from public.promotions p
+   where p.is_active
+     and (p.applies_from  is null or p_now >= p.applies_from)
+     and (p.applies_until is null or p_now <= p.applies_until)
+     and (p.session_from  is null or (p_start_at at time zone 'Asia/Seoul')::date >= p.session_from)
+     and (p.session_to    is null or (p_start_at at time zone 'Asia/Seoul')::date <= p.session_to)
+     and (p_start_at at time zone 'Asia/Seoul')::date
+         - (p_now at time zone 'Asia/Seoul')::date >= p.days_before
+   limit 1;
+$$;
+
+--
+-- Name: add_marketing_optout(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.add_marketing_optout(p_phone text, p_note text DEFAULT NULL::text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  insert into marketing_sms_optouts (phone_hash, phone_enc, note)
+  values (hash_phone(p_phone), encrypt_pii(regexp_replace(p_phone, '[^0-9]', '', 'g')), p_note)
+  on conflict (phone_hash) do update set note = coalesce(excluded.note, marketing_sms_optouts.note);
+$$;
+
+--
 -- Name: admin_search_applications(text, uuid, text, text, timestamp with time zone, timestamp with time zone, integer, integer); Type: FUNCTION; Schema: public; Owner: -
 --
 
-CREATE FUNCTION public.admin_search_applications(p_query text DEFAULT NULL::text, p_session_id uuid DEFAULT NULL::uuid, p_status text DEFAULT NULL::text, p_payment text DEFAULT NULL::text, p_from timestamp with time zone DEFAULT NULL::timestamp with time zone, p_to timestamp with time zone DEFAULT NULL::timestamp with time zone, p_limit integer DEFAULT 50, p_offset integer DEFAULT 0) RETURNS TABLE(id uuid, confirmation_code text, status text, payment_status text, headcount integer, amount_krw integer, created_at timestamp with time zone, session_id uuid, session_start_at timestamp with time zone, theme_name text, format_label text, representative_name text, representative_phone text, depositor_name text, total_count bigint)
-    LANGUAGE plpgsql STABLE SECURITY DEFINER
+CREATE FUNCTION public.admin_search_applications(p_query text, p_session_id uuid, p_status text, p_payment text, p_from timestamp with time zone, p_to timestamp with time zone, p_limit integer, p_offset integer) RETURNS TABLE(id uuid, confirmation_code text, status text, payment_status text, headcount integer, amount_krw integer, discount_krw integer, coupons text, created_at timestamp with time zone, session_id uuid, session_start_at timestamp with time zone, theme_name text, format_label text, representative_name text, representative_phone text, depositor_name text, total_count bigint)
+    LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'extensions'
     AS $$
 declare
@@ -50,6 +123,9 @@ begin
       coalesce(ap.amount_krw,
                s.price_krw * (select count(*)::int from application_attendees x
                               where x.application_id = ap.id)) as amount_krw,
+      coalesce(ap.discount_krw, 0) as discount_krw,
+      (select string_agg(ac.campaign_name || ' ' || ac.code, ', ' order by ac.code)
+         from application_coupons ac where ac.application_id = ap.id) as coupons,
       ap.created_at,
       s.id as session_id, s.start_at as session_start_at,
       coalesce(t.name, s.theme_name) as theme_name,
@@ -83,6 +159,7 @@ begin
   ),
   counted as (select count(*) as n from filtered)
   select f.id, f.confirmation_code, f.status, f.payment_status, f.headcount, f.amount_krw,
+         f.discount_krw, f.coupons,
          f.created_at, f.session_id, f.session_start_at, f.theme_name, f.format_label,
          f.representative_name, f.representative_phone, f.depositor_name,
          c.n
@@ -101,7 +178,38 @@ CREATE FUNCTION public.admin_update_application(p_application_id uuid, p_deposit
     LANGUAGE plpgsql SECURITY DEFINER
     SET search_path TO 'public', 'extensions'
     AS $$
+declare
+  v_theme_id uuid;
+  v_min_age  int;
+  v_self_dup text;
+  v_dup      text;
 begin
+  select s.theme_id, s.min_age into v_theme_id, v_min_age
+    from applications ap
+    join sessions s on s.id = ap.session_id
+   where ap.id = p_application_id;
+
+  if not found then raise exception '존재하지 않는 신청입니다.'; end if;
+
+  if exists (select 1 from jsonb_array_elements(p_attendees) a
+             where not is_eligible_birth_year((a->>'birth_year')::int, v_min_age)) then
+    raise exception '이 회차는 만 %세 이상만 참여할 수 있습니다.', v_min_age;
+  end if;
+
+  select string_agg(distinct phone, ',') into v_self_dup from (
+    select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone
+      from jsonb_array_elements(p_attendees) a group by 1 having count(*) > 1) t;
+  if v_self_dup is not null then
+    raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 번호를 입력해주세요.' using detail = v_self_dup;
+  end if;
+
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',') into v_dup
+    from jsonb_array_elements(p_attendees) a
+   where is_theme_participation_blocked(a->>'phone', v_theme_id, p_application_id);
+  if v_dup is not null then
+    raise exception '이미 이 테마에 신청하신 분이 포함되어 있어요. 같은 테마는 한 번만 참여할 수 있습니다.' using detail = v_dup;
+  end if;
+
   update applications
   set depositor_name_enc = encrypt_pii(p_depositor_name),
       notes = p_notes
@@ -167,6 +275,69 @@ end;
 $$;
 
 --
+-- Name: assign_coupon_to_handle(text, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.assign_coupon_to_handle(p_campaign_key text, p_handle text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+declare
+  v_camp   coupon_campaigns%rowtype;
+  v_coupon coupons%rowtype;
+  v_handle text;
+begin
+  v_handle := lower(btrim(regexp_replace(coalesce(p_handle, ''), '^@+', '')));
+  if v_handle = '' then
+    return jsonb_build_object('ok', false, 'reason', 'INVALID_HANDLE');
+  end if;
+
+  select * into v_camp from coupon_campaigns where key = p_campaign_key;
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'CAMPAIGN_NOT_FOUND');
+  end if;
+
+  if not v_camp.is_active
+     or (v_camp.valid_from  is not null and now() < v_camp.valid_from)
+     or (v_camp.valid_until is not null and now() > v_camp.valid_until) then
+    return jsonb_build_object('ok', false, 'reason', 'SOLD_OUT_OR_ENDED');
+  end if;
+
+  select * into v_coupon from coupons
+   where campaign_id = v_camp.id and issued_to_handle = v_handle
+   limit 1;
+  if found then
+    return jsonb_build_object('ok', true, 'code', v_coupon.code, 'reused', true);
+  end if;
+
+  select * into v_coupon from coupons
+   where campaign_id = v_camp.id
+     and issued_to_handle is null
+     and issued_to_phone_hash is null
+     and used_at is null
+   order by code
+   limit 1
+   for update skip locked;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'SOLD_OUT_OR_ENDED');
+  end if;
+
+  update coupons set issued_to_handle = v_handle where id = v_coupon.id;
+
+  return jsonb_build_object('ok', true, 'code', v_coupon.code, 'reused', false);
+exception
+  when unique_violation then
+    select * into v_coupon from coupons
+     where campaign_id = v_camp.id and issued_to_handle = v_handle limit 1;
+    if found then
+      return jsonb_build_object('ok', true, 'code', v_coupon.code, 'reused', true);
+    end if;
+    return jsonb_build_object('ok', false, 'reason', 'SOLD_OUT_OR_ENDED');
+end;
+$$;
+
+--
 -- Name: cancel_application(text, text, text, text, text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -217,17 +388,9 @@ CREATE FUNCTION public.check_active_applications_v2(p_phones text[], p_session_i
     SET search_path TO 'public', 'extensions'
     AS $$
   select coalesce(array_agg(distinct phone), array[]::text[])
-  from unnest(p_phones) as phone
-  where exists (
-    select 1
-    from application_attendees aa
-    join applications ap on ap.id = aa.application_id
-    join sessions s on s.id = ap.session_id
-    where ap.status <> 'cancelled'
-      and aa.phone_hash = hash_phone(phone)
-      and s.theme_id is not null
-      and s.theme_id = (select theme_id from sessions where id = p_session_id)
-  );
+    from unnest(p_phones) as phone
+   where is_theme_participation_blocked(
+           phone, (select theme_id from sessions where id = p_session_id));
 $$;
 
 --
@@ -249,9 +412,28 @@ CREATE FUNCTION public.check_nickname_available(p_session_id uuid, p_nickname te
     from application_attendees x
     join applications a on a.id = x.application_id
     where x.session_id = p_session_id
-      and x.nickname = p_nickname
       and x.nickname is not null
+      and lower(x.nickname) = lower(p_nickname)
       and a.status <> 'cancelled'
+  );
+$$;
+
+--
+-- Name: codename_exists(text, smallint); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.codename_exists(p_phone text, p_round smallint) RETURNS jsonb
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  select coalesce(
+    (select jsonb_build_object(
+       'exists', true,
+       'at', to_char(updated_at at time zone 'Asia/Seoul', 'YYYY-MM-DD"T"HH24:MI:SS')
+     )
+     from public.codename_submissions
+     where phone_hash = public.hash_phone(p_phone) and round = p_round),
+    jsonb_build_object('exists', false)
   );
 $$;
 
@@ -320,7 +502,7 @@ CREATE FUNCTION public.enforce_session_nickname_unique() RETURNS trigger
     SET search_path TO 'public'
     AS $$
 begin
-  if new.nickname is null or new.nickname = '' then
+  if new.nickname is null or btrim(new.nickname) = '' then
     return new;
   end if;
 
@@ -329,7 +511,7 @@ begin
     from application_attendees x
     join applications a on a.id = x.application_id
     where x.session_id = new.session_id
-      and x.nickname = new.nickname
+      and lower(x.nickname) = lower(new.nickname)
       and x.id <> new.id
       and a.status <> 'cancelled'
   ) then
@@ -399,6 +581,68 @@ CREATE FUNCTION public.is_eligible_birth_year(p_year integer, p_min_age integer)
     SET search_path TO 'public'
     AS $$
   select p_year <= extract(year from (now() at time zone 'Asia/Seoul'))::int - (p_min_age + 1);
+$$;
+
+--
+-- Name: is_theme_participation_blocked(text, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_theme_participation_blocked(p_phone text, p_theme_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  select is_theme_participation_blocked(p_phone, p_theme_id, null::uuid);
+$$;
+
+--
+-- Name: FUNCTION is_theme_participation_blocked(p_phone text, p_theme_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.is_theme_participation_blocked(p_phone text, p_theme_id uuid) IS '이 전화번호가 이 테마에 더 신청할 수 없는 상태인지. 기본은 "이미 1번 참여했으면 차단", reparticipation_allowances 에 행이 있으면 그 횟수까지 허용.';
+
+--
+-- Name: is_theme_participation_blocked(text, uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.is_theme_participation_blocked(p_phone text, p_theme_id uuid, p_exclude_application_id uuid) RETURNS boolean
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  select p_theme_id is not null
+     and (
+       select count(*)
+         from application_attendees aa
+         join applications ap on ap.id = aa.application_id
+         join sessions s on s.id = ap.session_id
+        where ap.status <> 'cancelled'
+          and aa.phone_hash = hash_phone(p_phone)
+          and s.theme_id = p_theme_id
+          and (p_exclude_application_id is null or ap.id <> p_exclude_application_id)
+     ) >= coalesce((
+       select r.max_participations
+         from reparticipation_allowances r
+        where r.phone_hash = hash_phone(p_phone)
+          and r.theme_id = p_theme_id
+     ), 1);
+$$;
+
+--
+-- Name: FUNCTION is_theme_participation_blocked(p_phone text, p_theme_id uuid, p_exclude_application_id uuid); Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON FUNCTION public.is_theme_participation_blocked(p_phone text, p_theme_id uuid, p_exclude_application_id uuid) IS '재참여 차단 판정. p_exclude_application_id 에 준 신청은 참여 횟수에서 뺀다(수정 화면용).';
+
+--
+-- Name: list_marketing_optouts(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.list_marketing_optouts() RETURNS TABLE(phone_hash text, phone text, note text, created_at timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  select o.phone_hash, decrypt_pii(o.phone_enc), o.note, o.created_at
+  from marketing_sms_optouts o
+  order by o.created_at desc;
 $$;
 
 --
@@ -733,6 +977,50 @@ $$;
 COMMENT ON FUNCTION public.mark_attendee_reminder_sent(p_attendee_ids uuid[]) IS '장소안내 문자를 실제로 받은 참여자에게 발송 시각을 남긴다. 어드민 서버 액션·크론 전용.';
 
 --
+-- Name: marketing_sms_recipients(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.marketing_sms_recipients() RETURNS TABLE(phone_hash text, name text, phone text, participation_count integer, last_session_start timestamp with time zone)
+    LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  with participations as (
+    select aa.phone_hash, aa.name_enc, aa.phone_enc, s.start_at
+    from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    join sessions s on s.id = ap.session_id
+    where ap.status = 'confirmed'
+      and ap.payment_status = 'confirmed'
+      and ap.cancelled_at is null
+      and ap.refund_completed_at is null
+      and not ap.is_internal
+      and s.start_at < now()
+  ),
+  latest_consent as (
+    select distinct on (aa.phone_hash) aa.phone_hash, ap.consent_marketing
+    from application_attendees aa
+    join applications ap on ap.id = aa.application_id
+    where aa.is_representative
+    order by aa.phone_hash, ap.created_at desc
+  ),
+  latest_participation as (
+    select distinct on (p.phone_hash) p.phone_hash, p.name_enc, p.phone_enc, p.start_at
+    from participations p
+    order by p.phone_hash, p.start_at desc
+  )
+  select
+    lp.phone_hash,
+    decrypt_pii(lp.name_enc)  as name,
+    decrypt_pii(lp.phone_enc) as phone,
+    (select count(*)::int from participations p where p.phone_hash = lp.phone_hash) as participation_count,
+    lp.start_at as last_session_start
+  from latest_participation lp
+  join latest_consent lc on lc.phone_hash = lp.phone_hash and lc.consent_marketing
+  where not exists (select 1 from marketing_sms_optouts o where o.phone_hash = lp.phone_hash)
+  order by lp.start_at desc, name;
+$$;
+
+--
 -- Name: normalize_coupon_code(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -826,6 +1114,11 @@ begin
 
   if v_camp.discount_type = 'fixed' then
     v_discount := v_camp.discount_value;
+  elsif v_camp.discount_type = 'per_head' then
+    v_discount := v_camp.discount_value * p_headcount;
+    if v_camp.max_discount_krw is not null then
+      v_discount := least(v_discount, v_camp.max_discount_krw);
+    end if;
   else
     v_discount := floor(p_base_amount * v_camp.discount_value / 100.0)::int;
     if v_camp.max_discount_krw is not null then
@@ -849,6 +1142,108 @@ end;
 $$;
 
 --
+-- Name: preview_coupons(text[], uuid, integer, integer, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.preview_coupons(p_codes text[], p_theme_id uuid, p_headcount integer, p_base_amount integer, p_phone text DEFAULT NULL::text) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+declare
+  v_code text; v_norm text;
+  v_seen text[] := '{}';
+  v_items jsonb := '[]'::jsonb;
+  v_one jsonb;
+  v_total int := 0;
+  v_coupon coupons%rowtype;
+  v_camp coupon_campaigns%rowtype;
+  v_camps uuid[] := '{}';
+  v_count int := 0;
+  v_blocker text;
+begin
+  if p_codes is null or coalesce(array_length(p_codes, 1), 0) = 0 then
+    return jsonb_build_object('ok', false, 'reason', '쿠폰 코드를 입력해주세요.');
+  end if;
+
+  foreach v_code in array p_codes loop
+    v_norm := normalize_coupon_code(v_code);
+    continue when v_norm is null or v_norm = '';
+
+    if v_norm = any(v_seen) then
+      return jsonb_build_object('ok', false, 'reason', '같은 쿠폰을 두 번 넣을 수 없어요.');
+    end if;
+    v_seen := v_seen || v_norm;
+
+    v_one := preview_coupon(v_norm, p_theme_id, p_headcount, p_base_amount, p_phone);
+    if not (v_one->>'ok')::boolean then
+      return jsonb_build_object('ok', false, 'reason', v_one->>'reason', 'code', v_norm);
+    end if;
+
+    select * into v_coupon from coupons where code = v_norm;
+    select * into v_camp from coupon_campaigns where id = v_coupon.campaign_id;
+
+    if v_camp.id = any(v_camps) then
+      return jsonb_build_object(
+        'ok', false,
+        'reason', format('%s 쿠폰은 한 장만 쓸 수 있어요.', v_camp.name));
+    end if;
+    v_camps := v_camps || v_camp.id;
+
+    v_count := v_count + 1;
+    v_total := v_total + (v_one->>'discount_krw')::int;
+    v_items := v_items || jsonb_build_array(jsonb_build_object(
+      'code', v_norm,
+      'campaign_id', v_camp.id,
+      'campaign_name', v_camp.name,
+      'stackable', v_camp.stackable,
+      'discount_krw', (v_one->>'discount_krw')::int
+    ));
+  end loop;
+
+  if v_count = 0 then
+    return jsonb_build_object('ok', false, 'reason', '쿠폰 코드를 입력해주세요.');
+  end if;
+
+  if v_count > 1 then
+    select e->>'campaign_name' into v_blocker
+      from jsonb_array_elements(v_items) e
+     where not (e->>'stackable')::boolean
+     limit 1;
+    if v_blocker is not null then
+      return jsonb_build_object(
+        'ok', false,
+        'reason', format('%s 쿠폰은 다른 쿠폰과 함께 쓸 수 없어요.', v_blocker));
+    end if;
+  end if;
+
+  v_total := least(v_total, p_base_amount);
+
+  return jsonb_build_object(
+    'ok', true,
+    'items', v_items,
+    'discount_krw', v_total,
+    'final_amount_krw', p_base_amount - v_total
+  );
+end;
+$$;
+
+--
+-- Name: promotion_unit_price(uuid, uuid, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.promotion_unit_price(p_promotion_id uuid, p_theme_id uuid, p_headcount integer) RETURNS integer
+    LANGUAGE sql STABLE
+    AS $$
+  select pt.unit_price_krw
+    from public.promotion_price_tiers pt
+   where pt.promotion_id = p_promotion_id
+     and pt.theme_id = p_theme_id
+     and pt.min_headcount <= p_headcount
+   order by pt.min_headcount desc
+   limit 1;
+$$;
+
+--
 -- Name: release_coupon_on_cancel(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -857,14 +1252,18 @@ CREATE FUNCTION public.release_coupon_on_cancel() RETURNS trigger
     SET search_path TO 'public'
     AS $$
 begin
-  if new.status = 'cancelled'
-     and coalesce(old.status, '') <> 'cancelled'
-     and new.coupon_id is not null then
-    update coupons
-       set used_at = null,
-           used_application_id = null
-     where id = new.coupon_id
-       and used_application_id = new.id;
+  if new.status = 'cancelled' and coalesce(old.status, '') <> 'cancelled' then
+    update coupons c
+       set used_at = null, used_application_id = null
+      from application_coupons ac
+     where ac.application_id = new.id
+       and c.id = ac.coupon_id
+       and c.used_application_id = new.id;
+
+    if new.coupon_id is not null then
+      update coupons set used_at = null, used_application_id = null
+       where id = new.coupon_id and used_application_id = new.id;
+    end if;
   end if;
   return new;
 end;
@@ -874,7 +1273,30 @@ $$;
 -- Name: FUNCTION release_coupon_on_cancel(); Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON FUNCTION public.release_coupon_on_cancel() IS '신청이 취소되면 사용된 쿠폰을 미사용 상태로 되돌린다. 취소 경로가 여러 개라 트리거로 둔다.';
+COMMENT ON FUNCTION public.release_coupon_on_cancel() IS '신청이 취소되면 붙어 있던 쿠폰을 전부 미사용으로 되돌린다. 취소 경로가 여러 개라 트리거로 둔다.';
+
+--
+-- Name: remove_marketing_optout(text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.remove_marketing_optout(p_phone_hash text) RETURNS void
+    LANGUAGE sql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+  delete from marketing_sms_optouts where phone_hash = p_phone_hash;
+$$;
+
+--
+-- Name: resolve_promotion_price(uuid, timestamp with time zone, integer, timestamp with time zone); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.resolve_promotion_price(p_theme_id uuid, p_start_at timestamp with time zone, p_headcount integer, p_now timestamp with time zone DEFAULT now()) RETURNS TABLE(promotion_id uuid, promotion_name text, unit_price_krw integer)
+    LANGUAGE sql STABLE
+    AS $$
+  select p.id, p.name, public.promotion_unit_price(p.id, p_theme_id, p_headcount)
+    from public.active_promotion(p_start_at, p_now) p
+   where public.promotion_unit_price(p.id, p_theme_id, p_headcount) is not null;
+$$;
 
 --
 -- Name: resolve_unit_price(uuid, integer); Type: FUNCTION; Schema: public; Owner: -
@@ -1385,6 +1807,309 @@ exception
 end; $$;
 
 --
+-- Name: submit_application_v3(uuid, text, boolean, boolean, jsonb, text, boolean, boolean, uuid, text[]); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.submit_application_v3(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text DEFAULT NULL::text, p_consent_photo boolean DEFAULT false, p_consent_marketing boolean DEFAULT false, p_user_id uuid DEFAULT NULL::uuid, p_coupon_codes text[] DEFAULT NULL::text[]) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+declare
+  v_session record; v_group_size int; v_current_total int; v_status text;
+  v_code text; v_app applications%rowtype; v_unit_price int;
+  v_base_amount int; v_amount int; v_dup_phones text; v_self_dup text;
+  v_waiting_number int; v_preview jsonb; v_item jsonb;
+  v_discount int := 0; v_rep_phone text; v_norm text; v_codes text[] := '{}';
+  v_locked coupons%rowtype;
+  -- ── 프로모션 (v3 이전과 다른 부분) ──
+  v_base_unit_price int; v_promo_discount int := 0;
+  v_promo_id uuid; v_promo_name text; v_promo_unit int;
+begin
+  if not p_consent_required then raise exception '필수 약관에 동의해야 신청할 수 있습니다.'; end if;
+  perform 1 from sessions where id = p_session_id for update;
+
+  select sv.*, t.max_group_size, t.is_active as theme_active into v_session
+  from session_view sv join themes t on t.id = sv.theme_id where sv.id = p_session_id;
+
+  if not found then raise exception '존재하지 않는 회차입니다.'; end if;
+  if not v_session.theme_active then raise exception '현재 신청을 받지 않는 테마입니다.'; end if;
+  if v_session.status <> 'open' then raise exception '이미 마감된 회차입니다.'; end if;
+  -- 이미 시작한 회차는 받지 않는다. status 는 손으로 내리는 값이라 지나간 회차에도
+  -- 'open' 이 남는다 — 시각으로 끊지 않으면 끝난 회차에 신청이 들어간다.
+  if v_session.start_at < now() then raise exception '이미 마감된 회차입니다.'; end if;
+
+  v_group_size := jsonb_array_length(p_attendees);
+  if v_group_size is null or v_group_size < 1 then raise exception '참여 인원을 입력해주세요.'; end if;
+  if v_session.max_group_size is not null and v_group_size > v_session.max_group_size then
+    raise exception '한 번에 최대 %명까지 신청할 수 있습니다.', v_session.max_group_size; end if;
+
+  if exists (select 1 from jsonb_array_elements(p_attendees) a
+             where not is_eligible_birth_year((a->>'birth_year')::int, v_session.min_age)) then
+    raise exception '이 회차는 만 %세 이상만 참여할 수 있습니다.', v_session.min_age; end if;
+
+  select string_agg(distinct phone, ',') into v_self_dup from (
+    select regexp_replace(a->>'phone', '[^0-9]', '', 'g') as phone
+    from jsonb_array_elements(p_attendees) a group by 1 having count(*) > 1) t;
+  if v_self_dup is not null then
+    raise exception '그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 번호를 입력해주세요.' using detail = v_self_dup; end if;
+
+  -- 재참여 차단. 판정은 is_theme_participation_blocked() 한 곳에만 둔다 —
+  -- 화면 사전 안내(check_active_applications_v2)와 같은 함수를 쓴다.
+  -- 사람 단위 예외는 reparticipation_allowances 표에 적는다.
+  select string_agg(distinct regexp_replace(a->>'phone', '[^0-9]', '', 'g'), ',') into v_dup_phones
+  from jsonb_array_elements(p_attendees) a
+  where is_theme_participation_blocked(a->>'phone', v_session.theme_id);
+  if v_dup_phones is not null then
+    raise exception '이미 이 테마에 신청하신 분이 포함되어 있어요. 같은 테마는 한 번만 참여할 수 있습니다.' using detail = v_dup_phones; end if;
+
+  select coalesce(sum(cnt), 0) into v_current_total from (
+    select ap.id, count(*) as cnt from applications ap
+    join application_attendees aa on aa.application_id = ap.id
+    where ap.session_id = p_session_id and ap.status in ('confirmed','waiting') group by ap.id) t;
+
+  if v_current_total + v_group_size > v_session.capacity_max then
+    raise exception '정원마감: 남은 자리가 부족합니다.'; end if;
+
+  v_status := case when v_current_total + v_group_size <= v_session.capacity_confirm_line
+                   then 'confirmed' else 'waiting' end;
+
+  -- ── 인당가 (프로모션 적용) ─────────────────────────────────
+  v_base_unit_price := coalesce(v_session.price_krw_override, resolve_unit_price(v_session.theme_id, v_group_size));
+  if v_base_unit_price is null then raise exception '이 테마의 요금이 설정되지 않았습니다. 운영자에게 문의해주세요.'; end if;
+  v_unit_price := v_base_unit_price;
+
+  -- 회차별 금액을 손으로 박아 둔 회차는 프로모션보다 그쪽이 이긴다.
+  if v_session.price_krw_override is null then
+    select r.promotion_id, r.promotion_name, r.unit_price_krw
+      into v_promo_id, v_promo_name, v_promo_unit
+      from resolve_promotion_price(v_session.theme_id, v_session.start_at, v_group_size, now()) r;
+
+    -- 프로모션가가 기본가보다 싸지 않으면 적용하지 않는다. 운영자가 숫자를
+    -- 잘못 넣어도 고객이 기본가보다 더 내는 일은 없어야 한다.
+    if v_promo_unit is not null and v_promo_unit < v_base_unit_price then
+      v_unit_price := v_promo_unit;
+      v_promo_discount := (v_base_unit_price - v_unit_price) * v_group_size;
+    else
+      v_promo_id := null; v_promo_name := null;
+    end if;
+  end if;
+
+  v_base_amount := v_unit_price * v_group_size;
+  v_amount := v_base_amount;
+
+  -- ── 쿠폰 (v2 와 다른 부분) ──────────────────────────────────
+  if p_coupon_codes is not null then
+    -- 빈 값을 걸러 정규화한다.
+    foreach v_norm in array p_coupon_codes loop
+      v_norm := normalize_coupon_code(v_norm);
+      if v_norm is not null and v_norm <> '' and not (v_norm = any(v_codes)) then
+        v_codes := v_codes || v_norm;
+      end if;
+    end loop;
+  end if;
+
+  if coalesce(array_length(v_codes, 1), 0) > 0 then
+    -- ⚠️ 먼저 **코드 순서대로** 잠근다. 순서를 고정해야 두 신청이 같은 두 장을
+    --    반대 순서로 잡아 교착(deadlock)에 빠지지 않는다.
+    --    preview 검사만 믿으면 동시 신청에 같은 코드가 두 번 먹는다.
+    for v_norm in select unnest(v_codes) order by 1 loop
+      select * into v_locked from coupons where code = v_norm for update;
+      if not found then raise exception '존재하지 않는 쿠폰 코드예요.'; end if;
+      if v_locked.used_at is not null then raise exception '이미 사용된 쿠폰이에요.'; end if;
+    end loop;
+
+    v_rep_phone := regexp_replace(p_attendees->0->>'phone', '[^0-9]', '', 'g');
+    -- ⚠️ 쿠폰은 **프로모션이 적용된 금액 위에** 얹힌다(중복 적용 가능).
+    --    정률 쿠폰도 할인 후 금액을 기준으로 계산된다.
+    v_preview := preview_coupons(v_codes, v_session.theme_id, v_group_size, v_base_amount, v_rep_phone);
+    if not (v_preview->>'ok')::boolean then raise exception '%', v_preview->>'reason'; end if;
+
+    v_discount := (v_preview->>'discount_krw')::int;
+    v_amount := (v_preview->>'final_amount_krw')::int;
+  end if;
+
+  for i in 1..20 loop
+    v_code := (100000 + floor(random() * 900000))::int::text;
+    exit when not exists (select 1 from applications where confirmation_code = v_code);
+  end loop;
+
+  insert into applications (
+    session_id, user_id, depositor_name_enc, depositor_name_hash,
+    consent_required, consent_optional, consent_photo, consent_marketing,
+    confirmation_code, status, notes, headcount, unit_price_krw, amount_krw,
+    discount_krw,
+    promotion_id, promotion_name, base_unit_price_krw, promotion_discount_krw
+  ) values (
+    p_session_id, p_user_id, encrypt_pii(p_depositor_name),
+    hash_phone(normalize_depositor_name(p_depositor_name)),
+    p_consent_required, p_consent_optional, p_consent_photo, p_consent_marketing,
+    v_code, v_status, p_notes, v_group_size, v_unit_price, v_amount,
+    v_discount,
+    v_promo_id, v_promo_name, v_base_unit_price, v_promo_discount
+  ) returning * into v_app;
+
+  -- 쿠폰을 신청에 붙이고 소진 처리한다.
+  if v_preview is not null and (v_preview->>'ok')::boolean then
+    for v_item in select * from jsonb_array_elements(v_preview->'items') loop
+      insert into application_coupons (
+        application_id, coupon_id, campaign_id, code, campaign_name, discount_krw)
+      select v_app.id, c.id, (v_item->>'campaign_id')::uuid,
+             v_item->>'code', v_item->>'campaign_name', (v_item->>'discount_krw')::int
+        from coupons c where c.code = v_item->>'code';
+
+      update coupons set used_at = now(), used_application_id = v_app.id
+       where code = v_item->>'code';
+    end loop;
+  end if;
+
+  insert into application_attendees (
+    application_id, session_id, is_representative,
+    name_enc, phone_enc, phone_hash, birth_year, nickname, gender, experience_range)
+  select v_app.id, p_session_id, (ord = 1),
+         encrypt_pii(a->>'name'), encrypt_pii(a->>'phone'), hash_phone(a->>'phone'),
+         (a->>'birth_year')::int, nullif(a->>'nickname',''),
+         nullif(a->>'gender',''), nullif(a->>'experience_range','')
+  from jsonb_array_elements(p_attendees) with ordinality as t(a, ord);
+
+  if v_current_total + v_group_size >= v_session.capacity_max then
+    update sessions set status = 'closed', updated_at = now() where id = p_session_id; end if;
+
+  if v_app.status = 'waiting' then
+    select count(*) + 1 into v_waiting_number from applications
+     where session_id = p_session_id and status = 'waiting' and id <> v_app.id; end if;
+
+  return jsonb_build_object(
+    'id', v_app.id, 'confirmation_code', v_app.confirmation_code,
+    'status', v_app.status, 'payment_status', v_app.payment_status,
+    'headcount', v_group_size, 'unit_price_krw', v_unit_price,
+    'base_amount_krw', v_base_amount, 'discount_krw', v_discount,
+    'amount_krw', v_amount, 'waiting_number', v_waiting_number,
+    'coupons', coalesce(v_preview->'items', '[]'::jsonb),
+    'promotion_id', v_promo_id,
+    'promotion_name', v_promo_name,
+    'base_unit_price_krw', v_base_unit_price,
+    'promotion_discount_krw', v_promo_discount,
+    'created_at', v_app.created_at);
+exception
+  when unique_violation then
+    raise exception '선택하신 닉네임 중 하나가 이미 사용 중이에요. 다른 닉네임을 입력해주세요.';
+end; $$;
+
+--
+-- Name: submit_codename(smallint, text, text, text, boolean, boolean, boolean); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.submit_codename(p_round smallint, p_nickname text, p_codename text, p_phone text, p_consent boolean, p_is_correct boolean, p_replace boolean) RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions'
+    AS $$
+declare
+  v_hash     text := public.hash_phone(p_phone);
+  v_code     text := upper(regexp_replace(coalesce(p_codename, ''), '[^A-Za-z]', '', 'g'));
+  v_nickname text := btrim(coalesce(p_nickname, ''));
+  v_existing public.codename_submissions%rowtype;
+  v_had_any  boolean;
+begin
+  if v_nickname = '' or v_code = '' then
+    return jsonb_build_object('ok', false, 'status', 'invalid');
+  end if;
+
+  select * into v_existing
+    from public.codename_submissions
+   where phone_hash = v_hash and round = p_round
+   for update;
+
+  if found and not coalesce(p_replace, false) then
+    return jsonb_build_object(
+      'ok', false,
+      'status', 'duplicate',
+      'previous_at', to_char(v_existing.updated_at at time zone 'Asia/Seoul', 'YYYY-MM-DD"T"HH24:MI:SS')
+    );
+  end if;
+
+  if found then
+    update public.codename_submissions
+       set nickname = v_nickname,
+           codename = v_code,
+           phone_enc = public.encrypt_pii(p_phone),
+           consent_personal_info = coalesce(p_consent, false),
+           is_correct = p_is_correct,
+           is_rejoin = true,
+           updated_at = now()
+     where id = v_existing.id;
+
+    return jsonb_build_object('ok', true, 'status', 'replaced', 'is_rejoin', true);
+  end if;
+
+  select exists(
+    select 1 from public.codename_submissions where phone_hash = v_hash
+  ) into v_had_any;
+
+  insert into public.codename_submissions (
+    round, nickname, codename, phone_enc, phone_hash,
+    consent_personal_info, is_rejoin, is_correct
+  ) values (
+    p_round, v_nickname, v_code, public.encrypt_pii(p_phone), v_hash,
+    coalesce(p_consent, false), v_had_any, p_is_correct
+  );
+
+  return jsonb_build_object('ok', true, 'status', 'inserted', 'is_rejoin', v_had_any);
+end;
+$$;
+
+--
+-- Name: submit_group_booking_inquiry(integer, text, text, date, text, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.submit_group_booking_inquiry(p_headcount integer, p_contact_method text, p_contact text, p_preferred_date date, p_preferred_time text, p_group_kind text, p_note text DEFAULT NULL::text, p_attribution jsonb DEFAULT '{}'::jsonb) RETURNS uuid
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public'
+    AS $$
+declare
+  v_id uuid;
+begin
+  if p_headcount is null or p_headcount < 2 or p_headcount > 200 then
+    raise exception '예상 참여 인원을 확인해주세요.';
+  end if;
+  if p_contact_method is null or p_contact_method not in ('kakao', 'phone', 'sms', 'email') then
+    raise exception '연락 수단을 선택해주세요.';
+  end if;
+  if p_contact is null or length(trim(p_contact)) = 0 then
+    raise exception '연락처를 입력해주세요.';
+  end if;
+  if p_preferred_time is null or length(trim(p_preferred_time)) = 0 then
+    raise exception '예상 이용 시간을 선택해주세요.';
+  end if;
+  if p_group_kind is null or length(trim(p_group_kind)) = 0 then
+    raise exception '모임 성격을 선택해주세요.';
+  end if;
+
+  insert into public.group_booking_inquiries (
+    headcount, contact_method, contact_enc,
+    preferred_date, preferred_time, group_kind, note,
+    utm_source, utm_medium, utm_campaign, utm_content, utm_term, referrer, landing_path
+  ) values (
+    p_headcount,
+    p_contact_method,
+    encrypt_pii(trim(p_contact)),
+    p_preferred_date,
+    trim(p_preferred_time),
+    trim(p_group_kind),
+    nullif(trim(coalesce(p_note, '')), ''),
+    nullif(trim(coalesce(p_attribution->>'utm_source', '')), ''),
+    nullif(trim(coalesce(p_attribution->>'utm_medium', '')), ''),
+    nullif(trim(coalesce(p_attribution->>'utm_campaign', '')), ''),
+    nullif(trim(coalesce(p_attribution->>'utm_content', '')), ''),
+    nullif(trim(coalesce(p_attribution->>'utm_term', '')), ''),
+    nullif(trim(coalesce(p_attribution->>'referrer', '')), ''),
+    nullif(trim(coalesce(p_attribution->>'landing_path', '')), '')
+  ) returning id into v_id;
+
+  return v_id;
+end;
+$$;
+
+--
 -- Name: submit_review_payback_application(text, text, text, text, text, text, text, text, jsonb); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -1620,6 +2345,42 @@ CREATE TABLE public._backup_theme_content_20260913b (
 );
 
 --
+-- Name: _backup_theme_content_20260914; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public._backup_theme_content_20260914 (
+    id uuid,
+    slug text,
+    content jsonb,
+    updated_at timestamp with time zone,
+    backed_up_at timestamp with time zone
+);
+
+--
+-- Name: _backup_theme_content_20260915; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public._backup_theme_content_20260915 (
+    id uuid,
+    slug text,
+    content jsonb,
+    backed_up_at timestamp with time zone
+);
+
+--
+-- Name: _backup_theme_content_20260915b; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public._backup_theme_content_20260915b (
+    id uuid,
+    slug text,
+    content jsonb,
+    description text,
+    updated_at timestamp with time zone,
+    backed_up_at timestamp with time zone
+);
+
+--
 -- Name: applications; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1658,6 +2419,18 @@ CREATE TABLE public.applications (
     discount_krw integer DEFAULT 0 NOT NULL,
     paid_at timestamp with time zone,
     cancelled_at timestamp with time zone,
+    utm_source text,
+    utm_medium text,
+    utm_campaign text,
+    utm_content text,
+    utm_term text,
+    referrer text,
+    landing_path text,
+    is_internal boolean DEFAULT false NOT NULL,
+    promotion_id uuid,
+    promotion_name text,
+    base_unit_price_krw integer,
+    promotion_discount_krw integer DEFAULT 0 NOT NULL,
     CONSTRAINT applications_notes_check CHECK (((notes IS NULL) OR (char_length(notes) <= 200))),
     CONSTRAINT applications_payment_status_check CHECK ((payment_status = ANY (ARRAY['pending'::text, 'confirmed'::text, 'cancelled'::text]))),
     CONSTRAINT applications_status_check CHECK ((status = ANY (ARRAY['waiting'::text, 'confirmed'::text, 'cancelled'::text])))
@@ -1685,7 +2458,7 @@ COMMENT ON COLUMN public.applications.depositor_name_hash IS '입금자명 정�
 -- Name: COLUMN applications.coupon_id; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.applications.coupon_id IS '이 신청에 사용된 쿠폰. 쿠폰이 지워져도 신청은 남는다(on delete set null).';
+COMMENT ON COLUMN public.applications.coupon_id IS '[사용 안 함] 쿠폰 1장 시절의 칸. 지금은 application_coupons 가 진실이다. 옛 기록 보존용으로만 남긴다.';
 
 --
 -- Name: COLUMN applications.discount_krw; Type: COMMENT; Schema: public; Owner: -
@@ -1704,6 +2477,42 @@ COMMENT ON COLUMN public.applications.paid_at IS '입금이 확인된 시각. �
 --
 
 COMMENT ON COLUMN public.applications.cancelled_at IS '신청이 취소된 시각. 환불 비율 계산의 기준 시점이기도 하다. 2026-09-13 이전 취소 건은 null.';
+
+--
+-- Name: COLUMN applications.utm_source; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.utm_source IS '유입경로. 신청 직후 서버 액션이 기록한다(submit_application_v2 와 무관).';
+
+--
+-- Name: COLUMN applications.referrer; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.referrer IS 'UTM 이 없을 때 출처를 가늠하는 단서. 외부 사이트 주소(origin+path).';
+
+--
+-- Name: COLUMN applications.landing_path; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.landing_path IS '우리 사이트에서 처음 연 경로. 광고가 어느 페이지로 보냈는지 본다.';
+
+--
+-- Name: COLUMN applications.is_internal; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.is_internal IS '우리 기기(/internal 에서 표시를 켠 브라우저)에서 넣은 신청. 어드민 분석에서 뺀다. 운영 화면에는 그대로 보인다.';
+
+--
+-- Name: COLUMN applications.base_unit_price_krw; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.base_unit_price_krw IS '할인 전 인당가. unit_price_krw 에는 할인 후 금액이 들어간다.';
+
+--
+-- Name: COLUMN applications.promotion_discount_krw; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.applications.promotion_discount_krw IS '프로모션(얼리버드) 할인액. 쿠폰 할인(discount_krw)과 별개로 센다.';
 
 --
 -- Name: admin_application_view; Type: VIEW; Schema: public; Owner: -
@@ -1778,6 +2587,67 @@ CREATE VIEW public.admin_attendee_view AS
     created_at,
     reminder_sms_sent_at
    FROM public.application_attendees aa;
+
+--
+-- Name: group_booking_inquiries; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.group_booking_inquiries (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    headcount integer NOT NULL,
+    contact_method text NOT NULL,
+    contact_enc bytea NOT NULL,
+    preferred_date date,
+    preferred_time text NOT NULL,
+    group_kind text NOT NULL,
+    note text,
+    utm_source text,
+    utm_medium text,
+    utm_campaign text,
+    utm_content text,
+    utm_term text,
+    referrer text,
+    landing_path text,
+    status text DEFAULT 'new'::text NOT NULL,
+    admin_memo text,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT group_booking_inquiries_contact_method_check CHECK ((contact_method = ANY (ARRAY['kakao'::text, 'phone'::text, 'sms'::text, 'email'::text]))),
+    CONSTRAINT group_booking_inquiries_headcount_check CHECK (((headcount >= 2) AND (headcount <= 200))),
+    CONSTRAINT group_booking_inquiries_status_check CHECK ((status = ANY (ARRAY['new'::text, 'contacted'::text, 'quoted'::text, 'booked'::text, 'dropped'::text])))
+);
+
+--
+-- Name: TABLE group_booking_inquiries; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.group_booking_inquiries IS '단체 예약 견적 신청 접수함. 예약이 아니라 상담 요청이다 (/group).';
+
+--
+-- Name: admin_group_booking_inquiries_view; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.admin_group_booking_inquiries_view AS
+ SELECT id,
+    created_at,
+    headcount,
+    contact_method,
+    public.decrypt_pii(contact_enc) AS contact,
+    preferred_date,
+    preferred_time,
+    group_kind,
+    note,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    utm_content,
+    utm_term,
+    referrer,
+    landing_path,
+    status,
+    admin_memo,
+    updated_at
+   FROM public.group_booking_inquiries;
 
 --
 -- Name: review_payback_applications; Type: TABLE; Schema: public; Owner: -
@@ -1921,6 +2791,27 @@ CREATE TABLE public.admin_users (
 );
 
 --
+-- Name: application_coupons; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.application_coupons (
+    application_id uuid NOT NULL,
+    coupon_id uuid,
+    campaign_id uuid,
+    code text NOT NULL,
+    campaign_name text NOT NULL,
+    discount_krw integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT application_coupons_discount_krw_check CHECK ((discount_krw >= 0))
+);
+
+--
+-- Name: TABLE application_coupons; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.application_coupons IS '신청에 적용된 쿠폰들. 신청 1건에 여러 장이 붙을 수 있다(stackable 캠페인끼리만). 정산의 기준.';
+
+--
 -- Name: audit_logs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1987,6 +2878,46 @@ CREATE TABLE public.bank_transactions (
 COMMENT ON TABLE public.bank_transactions IS '오픈뱅킹에서 수집한 입금 거래. 금액+입금자명 해시로 신청과 매칭한다.';
 
 --
+-- Name: codename_submissions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.codename_submissions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    round smallint DEFAULT 1 NOT NULL,
+    nickname text NOT NULL,
+    codename text NOT NULL,
+    phone_enc bytea NOT NULL,
+    phone_hash text NOT NULL,
+    consent_personal_info boolean DEFAULT false NOT NULL,
+    is_rejoin boolean DEFAULT false NOT NULL,
+    is_correct boolean,
+    is_free_pair_winner boolean DEFAULT false NOT NULL,
+    submitted_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT codename_submissions_codename_check CHECK ((codename ~ '^[A-Z]{1,32}$'::text)),
+    CONSTRAINT codename_submissions_nickname_check CHECK (((char_length(nickname) >= 1) AND (char_length(nickname) <= 30))),
+    CONSTRAINT codename_submissions_round_check CHECK ((round = ANY (ARRAY[1, 2])))
+);
+
+--
+-- Name: TABLE codename_submissions; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.codename_submissions IS '코드네임 맞히기 이벤트(/codename) 응모 기록. 연락처+회차당 한 줄.';
+
+--
+-- Name: COLUMN codename_submissions.is_rejoin; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.codename_submissions.is_rejoin IS '같은 연락처로 이전에 제출한 이력이 있으면 true(답안 교체 · 다음 회차 재응모).';
+
+--
+-- Name: COLUMN codename_submissions.is_correct; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.codename_submissions.is_correct IS '서버 자동 채점 결과. 정답 문자열 미설정 시 null.';
+
+--
 -- Name: coupon_campaigns; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2005,12 +2936,47 @@ CREATE TABLE public.coupon_campaigns (
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT coupon_campaigns_discount_type_check CHECK ((discount_type = ANY (ARRAY['fixed'::text, 'percent'::text]))),
+    stackable boolean DEFAULT false NOT NULL,
+    show_event_bubble boolean DEFAULT false NOT NULL,
+    event_bubble_text text,
+    key text,
+    event_bubble_url text,
+    CONSTRAINT coupon_campaigns_discount_type_check CHECK ((discount_type = ANY (ARRAY['fixed'::text, 'percent'::text, 'per_head'::text]))),
     CONSTRAINT coupon_campaigns_discount_value_check CHECK ((discount_value > 0)),
     CONSTRAINT coupon_campaigns_max_discount_krw_check CHECK (((max_discount_krw IS NULL) OR (max_discount_krw > 0))),
     CONSTRAINT coupon_campaigns_min_headcount_check CHECK (((min_headcount IS NULL) OR (min_headcount > 0))),
     CONSTRAINT percent_range CHECK (((discount_type <> 'percent'::text) OR ((discount_value >= 1) AND (discount_value <= 100))))
 );
+
+--
+-- Name: COLUMN coupon_campaigns.stackable; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.coupon_campaigns.stackable IS '다른 쿠폰과 겹쳐 쓸 수 있는지. 2장 이상 적용하려면 전부 true 여야 한다.';
+
+--
+-- Name: COLUMN coupon_campaigns.show_event_bubble; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.coupon_campaigns.show_event_bubble IS '켜면 사이트 우하단 인스타 버튼 위에 이벤트 말풍선이 뜬다.';
+
+--
+-- Name: COLUMN coupon_campaigns.event_bubble_text; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.coupon_campaigns.event_bubble_text IS '말풍선 문구. 줄바꿈하면 두 줄. 비우면 캠페인 이름을 쓴다.';
+
+--
+-- Name: COLUMN coupon_campaigns.key; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.coupon_campaigns.key IS '외부 연동(ManyChat 등)이 캠페인을 찾을 때 쓰는 고정 키. 이름과 달리 바뀌지 않는다.';
+
+--
+-- Name: COLUMN coupon_campaigns.event_bubble_url; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.coupon_campaigns.event_bubble_url IS '말풍선이 켜진 동안 우하단 인스타 버튼·말풍선이 향할 주소(이벤트 게시물). 비우면 계정 홈.';
 
 --
 -- Name: coupons; Type: TABLE; Schema: public; Owner: -
@@ -2024,8 +2990,15 @@ CREATE TABLE public.coupons (
     issued_label text,
     used_at timestamp with time zone,
     used_application_id uuid,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    issued_to_handle text
 );
+
+--
+-- Name: COLUMN coupons.issued_to_handle; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.coupons.issued_to_handle IS '이 쿠폰을 받아간 외부 계정(인스타 아이디 등). @ 없이 소문자로 저장한다.';
 
 --
 -- Name: faqs; Type: TABLE; Schema: public; Owner: -
@@ -2057,6 +3030,24 @@ CREATE TABLE public.kakao_links (
     user_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+--
+-- Name: marketing_sms_optouts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.marketing_sms_optouts (
+    phone_hash text NOT NULL,
+    phone_enc bytea NOT NULL,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT marketing_sms_optouts_note_check CHECK (((note IS NULL) OR (char_length(note) <= 200)))
+);
+
+--
+-- Name: TABLE marketing_sms_optouts; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.marketing_sms_optouts IS '광고 문자 수신거부 번호. 여기 있는 번호는 동의 여부와 관계없이 광고 문자 대상에서 빠진다.';
 
 --
 -- Name: naver_links; Type: TABLE; Schema: public; Owner: -
@@ -2098,6 +3089,37 @@ CREATE TABLE public.point_ledger (
 );
 
 --
+-- Name: popups; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.popups (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    image_url text,
+    image_alt text,
+    body text,
+    link_url text,
+    link_label text,
+    pages text[] DEFAULT '{home,themes,theme_detail}'::text[] NOT NULL,
+    starts_at timestamp with time zone,
+    ends_at timestamp with time zone,
+    is_active boolean DEFAULT false NOT NULL,
+    sort integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT popups_has_content CHECK (((COALESCE(image_url, ''::text) <> ''::text) OR (COALESCE(body, ''::text) <> ''::text))),
+    CONSTRAINT popups_link_url_check CHECK (((link_url IS NULL) OR (link_url ~ '^(/|https://)'::text))),
+    CONSTRAINT popups_pages_check CHECK ((pages <@ ARRAY['home'::text, 'themes'::text, 'theme_detail'::text])),
+    CONSTRAINT popups_period_order CHECK (((starts_at IS NULL) OR (ends_at IS NULL) OR (starts_at <= ends_at)))
+);
+
+--
+-- Name: TABLE popups; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.popups IS '접속 시 뜨는 안내 팝업. 고객 화면은 public_popup 뷰만 읽는다.';
+
+--
 -- Name: profiles; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2111,6 +3133,182 @@ CREATE TABLE public.profiles (
     phone_digits text GENERATED ALWAYS AS (regexp_replace(phone, '[^0-9]'::text, ''::text, 'g'::text)) STORED,
     CONSTRAINT profiles_gender_check CHECK ((gender = ANY (ARRAY['M'::text, 'F'::text])))
 );
+
+--
+-- Name: promotion_price_tiers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.promotion_price_tiers (
+    promotion_id uuid NOT NULL,
+    theme_id uuid NOT NULL,
+    min_headcount integer NOT NULL,
+    unit_price_krw integer NOT NULL,
+    CONSTRAINT promotion_price_tiers_min_headcount_check CHECK ((min_headcount >= 1)),
+    CONSTRAINT promotion_price_tiers_unit_price_krw_check CHECK ((unit_price_krw >= 0))
+);
+
+--
+-- Name: TABLE promotion_price_tiers; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.promotion_price_tiers IS '프로모션 적용 시의 인당 가격. 구간이 없는 테마는 그 프로모션 대상이 아니다(기본가 유지).';
+
+--
+-- Name: public_event_bubble; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.public_event_bubble AS
+ SELECT COALESCE(NULLIF(btrim(event_bubble_text), ''::text), name) AS text,
+    NULLIF(btrim(event_bubble_url), ''::text) AS url
+   FROM public.coupon_campaigns c
+  WHERE (is_active AND show_event_bubble AND ((valid_from IS NULL) OR (valid_from <= now())) AND ((valid_until IS NULL) OR (valid_until >= now())))
+  ORDER BY updated_at DESC
+ LIMIT 1;
+
+--
+-- Name: VIEW public_event_bubble; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON VIEW public.public_event_bubble IS '우하단 이벤트 말풍선 문구. 켜진 캠페인이 없으면 0행.';
+
+--
+-- Name: public_popup; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.public_popup AS
+ SELECT id,
+    image_url,
+    image_alt,
+    body,
+    link_url,
+    link_label,
+    pages,
+    sort
+   FROM public.popups
+  WHERE (is_active AND ((starts_at IS NULL) OR (starts_at <= now())) AND ((ends_at IS NULL) OR (ends_at >= now())));
+
+--
+-- Name: public_promotion; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.public_promotion AS
+ SELECT id,
+    name,
+    kind,
+    badge_label,
+    banner_title,
+    banner_body,
+    banner_highlight,
+    banner_note,
+    accent_color,
+    days_before,
+    session_from,
+    session_to,
+    applies_from,
+    applies_until
+   FROM public.promotions
+  WHERE is_active;
+
+--
+-- Name: public_promotion_price_tier; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.public_promotion_price_tier AS
+ SELECT pt.promotion_id,
+    pt.theme_id,
+    pt.min_headcount,
+    pt.unit_price_krw
+   FROM (public.promotion_price_tiers pt
+     JOIN public.promotions p ON ((p.id = pt.promotion_id)))
+  WHERE p.is_active;
+
+--
+-- Name: utm_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.utm_links (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    label text NOT NULL,
+    slug text,
+    landing_path text NOT NULL,
+    utm_source text NOT NULL,
+    utm_medium text NOT NULL,
+    utm_campaign text NOT NULL,
+    utm_content text,
+    utm_term text,
+    managed_by text DEFAULT 'db'::text NOT NULL,
+    status text DEFAULT 'active'::text NOT NULL,
+    note text,
+    sort integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT utm_links_landing_path_check CHECK ((landing_path ~ '^/'::text)),
+    CONSTRAINT utm_links_managed_by_check CHECK ((managed_by = ANY (ARRAY['db'::text, 'code'::text]))),
+    CONSTRAINT utm_links_medium_rule CHECK (((managed_by = 'code'::text) OR (utm_medium = ANY (ARRAY['social'::text, 'paid_social'::text, 'referral'::text, 'affiliate'::text, 'display'::text])))),
+    CONSTRAINT utm_links_slug_shape CHECK (((slug IS NULL) OR (slug ~ '^[a-z0-9][a-z0-9.-]*$'::text))),
+    CONSTRAINT utm_links_status_check CHECK ((status = ANY (ARRAY['active'::text, 'disabled'::text]))),
+    CONSTRAINT utm_links_utm_campaign_check CHECK ((utm_campaign ~ '^[a-z0-9_]+$'::text)),
+    CONSTRAINT utm_links_utm_source_check CHECK ((utm_source ~ '^[a-z0-9_]+$'::text))
+);
+
+--
+-- Name: TABLE utm_links; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.utm_links IS '유입경로(UTM) 링크 목록. 분석·홍보용이며 신청·결제·정산에 영향을 주지 않는다. 규칙은 WYE-89 문서.';
+
+--
+-- Name: COLUMN utm_links.slug; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.utm_links.slug IS '짧은 주소 경로(앞의 / 없이). managed_by=db 인 행만 실제로 해석된다.';
+
+--
+-- Name: COLUMN utm_links.managed_by; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.utm_links.managed_by IS 'code = next.config/라우트 핸들러에 박혀 있어 이 표를 고쳐도 동작이 바뀌지 않는다(기록용).';
+
+--
+-- Name: public_short_link; Type: VIEW; Schema: public; Owner: -
+--
+
+CREATE VIEW public.public_short_link AS
+ SELECT slug,
+    landing_path,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    utm_content,
+    utm_term
+   FROM public.utm_links
+  WHERE ((status = 'active'::text) AND (managed_by = 'db'::text) AND (slug IS NOT NULL));
+
+--
+-- Name: VIEW public_short_link; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON VIEW public.public_short_link IS '짧은 주소 해석용. 활성·DB관리 행의 목적지만 공개한다.';
+
+--
+-- Name: reparticipation_allowances; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reparticipation_allowances (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    phone_hash text NOT NULL,
+    theme_id uuid NOT NULL,
+    max_participations integer DEFAULT 2 NOT NULL,
+    reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT reparticipation_allowances_max_participations_check CHECK ((max_participations >= 1))
+);
+
+--
+-- Name: TABLE reparticipation_allowances; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.reparticipation_allowances IS '같은 테마 1회 제한(D-02)의 사람 단위 예외. phone_hash + theme_id 당 허용 참여 횟수(기본 규칙은 1).';
 
 --
 -- Name: sessions; Type: TABLE; Schema: public; Owner: -
@@ -2155,6 +3353,7 @@ CREATE TABLE public.sessions (
     admin_note text,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     opens_at timestamp with time zone DEFAULT now() NOT NULL,
+    badge text,
     CONSTRAINT sessions_difficulty_check CHECK (((difficulty >= 1) AND (difficulty <= 5))),
     CONSTRAINT sessions_session_type_check CHECK ((session_type = ANY (ARRAY['그룹'::text, '소개팅'::text]))),
     CONSTRAINT sessions_slot_check CHECK ((slot = ANY (ARRAY['afternoon'::text, 'evening'::text]))),
@@ -2192,6 +3391,12 @@ COMMENT ON COLUMN public.sessions.legacy_slug IS '과거 고객 URL(0829-meeting
 COMMENT ON COLUMN public.sessions.opens_at IS '이 시각부터 고객 화면에 보인다. 롤링 오픈용. 과거면 바로 공개.';
 
 --
+-- Name: COLUMN sessions.badge; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.sessions.badge IS '회차 시각 옆에 붙는 짧은 표시(예: 인기). 비우면 안 나온다.';
+
+--
 -- Name: themes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2201,7 +3406,7 @@ CREATE TABLE public.themes (
     name text NOT NULL,
     tagline text,
     description text,
-    difficulty smallint DEFAULT 3 NOT NULL,
+    difficulty numeric(2,1) DEFAULT 3 NOT NULL,
     duration_minutes integer NOT NULL,
     min_age_floor integer,
     capacity_confirm_line integer NOT NULL,
@@ -2222,11 +3427,13 @@ CREATE TABLE public.themes (
     title_font text,
     opening_date date,
     is_locked boolean DEFAULT false NOT NULL,
+    genres text[] DEFAULT '{}'::text[] NOT NULL,
+    intro_notice text,
     CONSTRAINT themes_capacity_confirm_line_check CHECK ((capacity_confirm_line > 0)),
     CONSTRAINT themes_capacity_max_check CHECK ((capacity_max > 0)),
     CONSTRAINT themes_capacity_min_check CHECK (((capacity_min IS NULL) OR (capacity_min > 0))),
     CONSTRAINT themes_capacity_order CHECK ((capacity_confirm_line <= capacity_max)),
-    CONSTRAINT themes_difficulty_check CHECK (((difficulty >= 0) AND (difficulty <= 5))),
+    CONSTRAINT themes_difficulty_check CHECK (((difficulty >= (0)::numeric) AND (difficulty <= (5)::numeric) AND ((difficulty * (2)::numeric) = trunc((difficulty * (2)::numeric))))),
     CONSTRAINT themes_duration_minutes_check CHECK ((duration_minutes >= 0)),
     CONSTRAINT themes_max_group_size_check CHECK (((max_group_size IS NULL) OR (max_group_size >= 1))),
     CONSTRAINT themes_min_age_floor_check CHECK (((min_age_floor IS NULL) OR ((min_age_floor >= 0) AND (min_age_floor <= 100))))
@@ -2242,7 +3449,7 @@ COMMENT ON TABLE public.themes IS '테마(상품). 회차가 가격·정원·소
 -- Name: COLUMN themes.difficulty; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON COLUMN public.themes.difficulty IS '난이도 1~5. 0 은 미정 — 화면에서 감춘다.';
+COMMENT ON COLUMN public.themes.difficulty IS '난이도 1~5, 0.5 단위. 0 은 미정 — 화면에서 감춘다.';
 
 --
 -- Name: COLUMN themes.duration_minutes; Type: COMMENT; Schema: public; Owner: -
@@ -2305,6 +3512,12 @@ COMMENT ON COLUMN public.themes.opening_date IS '예약 달력에 ''오픈'' 으
 COMMENT ON COLUMN public.themes.is_locked IS '잠금. 목록에는 나오지만 상세로 들어갈 수 없고(자물쇠) 검색엔진 색인에서도 빠진다. 신청 여부(is_active)와는 별개다.';
 
 --
+-- Name: COLUMN themes.intro_notice; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.themes.intro_notice IS '테마 소개(첫 화면) 시놉시스 아래 강조 안내. 비우면 안 나온다. **굵게** 표기 지원.';
+
+--
 -- Name: venues; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2317,7 +3530,11 @@ CREATE TABLE public.venues (
     map_url text,
     is_active boolean DEFAULT true NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    lat double precision,
+    lng double precision,
+    operating_period text,
+    CONSTRAINT venues_lat_lng_pair CHECK ((((lat IS NULL) AND (lng IS NULL)) OR (((lat >= ('-90'::integer)::double precision) AND (lat <= (90)::double precision)) AND ((lng >= ('-180'::integer)::double precision) AND (lng <= (180)::double precision)))))
 );
 
 --
@@ -2331,6 +3548,24 @@ COMMENT ON TABLE public.venues IS '대관 장소. 정확 주소는 비공개, ar
 --
 
 COMMENT ON COLUMN public.venues.area_label IS '공개용 대략 위치. venue_public 뷰를 통해서만 노출된다.';
+
+--
+-- Name: COLUMN venues.lat; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.venues.lat IS '위도. 테마 상세 진행 장소 지도의 핀 위치 (lng 와 함께 입력)';
+
+--
+-- Name: COLUMN venues.lng; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.venues.lng IS '경도. 테마 상세 진행 장소 지도의 핀 위치 (lat 와 함께 입력)';
+
+--
+-- Name: COLUMN venues.operating_period; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON COLUMN public.venues.operating_period IS '이 장소에서의 운영기간 표기(예: 2026.09.26 ~ 2027.03.25). 테마 상세 진행 장소에 공개. 비우면 안 보인다. 네이버 스마트플레이스 팝업스토어 등록 요건(종료일 명시)';
 
 --
 -- Name: session_display; Type: VIEW; Schema: public; Owner: -
@@ -2364,7 +3599,8 @@ CREATE VIEW public.session_display AS
         END AS capacity_max,
     s.capacity_max_male,
     s.capacity_max_female,
-    s.opens_at
+    s.opens_at,
+    s.badge
    FROM ((public.sessions s
      LEFT JOIN public.themes t ON ((t.id = s.theme_id)))
      LEFT JOIN public.venues v ON ((v.id = COALESCE(s.venue_id_override, t.venue_id))));
@@ -2435,15 +3671,31 @@ CREATE VIEW public.session_view AS
     COALESCE(s.capacity_confirm_line_override, t.capacity_confirm_line) AS capacity_confirm_line,
     COALESCE(s.capacity_max_override, t.capacity_max) AS capacity_max,
     COALESCE(s.venue_id_override, t.venue_id) AS venue_id,
-    s.opens_at
+    s.opens_at,
+    s.badge
    FROM (public.sessions s
      JOIN public.themes t ON ((t.id = s.theme_id)));
 
 --
--- Name: VIEW session_view; Type: COMMENT; Schema: public; Owner: -
+-- Name: settlement_snapshots; Type: TABLE; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.session_view IS '회차 실효값. 가격은 구간 요금(theme_price_tiers)이 기준이며 price_krw_override 가 있으면 인원수 무관 단일가로 덮어쓴다.';
+CREATE TABLE public.settlement_snapshots (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    month text NOT NULL,
+    captured_at timestamp with time zone DEFAULT now() NOT NULL,
+    note text,
+    totals jsonb NOT NULL,
+    rows jsonb NOT NULL,
+    deductions jsonb DEFAULT '[]'::jsonb NOT NULL,
+    CONSTRAINT settlement_snapshots_month_check CHECK ((month ~ '^\d{4}-\d{2}$'::text))
+);
+
+--
+-- Name: TABLE settlement_snapshots; Type: COMMENT; Schema: public; Owner: -
+--
+
+COMMENT ON TABLE public.settlement_snapshots IS '정산 내역 스냅샷. 보관 전용이며 정산 계산에는 쓰이지 않는다.';
 
 --
 -- Name: site_settings; Type: TABLE; Schema: public; Owner: -
@@ -2501,7 +3753,8 @@ CREATE TABLE public.theme_categories (
     name text NOT NULL,
     sort_order integer DEFAULT 0 NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    description text
 );
 
 --
@@ -2512,7 +3765,12 @@ CREATE VIEW public.theme_public_venue AS
  SELECT t.id AS theme_id,
     v.area_label,
     v.parking_note,
-    v.map_url
+    v.map_url,
+    v.name,
+    v.address,
+    v.lat,
+    v.lng,
+    v.operating_period
    FROM (public.themes t
      JOIN public.venues v ON ((v.id = t.venue_id)));
 
@@ -2520,7 +3778,7 @@ CREATE VIEW public.theme_public_venue AS
 -- Name: VIEW theme_public_venue; Type: COMMENT; Schema: public; Owner: -
 --
 
-COMMENT ON VIEW public.theme_public_venue IS '테마 상세에 노출해도 되는 장소 정보만 추린 뷰. 상호명(name)과 정확 주소(address)는 포함하지 않는다.';
+COMMENT ON VIEW public.theme_public_venue IS '테마 상세에 노출해도 되는 장소 정보. 상호명·정확 주소·좌표·운영기간까지 공개(네이버 플레이스 등록 요건).';
 
 --
 -- Name: theme_schedules; Type: TABLE; Schema: public; Owner: -
@@ -2591,6 +3849,13 @@ ALTER TABLE ONLY public.application_attendees
     ADD CONSTRAINT application_attendees_pkey PRIMARY KEY (id);
 
 --
+-- Name: application_coupons application_coupons_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.application_coupons
+    ADD CONSTRAINT application_coupons_pkey PRIMARY KEY (application_id, code);
+
+--
 -- Name: applications applications_confirmation_code_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2626,6 +3891,20 @@ ALTER TABLE ONLY public.bank_transactions
     ADD CONSTRAINT bank_transactions_pkey PRIMARY KEY (id);
 
 --
+-- Name: codename_submissions codename_submissions_phone_hash_round_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.codename_submissions
+    ADD CONSTRAINT codename_submissions_phone_hash_round_key UNIQUE (phone_hash, round);
+
+--
+-- Name: codename_submissions codename_submissions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.codename_submissions
+    ADD CONSTRAINT codename_submissions_pkey PRIMARY KEY (id);
+
+--
 -- Name: coupon_campaigns coupon_campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2654,11 +3933,25 @@ ALTER TABLE ONLY public.faqs
     ADD CONSTRAINT faqs_pkey PRIMARY KEY (id);
 
 --
+-- Name: group_booking_inquiries group_booking_inquiries_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.group_booking_inquiries
+    ADD CONSTRAINT group_booking_inquiries_pkey PRIMARY KEY (id);
+
+--
 -- Name: kakao_links kakao_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.kakao_links
     ADD CONSTRAINT kakao_links_pkey PRIMARY KEY (kakao_id);
+
+--
+-- Name: marketing_sms_optouts marketing_sms_optouts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.marketing_sms_optouts
+    ADD CONSTRAINT marketing_sms_optouts_pkey PRIMARY KEY (phone_hash);
 
 --
 -- Name: naver_links naver_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2682,11 +3975,46 @@ ALTER TABLE ONLY public.point_ledger
     ADD CONSTRAINT point_ledger_pkey PRIMARY KEY (id);
 
 --
+-- Name: popups popups_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.popups
+    ADD CONSTRAINT popups_pkey PRIMARY KEY (id);
+
+--
 -- Name: profiles profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
+
+--
+-- Name: promotion_price_tiers promotion_price_tiers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promotion_price_tiers
+    ADD CONSTRAINT promotion_price_tiers_pkey PRIMARY KEY (promotion_id, theme_id, min_headcount);
+
+--
+-- Name: promotions promotions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promotions
+    ADD CONSTRAINT promotions_pkey PRIMARY KEY (id);
+
+--
+-- Name: reparticipation_allowances reparticipation_allowances_phone_hash_theme_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reparticipation_allowances
+    ADD CONSTRAINT reparticipation_allowances_phone_hash_theme_id_key UNIQUE (phone_hash, theme_id);
+
+--
+-- Name: reparticipation_allowances reparticipation_allowances_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reparticipation_allowances
+    ADD CONSTRAINT reparticipation_allowances_pkey PRIMARY KEY (id);
 
 --
 -- Name: review_payback_applications review_payback_applications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2715,6 +4043,13 @@ ALTER TABLE ONLY public.sessions
 
 ALTER TABLE ONLY public.sessions
     ADD CONSTRAINT sessions_slug_key UNIQUE (slug);
+
+--
+-- Name: settlement_snapshots settlement_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.settlement_snapshots
+    ADD CONSTRAINT settlement_snapshots_pkey PRIMARY KEY (id);
 
 --
 -- Name: site_settings site_settings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -2794,6 +4129,13 @@ ALTER TABLE ONLY public.themes
     ADD CONSTRAINT themes_slug_key UNIQUE (slug);
 
 --
+-- Name: utm_links utm_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.utm_links
+    ADD CONSTRAINT utm_links_pkey PRIMARY KEY (id);
+
+--
 -- Name: venues venues_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2807,6 +4149,18 @@ ALTER TABLE ONLY public.venues
 CREATE INDEX application_attendees_phone_hash_idx ON public.application_attendees USING btree (phone_hash);
 
 --
+-- Name: application_coupons_campaign_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX application_coupons_campaign_idx ON public.application_coupons USING btree (campaign_id);
+
+--
+-- Name: application_coupons_coupon_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX application_coupons_coupon_idx ON public.application_coupons USING btree (coupon_id);
+
+--
 -- Name: applications_matching_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2817,6 +4171,12 @@ CREATE INDEX applications_matching_idx ON public.applications USING btree (amoun
 --
 
 CREATE INDEX applications_user_idx ON public.applications USING btree (user_id) WHERE (user_id IS NOT NULL);
+
+--
+-- Name: applications_utm_source_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX applications_utm_source_created_idx ON public.applications USING btree (utm_source, created_at DESC) WHERE (utm_source IS NOT NULL);
 
 --
 -- Name: audit_logs_recent_idx; Type: INDEX; Schema: public; Owner: -
@@ -2837,6 +4197,24 @@ CREATE INDEX audit_logs_target_idx ON public.audit_logs USING btree (target_type
 CREATE INDEX bank_tx_unmatched_idx ON public.bank_transactions USING btree (amount_krw, depositor_name_hash) WHERE ((matched_application_id IS NULL) AND (ignored_at IS NULL));
 
 --
+-- Name: codename_submissions_phone_hash_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX codename_submissions_phone_hash_idx ON public.codename_submissions USING btree (phone_hash);
+
+--
+-- Name: coupon_campaigns_key_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX coupon_campaigns_key_uidx ON public.coupon_campaigns USING btree (key) WHERE (key IS NOT NULL);
+
+--
+-- Name: coupons_campaign_handle_uidx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX coupons_campaign_handle_uidx ON public.coupons USING btree (campaign_id, issued_to_handle) WHERE (issued_to_handle IS NOT NULL);
+
+--
 -- Name: coupons_campaign_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2855,16 +4233,34 @@ CREATE INDEX coupons_issued_phone_idx ON public.coupons USING btree (issued_to_p
 CREATE INDEX coupons_unused_idx ON public.coupons USING btree (code) WHERE (used_at IS NULL);
 
 --
+-- Name: group_booking_inquiries_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX group_booking_inquiries_created_at_idx ON public.group_booking_inquiries USING btree (created_at DESC);
+
+--
 -- Name: point_ledger_user_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX point_ledger_user_idx ON public.point_ledger USING btree (user_id, created_at DESC);
 
 --
+-- Name: popups_active_sort_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX popups_active_sort_idx ON public.popups USING btree (is_active, sort, created_at);
+
+--
 -- Name: profiles_phone_digits_key; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX profiles_phone_digits_key ON public.profiles USING btree (phone_digits);
+
+--
+-- Name: promotions_single_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX promotions_single_active ON public.promotions USING btree ((1)) WHERE is_active;
 
 --
 -- Name: sessions_theme_opens_idx; Type: INDEX; Schema: public; Owner: -
@@ -2879,6 +4275,12 @@ CREATE INDEX sessions_theme_opens_idx ON public.sessions USING btree (theme_id, 
 CREATE INDEX sessions_theme_starts_idx ON public.sessions USING btree (theme_id, start_at);
 
 --
+-- Name: settlement_snapshots_month_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX settlement_snapshots_month_idx ON public.settlement_snapshots USING btree (month, captured_at DESC);
+
+--
 -- Name: themes_category_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2889,6 +4291,18 @@ CREATE INDEX themes_category_idx ON public.themes USING btree (category_id);
 --
 
 CREATE INDEX themes_listed_idx ON public.themes USING btree (is_listed, sort_order) WHERE is_active;
+
+--
+-- Name: utm_links_slug_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX utm_links_slug_key ON public.utm_links USING btree (slug) WHERE (slug IS NOT NULL);
+
+--
+-- Name: utm_links_status_sort_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX utm_links_status_sort_idx ON public.utm_links USING btree (status, sort, created_at);
 
 --
 -- Name: application_attendees application_attendees_nickname_unique; Type: TRIGGER; Schema: public; Owner: -
@@ -2934,6 +4348,27 @@ ALTER TABLE ONLY public.application_attendees
 
 ALTER TABLE ONLY public.application_attendees
     ADD CONSTRAINT application_attendees_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE CASCADE;
+
+--
+-- Name: application_coupons application_coupons_application_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.application_coupons
+    ADD CONSTRAINT application_coupons_application_id_fkey FOREIGN KEY (application_id) REFERENCES public.applications(id) ON DELETE CASCADE;
+
+--
+-- Name: application_coupons application_coupons_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.application_coupons
+    ADD CONSTRAINT application_coupons_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.coupon_campaigns(id) ON DELETE SET NULL;
+
+--
+-- Name: application_coupons application_coupons_coupon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.application_coupons
+    ADD CONSTRAINT application_coupons_coupon_id_fkey FOREIGN KEY (coupon_id) REFERENCES public.coupons(id) ON DELETE SET NULL;
 
 --
 -- Name: applications applications_coupon_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -3027,6 +4462,27 @@ ALTER TABLE ONLY public.profiles
     ADD CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 --
+-- Name: promotion_price_tiers promotion_price_tiers_promotion_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promotion_price_tiers
+    ADD CONSTRAINT promotion_price_tiers_promotion_id_fkey FOREIGN KEY (promotion_id) REFERENCES public.promotions(id) ON DELETE CASCADE;
+
+--
+-- Name: promotion_price_tiers promotion_price_tiers_theme_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promotion_price_tiers
+    ADD CONSTRAINT promotion_price_tiers_theme_id_fkey FOREIGN KEY (theme_id) REFERENCES public.themes(id) ON DELETE CASCADE;
+
+--
+-- Name: reparticipation_allowances reparticipation_allowances_theme_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reparticipation_allowances
+    ADD CONSTRAINT reparticipation_allowances_theme_id_fkey FOREIGN KEY (theme_id) REFERENCES public.themes(id) ON DELETE CASCADE;
+
+--
 -- Name: session_venues session_venues_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3094,6 +4550,24 @@ ALTER TABLE public._backup_applications_20260913 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public._backup_theme_content_20260913b ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: _backup_theme_content_20260914; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public._backup_theme_content_20260914 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: _backup_theme_content_20260915; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public._backup_theme_content_20260915 ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: _backup_theme_content_20260915b; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public._backup_theme_content_20260915b ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: admin_users; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3104,6 +4578,12 @@ ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.application_attendees ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: application_coupons; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.application_coupons ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: applications; Type: ROW SECURITY; Schema: public; Owner: -
@@ -3122,6 +4602,12 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.bank_transactions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: codename_submissions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.codename_submissions ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: coupon_campaigns; Type: ROW SECURITY; Schema: public; Owner: -
@@ -3148,6 +4634,12 @@ ALTER TABLE public.faqs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY faqs_select_visible ON public.faqs FOR SELECT USING (is_visible);
 
 --
+-- Name: group_booking_inquiries; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.group_booking_inquiries ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: kakao_links; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3158,6 +4650,12 @@ ALTER TABLE public.kakao_links ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY kakao_links_select_own ON public.kakao_links FOR SELECT TO authenticated USING ((auth.uid() = user_id));
+
+--
+-- Name: marketing_sms_optouts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.marketing_sms_optouts ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: naver_links; Type: ROW SECURITY; Schema: public; Owner: -
@@ -3196,6 +4694,12 @@ ALTER TABLE public.point_ledger ENABLE ROW LEVEL SECURITY;
 CREATE POLICY point_ledger_select_own ON public.point_ledger FOR SELECT TO authenticated USING ((auth.uid() = user_id));
 
 --
+-- Name: popups; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.popups ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: profiles; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3220,6 +4724,24 @@ CREATE POLICY profiles_select_own ON public.profiles FOR SELECT TO authenticated
 CREATE POLICY profiles_update_own ON public.profiles FOR UPDATE TO authenticated USING ((auth.uid() = id));
 
 --
+-- Name: promotion_price_tiers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.promotion_price_tiers ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: promotions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.promotions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reparticipation_allowances; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reparticipation_allowances ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: review_payback_applications; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3242,6 +4764,12 @@ ALTER TABLE public.sessions ENABLE ROW LEVEL SECURITY;
 --
 
 CREATE POLICY sessions_select_public ON public.sessions FOR SELECT USING (true);
+
+--
+-- Name: settlement_snapshots; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.settlement_snapshots ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: site_settings; Type: ROW SECURITY; Schema: public; Owner: -
@@ -3316,6 +4844,12 @@ ALTER TABLE public.themes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY themes_select_public ON public.themes FOR SELECT USING (true);
 
 --
+-- Name: utm_links; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.utm_links ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: venues; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -3329,6 +4863,26 @@ GRANT USAGE ON SCHEMA public TO postgres;
 GRANT USAGE ON SCHEMA public TO anon;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT USAGE ON SCHEMA public TO service_role;
+
+--
+-- Name: TABLE promotions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.promotions TO service_role;
+
+--
+-- Name: FUNCTION active_promotion(p_start_at timestamp with time zone, p_now timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.active_promotion(p_start_at timestamp with time zone, p_now timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.active_promotion(p_start_at timestamp with time zone, p_now timestamp with time zone) TO service_role;
+
+--
+-- Name: FUNCTION add_marketing_optout(p_phone text, p_note text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.add_marketing_optout(p_phone text, p_note text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.add_marketing_optout(p_phone text, p_note text) TO service_role;
 
 --
 -- Name: FUNCTION admin_search_applications(p_query text, p_session_id uuid, p_status text, p_payment text, p_from timestamp with time zone, p_to timestamp with time zone, p_limit integer, p_offset integer); Type: ACL; Schema: public; Owner: -
@@ -3352,6 +4906,13 @@ REVOKE ALL ON FUNCTION public.assign_coupon(p_campaign_id uuid, p_phone_hash tex
 GRANT ALL ON FUNCTION public.assign_coupon(p_campaign_id uuid, p_phone_hash text) TO service_role;
 
 --
+-- Name: FUNCTION assign_coupon_to_handle(p_campaign_key text, p_handle text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.assign_coupon_to_handle(p_campaign_key text, p_handle text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.assign_coupon_to_handle(p_campaign_key text, p_handle text) TO service_role;
+
+--
 -- Name: FUNCTION cancel_application(p_phone_digits text, p_confirmation_code text, p_refund_bank_name text, p_refund_account_number text, p_refund_account_holder text); Type: ACL; Schema: public; Owner: -
 --
 
@@ -3364,8 +4925,6 @@ GRANT ALL ON FUNCTION public.cancel_application(p_phone_digits text, p_confirmat
 --
 
 REVOKE ALL ON FUNCTION public.check_active_applications(p_phones text[], p_session_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.check_active_applications(p_phones text[], p_session_id uuid) TO anon;
-GRANT ALL ON FUNCTION public.check_active_applications(p_phones text[], p_session_id uuid) TO authenticated;
 
 --
 -- Name: FUNCTION check_active_applications_v2(p_phones text[], p_session_id uuid); Type: ACL; Schema: public; Owner: -
@@ -3384,6 +4943,13 @@ REVOKE ALL ON FUNCTION public.check_nickname_available(p_session_id uuid, p_nick
 GRANT ALL ON FUNCTION public.check_nickname_available(p_session_id uuid, p_nickname text) TO anon;
 GRANT ALL ON FUNCTION public.check_nickname_available(p_session_id uuid, p_nickname text) TO authenticated;
 GRANT ALL ON FUNCTION public.check_nickname_available(p_session_id uuid, p_nickname text) TO service_role;
+
+--
+-- Name: FUNCTION codename_exists(p_phone text, p_round smallint); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.codename_exists(p_phone text, p_round smallint) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.codename_exists(p_phone text, p_round smallint) TO service_role;
 
 --
 -- Name: FUNCTION coupon_recipients(p_session_id uuid, p_paid_only boolean); Type: ACL; Schema: public; Owner: -
@@ -3446,27 +5012,41 @@ REVOKE ALL ON FUNCTION public.is_eligible_birth_year(p_year integer, p_min_age i
 GRANT ALL ON FUNCTION public.is_eligible_birth_year(p_year integer, p_min_age integer) TO service_role;
 
 --
+-- Name: FUNCTION is_theme_participation_blocked(p_phone text, p_theme_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.is_theme_participation_blocked(p_phone text, p_theme_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION is_theme_participation_blocked(p_phone text, p_theme_id uuid, p_exclude_application_id uuid); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.is_theme_participation_blocked(p_phone text, p_theme_id uuid, p_exclude_application_id uuid) FROM PUBLIC;
+
+--
+-- Name: FUNCTION list_marketing_optouts(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.list_marketing_optouts() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.list_marketing_optouts() TO service_role;
+
+--
 -- Name: FUNCTION lookup_application(p_phone_digits text, p_confirmation_code text); Type: ACL; Schema: public; Owner: -
 --
 
-GRANT ALL ON FUNCTION public.lookup_application(p_phone_digits text, p_confirmation_code text) TO anon;
-GRANT ALL ON FUNCTION public.lookup_application(p_phone_digits text, p_confirmation_code text) TO authenticated;
+REVOKE ALL ON FUNCTION public.lookup_application(p_phone_digits text, p_confirmation_code text) FROM PUBLIC;
 
 --
 -- Name: FUNCTION lookup_application_v2(p_phone_digits text, p_confirmation_code text); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.lookup_application_v2(p_phone_digits text, p_confirmation_code text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.lookup_application_v2(p_phone_digits text, p_confirmation_code text) TO anon;
-GRANT ALL ON FUNCTION public.lookup_application_v2(p_phone_digits text, p_confirmation_code text) TO authenticated;
 
 --
 -- Name: FUNCTION lookup_application_v3(p_phone_digits text, p_confirmation_code text); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.lookup_application_v3(p_phone_digits text, p_confirmation_code text) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.lookup_application_v3(p_phone_digits text, p_confirmation_code text) TO anon;
-GRANT ALL ON FUNCTION public.lookup_application_v3(p_phone_digits text, p_confirmation_code text) TO authenticated;
 GRANT ALL ON FUNCTION public.lookup_application_v3(p_phone_digits text, p_confirmation_code text) TO service_role;
 
 --
@@ -3491,6 +5071,13 @@ GRANT ALL ON FUNCTION public.lookup_attendee_by_phone_hash(p_phone_hash text) TO
 
 REVOKE ALL ON FUNCTION public.mark_attendee_reminder_sent(p_attendee_ids uuid[]) FROM PUBLIC;
 GRANT ALL ON FUNCTION public.mark_attendee_reminder_sent(p_attendee_ids uuid[]) TO service_role;
+
+--
+-- Name: FUNCTION marketing_sms_recipients(); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.marketing_sms_recipients() FROM PUBLIC;
+GRANT ALL ON FUNCTION public.marketing_sms_recipients() TO service_role;
 
 --
 -- Name: FUNCTION normalize_coupon_code(p_raw text); Type: ACL; Schema: public; Owner: -
@@ -3518,10 +5105,33 @@ GRANT ALL ON FUNCTION public.preview_coupon(p_code text, p_theme_id uuid, p_head
 GRANT ALL ON FUNCTION public.preview_coupon(p_code text, p_theme_id uuid, p_headcount integer, p_base_amount integer, p_phone text) TO service_role;
 
 --
+-- Name: FUNCTION promotion_unit_price(p_promotion_id uuid, p_theme_id uuid, p_headcount integer); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.promotion_unit_price(p_promotion_id uuid, p_theme_id uuid, p_headcount integer) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.promotion_unit_price(p_promotion_id uuid, p_theme_id uuid, p_headcount integer) TO service_role;
+
+--
 -- Name: FUNCTION release_coupon_on_cancel(); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.release_coupon_on_cancel() FROM PUBLIC;
+
+--
+-- Name: FUNCTION remove_marketing_optout(p_phone_hash text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.remove_marketing_optout(p_phone_hash text) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.remove_marketing_optout(p_phone_hash text) TO service_role;
+
+--
+-- Name: FUNCTION resolve_promotion_price(p_theme_id uuid, p_start_at timestamp with time zone, p_headcount integer, p_now timestamp with time zone); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.resolve_promotion_price(p_theme_id uuid, p_start_at timestamp with time zone, p_headcount integer, p_now timestamp with time zone) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.resolve_promotion_price(p_theme_id uuid, p_start_at timestamp with time zone, p_headcount integer, p_now timestamp with time zone) TO anon;
+GRANT ALL ON FUNCTION public.resolve_promotion_price(p_theme_id uuid, p_start_at timestamp with time zone, p_headcount integer, p_now timestamp with time zone) TO authenticated;
+GRANT ALL ON FUNCTION public.resolve_promotion_price(p_theme_id uuid, p_start_at timestamp with time zone, p_headcount integer, p_now timestamp with time zone) TO service_role;
 
 --
 -- Name: FUNCTION resolve_unit_price(p_theme_id uuid, p_headcount integer); Type: ACL; Schema: public; Owner: -
@@ -3537,16 +5147,42 @@ GRANT ALL ON FUNCTION public.resolve_unit_price(p_theme_id uuid, p_headcount int
 --
 
 REVOKE ALL ON FUNCTION public.submit_application(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.submit_application(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean) TO anon;
-GRANT ALL ON FUNCTION public.submit_application(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean) TO authenticated;
 
 --
 -- Name: FUNCTION submit_application_v2(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid); Type: ACL; Schema: public; Owner: -
 --
 
 REVOKE ALL ON FUNCTION public.submit_application_v2(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid) FROM PUBLIC;
-GRANT ALL ON FUNCTION public.submit_application_v2(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid) TO anon;
-GRANT ALL ON FUNCTION public.submit_application_v2(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid) TO authenticated;
+
+--
+-- Name: FUNCTION submit_application_v2(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid, p_coupon_code text); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.submit_application_v2(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid, p_coupon_code text) FROM PUBLIC;
+
+--
+-- Name: FUNCTION submit_application_v3(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid, p_coupon_codes text[]); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.submit_application_v3(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid, p_coupon_codes text[]) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.submit_application_v3(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid, p_coupon_codes text[]) TO anon;
+GRANT ALL ON FUNCTION public.submit_application_v3(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid, p_coupon_codes text[]) TO authenticated;
+GRANT ALL ON FUNCTION public.submit_application_v3(p_session_id uuid, p_depositor_name text, p_consent_required boolean, p_consent_optional boolean, p_attendees jsonb, p_notes text, p_consent_photo boolean, p_consent_marketing boolean, p_user_id uuid, p_coupon_codes text[]) TO service_role;
+
+--
+-- Name: FUNCTION submit_codename(p_round smallint, p_nickname text, p_codename text, p_phone text, p_consent boolean, p_is_correct boolean, p_replace boolean); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.submit_codename(p_round smallint, p_nickname text, p_codename text, p_phone text, p_consent boolean, p_is_correct boolean, p_replace boolean) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.submit_codename(p_round smallint, p_nickname text, p_codename text, p_phone text, p_consent boolean, p_is_correct boolean, p_replace boolean) TO service_role;
+
+--
+-- Name: FUNCTION submit_group_booking_inquiry(p_headcount integer, p_contact_method text, p_contact text, p_preferred_date date, p_preferred_time text, p_group_kind text, p_note text, p_attribution jsonb); Type: ACL; Schema: public; Owner: -
+--
+
+REVOKE ALL ON FUNCTION public.submit_group_booking_inquiry(p_headcount integer, p_contact_method text, p_contact text, p_preferred_date date, p_preferred_time text, p_group_kind text, p_note text, p_attribution jsonb) FROM PUBLIC;
+GRANT ALL ON FUNCTION public.submit_group_booking_inquiry(p_headcount integer, p_contact_method text, p_contact text, p_preferred_date date, p_preferred_time text, p_group_kind text, p_note text, p_attribution jsonb) TO anon;
+GRANT ALL ON FUNCTION public.submit_group_booking_inquiry(p_headcount integer, p_contact_method text, p_contact text, p_preferred_date date, p_preferred_time text, p_group_kind text, p_note text, p_attribution jsonb) TO authenticated;
 
 --
 -- Name: FUNCTION submit_review_payback_application(p_name text, p_phone text, p_session_slug text, p_channel text, p_post_url text, p_bank_name text, p_account_number text, p_account_holder text, p_agreements jsonb); Type: ACL; Schema: public; Owner: -
@@ -3597,6 +5233,30 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260913b TO service_role;
 
 --
+-- Name: TABLE _backup_theme_content_20260914; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260914 TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260914 TO authenticated;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260914 TO service_role;
+
+--
+-- Name: TABLE _backup_theme_content_20260915; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260915 TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260915 TO authenticated;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260915 TO service_role;
+
+--
+-- Name: TABLE _backup_theme_content_20260915b; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260915b TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260915b TO authenticated;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public._backup_theme_content_20260915b TO service_role;
+
+--
 -- Name: TABLE applications; Type: ACL; Schema: public; Owner: -
 --
 
@@ -3627,6 +5287,22 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.application_attendees
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_attendee_view TO anon;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_attendee_view TO authenticated;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_attendee_view TO service_role;
+
+--
+-- Name: TABLE group_booking_inquiries; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.group_booking_inquiries TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.group_booking_inquiries TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE public.group_booking_inquiries TO service_role;
+
+--
+-- Name: TABLE admin_group_booking_inquiries_view; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_group_booking_inquiries_view TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_group_booking_inquiries_view TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_group_booking_inquiries_view TO service_role;
 
 --
 -- Name: TABLE review_payback_applications; Type: ACL; Schema: public; Owner: -
@@ -3685,6 +5361,12 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.admin_users TO authen
 GRANT ALL ON TABLE public.admin_users TO service_role;
 
 --
+-- Name: TABLE application_coupons; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.application_coupons TO service_role;
+
+--
 -- Name: TABLE audit_logs; Type: ACL; Schema: public; Owner: -
 --
 
@@ -3705,6 +5387,12 @@ GRANT SELECT,USAGE ON SEQUENCE public.audit_logs_id_seq TO service_role;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.bank_transactions TO anon;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.bank_transactions TO authenticated;
 GRANT ALL ON TABLE public.bank_transactions TO service_role;
+
+--
+-- Name: TABLE codename_submissions; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.codename_submissions TO service_role;
 
 --
 -- Name: TABLE coupon_campaigns; Type: ACL; Schema: public; Owner: -
@@ -3735,6 +5423,12 @@ GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.kakao_links TO
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE public.kakao_links TO service_role;
 
 --
+-- Name: TABLE marketing_sms_optouts; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.marketing_sms_optouts TO service_role;
+
+--
 -- Name: TABLE naver_links; Type: ACL; Schema: public; Owner: -
 --
 
@@ -3759,12 +5453,78 @@ GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.point_ledger TO authe
 GRANT ALL ON TABLE public.point_ledger TO service_role;
 
 --
+-- Name: TABLE popups; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.popups TO service_role;
+
+--
 -- Name: TABLE profiles; Type: ACL; Schema: public; Owner: -
 --
 
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.profiles TO anon;
 GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN,UPDATE ON TABLE public.profiles TO authenticated;
 GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.profiles TO service_role;
+
+--
+-- Name: TABLE promotion_price_tiers; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.promotion_price_tiers TO service_role;
+
+--
+-- Name: TABLE public_event_bubble; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_event_bubble TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_event_bubble TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_event_bubble TO service_role;
+
+--
+-- Name: TABLE public_popup; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_popup TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_popup TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_popup TO service_role;
+
+--
+-- Name: TABLE public_promotion; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_promotion TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_promotion TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_promotion TO service_role;
+
+--
+-- Name: TABLE public_promotion_price_tier; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_promotion_price_tier TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_promotion_price_tier TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_promotion_price_tier TO service_role;
+
+--
+-- Name: TABLE utm_links; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT ALL ON TABLE public.utm_links TO service_role;
+
+--
+-- Name: TABLE public_short_link; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_short_link TO anon;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_short_link TO authenticated;
+GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.public_short_link TO service_role;
+
+--
+-- Name: TABLE reparticipation_allowances; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.reparticipation_allowances TO anon;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.reparticipation_allowances TO authenticated;
+GRANT REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.reparticipation_allowances TO service_role;
 
 --
 -- Name: TABLE sessions; Type: ACL; Schema: public; Owner: -
@@ -3821,6 +5581,12 @@ GRANT ALL ON TABLE public.theme_price_tiers TO service_role;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_view TO anon;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_view TO authenticated;
 GRANT SELECT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.session_view TO service_role;
+
+--
+-- Name: TABLE settlement_snapshots; Type: ACL; Schema: public; Owner: -
+--
+
+GRANT SELECT,INSERT,REFERENCES,TRIGGER,TRUNCATE,MAINTAIN ON TABLE public.settlement_snapshots TO service_role;
 
 --
 -- Name: TABLE site_settings; Type: ACL; Schema: public; Owner: -
