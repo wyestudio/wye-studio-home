@@ -313,9 +313,10 @@ export function ThemeEditor({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
-                    <label className={label}>난이도 (0~5, 0 = 미정)</label>
+                    <label className={label}>난이도 (0~5, 0.5 단위, 0 = 미정)</label>
+                    {/* step 0.5 — 3.5 처럼 반칸을 쓴다. 화살표가 0.5씩 움직인다. */}
                     <input
-                      type="number" min={0} max={5} className={field}
+                      type="number" min={0} max={5} step={0.5} className={field}
                       value={editing.difficulty}
                       onChange={(e) => patch({ difficulty: Number(e.target.value) })}
                     />

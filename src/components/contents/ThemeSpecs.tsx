@@ -174,31 +174,52 @@ export function hoursLabel(minutes: number) {
  *
  * ⚠️ 크기는 lg 에서만 키운다. md(태블릿)는 두 칸이 나란히 서는데 칸 폭이 좁아
  *    큰 자물쇠 5개가 넘친다.
+ *
+ * 난이도는 0.5 단위다(3.5 → 꽉 찬 셋 + 반칸 + 빈칸). **반칸은 왼쪽 절반만 칠한다** —
+ * 꺼진 색 자물쇠를 깔고 그 위에 폭 절반만 보이는 창으로 켜진 색 자물쇠를 얹는다.
+ * clipPath 를 쓰지 않는 이유: id 가 필요한데 이 컴포넌트는 서버에서도 그려져
+ * useId 를 쓸 수 없고, id 를 고정하면 어드민 미리보기처럼 한 화면에 둘 이상
+ * 뜰 때 서로 덮어쓴다.
  */
+const LOCK_OFF = "rgba(255,255,255,0.22)";
+const LOCK_SIZE = "h-5 w-5 lg:h-7 lg:w-7";
+
 function LockRow({ rating, accent, max = 5 }: { rating: number; accent: string; max?: number }) {
+  const capped = Math.min(Math.max(rating, 0), max);
+  const full = Math.floor(capped);
+  const hasHalf = capped - full >= 0.5;
+
   return (
     <span className="flex items-center gap-1 lg:gap-1.5" role="img" aria-label={`난이도 ${rating} / ${max}`}>
       {Array.from({ length: max }, (_, i) => {
-        const on = i < rating;
-        return (
-          <svg
-            key={i}
-            viewBox="0 0 16 16"
-            aria-hidden
-            className="h-5 w-5 lg:h-7 lg:w-7"
-            style={{ color: on ? accent : "rgba(255,255,255,0.22)" }}
-          >
-            <path
-              d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-            />
-            <rect x="2.75" y="7" width="10.5" height="7.5" rx="1.75" fill="currentColor" />
-          </svg>
-        );
+        if (i === full && hasHalf) {
+          return (
+            <span key={i} className={`relative inline-block ${LOCK_SIZE}`}>
+              <LockGlyph color={LOCK_OFF} className="absolute inset-0" />
+              <span className="absolute inset-y-0 left-0 w-1/2 overflow-hidden">
+                {/* 안쪽은 원래 폭대로 그린다 — 줄이면 자물쇠가 찌그러진다. */}
+                <LockGlyph color={accent} />
+              </span>
+            </span>
+          );
+        }
+        return <LockGlyph key={i} color={i < full ? accent : LOCK_OFF} />;
       })}
     </span>
+  );
+}
+
+function LockGlyph({ color, className = "" }: { color: string; className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className={`block ${LOCK_SIZE} ${className}`} style={{ color }}>
+      <path
+        d="M4.75 7V5.25a3.25 3.25 0 0 1 6.5 0V7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <rect x="2.75" y="7" width="10.5" height="7.5" rx="1.75" fill="currentColor" />
+    </svg>
   );
 }
