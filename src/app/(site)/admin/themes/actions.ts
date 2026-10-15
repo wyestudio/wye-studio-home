@@ -164,10 +164,14 @@ function sanitizeContent(raw: unknown): ThemeContent {
             ...(str(b.subtitle) ? { subtitle: str(b.subtitle) } : {}),
             stats: arr(b.stats).map((x) => {
               const o = x as Record<string, unknown>;
+              // ⚠️ auto 를 떨어뜨리지 않는다. 떨어뜨리면 어드민에서 **저장할 때마다**
+              //    자동 갱신 표시가 사라져, 설문 평점이 조용히 안 들어오게 된다.
+              const auto = o?.auto === "rating" || o?.auto === "count" ? o.auto : null;
               return {
                 value: str(o?.value),
                 label: str(o?.label),
                 ...(str(o?.note) ? { note: str(o?.note) } : {}),
+                ...(auto ? { auto } : {}),
               };
             }),
             quotes: arr(b.quotes).map((x) => {

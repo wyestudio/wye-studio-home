@@ -1,0 +1,119 @@
+import "server-only";
+import { extractSpreadsheetId, readSheet } from "@/lib/googleSheets";
+
+/**
+ * 설문(구글 폼) 응답에서 평점을 집계한다.
+ *
+ * 폼 자체 API 가 아니라 **응답 시트**를 읽는다 — 폼 API 는 권한 설정이 더 복잡한데,
+ * 어차피 구글 폼은 응답을 시트로 떨어뜨리므로 시트를 읽는 쪽이 단순하다.
+ *
+ * ⚠️ 운영자가 손으로 적어 둔 수치를 **덮어쓰지 않는다.** 블록의 stats 중
+ *    `auto` 표시가 붙은 항목만 갱신한다 — 그 표시가 없으면 사람이 적은 값이다.
+ */
+
+export type RatingSummary = {
+  /** 평균. 응답이 없으면 null. */
+  average: number | null;
+  /** 점수로 읽힌 응답 수. 빈 칸·글자 응답은 빼고 센다. */
+  count: number;
+  /** 어느 열을 점수로 읽었는지. 설정이 맞는지 확인할 때 쓴다. */
+  column: string | null;
+};
+
+/**
+ * 점수 열을 찾는다.
+ *
+ * `REVIEW_RATING_COLUMN` 에 머리글을 그대로 적어 두면 그 열을 쓴다. 없으면 머리글에
+ * 평점처럼 보이는 말이 든 열을 찾는다 — 폼 문항은 "전반적인 만족도를 평가해주세요"
+ * 처럼 길어서 완전 일치로는 못 찾는다.
+ */
+function findRatingColumn(header: string[]): number {
+  const configured = process.env.REVIEW_RATING_COLUMN?.trim();
+  if (configured) {
+    const exact = header.findIndex((h) => h.trim() === configured);
+    if (exact !== -1) return exact;
+    const loose = header.findIndex((h) => h.includes(configured));
+    if (loose !== -1) return loose;
+    return -1;
+  }
+  const HINTS = ["평점", "만족도", "별점", "점수", "rating", "score"];
+  return header.findIndex((h) => {
+    const low = h.toLowerCase();
+    return HINTS.some((k) => low.includes(k.toLowerCase()));
+  });
+}
+
+/**
+ * 한 칸을 점수로 읽는다.
+ *
+ * 폼 응답은 모양이 제각각이다 — `5`, `5점`, `★★★★★`, `4.5 / 5`. 숫자가 보이면
+ * 그걸 쓰고, 별만 있으면 별 개수를 센다. 못 읽으면 null 이고 **평균에서 빠진다**
+ * (0 으로 세면 평균이 통째로 내려간다).
+ */
+function parseScore(raw: string): number | null {
+  const s = raw.trim();
+  if (!s) return null;
+
+  const stars = (s.match(/★/g) ?? []).length;
+  if (stars > 0 && !/\d/.test(s)) return stars;
+
+  const m = s.match(/\d+(\.\d+)?/);
+  if (!m) return null;
+  const n = Number(m[0]);
+  if (!Number.isFinite(n)) return null;
+  // 5점 척도를 벗어난 값은 설정이 틀린 것(예: 타임스탬프 열을 읽음)이라 버린다.
+  if (n < 0 || n > 10) return null;
+  return n;
+}
+
+/** 설문 시트에서 평균 평점과 응답 수를 집계한다. */
+export async function fetchRatingSummary(): Promise<
+  { ok: true; summary: RatingSummary } | { ok: false; error: string }
+> {
+  const raw = process.env.REVIEW_RATING_SHEET;
+  if (!raw) return { ok: false, error: "REVIEW_RATING_SHEET(설문 응답 시트 주소)이 없습니다." };
+
+  const id = extractSpreadsheetId(raw);
+  if (!id) return { ok: false, error: "REVIEW_RATING_SHEET 에서 시트 ID 를 읽지 못했습니다." };
+
+  // 시트 이름을 모르므로 범위를 열 전체로 준다. 탭이 여럿이면
+  // REVIEW_RATING_RANGE 에 "응답 시트1!A:Z" 처럼 적어 지정한다.
+  const range = process.env.REVIEW_RATING_RANGE?.trim() || "A:Z";
+
+  try {
+    const rows = await readSheet(id, range);
+    if (rows.length < 2) return { ok: true, summary: { average: null, count: 0, column: null } };
+
+    const [header, ...body] = rows;
+    const col = findRatingColumn(header);
+    if (col === -1) {
+      return {
+        ok: false,
+        error:
+          `시트에서 평점 열을 찾지 못했습니다. 머리글: ${header.slice(0, 8).join(" | ")}` +
+          ` — REVIEW_RATING_COLUMN 에 평점 문항 이름을 적어주세요.`,
+      };
+    }
+
+    const scores = body
+      .map((r) => parseScore(r[col] ?? ""))
+      .filter((n): n is number => n !== null);
+
+    if (scores.length === 0) {
+      return { ok: true, summary: { average: null, count: 0, column: header[col] } };
+    }
+
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return {
+      ok: true,
+      summary: {
+        // 소수 한 자리. 4.63 을 4.6 으로 — 화면 수치는 자릿수가 들쭉날쭉하면 지저분하다.
+        average: Math.round(avg * 10) / 10,
+        count: scores.length,
+        column: header[col],
+      },
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
