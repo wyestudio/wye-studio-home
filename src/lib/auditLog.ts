@@ -71,6 +71,9 @@ export type AuditAction =
   | "popup.deleted"
   // 단체 예약 문의 (접수함을 둘이 나눠 보면 "이거 연락했나" 가 겹친다)
   | "group_booking.updated"
+  // 후기 후보 (고객 화면에 남의 글을 싣는 결정이다 — 누가 넣고 뺐는지 남긴다)
+  | "review_candidate.published"
+  | "review_candidate.ignored"
   // 광고 문자 (정보통신망법 — 누구에게 언제 보냈는지, 거부를 언제 받았는지 남긴다)
   | "marketing_sms.sent"
   | "marketing_optout.added"
@@ -91,6 +94,7 @@ export type AuditTargetType =
   | "slack_template"
   | "site_setting"
   | "utm_link"
+  | "review_candidate"
   | "marketing_sms"
   | "promotion"
   | "popup"
