@@ -66,7 +66,7 @@ export function ThemeBlocks({
   /** 켜져 있는 프로모션. 가격표 블록에만 쓰인다. */
   promo?: ThemeBlocksPromo | null;
   /**
-   * 이 테마가 단체 예약(10명 이상)을 받는가. 받으면 가격표 아래에 안내 카드가 붙는다.
+   * 이 테마가 단체 예약(6명 이상)을 받는가. 받으면 가격표 아래에 안내 카드가 붙는다.
    * 판정은 부르는 쪽에서 `hasGroupBooking()` 으로 한다 — 안내 페이지 내용이
    * 테마별로 다르므로 아무 테마에나 붙으면 안 되는 안내다.
    */
@@ -189,7 +189,7 @@ export function ThemeBlockView({
               accent={promo.accentColor}
             />
           )}
-          {/* 표에 자기 칸이 없는 10명 이상에게 다른 길을 알려준다. */}
+          {/* 인원을 보는 자리에서 단체 예약이라는 다른 길을 알려준다. */}
           {groupBooking && <GroupBookingCta />}
         </div>
       )}
