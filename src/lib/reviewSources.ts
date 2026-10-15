@@ -13,7 +13,7 @@ import "server-only";
  *               그래서 **사람이 주소를 붙여넣고**, 화면은 공식 임베드로 그린다.
  */
 
-/** 검색할 말. 늘리면 그만큼 크론이 API 를 더 부른다(하루 한도 25,000회라 여유는 많다). */
+/** 검색할 말. 늘리면 그만큼 크론이 API 를 더 부른다(HUB 무료 한도가 월 77만 건이라 여유는 많다). */
 export const REVIEW_SEARCH_KEYWORDS = ["우주이스케이프", "바-ㅇ탈출"] as const;
 
 /** 한 번에 받아올 검색 결과 수. 네이버 최대 100. */
@@ -28,19 +28,22 @@ export type NaverSearchItem = {
 };
 
 /**
- * 네이버 검색 키.
+ * 네이버 검색 키 (NAVER API HUB).
  *
- * 로그인용(`NAVER_CLIENT_ID`)과 검색용이 같은 앱일 수도, 다른 앱일 수도 있다.
- * 검색 전용 키가 있으면 그걸 쓰고, 없으면 로그인용 키로 떨어진다 — 기존 앱에
- * 검색 API 를 추가한 경우가 이쪽이다.
+ * ⚠️ **개발자센터(openapi.naver.com) 방식이 아니다.** 네이버가 검색 API 를 네이버
+ *    클라우드의 NAVER API HUB 로 옮겼고, 2026-07-31 부터 개발자센터에서는 검색 API
+ *    를 **신규 등록할 수 없다**(기존 앱에 추가하려 하면 "신규로 등록할 수 없는 API"
+ *    라고 막힌다). 그래서 로그인용 `NAVER_CLIENT_ID` 로는 검색을 부를 수 없고,
+ *    키를 섞어 쓰지 않도록 폴백도 두지 않는다.
  *
- * ⚠️ 로그인 전용 앱의 키로 검색을 부르면 `401 Scopes are Empty` 가 온다.
- *    키가 틀린 게 아니라 **그 앱에 검색 API 가 안 붙어 있는 것**이다.
- *    개발자센터에서 앱에 "검색" API 를 추가하면 된다.
+ * 키는 네이버 클라우드 콘솔 > Services > Application Service > NAVER API HUB 에서
+ * 애플리케이션을 만들면 나오는 Client ID / Client Secret 이다.
+ * (2026-07-30 이전부터 쓰던 곳은 옛 방식이 2027-06-30 까지 한시 허용되지만,
+ *  우리는 새로 붙이는 쪽이라 처음부터 HUB 로 간다.)
  */
 function naverKeys(): { id: string; secret: string } | null {
-  const id = process.env.NAVER_SEARCH_CLIENT_ID || process.env.NAVER_CLIENT_ID;
-  const secret = process.env.NAVER_SEARCH_CLIENT_SECRET || process.env.NAVER_CLIENT_SECRET;
+  const id = process.env.NAVER_SEARCH_API_KEY_ID;
+  const secret = process.env.NAVER_SEARCH_API_KEY;
   if (!id || !secret) return null;
   return { id, secret };
 }
@@ -75,28 +78,32 @@ export function toNaverMobileUrl(url: string): string {
   return url.replace(/^https?:\/\/blog\.naver\.com\//, "https://m.blog.naver.com/");
 }
 
-/** 네이버 블로그 검색. 키가 없거나 스코프가 없으면 빈 배열 대신 오류를 돌려준다. */
+/** 네이버 블로그 검색. 키가 없거나 호출이 막히면 빈 배열 대신 오류를 돌려준다. */
 export async function searchNaverBlogs(
   keyword: string
 ): Promise<{ items: NaverSearchItem[] } | { error: string }> {
   const keys = naverKeys();
-  if (!keys) return { error: "네이버 검색 키(NAVER_SEARCH_CLIENT_ID/SECRET)가 없습니다." };
+  if (!keys) {
+    return { error: "네이버 검색 키(NAVER_SEARCH_API_KEY_ID / NAVER_SEARCH_API_KEY)가 없습니다." };
+  }
 
   const url =
-    `https://openapi.naver.com/v1/search/blog.json` +
-    `?query=${encodeURIComponent(keyword)}&display=${NAVER_DISPLAY}&sort=date`;
+    `https://naverapihub.apigw.ntruss.com/search/v1/blog` +
+    `?query=${encodeURIComponent(keyword)}&display=${NAVER_DISPLAY}&sort=date&format=json`;
 
   const res = await fetch(url, {
     headers: {
-      "X-Naver-Client-Id": keys.id,
-      "X-Naver-Client-Secret": keys.secret,
+      "X-NCP-APIGW-API-KEY-ID": keys.id,
+      "X-NCP-APIGW-API-KEY": keys.secret,
     },
     cache: "no-store",
+    signal: AbortSignal.timeout(20000),
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    // 스코프 누락은 키가 틀린 것과 다르다. 메시지를 그대로 보여 줘야 어디를 고칠지 안다.
+    // 응답 원문을 그대로 보여 준다 — 키가 틀린 건지, 애플리케이션에 검색 API 를
+    // 안 붙인 건지, 한도를 넘은 건지가 메시지로만 구분된다.
     return { error: `네이버 검색 실패 (HTTP ${res.status}): ${body.slice(0, 200)}` };
   }
 
