@@ -56,3 +56,9 @@ create index if not exists review_candidates_status_discovered_idx
 -- 정책을 하나도 두지 않는다 = anon·authenticated 는 이 표에 닿지 못한다.
 -- 수집(크론)과 어드민 화면 모두 service_role 로만 읽고 쓴다.
 alter table public.review_candidates enable row level security;
+
+-- ⚠️ 이 grant 를 빼먹으면 service_role 로도 "permission denied for table" 이 난다.
+--    RLS 를 켜는 것과 별개 문제다 — RLS 는 "어떤 행을 보느냐" 이고, grant 는
+--    "표에 닿을 수 있느냐" 다. 새 표에 자동으로 붙지 않아서 직접 적어야 한다.
+--    (2026-10-15 에 실제로 크론이 이 오류로 멈췄다.)
+grant select, insert, update on public.review_candidates to service_role;

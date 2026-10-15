@@ -13,11 +13,58 @@ import "server-only";
  *               그래서 **사람이 주소를 붙여넣고**, 화면은 공식 임베드로 그린다.
  */
 
-/** 검색할 말. 늘리면 그만큼 크론이 API 를 더 부른다(HUB 무료 한도가 월 77만 건이라 여유는 많다). */
-export const REVIEW_SEARCH_KEYWORDS = ["우주이스케이프", "바-ㅇ탈출"] as const;
+/**
+ * 검색할 말.
+ *
+ * ⚠️ "바-ㅇ탈출" 을 넣지 않는다. 실제로 검색해 보니 19,277건이 나오는데 **그중 우리
+ *    글은 0건**이었다 — 네이버가 "바", "탈출" 로 쪼개 남의 방탈출 후기만 긁어온다.
+ *    호출 한도만 쓰고 쓰레기를 쌓는다. 우리 글은 "우주이스케이프" 로 다 걸린다
+ *    (제목에 둘을 같이 적는 사람이 대부분이다).
+ */
+export const REVIEW_SEARCH_KEYWORDS = ["우주이스케이프"] as const;
 
-/** 한 번에 받아올 검색 결과 수. 네이버 최대 100. */
-const NAVER_DISPLAY = 50;
+/**
+ * 결과에 이 말 중 하나라도 있어야 우리 글로 본다.
+ *
+ * ⚠️ 이 거르개가 없으면 **100건 중 94건이 남의 글**이다. 네이버는 "우주이스케이프"
+ *    를 "우주 + 이스케이프" 로 쪼개 검색해서, "강남 키이스케이프", "우주라이크 어스",
+ *    심지어 "닌텐도 할인" 까지 딸려 온다. 어드민에 쌓이면 고르는 일 자체가 불가능해진다.
+ *
+ * 표기 흔들림까지 받아 준다 — 실제 후기에 "바-O탈출"(영문 O), "우주이스테이프"(오타)
+ * 가 있었다. 한 글자라도 다르면 못 거르므로 변형을 같이 적어 둔다.
+ */
+const OURS_MARKERS = [
+  "우주이스케이프",
+  "우주 이스케이프",
+  "wouldyouescape",
+  "바-ㅇ탈출",
+  "바-O탈출",
+  "바-o탈출",
+  "바ㅇ탈출",
+] as const;
+
+/** 제목·요약에 우리 표시가 있는가. */
+function looksLikeOurs(title: string, excerpt: string): boolean {
+  const hay = `${title} ${excerpt}`.toLowerCase();
+  return OURS_MARKERS.some((m) => hay.includes(m.toLowerCase()));
+}
+
+/**
+ * 한 번에 받아올 검색 결과 수. 네이버 최대 100.
+ *
+ * 거르고 나면 몇 건 안 남으므로 **최대로 받는다.** 50건만 받으면 우리 글이
+ * 한두 건밖에 안 걸린다.
+ */
+const NAVER_DISPLAY = 100;
+
+/**
+ * 정렬을 둘 다 부른다.
+ *
+ * date(최신순)만 보면 **쌓인 옛 후기를 영영 못 가져온다** — 최신 100건에 우리 글은
+ * 서너 건뿐이다. sim(정확도순)은 지난 글까지 올려 주지만 새 글이 밀릴 수 있다.
+ * 둘을 합쳐야 "쌓인 것 + 새 것" 이 다 들어온다 (실측: sim 6건, date 4건, 합쳐 7건).
+ */
+const NAVER_SORTS = ["sim", "date"] as const;
 
 export type NaverSearchItem = {
   url: string;
@@ -87,41 +134,60 @@ export async function searchNaverBlogs(
     return { error: "네이버 검색 키(NAVER_SEARCH_API_KEY_ID / NAVER_SEARCH_API_KEY)가 없습니다." };
   }
 
-  const url =
-    `https://naverapihub.apigw.ntruss.com/search/v1/blog` +
-    `?query=${encodeURIComponent(keyword)}&display=${NAVER_DISPLAY}&sort=date&format=json`;
+  const byUrl = new Map<string, NaverSearchItem>();
 
-  const res = await fetch(url, {
-    headers: {
-      "X-NCP-APIGW-API-KEY-ID": keys.id,
-      "X-NCP-APIGW-API-KEY": keys.secret,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20000),
-  });
+  for (const sort of NAVER_SORTS) {
+    const url =
+      `https://naverapihub.apigw.ntruss.com/search/v1/blog` +
+      `?query=${encodeURIComponent(keyword)}&display=${NAVER_DISPLAY}&sort=${sort}&format=json`;
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    // 응답 원문을 그대로 보여 준다 — 키가 틀린 건지, 애플리케이션에 검색 API 를
-    // 안 붙인 건지, 한도를 넘은 건지가 메시지로만 구분된다.
-    return { error: `네이버 검색 실패 (HTTP ${res.status}): ${body.slice(0, 200)}` };
+    const res = await fetch(url, {
+      headers: {
+        "X-NCP-APIGW-API-KEY-ID": keys.id,
+        "X-NCP-APIGW-API-KEY": keys.secret,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      // 응답 원문을 그대로 보여 준다 — 키가 틀린 건지, 애플리케이션에 검색 API 를
+      // 안 붙인 건지, 한도를 넘은 건지가 메시지로만 구분된다.
+      return { error: `네이버 검색 실패 (HTTP ${res.status}, sort=${sort}): ${body.slice(0, 200)}` };
+    }
+
+    const json = (await res.json()) as {
+      items?: {
+        title?: string;
+        link?: string;
+        description?: string;
+        bloggername?: string;
+        postdate?: string;
+      }[];
+    };
+
+    for (const it of json.items ?? []) {
+      if (typeof it.link !== "string" || !it.link) continue;
+
+      const title = stripHtml(it.title ?? "");
+      const excerpt = stripHtml(it.description ?? "");
+      // ⚠️ 여기서 거르지 않으면 어드민에 남의 글이 94% 쌓인다.
+      if (!looksLikeOurs(title, excerpt)) continue;
+
+      const url = toNaverMobileUrl(it.link);
+      if (byUrl.has(url)) continue;
+      byUrl.set(url, {
+        url,
+        title,
+        excerpt,
+        author: stripHtml(it.bloggername ?? ""),
+        postedAt: parsePostdate(it.postdate),
+      });
+    }
   }
 
-  const json = (await res.json()) as {
-    items?: { title?: string; link?: string; description?: string; bloggername?: string; postdate?: string }[];
-  };
-
-  const items: NaverSearchItem[] = (json.items ?? [])
-    .filter((it) => typeof it.link === "string" && it.link.length > 0)
-    .map((it) => ({
-      url: toNaverMobileUrl(it.link!),
-      title: stripHtml(it.title ?? ""),
-      excerpt: stripHtml(it.description ?? ""),
-      author: stripHtml(it.bloggername ?? ""),
-      postedAt: parsePostdate(it.postdate),
-    }));
-
-  return { items };
+  return { items: [...byUrl.values()] };
 }
 
 export type OgTags = { title?: string; description?: string; image?: string };
