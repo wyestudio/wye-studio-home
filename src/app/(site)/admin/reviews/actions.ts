@@ -306,3 +306,77 @@ export async function addNaverUrl(raw: string): Promise<ActionResult> {
     return toActionError(err, "등록에 실패했습니다.");
   }
 }
+
+/**
+ * 설문 서술형 답을 테마의 한줄 후기에 넣거나 뺀다.
+ *
+ * 후보를 표에 따로 쌓지 않는다 — 설문 시트가 곧 후보 목록이고, "실렸는지" 는
+ * 후기 블록의 quotes 에 같은 글이 있는지로 판단한다. 그래서 테마 편집에서 손으로
+ * 지워도 여기 상태가 저절로 맞는다.
+ *
+ * ⚠️ 글 내용으로 찾는다. 테마 편집에서 문구를 다듬으면 여기서는 "안 실림" 으로 보인다.
+ */
+export async function setSurveyQuote(input: {
+  themeSlug: string;
+  text: string;
+  meta: string;
+  on: boolean;
+}): Promise<ActionResult> {
+  try {
+    const supabase = await requireAdmin();
+    const text = input.text.trim();
+    if (!text) return { error: "빈 후기입니다." };
+
+    const { data: theme, error: themeErr } = await supabase
+      .from("themes")
+      .select("id, slug, content")
+      .eq("slug", input.themeSlug)
+      .single<{ id: string; slug: string; content: { blocks?: unknown[] } | null }>();
+    if (themeErr || !theme) return { error: "테마를 찾을 수 없습니다." };
+
+    const content = (theme.content ?? {}) as { blocks?: Record<string, unknown>[] };
+    const blocks = Array.isArray(content.blocks) ? [...content.blocks] : [];
+    const idx = blocks.findIndex((b) => b?.type === "reviews");
+    if (idx === -1) {
+      return {
+        error: "이 테마에 후기 블록이 없습니다. 테마 편집에서 '후기' 블록을 먼저 추가해주세요.",
+      };
+    }
+
+    const block = blocks[idx] as Record<string, unknown>;
+    const quotes = Array.isArray(block.quotes)
+      ? (block.quotes as { text?: string; meta?: string }[])
+      : [];
+    const has = quotes.some((q) => (q?.text ?? "").trim() === text);
+
+    if (input.on === has) {
+      return { success: true, message: has ? "이미 실려 있습니다." : "이미 빠져 있습니다." };
+    }
+
+    const next = input.on
+      ? [...quotes, { text, ...(input.meta ? { meta: input.meta } : {}) }]
+      : quotes.filter((q) => (q?.text ?? "").trim() !== text);
+    blocks[idx] = { ...block, quotes: next };
+
+    const { error: upErr } = await supabase
+      .from("themes")
+      .update({ content: { ...content, blocks } })
+      .eq("id", theme.id);
+    if (upErr) return { error: upErr.message };
+
+    await writeAuditLog({
+      action: input.on ? "survey_quote.published" : "survey_quote.removed",
+      targetType: "theme",
+      targetId: theme.id,
+      summary: `한줄 후기 ${input.on ? "추가" : "제외"} (${theme.slug}) ${text.slice(0, 40)}`,
+    });
+
+    revalidatePath("/admin/reviews");
+    // 공개 화면은 테마를 5분 캐시한다. 털지 않으면 바뀐 후기가 바로 안 보인다.
+    updateTag(THEMES_TAG);
+
+    return { success: true, message: input.on ? "한줄 후기에 넣었습니다." : "한줄 후기에서 뺐습니다." };
+  } catch (err) {
+    return toActionError(err, "처리에 실패했습니다.");
+  }
+}

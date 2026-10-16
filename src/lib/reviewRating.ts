@@ -120,6 +120,38 @@ function summarize(tabs: Tab[], configured: string | undefined, envName: string)
 }
 
 /**
+ * 설문 응답 탭을 모두 읽는다. 평점 집계와 한줄 후기 후보가 같이 쓴다.
+ *
+ * 폼 여러 개(정식 운영 + 프리오프닝)를 한 스프레드시트에 연결해 두므로 탭이 여럿이다.
+ * 기본은 **모든 탭**을 읽어 합친다. 특정 탭만 쓰려면 REVIEW_RATING_RANGE 에
+ * "'설문지 응답 시트1';'설문지 응답 시트2'" 처럼 ; 로 이어 적는다.
+ *
+ * ⚠️ 범위를 `A:Z` 로 자르지 않는다. 폼 문항이 26개를 넘어 서술형 문항이 AA 열 뒤에
+ *    있다 — 잘라 읽으면 그 문항이 시트에 없는 것처럼 보인다(실제로 그렇게 오판했다).
+ */
+export async function readSurveyTabs(): Promise<Tab[]> {
+  const raw = process.env.REVIEW_RATING_SHEET;
+  if (!raw) throw new Error("REVIEW_RATING_SHEET(설문 응답 시트 주소)이 없습니다.");
+
+  const id = extractSpreadsheetId(raw);
+  if (!id) throw new Error("REVIEW_RATING_SHEET 에서 시트 ID 를 읽지 못했습니다.");
+
+  const configured = process.env.REVIEW_RATING_RANGE?.trim();
+  const ranges = configured
+    ? configured.split(";").map((r) => r.trim()).filter(Boolean)
+    : (await listSheetTitles(id)).map(quoteSheetTitle);
+
+  const tabs: Tab[] = [];
+  for (const range of ranges) {
+    const rows = await readSheet(id, range);
+    if (rows.length < 2) continue;
+    const [header, ...body] = rows;
+    tabs.push({ range, header, body });
+  }
+  return tabs;
+}
+
+/**
  * 설문 시트에서 문항별 평균을 집계한다.
  *   rating  — 전반 만족도. `REVIEW_RATING_COLUMN` (없으면 머리글로 추정)
  *   quality — 문제 퀄리티. `REVIEW_QUALITY_COLUMN` 이 있을 때만 (없으면 null)
@@ -129,29 +161,8 @@ function summarize(tabs: Tab[], configured: string | undefined, envName: string)
 export async function fetchSurveySummaries(): Promise<
   { ok: true; rating: SummaryResult; quality: SummaryResult | null } | { ok: false; error: string }
 > {
-  const raw = process.env.REVIEW_RATING_SHEET;
-  if (!raw) return { ok: false, error: "REVIEW_RATING_SHEET(설문 응답 시트 주소)이 없습니다." };
-
-  const id = extractSpreadsheetId(raw);
-  if (!id) return { ok: false, error: "REVIEW_RATING_SHEET 에서 시트 ID 를 읽지 못했습니다." };
-
   try {
-    // 폼 여러 개(정식 운영 + 프리오프닝)를 한 스프레드시트에 연결해 두므로 탭이 여럿이다.
-    // 기본은 **모든 탭**을 읽어 합친다. 특정 탭만 쓰려면 REVIEW_RATING_RANGE 에
-    // "'설문지 응답 시트1'!A:Z;'설문지 응답 시트2'!A:Z" 처럼 ; 로 이어 적는다.
-    const configured = process.env.REVIEW_RATING_RANGE?.trim();
-    const ranges = configured
-      ? configured.split(";").map((r) => r.trim()).filter(Boolean)
-      : (await listSheetTitles(id)).map((t) => `${quoteSheetTitle(t)}!A:Z`);
-
-    const tabs: Tab[] = [];
-    for (const range of ranges) {
-      const rows = await readSheet(id, range);
-      if (rows.length < 2) continue;
-      const [header, ...body] = rows;
-      tabs.push({ range, header, body });
-    }
-
+    const tabs = await readSurveyTabs();
     const qualityColumn = process.env.REVIEW_QUALITY_COLUMN?.trim();
     return {
       ok: true,
@@ -159,6 +170,68 @@ export async function fetchSurveySummaries(): Promise<
       // 추정하지 않는다 — 머리글 추정은 "만족도" 같은 말을 찾으므로 전반 만족도 열을 잡는다.
       quality: qualityColumn ? summarize(tabs, qualityColumn, "REVIEW_QUALITY_COLUMN") : null,
     };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+/** 설문 서술형 답 하나. 한줄 후기 후보로 어드민에 뜬다. */
+export type SurveyQuote = {
+  text: string;
+  /** "2026.08.29" — 폼 타임스탬프에서 날짜만. 못 읽으면 null. */
+  date: string | null;
+  /** 어느 문항의 답인지(머리글). */
+  question: string;
+};
+
+/** 폼 타임스탬프("2026. 8. 29 오후 3:12:00" 또는 "2026-08-29 15:12:00")에서 날짜만. */
+function toDate(raw: string): string | null {
+  const m = raw.match(/(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/);
+  if (!m) return null;
+  return `${m[1]}.${m[2].padStart(2, "0")}.${m[3].padStart(2, "0")}`;
+}
+
+/**
+ * 한줄 후기 후보 — `REVIEW_QUOTE_COLUMNS` 문항들의 답을 모은다.
+ *
+ * 문항 이름은 ; 로 여러 개 적는다(일부만 적어도 된다): "기억에 남는 순간;하고 싶은 말".
+ * 사이트에 싣는 건 어드민에서 사람이 고른다 — 서술형에는 불만·건의가 섞여 있다.
+ * 최근 응답이 앞에 온다.
+ */
+export async function fetchSurveyQuotes(): Promise<
+  { ok: true; quotes: SurveyQuote[] } | { ok: false; error: string }
+> {
+  const names = (process.env.REVIEW_QUOTE_COLUMNS ?? "")
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (names.length === 0) {
+    return { ok: false, error: "REVIEW_QUOTE_COLUMNS(한줄 후기로 쓸 문항)가 없습니다." };
+  }
+
+  try {
+    const tabs = await readSurveyTabs();
+    const quotes: SurveyQuote[] = [];
+    const seen = new Set<string>();
+
+    for (const { header, body } of tabs) {
+      const cols = names
+        .map((n) => header.findIndex((h) => h.includes(n)))
+        .filter((c) => c !== -1);
+      for (const r of body) {
+        const date = toDate(r[0] ?? "");
+        for (const c of cols) {
+          const text = (r[c] ?? "").trim();
+          // 같은 글을 두 번 보이지 않는다 — 실리는 기준이 글 내용이라 중복이면 헷갈린다.
+          if (!text || seen.has(text)) continue;
+          seen.add(text);
+          quotes.push({ text, date, question: header[c] });
+        }
+      }
+    }
+
+    quotes.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+    return { ok: true, quotes };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }

@@ -6,6 +6,7 @@ import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
 import { PriceTable, PriceTableEarlyBirdNote, type PriceTablePromo } from "@/components/contents/PriceTable";
 import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
+import { QuoteList } from "@/components/contents/QuoteList";
 import { VenueCard } from "@/components/contents/VenueCard";
 import { THEME_BLOCK_LABELS, type ThemeBlock, type ThemePriceTier, type PublicVenue } from "@/types/catalog";
 import { SCREEN_SECTION } from "@/components/contents/screenSection";
@@ -431,31 +432,8 @@ function ReviewsBlock({
         </div>
       )}
 
-      {/* 한 줄 후기. 인용부호는 CSS 로 깔아 글자 수를 늘리지 않는다. */}
-      {block.quotes.length > 0 && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-          {block.quotes.map((q, i) => (
-            <figure
-              key={i}
-              className="relative rounded-xl border border-panel-border bg-panel p-5 sm:p-6"
-            >
-              <span
-                aria-hidden
-                className="absolute left-4 top-2 select-none text-h2 leading-none opacity-25 sm:left-5"
-                style={{ color: accent }}
-              >
-                &ldquo;
-              </span>
-              <blockquote className="relative pt-3 text-body leading-relaxed text-foreground">
-                {q.text}
-              </blockquote>
-              {q.meta && (
-                <figcaption className="mt-3 text-body-sm text-muted">{q.meta}</figcaption>
-              )}
-            </figure>
-          ))}
-        </div>
-      )}
+      {/* 한 줄 후기. 5개부터는 자동으로 넘어가는 슬라이드가 된다. */}
+      {block.quotes.length > 0 && <QuoteList quotes={block.quotes} accent={accent} />}
 
       {/*
         크리에이터 후기. 채널이 섞여 있어 슬라이더 안에서 폭을 맞춘다.

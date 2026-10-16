@@ -1,7 +1,9 @@
-import Link from "next/link";
+import { AdminNav } from "@/components/admin/AdminNav";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchSurveyQuotes } from "@/lib/reviewRating";
 import { CandidateCard, type CandidateView } from "./CandidateCard";
 import { UrlPasteBox } from "./UrlPasteBox";
+import { SurveyQuoteList } from "./SurveyQuoteList";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,9 @@ export const dynamic = "force-dynamic";
  * 크론(`/api/cron/collect-reviews`)이 네이버에서 찾아와 쌓고, 여기서 사람이 고른다.
  * 고른 것만 테마의 후기 블록으로 간다 — 검색 결과에는 우리와 무관한 글이 반드시
  * 섞이므로 자동으로 싣지 않는다.
+ *
+ * 아래쪽 '설문 한줄 후기' 는 표에 쌓지 않고 설문 시트를 그때그때 읽는다
+ * (`fetchSurveyQuotes`). 고르면 후기 블록의 quotes 에 바로 들어간다.
  *
  * 탭이 아니라 한 화면에 세 묶음을 쌓아 둔다. "안 본 것" 이 0건이면 할 일이 없다는
  * 뜻이고, 그 아래는 기록이다.
@@ -25,13 +30,14 @@ const STATUS_LABEL: Record<(typeof STATUS_ORDER)[number], string> = {
 export default async function AdminReviewsPage() {
   const supabase = createAdminClient();
 
-  const [{ data: cands, error }, { data: themeRows }] = await Promise.all([
+  const [{ data: cands, error }, { data: themeRows }, survey] = await Promise.all([
     supabase
       .from("review_candidates")
       .select("*")
       .order("discovered_at", { ascending: false })
       .limit(300),
-    supabase.from("themes").select("slug, name").order("slug"),
+    supabase.from("themes").select("slug, name, content").order("slug"),
+    fetchSurveyQuotes(),
   ]);
 
   if (error) {
@@ -43,18 +49,41 @@ export default async function AdminReviewsPage() {
   }
 
   const rows = (cands as CandidateView[]) ?? [];
-  const themes = (themeRows as { slug: string; name: string }[]) ?? [];
+  const themeList =
+    (themeRows as { slug: string; name: string; content: { blocks?: unknown[] } | null }[]) ?? [];
+  const themes = themeList.map((t) => ({ slug: t.slug, name: t.name }));
+  // 테마별로 지금 실려 있는 한줄 후기 글. 설문 답이 실렸는지 이걸로 가린다.
+  const quoteThemes = themeList.map((t) => {
+    const block = (t.content?.blocks ?? []).find(
+      (b) => (b as { type?: string })?.type === "reviews"
+    ) as { quotes?: { text?: string }[] } | undefined;
+    return {
+      slug: t.slug,
+      name: t.name,
+      quoteTexts: (block?.quotes ?? []).map((q) => q?.text ?? "").filter(Boolean),
+    };
+  });
   const byStatus = (s: string) => rows.filter((r) => r.status === s);
   const newCount = byStatus("new").length;
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-5xl">
-        <Link href="/" className="mb-4 inline-block text-glow hover:underline">
-          ← 돌아가기
-        </Link>
+      <div className="mx-auto max-w-6xl">
+        <AdminNav current="/reviews" />
 
         <h1 className="mb-2 text-h2 font-semibold">후기 관리</h1>
+        <p className="mb-6 flex gap-4 text-body-sm">
+          <a href="#links" className="text-glow hover:underline">
+            블로그·인스타 후기
+          </a>
+          <a href="#survey" className="text-glow hover:underline">
+            설문 한줄 후기
+          </a>
+        </p>
+
+        <h2 id="links" className="mb-2 scroll-mt-32 text-h3 font-semibold">
+          블로그·인스타 후기
+        </h2>
         <p className="mb-8 text-body-sm text-muted">
           볼 것 {newCount}건 · 실은 것 {byStatus("published").length}건 · 관련없음{" "}
           {byStatus("ignored").length}건
@@ -88,6 +117,19 @@ export default async function AdminReviewsPage() {
               </section>
             );
           })
+        )}
+
+        <h2 id="survey" className="mb-2 mt-12 scroll-mt-32 text-h3 font-semibold">
+          설문 한줄 후기
+        </h2>
+        <p className="mb-4 text-body-sm text-muted">
+          설문 서술형 답에서 골라 테마 상세의 한줄 후기에 넣고 뺍니다. 새 응답은 자동으로 이
+          목록에 나타납니다. 5개 이상이면 상세 화면에서 자동으로 넘어가는 슬라이드가 됩니다.
+        </p>
+        {survey.ok ? (
+          <SurveyQuoteList quotes={survey.quotes} themes={quoteThemes} />
+        ) : (
+          <p className="text-body-sm text-danger">설문을 읽지 못했습니다: {survey.error}</p>
         )}
       </div>
     </div>

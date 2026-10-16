@@ -45,6 +45,7 @@ const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
     label: "콘텐츠",
     items: [
       { href: "/content", label: "공지·FAQ" },
+      { href: "/reviews", label: "후기" },
       { href: "/popups", label: "접속 팝업" },
     ],
   },

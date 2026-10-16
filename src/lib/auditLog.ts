@@ -74,6 +74,8 @@ export type AuditAction =
   // 후기 후보 (고객 화면에 남의 글을 싣는 결정이다 — 누가 넣고 뺐는지 남긴다)
   | "review_candidate.published"
   | "review_candidate.ignored"
+  | "survey_quote.published"
+  | "survey_quote.removed"
   // 광고 문자 (정보통신망법 — 누구에게 언제 보냈는지, 거부를 언제 받았는지 남긴다)
   | "marketing_sms.sent"
   | "marketing_optout.added"
