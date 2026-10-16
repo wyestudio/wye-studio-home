@@ -159,6 +159,7 @@ export function InstagramScene({
 
         <PostRail
           posts={posts && posts.length > 0 ? posts : FALLBACK_POSTS}
+          cardHeight={naturalHeight}
           mounted={mounted}
           scale={scale}
           onNaturalHeight={(h) => setNaturalHeight((prev) => Math.max(prev, h))}
@@ -171,11 +172,14 @@ export function InstagramScene({
 /** 옆으로 미는 게시물 줄. 스크롤 막대는 감춘다 — 우주 화면에 막대가 뜨면 튄다. */
 function PostRail({
   posts,
+  cardHeight,
   mounted,
   scale,
   onNaturalHeight,
 }: {
   posts: string[];
+  /** 게시물 카드의 키(축소 전). 마지막 '더 보기' 카드를 같은 키로 맞춘다. */
+  cardHeight: number;
   mounted: boolean;
   scale: number;
   onNaturalHeight: (h: number) => void;
@@ -198,7 +202,30 @@ function PostRail({
           onNaturalHeight={onNaturalHeight}
         />
       ))}
+      <MoreCard width={BASE_WIDTH * scale} height={Math.max(200, cardHeight) * scale} />
     </div>
+  );
+}
+
+/**
+ * 줄 끝의 '인스타에서 더 보기' 카드. 홈에는 최신 몇 개만 싣고(임베드가 무겁다),
+ * 나머지는 계정에서 보게 한다. 게시물 카드와 같은 크기라 줄이 들쭉날쭉하지 않다.
+ */
+function MoreCard({ width, height }: { width: number; height: number }) {
+  return (
+    <a
+      href={`https://www.instagram.com/${HANDLE}/`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex shrink-0 snap-start flex-col items-center justify-center gap-3 self-center
+                 rounded-xl border border-panel-border bg-panel text-center transition-colors
+                 hover:border-glow"
+      style={{ width, height }}
+    >
+      <span className="text-sm font-semibold text-foreground">게시물 더 보기</span>
+      <span className="text-sm font-semibold text-glow">@{HANDLE} →</span>
+      <span className="text-xs text-muted">인스타그램으로 이동</span>
+    </a>
   );
 }
 

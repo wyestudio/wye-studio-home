@@ -21,8 +21,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
  */
 
 const API = "https://graph.instagram.com";
-/** 홈에 보일 게시물 수. 임베드 하나하나가 iframe 이라 다 띄우면 홈이 무거워진다. */
-export const OWN_POST_LIMIT = 12;
+/**
+ * 홈에 보일 게시물 수. 임베드 하나하나가 iframe 이라 다 띄우면 홈이 무거워진다.
+ * 그 뒤로는 홈 섹션의 마지막 카드("인스타에서 더 보기")가 계정으로 보낸다.
+ */
+export const OWN_POST_LIMIT = 6;
 /** 이 주기보다 오래된 토큰만 갱신한다. 60일 만료에 넉넉히 앞선다. */
 const REFRESH_EVERY_DAYS = 7;
 
