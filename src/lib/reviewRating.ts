@@ -28,12 +28,11 @@ export type RatingSummary = {
 /**
  * 점수 열을 찾는다.
  *
- * `REVIEW_RATING_COLUMN` 에 머리글을 그대로 적어 두면 그 열을 쓴다. 없으면 머리글에
+ * `configured` 에 머리글을 적어 두면 그 열을 쓴다(일부만 적어도 된다). 없으면 머리글에
  * 평점처럼 보이는 말이 든 열을 찾는다 — 폼 문항은 "전반적인 만족도를 평가해주세요"
  * 처럼 길어서 완전 일치로는 못 찾는다.
  */
-function findRatingColumn(header: string[]): number {
-  const configured = process.env.REVIEW_RATING_COLUMN?.trim();
+function findRatingColumn(header: string[], configured: string | undefined): number {
   if (configured) {
     const exact = header.findIndex((h) => h.trim() === configured);
     if (exact !== -1) return exact;
@@ -71,9 +70,64 @@ function parseScore(raw: string): number | null {
   return n;
 }
 
-/** 설문 시트에서 평균 평점과 응답 수를 집계한다. */
-export async function fetchRatingSummary(): Promise<
-  { ok: true; summary: RatingSummary } | { ok: false; error: string }
+type Tab = { range: string; header: string[]; body: string[][] };
+type SummaryResult = { ok: true; summary: RatingSummary } | { ok: false; error: string };
+
+/** 한 문항(열)의 평균과 응답 수. 탭마다 같은 문항을 찾아 합친다. */
+function summarize(tabs: Tab[], configured: string | undefined, envName: string): SummaryResult {
+  const scores: number[] = [];
+  const columns: string[] = [];
+  const missing: string[] = [];
+
+  for (const { range, header, body } of tabs) {
+    const col = findRatingColumn(header, configured);
+    if (col === -1) {
+      // 응답 탭이 아닌 탭(메모·집계용)일 수 있으니 이것만으로 실패시키지 않는다.
+      missing.push(`${range} (머리글: ${header.slice(0, 6).join(" | ")})`);
+      continue;
+    }
+    for (const r of body) {
+      const n = parseScore(r[col] ?? "");
+      if (n !== null) scores.push(n);
+    }
+    if (!columns.includes(header[col])) columns.push(header[col]);
+  }
+
+  // 어느 탭에서도 열을 못 찾았다면 설정이 틀린 것이다 — 조용히 0명으로 넘기면
+  // 화면 수치가 영영 안 바뀌는데도 아무도 모른다.
+  if (columns.length === 0 && missing.length > 0) {
+    return {
+      ok: false,
+      error:
+        `시트에서 평점 열을 찾지 못했습니다. ${missing.join(" / ")}` +
+        ` — ${envName} 에 문항 이름을 적어주세요.`,
+    };
+  }
+
+  const column = columns.length > 0 ? columns.join(" + ") : null;
+  if (scores.length === 0) return { ok: true, summary: { average: null, count: 0, column } };
+
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  return {
+    ok: true,
+    summary: {
+      // 소수 한 자리. 4.63 을 4.6 으로 — 화면 수치는 자릿수가 들쭉날쭉하면 지저분하다.
+      average: Math.round(avg * 10) / 10,
+      count: scores.length,
+      column,
+    },
+  };
+}
+
+/**
+ * 설문 시트에서 문항별 평균을 집계한다.
+ *   rating  — 전반 만족도. `REVIEW_RATING_COLUMN` (없으면 머리글로 추정)
+ *   quality — 문제 퀄리티. `REVIEW_QUALITY_COLUMN` 이 있을 때만 (없으면 null)
+ *
+ * 시트는 한 번만 읽고 문항별로 나눠 센다 — 문항마다 따로 읽으면 API 호출이 배로 는다.
+ */
+export async function fetchSurveySummaries(): Promise<
+  { ok: true; rating: SummaryResult; quality: SummaryResult | null } | { ok: false; error: string }
 > {
   const raw = process.env.REVIEW_RATING_SHEET;
   if (!raw) return { ok: false, error: "REVIEW_RATING_SHEET(설문 응답 시트 주소)이 없습니다." };
@@ -90,54 +144,20 @@ export async function fetchRatingSummary(): Promise<
       ? configured.split(";").map((r) => r.trim()).filter(Boolean)
       : (await listSheetTitles(id)).map((t) => `${quoteSheetTitle(t)}!A:Z`);
 
-    const scores: number[] = [];
-    const columns: string[] = [];
-    const missing: string[] = [];
-
+    const tabs: Tab[] = [];
     for (const range of ranges) {
       const rows = await readSheet(id, range);
       if (rows.length < 2) continue;
-
       const [header, ...body] = rows;
-      const col = findRatingColumn(header);
-      if (col === -1) {
-        // 응답 탭이 아닌 탭(메모·집계용)일 수 있으니 이것만으로 실패시키지 않는다.
-        missing.push(`${range} (머리글: ${header.slice(0, 6).join(" | ")})`);
-        continue;
-      }
-
-      for (const r of body) {
-        const n = parseScore(r[col] ?? "");
-        if (n !== null) scores.push(n);
-      }
-      if (!columns.includes(header[col])) columns.push(header[col]);
+      tabs.push({ range, header, body });
     }
 
-    // 어느 탭에서도 평점 열을 못 찾았다면 설정이 틀린 것이다 — 조용히 0명으로 넘기면
-    // 화면 수치가 영영 안 바뀌는데도 아무도 모른다.
-    if (columns.length === 0 && missing.length > 0) {
-      return {
-        ok: false,
-        error:
-          `시트에서 평점 열을 찾지 못했습니다. ${missing.join(" / ")}` +
-          ` — REVIEW_RATING_COLUMN 에 평점 문항 이름을 적어주세요.`,
-      };
-    }
-
-    const column = columns.length > 0 ? columns.join(" + ") : null;
-    if (scores.length === 0) {
-      return { ok: true, summary: { average: null, count: 0, column } };
-    }
-
-    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const qualityColumn = process.env.REVIEW_QUALITY_COLUMN?.trim();
     return {
       ok: true,
-      summary: {
-        // 소수 한 자리. 4.63 을 4.6 으로 — 화면 수치는 자릿수가 들쭉날쭉하면 지저분하다.
-        average: Math.round(avg * 10) / 10,
-        count: scores.length,
-        column,
-      },
+      rating: summarize(tabs, process.env.REVIEW_RATING_COLUMN?.trim(), "REVIEW_RATING_COLUMN"),
+      // 추정하지 않는다 — 머리글 추정은 "만족도" 같은 말을 찾으므로 전반 만족도 열을 잡는다.
+      quality: qualityColumn ? summarize(tabs, qualityColumn, "REVIEW_QUALITY_COLUMN") : null,
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };

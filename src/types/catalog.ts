@@ -142,8 +142,14 @@ export type ThemeBlock =
        * 적은 수치를 지워 버리면 되돌릴 길이 없다.
        *   rating — 평균 평점 (예: "4.6")
        *   count  — 응답 수 (예: "132")
+       *   quality — 문제 퀄리티 평균 (`REVIEW_QUALITY_COLUMN` 문항)
        */
-      stats: { value: string; label: string; note?: string; auto?: "rating" | "count" }[];
+      stats: {
+        value: string;
+        label: string;
+        note?: string;
+        auto?: "rating" | "count" | "quality";
+      }[];
       /** 한 줄 후기. meta 는 '2026.08.29 · 그룹 회차' 처럼 출처 한 줄. */
       quotes: { text: string; meta?: string }[];
       /**

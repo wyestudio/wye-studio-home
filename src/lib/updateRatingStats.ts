@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { fetchRatingSummary } from "@/lib/reviewRating";
+import { fetchSurveySummaries, type RatingSummary } from "@/lib/reviewRating";
 
 /**
  * 설문 평점을 테마의 후기 블록 수치에 반영한다.
@@ -14,19 +14,25 @@ import { fetchRatingSummary } from "@/lib/reviewRating";
 export async function updateRatingStats(
   supabase: SupabaseClient
 ): Promise<{ updated: string[]; errors: string[]; summary: string | null }> {
-  const res = await fetchRatingSummary();
+  const res = await fetchSurveySummaries();
   if (!res.ok) return { updated: [], errors: [res.error], summary: null };
 
-  const { average, count, column } = res.summary;
-  if (average === null || count === 0) {
-    return { updated: [], errors: [], summary: "응답이 아직 없습니다." };
-  }
+  const errors: string[] = [];
+  // auto 종류 → 그 문항의 집계. 집계가 없거나 실패한 종류는 건드리지 않는다.
+  const sources: Partial<Record<"rating" | "count" | "quality", RatingSummary>> = {};
+  if (res.rating.ok) {
+    sources.rating = res.rating.summary;
+    sources.count = res.rating.summary;
+  } else errors.push(res.rating.error);
+  if (res.quality?.ok) sources.quality = res.quality.summary;
+  else if (res.quality) errors.push(res.quality.error);
+
+  if (!sources.rating && !sources.quality) return { updated: [], errors, summary: null };
 
   const { data: themes, error } = await supabase.from("themes").select("id, slug, content");
   if (error) return { updated: [], errors: [error.message], summary: null };
 
   const updated: string[] = [];
-  const errors: string[] = [];
 
   for (const t of (themes ?? []) as { id: string; slug: string; content: unknown }[]) {
     const content = (t.content ?? {}) as { blocks?: Record<string, unknown>[] };
@@ -37,8 +43,11 @@ export async function updateRatingStats(
       if (b?.type !== "reviews" || !Array.isArray(b.stats)) return b;
 
       const stats = (b.stats as Record<string, unknown>[]).map((st) => {
-        if (st?.auto !== "rating" && st?.auto !== "count") return st;
-        const num = st.auto === "rating" ? String(average) : String(count);
+        if (st?.auto !== "rating" && st?.auto !== "count" && st?.auto !== "quality") return st;
+        const src = sources[st.auto];
+        // 응답이 아직 없으면 값을 비우지 않고 그대로 둔다.
+        if (!src || src.average === null || src.count === 0) return st;
+        const num = st.auto === "count" ? String(src.count) : String(src.average);
         // 숫자 뒤에 운영자가 붙여 둔 꼬리("4.6 / 5" 의 " / 5", "64명" 의 "명")는 살린다.
         // 숫자만 바꿔 넣지 않으면 자동 갱신 첫날 화면 표기가 "4.4" 로 바뀌어 버린다.
         const prev = String(st.value ?? "");
@@ -46,7 +55,7 @@ export async function updateRatingStats(
         const next = `${num}${tail}`;
         // 근거는 공개 화면에 그대로 찍힌다(ThemeBlocks). 문항 원문은 길고 고객에게
         // 의미가 없으니 응답 수만 남긴다 — 어느 열을 읽었는지는 크론 응답에서 본다.
-        const note = `설문 응답 ${count}명`;
+        const note = `설문 응답 ${src.count}명`;
         if (prev === next && st.note === note) return st;
         touched = true;
         return { ...st, value: next, note };
@@ -65,9 +74,13 @@ export async function updateRatingStats(
     else updated.push(t.slug);
   }
 
+  const describe = (label: string, x?: RatingSummary) =>
+    x ? `${label} ${x.average ?? "-"} · 응답 ${x.count}명${x.column ? ` (${x.column})` : ""}` : null;
   return {
     updated,
     errors,
-    summary: `평균 ${average} · 응답 ${count}명${column ? ` (${column})` : ""}`,
+    summary: [describe("평균", sources.rating), describe("문제 퀄리티", sources.quality)]
+      .filter(Boolean)
+      .join(" / "),
   };
 }

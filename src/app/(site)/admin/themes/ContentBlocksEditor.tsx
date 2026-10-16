@@ -283,6 +283,7 @@ export function ContentBlocksEditor({
                               { value: "", label: "수동 입력" },
                               { value: "rating", label: "자동 · 평균 평점" },
                               { value: "count", label: "자동 · 응답 수" },
+                              { value: "quality", label: "자동 · 문제 퀄리티" },
                             ],
                           },
                           { key: "note", label: "근거 (응답 49명)" },
