@@ -145,6 +145,20 @@ export async function publishCandidate(input: {
       };
     }
 
+    // 날짜·작성자가 빈 네이버 글(이 기능 전에 주소로 담은 것)은 지금 글에서 읽어 채운다.
+    // 날짜가 없으면 상세 화면 최신순 정렬에서 맨 뒤로 밀린다.
+    if (cand.channel === "naver" && (!cand.posted_at || !cand.author)) {
+      const og = await fetchOgTags(cand.url);
+      const fill = {
+        ...(!cand.posted_at && og.publishedAt ? { posted_at: og.publishedAt } : {}),
+        ...(!cand.author && og.blogName ? { author: og.blogName } : {}),
+      };
+      if (Object.keys(fill).length > 0) {
+        Object.assign(cand, fill);
+        await supabase.from("review_candidates").update(fill).eq("id", cand.id);
+      }
+    }
+
     // 썸네일은 네이버 카드에만 필요하다. 인스타는 임베드가 알아서 그린다.
     let image = cand.stored_thumbnail_url;
     if (cand.channel === "naver" && !image && cand.thumbnail_url) {
@@ -160,9 +174,21 @@ export async function publishCandidate(input: {
     const block = blocks[idx] as Record<string, unknown>;
     const links = Array.isArray(block.links) ? [...(block.links as Record<string, unknown>[])] : [];
 
-    // 같은 주소가 이미 실려 있으면 또 넣지 않는다.
-    const already = links.some((l) => normalizeUrl(String(l?.url ?? "")) === normalizeUrl(cand.url));
-    if (!already) {
+    // 같은 주소가 이미 실려 있으면 또 넣지 않는다. 다만 빈 날짜·작성자는 채운다 —
+    // 날짜 없이 실린 글을 '되돌리기 → 후기에 넣기' 로 바로잡을 수 있게.
+    const at = links.findIndex(
+      (l) => normalizeUrl(String(l?.url ?? "")) === normalizeUrl(cand.url)
+    );
+    const already = at !== -1;
+    if (already) {
+      const cur = links[at];
+      const date = cand.posted_at ? cand.posted_at.replace(/-/g, ".") : undefined;
+      links[at] = {
+        ...cur,
+        ...(!cur.date && date ? { date } : {}),
+        ...(!cur.author && cand.channel === "naver" && cand.author ? { author: cand.author } : {}),
+      };
+    } else {
       links.push(
         cand.channel === "instagram"
           ? {
@@ -305,6 +331,8 @@ export async function addNaverUrl(raw: string): Promise<ActionResult> {
           title: og.title || null,
           excerpt: og.description || null,
           thumbnail_url: og.image || null,
+          author: og.blogName || null,
+          posted_at: og.publishedAt || null,
           status: "new",
         }],
         { onConflict: "url", ignoreDuplicates: true }

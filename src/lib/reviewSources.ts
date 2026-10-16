@@ -190,7 +190,15 @@ export async function searchNaverBlogs(
   return { items: [...byUrl.values()] };
 }
 
-export type OgTags = { title?: string; description?: string; image?: string };
+export type OgTags = {
+  title?: string;
+  description?: string;
+  image?: string;
+  /** 네이버 블로그만: 글 작성일 "2026-10-16"(한국 날짜). */
+  publishedAt?: string;
+  /** 네이버 블로그만: 블로그 이름. 검색 API 의 bloggername 과 같은 값이다. */
+  blogName?: string;
+};
 
 /**
  * 게시물에서 og 태그를 뽑는다. 썸네일은 검색 API 가 주지 않아 여기서만 얻는다.
@@ -224,7 +232,22 @@ export async function fetchOgTags(rawUrl: string): Promise<OgTags> {
       return raw ? stripHtml(raw) : undefined;
     };
 
-    return { title: pick("og:title"), description: pick("og:description"), image: pick("og:image") };
+    // 네이버 모바일 글 페이지는 본문 태그에 작성 시각(addDate, 밀리초)과 블로그 이름을 싣는다.
+    // 주소로 직접 담은 글은 검색 API 를 거치지 않아 날짜가 없는데, 날짜가 없으면 상세
+    // 화면 최신순 정렬에서 맨 뒤로 밀린다. 검색으로 찾은 글 두 건과 대조해 날짜가 같음을 확인했다.
+    const addDate = Number(html.match(/addDate="(\d{12,14})"/)?.[1]);
+    const publishedAt = Number.isFinite(addDate)
+      ? new Date(addDate + 9 * 3600_000).toISOString().slice(0, 10)
+      : undefined;
+    const blogName = html.match(/blogName="([^"]+)"/)?.[1];
+
+    return {
+      title: pick("og:title"),
+      description: pick("og:description"),
+      image: pick("og:image"),
+      ...(publishedAt ? { publishedAt } : {}),
+      ...(blogName ? { blogName: stripHtml(blogName) } : {}),
+    };
   } catch {
     return {};
   }
