@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { collectInstagramMedia } from "@/lib/instagramSource";
+import { refreshOwnInstagramToken } from "@/lib/instagramOwn";
 import { sendReviewCollectFailureAlert } from "@/lib/slack";
 import { updateRatingStats } from "@/lib/updateRatingStats";
 import {
@@ -96,6 +97,11 @@ export async function GET(request: NextRequest) {
   // themes 를 5분 캐시하므로 늦어도 5분 뒤 반영된다.
   const rating = await updateRatingStats(supabase);
   errors.push(...rating.errors.map((e) => `평점 ${e}`));
+
+  // 홈 인스타 섹션용 우리 계정 토큰. 60일 만료라 매일 확인하고 일주일마다 갱신한다.
+  // 갱신이 실패해도 수집은 계속한다 — 실패는 errors 로 슬랙 알림에 실린다.
+  const igRefresh = await refreshOwnInstagramToken();
+  if (igRefresh.error) errors.push(`인스타 토큰 갱신: ${igRefresh.error}`);
 
   if (found.size === 0) {
     if (errors.length > 0) {

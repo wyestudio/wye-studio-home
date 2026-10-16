@@ -19,9 +19,9 @@ import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
  *   · 게시물을 수정하면 사이트도 알아서 따라온다
  *   ⚠️ 영상은 인라인 재생이 안 된다. 썸네일 + 재생 버튼이 뜨고 누르면 인스타로 간다.
  *
- * ⚠️ 목록이 코드에 박혀 있다. 어드민에서 고치려면 테이블과 화면이 하나씩
- *    더 필요해서 지금은 여기서 주소만 갈아끼운다. 새 게시물을 넣고 싶으면
- *    아래 POSTS 에 주소를 추가하면 된다.
+ * 목록은 우리 계정 최신 게시물을 인스타 API 로 받아 온다(`src/lib/instagramOwn.ts`,
+ * 홈 page.tsx 가 `posts` 로 넘긴다). 새 글을 올리면 한 시간 안에 여기도 바뀐다.
+ * 토큰이 없거나 API 가 실패하면 아래 FALLBACK_POSTS 를 쓴다 — 섹션이 비면 안 된다.
  */
 const HANDLE = "wouldyouescape";
 
@@ -37,7 +37,7 @@ const BASE_WIDTH = 320;
  */
 const COMMENT_BAR = 50;
 
-const POSTS = [
+const FALLBACK_POSTS = [
   "https://www.instagram.com/p/DdOQX1TE9Ht/",
   "https://www.instagram.com/reel/DcN-6Zzzhvg/",
   "https://www.instagram.com/reel/DcbPf1BzfZb/",
@@ -59,10 +59,13 @@ function toEmbedUrl(url: string): string | null {
 }
 
 export function InstagramScene({
+  posts,
   index = 0,
   total = 1,
   range,
 }: {
+  /** 우리 계정 최신 게시물 주소. 없으면 FALLBACK_POSTS. */
+  posts?: string[] | null;
   index?: number;
   total?: number;
   range?: { start: number; end: number; unitSpan?: number };
@@ -155,6 +158,7 @@ export function InstagramScene({
         </div>
 
         <PostRail
+          posts={posts && posts.length > 0 ? posts : FALLBACK_POSTS}
           mounted={mounted}
           scale={scale}
           onNaturalHeight={(h) => setNaturalHeight((prev) => Math.max(prev, h))}
@@ -166,10 +170,12 @@ export function InstagramScene({
 
 /** 옆으로 미는 게시물 줄. 스크롤 막대는 감춘다 — 우주 화면에 막대가 뜨면 튄다. */
 function PostRail({
+  posts,
   mounted,
   scale,
   onNaturalHeight,
 }: {
+  posts: string[];
   mounted: boolean;
   scale: number;
   onNaturalHeight: (h: number) => void;
@@ -183,7 +189,7 @@ function PostRail({
       className="flex snap-x snap-mandatory items-start gap-4 overflow-x-auto px-1 pb-2
                  [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      {POSTS.map((url) => (
+      {posts.map((url) => (
         <EmbedCard
           key={url}
           url={url}
