@@ -388,6 +388,25 @@ export function ThemeBlockView({
   );
 }
 
+/** 문자열 안의 "2026.08.29" 같은 날짜를 정렬용 숫자(20260829)로. 없으면 null. */
+function dateKey(s?: string): number | null {
+  const m = s?.match(/(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/);
+  return m ? Number(m[1]) * 10000 + Number(m[2]) * 100 + Number(m[3]) : null;
+}
+
+/**
+ * 최신이 앞. 날짜를 못 읽는 항목("사전 테스트 회차 설문")은 맨 뒤로 보내고,
+ * 같으면 0 을 돌려 원래(어드민에 적힌) 순서를 지킨다.
+ */
+function byNewest(a?: string, b?: string): number {
+  const ka = dateKey(a);
+  const kb = dateKey(b);
+  if (ka === kb) return 0;
+  if (ka === null) return 1;
+  if (kb === null) return -1;
+  return kb - ka;
+}
+
 /** 후기 블록 전체. 수치 → 한 줄 후기 → 인스타 순으로 좁혀 읽힌다. */
 function ReviewsBlock({
   block,
@@ -396,7 +415,23 @@ function ReviewsBlock({
   block: Extract<ThemeBlock, { type: "reviews" }>;
   accent: string;
 }) {
-  const links = block.links.filter((l) => l.url);
+  // 블로그 글이 앞, 인스타가 뒤. 각각 최신순 — 블로그는 글이라 먼저 읽히고,
+  // 인스타 임베드는 무거워 뒤에 둬야 첫 화면이 가볍다.
+  const links = block.links
+    .filter((l) => l.url)
+    .map((l, i) => ({ l, i }))
+    .sort(
+      (a, b) =>
+        (a.l.channel === "naver" ? 0 : 1) - (b.l.channel === "naver" ? 0 : 1) ||
+        byNewest(a.l.date, b.l.date) ||
+        a.i - b.i
+    )
+    .map(({ l }) => l);
+  // 한 줄 후기도 최신순. 날짜는 meta("2026.08.29 프리오프닝 설문")에서 읽는다.
+  const quotes = block.quotes
+    .map((q, i) => ({ q, i }))
+    .sort((a, b) => byNewest(a.q.meta, b.q.meta) || a.i - b.i)
+    .map(({ q }) => q);
 
   return (
     <div className="flex flex-col gap-10 sm:gap-12">
@@ -433,7 +468,7 @@ function ReviewsBlock({
       )}
 
       {/* 한 줄 후기. 5개부터는 자동으로 넘어가는 슬라이드가 된다. */}
-      {block.quotes.length > 0 && <QuoteList quotes={block.quotes} accent={accent} />}
+      {quotes.length > 0 && <QuoteList quotes={quotes} accent={accent} />}
 
       {/*
         크리에이터 후기. 채널이 섞여 있어 슬라이더 안에서 폭을 맞춘다.
