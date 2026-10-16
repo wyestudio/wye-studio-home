@@ -113,9 +113,10 @@ export async function collectInstagramMedia(): Promise<{
   errors: string[];
 }> {
   const cfg = igConfig();
-  if (!cfg) {
-    return { items: [], errors: ["토큰(IG_ACCESS_TOKEN / IG_USER_ID)이 설정되지 않았습니다."] };
-  }
+  // 설정 전이면 조용히 건너뛴다. 오류로 올리면 매일 수집 실패 알림이 슬랙에 간다 —
+  // 해시태그 수집은 Meta 앱 검수가 필요해 당분간 안 켤 수 있다. 인스타 후기는 그동안
+  // 어드민에서 주소를 붙여넣어 담는다.
+  if (!cfg) return { items: [], errors: [] };
 
   const errors: string[] = [];
   const byUrl = new Map<string, InstagramMedia>();

@@ -108,8 +108,19 @@ export async function refreshOwnInstagramToken(): Promise<{ refreshed: boolean; 
     const t = await loadToken();
     if (!t) return { refreshed: false };
 
-    const last = t.row ? new Date(t.row.refreshed_at).getTime() : 0;
-    if (t.row && Date.now() - last < REFRESH_EVERY_DAYS * 86400_000) return { refreshed: false };
+    // 처음(표에 줄이 없고 환경변수 토큰만 있을 때)은 갱신하지 않고 표에 옮겨 적기만 한다.
+    // ⚠️ 발급 24시간이 안 된 토큰은 갱신이 거부된다. 환경변수 토큰은 언제 발급됐는지
+    //    알 수 없으니, 지금을 기준 시각으로 적어 두고 일주일 뒤에 갱신한다(60일 만료에 넉넉하다).
+    if (!t.row) {
+      const supabase = createAdminClient();
+      const { error } = await supabase
+        .from("instagram_tokens")
+        .upsert({ id: "own", access_token: t.token, refreshed_at: new Date().toISOString() });
+      return error ? { refreshed: false, error: error.message } : { refreshed: false };
+    }
+
+    const last = new Date(t.row.refreshed_at).getTime();
+    if (Date.now() - last < REFRESH_EVERY_DAYS * 86400_000) return { refreshed: false };
 
     const json = await api<{ access_token?: string; expires_in?: number }>("refresh_access_token", {
       grant_type: "ig_refresh_token",
