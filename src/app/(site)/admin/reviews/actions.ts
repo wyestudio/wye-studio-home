@@ -4,6 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
 import { THEMES_TAG } from "@/lib/themes";
+import { instagramPostedDate } from "@/lib/instagramDate";
 import {
   fetchOgTags,
   isInstagramPostUrl,
@@ -164,7 +165,15 @@ export async function publishCandidate(input: {
     if (!already) {
       links.push(
         cand.channel === "instagram"
-          ? { channel: "instagram", url: cand.url }
+          ? {
+              channel: "instagram",
+              url: cand.url,
+              // 날짜가 있어야 상세 화면 최신순 정렬에서 제자리를 찾는다.
+              date:
+                (cand.posted_at ? cand.posted_at.replace(/-/g, ".") : null) ??
+                instagramPostedDate(cand.url) ??
+                undefined,
+            }
           : {
               channel: "naver",
               url: cand.url,
@@ -246,7 +255,13 @@ export async function addInstagramUrls(raw: string): Promise<ActionResult> {
     const { data, error } = await supabase
       .from("review_candidates")
       .upsert(
-        valid.map((url) => ({ channel: "instagram", url, status: "new" })),
+        valid.map((url) => ({
+          channel: "instagram",
+          url,
+          // 주소에서 올린 날짜를 읽어 둔다 — 목록에서 언제 글인지 보이고, 실을 때 날짜가 따라간다.
+          posted_at: instagramPostedDate(url)?.replace(/\./g, "-") ?? null,
+          status: "new",
+        })),
         { onConflict: "url", ignoreDuplicates: true }
       )
       .select("id");

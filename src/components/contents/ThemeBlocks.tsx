@@ -7,6 +7,7 @@ import { PriceTable, PriceTableEarlyBirdNote, type PriceTablePromo } from "@/com
 import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import { QuoteList } from "@/components/contents/QuoteList";
+import { instagramPostedDate } from "@/lib/instagramDate";
 import { VenueCard } from "@/components/contents/VenueCard";
 import { THEME_BLOCK_LABELS, type ThemeBlock, type ThemePriceTier, type PublicVenue } from "@/types/catalog";
 import { SCREEN_SECTION } from "@/components/contents/screenSection";
@@ -388,6 +389,15 @@ export function ThemeBlockView({
   );
 }
 
+/**
+ * 후기 링크의 날짜. 적힌 날짜가 없는 인스타(주소만 붙여넣은 것)는 주소에서 읽는다 —
+ * 안 그러면 방금 넣은 최신 글이 맨 뒤로 밀린다.
+ */
+function linkDate(l: { channel: string; url: string; date?: string }): string | undefined {
+  if (l.date) return l.date;
+  return l.channel === "instagram" ? (instagramPostedDate(l.url) ?? undefined) : undefined;
+}
+
 /** 문자열 안의 "2026.08.29" 같은 날짜를 정렬용 숫자(20260829)로. 없으면 null. */
 function dateKey(s?: string): number | null {
   const m = s?.match(/(\d{4})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{1,2})/);
@@ -423,7 +433,7 @@ function ReviewsBlock({
     .sort(
       (a, b) =>
         (a.l.channel === "naver" ? 0 : 1) - (b.l.channel === "naver" ? 0 : 1) ||
-        byNewest(a.l.date, b.l.date) ||
+        byNewest(linkDate(a.l), linkDate(b.l)) ||
         a.i - b.i
     )
     .map(({ l }) => l);
