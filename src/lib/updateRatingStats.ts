@@ -38,15 +38,18 @@ export async function updateRatingStats(
 
       const stats = (b.stats as Record<string, unknown>[]).map((st) => {
         if (st?.auto !== "rating" && st?.auto !== "count") return st;
-        const next = st.auto === "rating" ? String(average) : String(count);
-        if (String(st.value ?? "") === next) return st;
+        const num = st.auto === "rating" ? String(average) : String(count);
+        // 숫자 뒤에 운영자가 붙여 둔 꼬리("4.6 / 5" 의 " / 5", "64명" 의 "명")는 살린다.
+        // 숫자만 바꿔 넣지 않으면 자동 갱신 첫날 화면 표기가 "4.4" 로 바뀌어 버린다.
+        const prev = String(st.value ?? "");
+        const tail = prev.match(/^\s*\d+(?:\.\d+)?(.*)$/)?.[1] ?? "";
+        const next = `${num}${tail}`;
+        // 근거는 공개 화면에 그대로 찍힌다(ThemeBlocks). 문항 원문은 길고 고객에게
+        // 의미가 없으니 응답 수만 남긴다 — 어느 열을 읽었는지는 크론 응답에서 본다.
+        const note = `설문 응답 ${count}명`;
+        if (prev === next && st.note === note) return st;
         touched = true;
-        return {
-          ...st,
-          value: next,
-          // 어디서 나온 숫자인지 남긴다 — 수치만 있으면 나중에 근거를 못 되짚는다.
-          note: `설문 응답 ${count}명${column ? ` · ${column}` : ""}`,
-        };
+        return { ...st, value: next, note };
       });
 
       return { ...b, stats };
