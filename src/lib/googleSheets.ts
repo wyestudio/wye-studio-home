@@ -76,6 +76,19 @@ async function accessToken(): Promise<string> {
 }
 
 /**
+ * 403 은 원인이 둘이다. 구분하지 않으면 엉뚱한 쪽을 고치러 간다.
+ *   - 클라우드 프로젝트에서 Sheets API 가 꺼져 있음 → 콘솔에서 켜야 한다(공유와 무관)
+ *   - 시트를 서비스 계정에 공유하지 않음
+ */
+function explainSheetsError(status: number, msg: string): string {
+  if (status !== 403) return msg;
+  if (/has not been used|is disabled|SERVICE_DISABLED/i.test(msg)) {
+    return `${msg} — 서비스 계정의 클라우드 프로젝트에서 Google Sheets API 를 켜야 합니다.`;
+  }
+  return `${msg} — 시트를 서비스 계정(${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL})에 공유했는지 확인하세요.`;
+}
+
+/**
  * 시트 한 장을 2차원 배열로 읽는다. 첫 줄이 머리글이다.
  *
  * ⚠️ 시트를 **서비스 계정 이메일에 공유**해 둬야 한다. 안 하면 403 이 온다 —
@@ -100,15 +113,51 @@ export async function readSheet(spreadsheetId: string, range: string): Promise<s
 
   if (!res.ok) {
     const msg = json.error?.message ?? `HTTP ${res.status}`;
-    if (res.status === 403) {
-      throw new Error(
-        `${msg} — 시트를 서비스 계정(${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL})에 공유했는지 확인하세요.`
-      );
-    }
-    throw new Error(msg);
+    throw new Error(explainSheetsError(res.status, msg));
   }
 
   return json.values ?? [];
+}
+
+/**
+ * 스프레드시트의 탭 이름 목록.
+ *
+ * 폼 여러 개를 **같은 스프레드시트**에 연결하면 폼마다 응답 탭이 하나씩 생긴다.
+ * 탭 이름은 구글이 붙이므로("설문지 응답 시트2") 미리 알 수 없어 여기서 받아 온다.
+ */
+export async function listSheetTitles(spreadsheetId: string): Promise<string[]> {
+  const token = await accessToken();
+  const url =
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}` +
+    `?fields=${encodeURIComponent("sheets.properties.title")}`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(20000),
+  });
+
+  const json = (await res.json().catch(() => ({}))) as {
+    sheets?: { properties?: { title?: string } }[];
+    error?: { message?: string };
+  };
+
+  if (!res.ok) {
+    const msg = json.error?.message ?? `HTTP ${res.status}`;
+    throw new Error(explainSheetsError(res.status, msg));
+  }
+
+  return (json.sheets ?? [])
+    .map((s) => s.properties?.title)
+    .filter((t): t is string => typeof t === "string" && t.length > 0);
+}
+
+/**
+ * A1 표기용 탭 이름. 공백·한글이 든 탭은 작은따옴표로 감싸야 하고,
+ * 이름 속 작은따옴표는 두 번 적는다.
+ */
+export function quoteSheetTitle(title: string): string {
+  return `'${title.replace(/'/g, "''")}'`;
 }
 
 /**

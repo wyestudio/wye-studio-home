@@ -1,5 +1,10 @@
 import "server-only";
-import { extractSpreadsheetId, readSheet } from "@/lib/googleSheets";
+import {
+  extractSpreadsheetId,
+  listSheetTitles,
+  quoteSheetTitle,
+  readSheet,
+} from "@/lib/googleSheets";
 
 /**
  * 설문(구글 폼) 응답에서 평점을 집계한다.
@@ -76,31 +81,52 @@ export async function fetchRatingSummary(): Promise<
   const id = extractSpreadsheetId(raw);
   if (!id) return { ok: false, error: "REVIEW_RATING_SHEET 에서 시트 ID 를 읽지 못했습니다." };
 
-  // 시트 이름을 모르므로 범위를 열 전체로 준다. 탭이 여럿이면
-  // REVIEW_RATING_RANGE 에 "응답 시트1!A:Z" 처럼 적어 지정한다.
-  const range = process.env.REVIEW_RATING_RANGE?.trim() || "A:Z";
-
   try {
-    const rows = await readSheet(id, range);
-    if (rows.length < 2) return { ok: true, summary: { average: null, count: 0, column: null } };
+    // 폼 여러 개(정식 운영 + 프리오프닝)를 한 스프레드시트에 연결해 두므로 탭이 여럿이다.
+    // 기본은 **모든 탭**을 읽어 합친다. 특정 탭만 쓰려면 REVIEW_RATING_RANGE 에
+    // "'설문지 응답 시트1'!A:Z;'설문지 응답 시트2'!A:Z" 처럼 ; 로 이어 적는다.
+    const configured = process.env.REVIEW_RATING_RANGE?.trim();
+    const ranges = configured
+      ? configured.split(";").map((r) => r.trim()).filter(Boolean)
+      : (await listSheetTitles(id)).map((t) => `${quoteSheetTitle(t)}!A:Z`);
 
-    const [header, ...body] = rows;
-    const col = findRatingColumn(header);
-    if (col === -1) {
+    const scores: number[] = [];
+    const columns: string[] = [];
+    const missing: string[] = [];
+
+    for (const range of ranges) {
+      const rows = await readSheet(id, range);
+      if (rows.length < 2) continue;
+
+      const [header, ...body] = rows;
+      const col = findRatingColumn(header);
+      if (col === -1) {
+        // 응답 탭이 아닌 탭(메모·집계용)일 수 있으니 이것만으로 실패시키지 않는다.
+        missing.push(`${range} (머리글: ${header.slice(0, 6).join(" | ")})`);
+        continue;
+      }
+
+      for (const r of body) {
+        const n = parseScore(r[col] ?? "");
+        if (n !== null) scores.push(n);
+      }
+      if (!columns.includes(header[col])) columns.push(header[col]);
+    }
+
+    // 어느 탭에서도 평점 열을 못 찾았다면 설정이 틀린 것이다 — 조용히 0명으로 넘기면
+    // 화면 수치가 영영 안 바뀌는데도 아무도 모른다.
+    if (columns.length === 0 && missing.length > 0) {
       return {
         ok: false,
         error:
-          `시트에서 평점 열을 찾지 못했습니다. 머리글: ${header.slice(0, 8).join(" | ")}` +
+          `시트에서 평점 열을 찾지 못했습니다. ${missing.join(" / ")}` +
           ` — REVIEW_RATING_COLUMN 에 평점 문항 이름을 적어주세요.`,
       };
     }
 
-    const scores = body
-      .map((r) => parseScore(r[col] ?? ""))
-      .filter((n): n is number => n !== null);
-
+    const column = columns.length > 0 ? columns.join(" + ") : null;
     if (scores.length === 0) {
-      return { ok: true, summary: { average: null, count: 0, column: header[col] } };
+      return { ok: true, summary: { average: null, count: 0, column } };
     }
 
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
@@ -110,7 +136,7 @@ export async function fetchRatingSummary(): Promise<
         // 소수 한 자리. 4.63 을 4.6 으로 — 화면 수치는 자릿수가 들쭉날쭉하면 지저분하다.
         average: Math.round(avg * 10) / 10,
         count: scores.length,
-        column: header[col],
+        column,
       },
     };
   } catch (err) {
