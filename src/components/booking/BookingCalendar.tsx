@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Chevron } from "@/components/ui/Chevron";
+import { Pumpkin } from "@/components/ui/Pumpkin";
 
 /**
  * 예약 달력.
@@ -48,6 +49,21 @@ function monthCells(monthYmd: string): (string | null)[] {
 }
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/**
+ * 호박을 그릴 날 (KST 'YYYY-MM-DD' → 읽어 주는 이름).
+ *
+ * 날짜를 코드에 박는다. 1년에 한 번 쓰자고 어드민에 '그날의 그림' 칸을 만들
+ * 일은 아니다. 다른 그림이 필요한 날(크리스마스 등)이 생기면 그때 그림별로
+ * 목록을 하나 더 둔다 — 지금 쓰지도 않을 아이콘 종류 칸을 미리 만들지 않는다.
+ *
+ * ⚠️ **지난 날짜는 지운다.** 지난 회차도 달력에 남기므로(SessionPicker 참고)
+ *    안 지우면 작년 호박이 계속 보인다.
+ */
+const PUMPKIN_DAYS: Record<string, string> = {
+  // 2026 할로윈 — 오후 2시 · 저녁 7시 두 회차만 운영한다.
+  "2026-10-31": "할로윈",
+};
 
 /*
   달 넘기는 화살표.
@@ -158,8 +174,14 @@ export function BookingCalendar({
           const earlyBird = Boolean(promoColor && status?.hasEarlyBird);
           const dayColor = earlyBird ? promoColor! : accentColor;
           const isToday = ymd === today;
+          /*
+            호박은 글씨(오픈·오늘)보다 앞선다 — 칸 아래 자리는 하나뿐이다.
+            '오늘' 은 글씨가 없어도 테두리(ring)로 알 수 있고, 특별 회차가
+            정식 오픈일과 겹치는 일은 없다.
+          */
+          const pumpkin = PUMPKIN_DAYS[ymd] ?? null;
           // 칸이 작아서 둘 다 붙일 자리는 없다. 오픈일이 더 알릴 값어치가 있다.
-          const note = ymd === openingDate ? "오픈" : isToday ? "오늘" : null;
+          const note = pumpkin ? null : ymd === openingDate ? "오픈" : isToday ? "오늘" : null;
 
           // 회차가 없는 날은 누를 수 없다. 있는데 전부 마감이면 눌러서 확인은 된다.
           const disabled = !status;
@@ -170,7 +192,7 @@ export function BookingCalendar({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(ymd)}
-              aria-label={`${Number(m)}월 ${day}일${earlyBird ? ` ${promoLabel}` : ""}${note ? ` ${note}` : ""}`}
+              aria-label={`${Number(m)}월 ${day}일${earlyBird ? ` ${promoLabel}` : ""}${pumpkin ? ` ${pumpkin}` : ""}${note ? ` ${note}` : ""}`}
               aria-pressed={isSelected}
               className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-body-sm transition-colors
                 ${disabled ? "text-disabled" : "hover:bg-fill-strong"}
@@ -178,7 +200,17 @@ export function BookingCalendar({
                 ${isToday && !isSelected ? "ring-1 ring-line-strong" : ""}`}
               style={isSelected ? { backgroundColor: dayColor, color: "#0a0a12" } : undefined}
             >
-              <span className={note ? "leading-none" : ""}>{day}</span>
+              <span className={note || pumpkin ? "leading-none" : ""}>{day}</span>
+
+              {/*
+                호박. 회차가 없거나 전부 마감인 날은 점과 같은 규칙으로 흐려진다
+                — 그림만 또렷하면 고를 수 있는 날로 읽힌다.
+              */}
+              {pumpkin && (
+                <Pumpkin
+                  className={`mt-0.5 h-4 w-4 ${status?.hasOpen ? "" : "opacity-30"}`}
+                />
+              )}
 
               {note && (
                 <span
@@ -189,8 +221,8 @@ export function BookingCalendar({
                 </span>
               )}
 
-              {/* 회차가 있는 날 표시. 전부 마감이면 흐리게. 글씨가 있으면 생략. */}
-              {status && !isSelected && !note && (
+              {/* 회차가 있는 날 표시. 전부 마감이면 흐리게. 글씨·그림이 있으면 생략. */}
+              {status && !isSelected && !note && !pumpkin && (
                 <span
                   className="absolute bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
                   style={{

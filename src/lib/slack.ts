@@ -276,3 +276,57 @@ export async function sendCancellationSlackAlert({
     console.error("[slack] 환불 알림 전송 중 에러", err);
   }
 }
+
+/**
+ * 후기 수집 크론 실패 알림 (backup-alert 채널).
+ *
+ * 왜 알림이 필요한가
+ *   인스타 토큰은 **보통 60일이면 만료되고, 만료돼도 화면에는 아무 일도 안 일어난다.**
+ *   새 후기가 안 쌓일 뿐이라 두 달쯤 뒤에야 "왜 안 들어오지" 하게 된다.
+ *   네이버 키의 스코프가 빠지거나 한도를 넘어도 똑같이 조용하다.
+ *   ← keepalive 잡이 "조용히 아무것도 안 하는 잡은 없는 잡보다 나쁘다" 로 같은 교훈을 남겼다.
+ *
+ * 전용 웹훅이 없으면 기본 채널로 보낸다 — 알림이 아예 안 가는 쪽이 더 나쁘다.
+ */
+export async function sendReviewCollectFailureAlert({
+  errors,
+  inserted,
+}: {
+  errors: string[];
+  inserted: number;
+}): Promise<void> {
+  const webhookUrl =
+    pickSlackWebhook("SLACK_BACKUP_ALERT_WEBHOOK_URL") ?? pickSlackWebhook("SLACK_WEBHOOK_URL");
+  if (!webhookUrl) {
+    console.warn("[slack] 쓸 수 있는 웹훅이 없어 후기 수집 실패 알림을 건너뜁니다.");
+    return;
+  }
+
+  const testPrefix = process.env.NEXT_PUBLIC_IS_TEST_ENV === "true" ? "[테스트] " : "";
+
+  const text = [
+    `${testPrefix}:rotating_light: 후기 수집 실패`,
+    `새로 담은 건수: ${inserted}건`,
+    "",
+    // 토큰 만료·스코프 누락 같은 건 원문이 가장 정확하다. 다듬지 않고 그대로 싣는다.
+    ...errors.slice(0, 5).map((e) => `• ${e}`),
+    errors.length > 5 ? `…외 ${errors.length - 5}건` : "",
+    "",
+    "인스타 토큰은 만료되면 조용히 멈춥니다. 만료라면 장기 토큰을 다시 발급해 IG_ACCESS_TOKEN 을 갱신하세요.",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      console.error(`[slack] 후기 수집 실패 알림 전송 실패: ${res.status} ${await res.text()}`);
+    }
+  } catch (err) {
+    console.error("[slack] 후기 수집 실패 알림 전송 중 에러", err);
+  }
+}

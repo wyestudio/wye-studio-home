@@ -121,6 +121,33 @@ print([c for c in '여기에 확인할 문구' if ord(c)>0x7f and ord(c) not in 
 
 ---
 
+## `(site)` 바깥에 페이지를 만들 때
+
+사이트 본체는 `src/app/(site)/` 안에 있고 `<html>`·`<body>` 도 **그 묶음의 layout** 에
+있다. 그 바깥(`/photo` · `/review-guide` · `/codename` · `/openyourdream` …)에
+페이지를 만들면:
+
+- **`layout.tsx` 를 같이 만든다** ← 없으면 "Missing `<html>` and `<body>` tags in
+  the root layout" 로 화면이 통째로 안 뜬다
+- 그 페이지에 **클라이언트 컴포넌트가 있으면 `<style>` 에 `href`·`precedence` 를 준다**
+  ← 없으면 React 19 가 "Cannot render a `<style>` outside the main document" 로 막는다.
+  클라이언트 컴포넌트가 없는 페이지(review-guide)는 그냥 둬도 된다
+
+⚠️ **둘 다 `tsc`·`build` 는 통과하고 `next dev` 에서만 보인다.** `next start` 로
+   띄워도 안 보인다 — production 모드가 삼킨다. 페이지를 만들었으면 **`npm run dev`
+   로 한 번 열고 서버 로그와 브라우저 콘솔을 같이 본다.**
+
+⚠️ 옆 폴더를 흉내 낼 거면 **폴더째** 본다. `page.tsx` 만 읽으면 그 폴더의
+   `layout.tsx` 를 놓친다.
+
+## 잘라 둔 글꼴을 쓰는 페이지의 문구를 고칠 때
+
+`public/fonts/` 의 갈무리11은 `/photo` 에 나오는 글자만 남겨 잘라 둔 것이다
+(671KB → 8KB). **문구를 고치면 새 글자가 시스템 글꼴로 떨어져 한 줄 안에서 글꼴이
+섞인다.** 확인·재생성 방법은 `public/fonts/README.md` 에 있다.
+⚠️ 상태에 따라 바뀌는 문구(로딩·오류 안내)까지 세어야 한다 — 정적 문구만 보면
+   **오류가 났을 때만 깨지는** 가장 안 보이는 버그가 된다.
+
 ## 페이지를 건드렸으면 SEO 반영이 필요한지 확인한다
 
 새로 만들 때뿐 아니라 **고칠 때도** 확인한다. 아래가 바뀌었으면 `src/app/sitemap.ts` 를

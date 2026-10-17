@@ -164,10 +164,17 @@ function sanitizeContent(raw: unknown): ThemeContent {
             ...(str(b.subtitle) ? { subtitle: str(b.subtitle) } : {}),
             stats: arr(b.stats).map((x) => {
               const o = x as Record<string, unknown>;
+              // ⚠️ auto 를 떨어뜨리지 않는다. 떨어뜨리면 어드민에서 **저장할 때마다**
+              //    자동 갱신 표시가 사라져, 설문 평점이 조용히 안 들어오게 된다.
+              const auto =
+                o?.auto === "rating" || o?.auto === "count" || o?.auto === "quality"
+                  ? o.auto
+                  : null;
               return {
                 value: str(o?.value),
                 label: str(o?.label),
                 ...(str(o?.note) ? { note: str(o?.note) } : {}),
+                ...(auto ? { auto } : {}),
               };
             }),
             quotes: arr(b.quotes).map((x) => {
@@ -232,8 +239,15 @@ function validate(input: ThemeInput): string | null {
   //    여기서 안 걸러내면 DB CHECK 제약에 막혀 "테마 저장 실패: new row for
   //    relation ... violates check constraint" 같은 원문이 그대로 뜬다.
   // 0 은 '미정' — 아직 만들지 않은 테마를 미리 띄워 둘 때 쓴다. 화면에서는 감춘다.
-  if (!Number.isInteger(input.difficulty) || input.difficulty < 0 || input.difficulty > 5)
-    return "난이도를 0~5 사이로 입력해주세요. (0 = 미정)";
+  // 0.5 단위만 받는다. 3.7 이 들어가면 자물쇠가 반칸으로 뭉개져 3.5 와 구별이 안 된다.
+  // 0.5 배수는 2진수로 딱 떨어져서 *2 가 정확히 정수다(0.1 과 달리 오차가 없다).
+  if (
+    !Number.isFinite(input.difficulty) ||
+    input.difficulty < 0 ||
+    input.difficulty > 5 ||
+    !Number.isInteger(input.difficulty * 2)
+  )
+    return "난이도를 0~5 사이에서 0.5 단위로 입력해주세요. (0 = 미정)";
   if (!Number.isInteger(input.duration_minutes) || input.duration_minutes < 0)
     return "소요시간을 0분 이상으로 입력해주세요. (0 = 미정)";
   if (input.min_age_floor !== null && (input.min_age_floor < 0 || input.min_age_floor > 100))

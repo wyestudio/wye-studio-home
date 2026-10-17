@@ -1,5 +1,5 @@
 /**
- * 단체 예약(10~24명) 전용 페이지에서 쓰는 값들.
+ * 단체 예약(6~24명) 전용 페이지에서 쓰는 값들.
  *
  * 왜 한 파일에 모으는가
  *   선택지 문구는 **화면(폼) · API 검증 · 어드민 목록** 세 곳에서 같이 읽힌다.
@@ -41,7 +41,7 @@ export const GROUP_ACCENT = "#f082f4";
 /**
  * 단체 예약 링크를 띄울 테마.
  *
- * ⚠️ 안내 페이지 내용(3시간 · 10~24명 · 단독 진행 · 광진구)이 이 테마 기준이라,
+ * ⚠️ 안내 페이지 내용(3시간 · 6~24명 · 단독 진행 · 광진구)이 이 테마 기준이라,
  *    다른 테마에 링크가 붙으면 **우리가 팔지 않는 조건을 안내하는 꼴**이 된다.
  *    단체 예약을 받는 테마가 늘면 여기에 slug 를 더한다.
  */
@@ -51,8 +51,15 @@ export function hasGroupBooking(themeSlug: string): boolean {
   return GROUP_BOOKING_THEME_SLUGS.includes(themeSlug);
 }
 
-/** 단체 예약으로 받는 인원. 화면 문구·폼 검증·API 검증이 같이 쓴다. */
-export const GROUP_HEADCOUNT_MIN = 10;
+/**
+ * 단체 예약으로 받는 인원. 화면 문구·폼 검증·API 검증이 같이 쓴다.
+ *
+ * ⚠️ 하한(6)은 일반 신청 폼의 인원 상한(`DEFAULT_MAX_ATTENDEES` = 8)과 **겹친다.**
+ *    6~8명은 두 길이 다 열려 있으니(일반 신청 = 회차를 골라 바로 신청, 단체 = 단독
+ *    진행 견적) 안내 문구를 "이 폼으로는 신청할 수 없어요" 로 쓰지 않는다 — 거짓이
+ *    된다. 겹치지 않게 하려면 테마의 `max_group_size` 를 5 로 내려야 한다.
+ */
+export const GROUP_HEADCOUNT_MIN = 6;
 export const GROUP_HEADCOUNT_MAX = 24;
 
 /**

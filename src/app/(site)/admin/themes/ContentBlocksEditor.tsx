@@ -267,10 +267,25 @@ export function ContentBlocksEditor({
 
                       <MiniRows
                         label="요약 수치 (2개 권장)"
-                        hint="설문에서 나온 값을 손으로 적습니다. '근거' 칸에 어느 설문·몇 명인지 남겨주세요."
+                        hint={
+                          "'자동'을 고르면 설문 응답 시트에서 매일 갱신됩니다 — 숫자·근거 칸은 " +
+                          "덮어쓰여지니 비워두세요. '수동'이면 적은 값이 그대로 유지됩니다."
+                        }
+                        wrap
                         cols={[
                           { key: "value", label: "숫자 (4.6 / 5)", width: "w-32" },
                           { key: "label", label: "이름 (만족도)", width: "w-40" },
+                          {
+                            key: "auto",
+                            label: "자동 갱신",
+                            width: "w-36",
+                            options: [
+                              { value: "", label: "수동 입력" },
+                              { value: "rating", label: "자동 · 평균 평점" },
+                              { value: "count", label: "자동 · 응답 수" },
+                              { value: "quality", label: "자동 · 문제 퀄리티" },
+                            ],
+                          },
                           { key: "note", label: "근거 (응답 49명)" },
                         ]}
                         rows={b.stats}
@@ -279,6 +294,10 @@ export function ContentBlocksEditor({
 
                       <MiniRows
                         label="한 줄 후기"
+                        hint={
+                          "상세 화면에서는 출처 칸의 날짜(2026.08.29) 기준 최신순으로 나갑니다. 날짜가 없으면 맨 뒤. " +
+                          "5개부터는 자동으로 넘어가는 슬라이드가 됩니다."
+                        }
                         cols={[
                           { key: "text", label: "후기 내용" },
                           { key: "meta", label: "출처 (2026.08.29 · 그룹 회차)", width: "w-56" },
@@ -292,7 +311,8 @@ export function ContentBlocksEditor({
                         hint={
                           "인스타그램은 주소만 넣으면 게시물이 그대로 붙습니다 — 제목·요약·썸네일 칸은 비워두세요. " +
                           "네이버 블로그는 임베드가 안 되므로 네 칸을 채워야 카드가 그려집니다. " +
-                          "순서는 여기 적은 순서 그대로 나갑니다."
+                          "상세 화면에서는 블로그 글이 앞, 인스타가 뒤이고 각각 최신순으로 자동 정렬됩니다 " +
+                          "(여기 적은 순서와 무관). 인스타는 날짜를 비워도 주소에서 읽습니다."
                         }
                         wrap
                         cols={[
@@ -500,7 +520,16 @@ function MiniRows({
   hint?: string;
   /** 칸이 많을 때 줄바꿈해서 쌓는다. 안 그러면 칸마다 실처럼 찌그러진다. */
   wrap?: boolean;
-  cols: { key: string; label: string; width?: string; options?: string[] }[];
+  /**
+   * options 는 문자열 목록이거나 {value,label} 목록이다. 라벨이 필요한 칸
+   * (예: 빈 값 = "수동 입력")은 뒤쪽 모양을 쓴다.
+   */
+  cols: {
+    key: string;
+    label: string;
+    width?: string;
+    options?: (string | { value: string; label: string })[];
+  }[];
   rows: Record<string, unknown>[];
   onChange: (rows: Record<string, unknown>[]) => void;
 }) {
@@ -518,20 +547,29 @@ function MiniRows({
         >
           {cols.map((c) =>
             c.options ? (
-              <select
-                key={c.key}
-                className={`${cell} ${c.width ?? "min-w-0 flex-1"}`}
-                value={String(row?.[c.key] ?? c.options[0])}
-                onChange={(e) =>
-                  onChange(rows.map((x, k) => (k === r ? { ...x, [c.key]: e.target.value } : x)))
-                }
-              >
-                {c.options.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
+              (() => {
+                const opts = c.options!.map((o) =>
+                  typeof o === "string" ? { value: o, label: o } : o
+                );
+                return (
+                  <select
+                    key={c.key}
+                    className={`${cell} ${c.width ?? "min-w-0 flex-1"}`}
+                    value={String(row?.[c.key] ?? opts[0].value)}
+                    onChange={(e) =>
+                      onChange(
+                        rows.map((x, k) => (k === r ? { ...x, [c.key]: e.target.value } : x))
+                      )
+                    }
+                  >
+                    {opts.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                );
+              })()
             ) : (
               <input
                 key={c.key}

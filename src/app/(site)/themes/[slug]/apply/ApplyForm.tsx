@@ -37,7 +37,7 @@ import {
 } from "./ConsentStep";
 import { ApplyComplete } from "./ApplyComplete";
 import { APPLY_STEP_EVENT, pushDataLayerEvent } from "@/lib/analytics";
-import { GROUP_ENTRY, GROUP_HEADCOUNT_MIN } from "@/lib/groupBooking";
+import { GROUP_ENTRY } from "@/lib/groupBooking";
 import { GroupBookingCta } from "@/components/group/GroupBookingCta";
 
 // 넓은 화면에서 칸·글자를 키운다(테마 상세 비율). 모바일 크기는 그대로.
@@ -754,20 +754,20 @@ export function ApplyForm({
                 </p>
               )}
               {/*
-                10명 이상은 이 폼으로 신청할 수 없다(인원 선택 상한이 그보다 낮다).
-                예전에는 카카오톡 채널로 보냈는데, 거기서는 조건·금액·절차를 운영자가
-                매번 손으로 설명해야 했다. 안내 페이지로 보낸다.
+                단체 예약(6명 이상)으로 가는 다른 길을 알려준다. 예전에는 카카오톡
+                채널로 보냈는데, 거기서는 조건·금액·절차를 운영자가 매번 손으로
+                설명해야 했다. 안내 페이지로 보낸다.
+
+                ⚠️ 문구를 "이 폼으로는 신청할 수 없어요" 로 쓰지 않는다 — 단체 하한이
+                   6 으로 내려와(2026-10-14) 인원 선택 상한(8)과 겹치므로, 6~8명은
+                   이 폼으로도 신청된다. 막는 안내가 아니라 **고를 수 있는 다른 상품**
+                   안내다. 그래서 title·desc 를 넘기지 않고 카드 기본 문구를 쓴다.
 
                 ⚠️ 한 줄짜리 작은 글씨(`※ …`)였는데 눈에 안 띈다는 지적을 받아
                    (2026-10-02) 가격표 아래와 같은 안내 카드로 바꿨다.
               */}
               {groupBooking && (
-                <GroupBookingCta
-                  entry={GROUP_ENTRY.applyStep1}
-                  size="sm"
-                  title={`${GROUP_HEADCOUNT_MIN}명 이상 단체이신가요?`}
-                  desc="이 폼으로는 신청할 수 없어요. 단체 예약 안내 보기"
-                />
+                <GroupBookingCta entry={GROUP_ENTRY.applyStep1} size="sm" />
               )}
             </div>
 
