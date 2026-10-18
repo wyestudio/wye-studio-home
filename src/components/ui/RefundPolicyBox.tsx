@@ -1,4 +1,4 @@
-import { REFUND_TIERS } from "@/lib/refundPolicy";
+import { refundTiers, type RefundPolicy } from "@/lib/refundPolicy";
 
 /**
  * 취소·환불 규정 안내.
@@ -10,14 +10,14 @@ import { REFUND_TIERS } from "@/lib/refundPolicy";
  * 이 화면의 다른 카드들과 이질적이라 '경고' 가 아니라 '오류' 처럼 읽혔다.
  * 테두리와 제목만 붉게 두고 표의 마지막 줄(환불 불가)만 강조한다.
  */
-export function RefundPolicyBox() {
+export function RefundPolicyBox({ policy = "standard" }: { policy?: RefundPolicy }) {
   return (
     // 신청 완료·조회 결과 화면 크기(2026-09-15 키움)에 맞춰 sm·lg 에서 한 단계씩 키운다.
     <div className="rounded-xl border border-danger/40 bg-danger/[0.07] p-5 sm:p-7 lg:p-8">
       <p className="text-h3 font-semibold text-danger">취소·환불 규정</p>
 
       <ul className="mt-3 space-y-1.5 sm:mt-4 sm:space-y-2.5">
-        {REFUND_TIERS.map((tier) => (
+        {refundTiers(policy).map((tier) => (
           <li key={tier.when} className="flex items-baseline justify-between gap-4 text-h3">
             <span className="text-muted">{tier.when} 취소</span>
             <span

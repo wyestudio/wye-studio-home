@@ -167,4 +167,9 @@ export type ApplicationLookupResult = {
   cancelled_at: string | null;
   /** 환불이 실제로 끝난 시각. 아직이면 null */
   refund_completed_at: string | null;
+  /**
+   * 테마의 환불 규정(standard | normal). DB 조회 함수가 아니라 lookupApplication 이
+   * 테마에서 따로 읽어 붙인다. 못 읽으면 standard.
+   */
+  refund_policy?: "standard" | "normal";
 };

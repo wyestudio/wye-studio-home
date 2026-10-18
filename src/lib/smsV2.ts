@@ -3,6 +3,7 @@ import { SolapiMessageService } from "solapi";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatKrw, formatDuration } from "@/lib/format";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
+import { refundPolicySms, toRefundPolicy, type RefundPolicy } from "@/lib/refundPolicy";
 
 /**
  * 테마·회차 구조용 문자 발송.
@@ -143,21 +144,38 @@ export type SessionDisplay = {
   public_path: string | null;
   venue_address: string | null;
   venue_parking_note: string | null;
+  /** 테마의 환불 규정. 옛 회차(테마 없음)는 standard. */
+  refund_policy: RefundPolicy;
 };
 
 /** 회차 표시 정보. 옛 회차·새 회차 모두 같은 모양으로 온다. */
 export async function getSessionDisplay(sessionId: string): Promise<SessionDisplay | null> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("session_display")
-    .select("id, theme_name, theme_mode, start_at, end_at, min_age, public_path, venue_address, venue_parking_note")
-    .eq("id", sessionId)
-    .single();
+  const [{ data, error }, { data: policyRow }] = await Promise.all([
+    supabase
+      .from("session_display")
+      .select("id, theme_name, theme_mode, start_at, end_at, min_age, public_path, venue_address, venue_parking_note")
+      .eq("id", sessionId)
+      .single(),
+    /*
+      환불 규정은 뷰에 없어 따로 읽는다. 뷰를 고치면 운영 DB 에 뷰 교체가 하나 더
+      붙는데, 읽을 값이 한 칸뿐이라 여기서 끝낸다.
+      ⚠️ 못 읽으면 standard(파티 규정)로 간다 — 노말 고객이 덜 받는 쪽이 아니라
+         더 엄격한 문구를 받게 되므로, 실패는 로그로 드러낸다.
+    */
+    supabase.from("sessions").select("themes(refund_policy)").eq("id", sessionId).maybeSingle(),
+  ]);
   if (error) {
     console.error("[smsV2] session_display 조회 실패", error);
     return null;
   }
-  return data as SessionDisplay;
+  const theme = (policyRow as { themes?: { refund_policy?: string } | null } | null)?.themes;
+  return { ...(data as Omit<SessionDisplay, "refund_policy">), refund_policy: toRefundPolicy(theme?.refund_policy) };
+}
+
+/** "2일 전" — 이날부터 환불이 안 된다. 하루 전 안내 문자의 한 줄에 들어간다. */
+function noRefundFrom(policy: RefundPolicy) {
+  return policy === "normal" ? "1일 전" : "2일 전";
 }
 
 function baseVars(sd: SessionDisplay) {
@@ -179,6 +197,12 @@ function baseVars(sd: SessionDisplay) {
     venue_address_text: sd.venue_address ?? "현장 안내 예정",
     parking_note: sd.venue_parking_note ?? "인근 유료주차장을 이용해 주세요.",
     reapply_url: `www.wouldyouescape.com${sd.public_path ?? "/contents"}`,
+    /*
+      환불 규정은 테마마다 다르다(노말모드는 2일 전도 50%). 템플릿에 문장을 박아 두면
+      노말 고객에게 파티 규정이 나간다 — 규정은 refundPolicy.ts 에서만 만든다.
+    */
+    refund_policy: refundPolicySms(sd.refund_policy),
+    no_refund_from: noRefundFrom(sd.refund_policy),
   };
 }
 

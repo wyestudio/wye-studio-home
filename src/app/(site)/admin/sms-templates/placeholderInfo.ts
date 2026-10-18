@@ -31,6 +31,12 @@ export const PLACEHOLDER_INFO: Record<string, { label: string; example: string }
   reapply_url: { label: "재신청 링크", example: "www.wouldyouescape.com/sessions/0829-meeting" },
   refund_amount: { label: "환불 금액", example: "138,000원" },
   refund_notice: { label: "환불 안내 문장 (입금 여부에 따라 자동)", example: "입금하신 금액 124,000원은 …" },
+  // 테마마다 환불 규정이 다르다(노말모드는 2일 전도 50%). 규정 문장을 템플릿에 직접 적지 말 것.
+  refund_policy: {
+    label: "취소·환불 규정 3줄 (테마 규정에 따라 자동)",
+    example: "· 행사일 4일 전 23:59까지 취소: 전액 환불\n· 행사일 3일 전 23:59까지 취소: 50% 환불\n· 행사일 2일 전 00:00 이후 취소: 환불 불가",
+  },
+  no_refund_from: { label: "환불 불가가 시작되는 날 (테마 규정에 따라 자동)", example: "2일 전" },
   // 쿠폰 발송용
   code: { label: "쿠폰번호 (하이픈 표기)", example: "M0EH-EVG1" },
   discount: { label: "할인 금액/비율", example: "5,000원" },

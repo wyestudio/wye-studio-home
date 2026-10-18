@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { refundRate } from "@/lib/refundPolicy";
+import { refundRate, toRefundPolicy, type RefundPolicy } from "@/lib/refundPolicy";
 
 /**
  * 제휴 정산 — 잼핏(ZAMFIT) 성과형 예약 수수료.
@@ -138,14 +138,16 @@ function kstLabel(iso: string): string {
  * 환불 금액을 따로 저장하는 칸이 없어서 규정대로 계산한다 —
  * 규정과 다르게 환불한 건이 있으면 needsReview 로 표시해 사람이 확인하게 한다.
  */
-function settleOne(r: Raw, themeNames: Map<string, string>): SettlementRow {
+function settleOne(r: Raw, themes: Map<string, ThemeInfo>): SettlementRow {
   const paid = r.amount_krw ?? 0;
   const cancelled = r.status === "cancelled" || r.cancelled_at !== null;
 
   let ratio: number | null = null;
   let retained = paid;
   if (cancelled && r.sessions?.start_at) {
-    ratio = refundRate(r.sessions.start_at, new Date(r.cancelled_at ?? r.created_at));
+    // 환불 비율은 테마 규정을 따른다(노말모드는 2일 전도 50%).
+    const policy = (r.sessions.theme_id && themes.get(r.sessions.theme_id)?.refundPolicy) || "standard";
+    ratio = refundRate(r.sessions.start_at, new Date(r.cancelled_at ?? r.created_at), policy);
     retained = Math.round(paid * (1 - ratio));
   } else if (cancelled) {
     // 회차 정보를 못 읽은 취소 건. 임의로 판단하지 않고 사람에게 넘긴다.
@@ -158,7 +160,7 @@ function settleOne(r: Raw, themeNames: Map<string, string>): SettlementRow {
 
   return {
     confirmationCode: r.confirmation_code,
-    themeName: (r.sessions?.theme_id && themeNames.get(r.sessions.theme_id)) || "(테마 없음)",
+    themeName: (r.sessions?.theme_id && themes.get(r.sessions.theme_id)?.name) || "(테마 없음)",
     sessionLabel: r.sessions?.start_at ? kstLabel(r.sessions.start_at) : "-",
     headcount: r.headcount ?? 1,
     couponCode: partner?.code ?? null,
@@ -211,16 +213,30 @@ function partnerCoupon(r: Raw) {
   );
 }
 
-/** 테마 id → 이름. 테마는 몇 개뿐이라 통째로 받아 쓴다. */
-async function loadThemeNames(
+type ThemeInfo = { name: string; refundPolicy: RefundPolicy };
+
+/**
+ * 테마 id → 이름·환불 규정. 테마는 몇 개뿐이라 통째로 받아 쓴다.
+ *
+ * ⚠️ 실패하면 던진다. 예전에는 이름만 읽어서 빈 Map 으로 넘어가도 '(테마 없음)'
+ *    으로 보일 뿐이었지만, 지금은 환불 규정이 여기서 온다. 못 읽은 채 계속하면
+ *    노말모드 2일 전 취소(50% 환불)가 파티 규정(환불 불가)으로 계산돼
+ *    **보유액·수수료가 부풀어** 잼핏에 더 청구된다.
+ */
+async function loadThemes(
   supabase: ReturnType<typeof createAdminClient>
-): Promise<Map<string, string>> {
-  const { data, error } = await supabase.from("themes").select("id, name");
+): Promise<Map<string, ThemeInfo>> {
+  const { data, error } = await supabase.from("themes").select("id, name, refund_policy");
   if (error) {
-    console.error("[settlement] 테마 이름 조회 실패", error);
-    return new Map();
+    console.error("[settlement] 테마 조회 실패", error);
+    throw new Error(`테마 정보를 불러오지 못했습니다: ${error.message}`);
   }
-  return new Map((data ?? []).map((t) => [t.id as string, t.name as string]));
+  return new Map(
+    (data ?? []).map((t) => [
+      t.id as string,
+      { name: t.name as string, refundPolicy: toRefundPolicy(t.refund_policy) },
+    ])
+  );
 }
 
 export async function getSettlement(month: string): Promise<SettlementResult> {
@@ -246,8 +262,8 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
 
   // 전액 환불된 건은 보유액이 0이라 수수료가 없다(제7조 6항).
   // 목록에는 남겨 둔다 — "왜 빠졌는지" 를 보여줘야 정산 근거가 된다.
-  const themeNames = await loadThemeNames(supabase);
-  const rows = (data as unknown as Raw[]).filter(isPartner).map((r) => settleOne(r, themeNames));
+  const themes = await loadThemes(supabase);
+  const rows = (data as unknown as Raw[]).filter(isPartner).map((r) => settleOne(r, themes));
 
   const totals = rows.reduce(
     (a, r) => ({
@@ -277,7 +293,7 @@ export async function getSettlement(month: string): Promise<SettlementResult> {
 
   const deductions = ((prev ?? []) as unknown as Raw[])
     .filter(isPartner)
-    .map((r) => settleOne(r, themeNames));
+    .map((r) => settleOne(r, themes));
 
   return { month, rows, totals, deductions };
 }

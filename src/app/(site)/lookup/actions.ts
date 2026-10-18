@@ -1,7 +1,7 @@
 "use server";
 
 import { after } from "next/server";
-import { lookupApplication, cancelApplication } from "@/lib/lookup";
+import { lookupApplication, cancelApplication, refundPolicyOfTheme } from "@/lib/lookup";
 import { phoneDigits, isValidPhoneDigits } from "@/lib/phone";
 import { deriveLifecycleStatus, type LifecycleStatus } from "@/lib/lookupStatus";
 import { sendCancellationSlackAlert } from "@/lib/slack";
@@ -72,7 +72,9 @@ export async function cancelApplicationAction(
 
   // 환불 필요한 경우만 Slack 알림 발송 (입금 확정 후 취소일 때) (after()로 감싸서 비동기 처리)
   if (lookupResult && lookupResult.payment_status === "confirmed") {
-    const refundAmount = calculateRefundAmount(lookupResult.start_at, lookupResult.amount_krw);
+    // 규정은 브라우저가 보낸 값이 아니라 서버에서 테마를 다시 읽어 정한다.
+    const policy = await refundPolicyOfTheme(lookupResult.theme_slug);
+    const refundAmount = calculateRefundAmount(lookupResult.start_at, lookupResult.amount_krw, new Date(), policy);
 
     after(async () => {
       try {

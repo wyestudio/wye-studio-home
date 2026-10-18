@@ -24,35 +24,71 @@ export function daysUntilSession(startAt: string, now: Date = new Date()): numbe
   return Math.round(diff / (24 * 60 * 60 * 1000));
 }
 
+/**
+ * 테마마다 고르는 환불 규정(themes.refund_policy).
+ *   standard  파티모드 등 — 4일 전까지 100% / 3일 전 50% / 2일 전부터 불가
+ *   normal    노말모드   — 4일 전까지 100% / 3~2일 전 50% / 1일 전부터 불가 (2026-10-18)
+ *
+ * ⚠️ 값을 늘리면 DB 제약(themes_refund_policy_chk)과 이용약관 제8조도 같이 고친다.
+ */
+export type RefundPolicy = "standard" | "normal";
+
+/** DB 에서 읽은 값. 모르는 값·비어 있음은 standard 로 본다 — 더 엄격한 쪽이다. */
+export function toRefundPolicy(v: unknown): RefundPolicy {
+  return v === "normal" ? "normal" : "standard";
+}
+
 /** 남은 날 수에 따른 환불 비율 (0 ~ 1). */
-export function refundRate(startAt: string, now: Date = new Date()): number {
+export function refundRate(
+  startAt: string,
+  now: Date = new Date(),
+  policy: RefundPolicy = "standard"
+): number {
   const days = daysUntilSession(startAt, now);
   if (days >= 4) return 1;
   if (days === 3) return 0.5;
+  if (policy === "normal" && days === 2) return 0.5;
   return 0;
 }
 
 export function calculateRefundAmount(
   startAt: string,
   totalKrw: number,
-  now: Date = new Date()
+  now: Date = new Date(),
+  policy: RefundPolicy = "standard"
 ): number {
-  return Math.round(totalKrw * refundRate(startAt, now));
+  return Math.round(totalKrw * refundRate(startAt, now, policy));
 }
 
-/** 화면에 늘어놓을 규정 3줄. 순서 그대로 쓴다. */
+type RefundTier = { when: string; result: string; tone: "ok" | "warn" | "danger" };
+
 /**
  * 화면에 보여주는 환불 단계. 이용약관 제8조 제1항과 **같은 문장**을 쓴다 —
  * 요약하려고 줄이면 경계(그날 몇 시까지인지)가 흐려져 분쟁이 난다.
  */
-export const REFUND_TIERS = [
-  { when: "행사일 4일 전 23:59까지", result: "100% 환불", tone: "ok" as const },
-  { when: "행사일 3일 전 23:59까지", result: "50% 환불", tone: "warn" as const },
-  { when: "행사일 2일 전 00:00 이후", result: "환불 불가", tone: "danger" as const },
-];
+const TIERS: Record<RefundPolicy, RefundTier[]> = {
+  standard: [
+    { when: "행사일 4일 전 23:59까지", result: "100% 환불", tone: "ok" },
+    { when: "행사일 3일 전 23:59까지", result: "50% 환불", tone: "warn" },
+    { when: "행사일 2일 전 00:00 이후", result: "환불 불가", tone: "danger" },
+  ],
+  normal: [
+    { when: "행사일 4일 전 23:59까지", result: "100% 환불", tone: "ok" },
+    { when: "행사일 2일 전 23:59까지", result: "50% 환불", tone: "warn" },
+    { when: "행사일 1일 전 00:00 이후", result: "환불 불가", tone: "danger" },
+  ],
+};
 
-export const REFUND_POLICY_SMS = [
-  "· 행사일 4일 전 23:59까지 취소: 전액 환불",
-  "· 행사일 3일 전 23:59까지 취소: 50% 환불",
-  "· 행사일 2일 전 00:00 이후 취소: 환불 불가",
-].join("\n");
+export function refundTiers(policy: RefundPolicy = "standard"): RefundTier[] {
+  return TIERS[policy];
+}
+
+/** 예전 이름. 파티(standard) 규정이다. */
+export const REFUND_TIERS = TIERS.standard;
+
+export function refundPolicySms(policy: RefundPolicy = "standard"): string {
+  const full = (r: string) => (r === "100% 환불" ? "전액 환불" : r);
+  return TIERS[policy].map((t) => `· ${t.when} 취소: ${full(t.result)}`).join("\n");
+}
+
+export const REFUND_POLICY_SMS = refundPolicySms("standard");

@@ -182,7 +182,12 @@ export function LookupResult() {
   //    추측하지 않고 안내를 띄우지 않는다.
   const refundAmount =
     result.status === "cancelled" && paidAt && result.cancelled_at
-      ? calculateRefundAmount(result.start_at, result.amount_krw, new Date(result.cancelled_at))
+      ? calculateRefundAmount(
+          result.start_at,
+          result.amount_krw,
+          new Date(result.cancelled_at),
+          result.refund_policy ?? "standard"
+        )
       : 0;
 
   return (
@@ -358,7 +363,7 @@ export function LookupResult() {
       </div>
 
       {/* ── 취소·환불 규정 ── */}
-      {canCancel && <RefundPolicyBox />}
+      {canCancel && <RefundPolicyBox policy={result.refund_policy ?? "standard"} />}
 
       {/* ── 버튼 ── */}
       <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -393,7 +398,12 @@ export function LookupResult() {
       {state?.result && (
         <RefundInfoDialog
           open={showRefundInfoDialog}
-          refundAmount={calculateRefundAmount(state.result.start_at, state.result.amount_krw)}
+          refundAmount={calculateRefundAmount(
+            state.result.start_at,
+            state.result.amount_krw,
+            new Date(),
+            state.result.refund_policy ?? "standard"
+          )}
           bankName={refundBankName}
           accountNumber={refundAccountNumber}
           accountHolder={refundAccountHolder}
