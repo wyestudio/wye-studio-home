@@ -222,7 +222,10 @@ export function SessionPicker({
     setMissedNotice(null);
     const next = new URLSearchParams(window.location.search);
     next.set("d", d);
-    router.replace(`/themes/${themeSlug}?${next.toString()}`, { scroll: false });
+    // ⚠️ 지금 주소(경로 + ?mode)를 그대로 두고 d 만 바꾼다. 예전에는 `/themes/${themeSlug}`
+    //    로 갈아 끼웠는데, 노말모드의 themeSlug 는 'baotalchul-normal' 이라 날짜를 누르는
+    //    순간 **파티 화면으로 넘어갔다**(2026-10-18 실측).
+    router.replace(`${window.location.pathname}?${next.toString()}`, { scroll: false });
     // 좁은 화면에서는 시간 목록이 달력 아래라 화면 밖에 있다. 눈에 보이게 옮겨준다.
     if (window.matchMedia("(max-width: 767px)").matches) {
       requestAnimationFrame(() =>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   getThemeBySlug,
   getThemeVariants,
@@ -145,6 +145,19 @@ export default async function ThemeDetailPage({
        고칠 수 있어서, 모르는 값에 404 를 주면 공유 링크가 깨진 것처럼 보인다.
   */
   const variants = base.variant_group ? await getThemeVariants(base.variant_group) : [];
+
+  /*
+    대표 모드가 아닌 모드의 주소(/themes/baotalchul-normal)로 들어오면 대표 주소 +
+    ?mode= 로 보낸다(2026-10-18). 이 주소로 그리면 아래 모드 찾기가 대표 모드(파티)로
+    떨어져, **노말을 보던 사람이 파티 화면을 받는다** — 조회 결과의 '테마 보기',
+    예전 회차 선택이 남긴 주소가 이 길로 들어왔다.
+  */
+  if (variants.length >= 2 && variants[0].id !== base.id && variants.some((v) => v.id === base.id)) {
+    const q = new URLSearchParams({ mode: modeKey(variants[0].slug, base.slug) });
+    if (dParam) q.set("d", dParam);
+    redirect(`/themes/${variants[0].slug}?${q.toString()}`);
+  }
+
   const modeParam = typeof sp?.mode === "string" ? sp.mode : null;
   const theme =
     (modeParam
