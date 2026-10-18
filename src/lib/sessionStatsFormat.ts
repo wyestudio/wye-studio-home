@@ -37,7 +37,12 @@ function hasGenderSplit(sd: SessionDisplayRow): boolean {
   return sd.capacity_max_male != null && sd.capacity_max_female != null;
 }
 
-export function formatCapacityLine(sd: SessionDisplayRow): string {
+/**
+ * @param maxTeams 테마의 회차당 최대 팀 수(themes.max_teams_per_session). 노말모드는 1 —
+ *   인원 정원(즉시확정 24 · 정원 40)은 의미가 없고 한 팀만 받으니 그걸 보여준다.
+ */
+export function formatCapacityLine(sd: SessionDisplayRow, maxTeams: number | null = null): string {
+  if (maxTeams != null) return `${maxTeams}팀 예약제`;
   if (hasGenderSplit(sd)) {
     return `정원: 남 ${sd.capacity_max_male} · 여 ${sd.capacity_max_female} (총 ${sd.capacity_max}명)`;
   }

@@ -34,7 +34,7 @@ export default async function AdminDashboard() {
     // 표시값(테마명·정원·장소·링크)은 session_display 가 통일해준다.
     // sessions 를 직접 읽으면 신규 회차에서 옛 컬럼(정원 50명, 성별 정원)이 나온다.
     supabase.from("session_display").select("*").order("start_at", { ascending: false }),
-    supabase.from("themes").select("id, name").order("sort_order").order("created_at"),
+    supabase.from("themes").select("id, name, max_teams_per_session").order("sort_order").order("created_at"),
     supabase
       .from("admin_application_view")
       .select(
@@ -65,7 +65,8 @@ export default async function AdminDashboard() {
     status: string;
     opens_at: string | null;
   })[];
-  const themes = (themesRes.data ?? []) as { id: string; name: string }[];
+  const themes = (themesRes.data ?? []) as { id: string; name: string; max_teams_per_session: number | null }[];
+  const maxTeamsByTheme = new Map(themes.map((t) => [t.id, t.max_teams_per_session]));
   const apps = (appsRes.data ?? []) as {
     id: string;
     session_id: string;
@@ -160,7 +161,7 @@ export default async function AdminDashboard() {
       // format_label(소개팅/그룹)이 그대로 쓰인다 — 배지 자리를 새로 만들지 않는다.
       theme_mode: s.theme_mode ?? null,
       format_label: s.format_label,
-      capacity_line: formatCapacityLine(s),
+      capacity_line: formatCapacityLine(s, s.theme_id ? (maxTeamsByTheme.get(s.theme_id) ?? null) : null),
       headcount_line: stats ? formatHeadcountLine(s, stats) : "확정 0명 · 대기 0명",
       unpaid: unpaidBySession.get(s.id) ?? 0,
       public_path: s.public_path,

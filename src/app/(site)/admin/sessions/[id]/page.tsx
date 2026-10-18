@@ -216,6 +216,12 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
     .eq("id", params.id)
     .single();
 
+  // 노말모드처럼 회차당 팀 수가 정해진 테마는 인원 정원 대신 'N팀 예약제' 로 보여준다.
+  const { data: teamRule } = session?.theme_id
+    ? await supabase.from("themes").select("max_teams_per_session").eq("id", session.theme_id).single()
+    : { data: null };
+  const maxTeams: number | null = teamRule?.max_teams_per_session ?? null;
+
   const { data: applications, error: applicationsError } = await supabase
     .from("admin_application_view")
     .select("*")
@@ -345,7 +351,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
         {stats && (
           <div className="mb-8 rounded-lg border border-border p-4 space-y-1.5">
             <p className="text-h3 font-semibold text-foreground">
-              {display ? formatCapacityLine(display as SessionDisplayRow) : "정원: -"}
+              {display ? formatCapacityLine(display as SessionDisplayRow, maxTeams) : "정원: -"}
             </p>
             <p className="text-h3 font-semibold text-foreground">
               {display ? formatHeadcountLine(display as SessionDisplayRow, stats) : ""}
