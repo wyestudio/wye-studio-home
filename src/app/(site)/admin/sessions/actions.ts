@@ -164,6 +164,27 @@ export async function saveSchedule(input: ScheduleInput): Promise<ActionResult> 
 export async function updateSessionStatus(id: string, status: "open" | "closed"): Promise<ActionResult> {
   try {
     const supabase = await requireAdmin();
+
+    // 한 회차에 팀 수가 정해진 테마(노말모드 = 1팀)는 이미 찬 회차를 다시 열지 않는다.
+    // 열어 두면 화면엔 '예약 가능' 으로 보이는데 제출은 submit_application_v3 가 거절한다.
+    if (status === "open") {
+      const { data: s } = await supabase.from("sessions").select("theme_id").eq("id", id).single();
+      const { data: t } = s?.theme_id
+        ? await supabase.from("themes").select("max_teams_per_session").eq("id", s.theme_id).single()
+        : { data: null };
+      const limit: number | null = t?.max_teams_per_session ?? null;
+      if (limit !== null) {
+        const { count } = await supabase
+          .from("applications")
+          .select("id", { count: "exact", head: true })
+          .eq("session_id", id)
+          .in("status", ["confirmed", "waiting"]);
+        if ((count ?? 0) >= limit) {
+          return { error: `이 회차는 ${limit}팀만 받습니다. 이미 예약이 있어 열 수 없어요. 예약을 취소한 뒤 여세요.` };
+        }
+      }
+    }
+
     const { error } = await supabase
       .from("sessions")
       .update({ status, updated_at: new Date().toISOString() })
