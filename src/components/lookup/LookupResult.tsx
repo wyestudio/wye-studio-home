@@ -281,8 +281,8 @@ export function LookupResult() {
           )}
         </div>
 
+        {/* 위치 줄은 뺐다 — 장소는 확정 문자·테마 상세로 안내한다(2026-10-18 대표님). */}
         <Row label="일시" value={formatDateTimeFull(result.start_at)} />
-        <Row label="위치" value={result.venue_area} />
         <Row label={`${verb}일`} value={formatDateTimeFull(result.created_at)} />
         <Row label="입금확인일" value={paidAt ? formatDateTimeFull(paidAt) : "-"} />
         {result.status === "cancelled" && (
