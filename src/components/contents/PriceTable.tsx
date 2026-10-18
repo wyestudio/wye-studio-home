@@ -288,7 +288,10 @@ export function PriceTableRecommendedNote({
   min,
   recommended,
   max,
+  verb = "신청",
 }: {
+  /** '신청' | '예약'(노말모드). */
+  verb?: string;
   min: number;
   recommended: number;
   /** 신청 상한. 권장보다 클 때만 '최대 N인' 을 덧붙인다. */
@@ -301,7 +304,7 @@ export function PriceTableRecommendedNote({
         {min}~{recommended}인
       </strong>
       입니다.
-      {max !== null && max > recommended && ` 최대 ${max}인까지 신청할 수 있어요.`}
+      {max !== null && max > recommended && ` 최대 ${max}인까지 ${verb}할 수 있어요.`}
     </p>
   );
 }

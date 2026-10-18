@@ -49,15 +49,15 @@ export function ThemeSpecs({
         </SpecRow>
       )}
 
+      {/*
+        장르는 알약 없이 강조색 글자만(2026-10-18 대표님). 알약이면 넷만 돼도 두 줄로
+        꺾였다. 글자만이면 한 줄에 들어가고, 그래도 넘치면 줄을 바꾼다.
+      */}
       {genres.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5 sm:gap-2">
+        <div className="mt-3 flex flex-wrap gap-x-2.5 gap-y-1">
           <dt className="sr-only">장르</dt>
           {genres.map((g) => (
-            <dd
-              key={g}
-              className="rounded-full border px-2.5 py-1 text-label font-semibold sm:px-3.5"
-              style={{ color: accent, borderColor: `${accent}59`, backgroundColor: `${accent}14` }}
-            >
+            <dd key={g} className="text-label font-semibold" style={{ color: accent }}>
               #{g}
             </dd>
           ))}

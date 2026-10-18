@@ -34,7 +34,7 @@ type Item = {
   /** 2인 이상일 때만 보인다 */
   groupOnly?: boolean;
   /** 회차 최소 연령처럼 회차마다 달라지는 값이 들어가면 함수로 둔다. */
-  label: React.ReactNode | ((minAge: number) => React.ReactNode);
+  label: React.ReactNode | ((minAge: number, verb: string) => React.ReactNode);
   /** 펼쳐서 보여줄 요약. 오른쪽 '보기' 로 연다. */
   detail?: React.ReactNode;
   /** 별도 문서로 보낼 때. detail 대신 쓴다. */
@@ -52,7 +52,8 @@ const ITEMS: Item[] = [
     required: true,
     // 약관 제9조 1항 — 참가 연령은 회차 종료 시각에 따라 16세/19세로 갈린다.
     // 문구를 19세로 박아두면 16세 회차에서는 사실이 아닌 항목에 동의하게 된다.
-    label: (minAge: number) => `만 ${minAge}세 이상이며 본인이 직접 신청합니다.`,
+    // 노말모드는 '예약' 이다(themes.booking_verb).
+    label: (minAge: number, verb: string) => `만 ${minAge}세 이상이며 본인이 직접 ${verb}합니다.`,
   },
   {
     key: "terms", id: "terms", required: true,
@@ -177,7 +178,10 @@ export function ConsentStep({
   consents,
   onChange,
   showError,
+  verb = "신청",
 }: {
+  /** '신청' | '예약'. 동의 문구의 동사만 바꾼다 — 약관과 묶인 내용은 그대로다. */
+  verb?: string;
   attendeeCount: number;
   /** 이 회차의 최소 연령. 동의 문구에 그대로 들어간다. */
   minAge: number;
@@ -217,7 +221,7 @@ export function ConsentStep({
               onChange={() => onChange({ ...consents, [it.key]: !consents[it.key] })}
             />
             <span className="text-h3 leading-snug">
-              {typeof it.label === "function" ? it.label(minAge) : it.label}
+              {typeof it.label === "function" ? it.label(minAge, verb) : it.label}
             </span>
           </label>
 

@@ -65,7 +65,10 @@ export function AttendeeFields({
   onChange,
   onTouch,
   onNicknameCheck,
+  verb = "신청",
 }: {
+  /** '신청' | '예약'. '대표 신청자' 를 '대표 예약자' 로 쓴다. */
+  verb?: string;
   index: number;
   attendee: AttendeeForm;
   attendeeCount: number;
@@ -92,7 +95,7 @@ export function AttendeeFields({
       }`}
     >
       <p className="mb-3 text-h3 font-semibold sm:mb-4">
-        {index === 0 ? (attendeeCount > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${index}`}
+        {index === 0 ? (attendeeCount > 1 ? `대표 ${verb}자 (본인)` : `${verb}자`) : `동행자 ${index}`}
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:gap-5">
@@ -183,7 +186,7 @@ export function AttendeeFields({
             <p id={`attendee-${index}-phone-error`} role="alert" className={errorText}>
               {conflictReason === "group"
                 ? "그룹 안의 다른 참여자와 전화번호가 중복돼요."
-                : "이미 같은 테마에 참여하신 신청자예요."}
+                : `이미 같은 테마에 참여하신 ${verb}자예요.`}
             </p>
           ) : null}
         </div>

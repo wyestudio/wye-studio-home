@@ -116,7 +116,7 @@ export function ModeBox({
                   </span>
                   {v.variant_label ?? v.name}
                 </span>
-                <span className="mt-1.5 block text-label text-muted">{modeTagline(v)}</span>
+                <ModeTagline v={v} />
                 <span className="mt-3 block font-mono text-h2 font-extrabold leading-none tabular-nums">
                   {v.duration_minutes}
                   <span className="ml-0.5 text-label font-normal text-muted">분</span>
@@ -126,17 +126,12 @@ export function ModeBox({
           })}
         </div>
 
-        {active.mode_summary && (
-          <p
-            key={active.id}
-            className="mb-4 mt-6 text-body font-extrabold motion-safe:animate-[mode-swap_180ms_steps(3,end)_both]"
-          >
-            {active.mode_summary}
-          </p>
-        )}
-
+        {/*
+          ⚠️ 모드 요약 한 줄(mode_summary — '함께 겨루는 재미, 다채롭게')은 그리지 않는다.
+             버튼 설명과 아래 MODE SKILLS 가 같은 말을 한 번 더 해서 뺐다(2026-10-18 대표님).
+        */}
         {highlights.length > 0 && (
-          <div className="border-t border-line pt-5">
+          <div className="mt-6 border-t border-line pt-5">
             {/*
               게임의 '스킬 목록' 머리글. 항목이 능력치처럼 읽히게 한다.
               ⚠️ 예전에는 absolute 로 띄워 뒀는데 윗선·글자·첫 칸이 4px 안에 몰려
@@ -176,7 +171,14 @@ export function ModeBox({
                   <span className="font-galmuri text-micro tracking-[0.02em] text-muted">
                     {h.label}
                   </span>
-                  <span className="text-body font-semibold">{h.value}</span>
+                  {h.value_short ? (
+                    <span className="text-body font-semibold">
+                      <span className="sm:hidden">{h.value_short}</span>
+                      <span className="hidden sm:inline">{h.value}</span>
+                    </span>
+                  ) : (
+                    <span className="text-body font-semibold">{h.value}</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -187,11 +189,27 @@ export function ModeBox({
   );
 }
 
-/** 모드 버튼의 한 줄 설명. 인원 범위가 있으면 그걸, 없으면 '여러 팀과 경쟁'. */
-function modeTagline(v: ThemeDetail) {
+/**
+ * 모드 버튼의 한 줄 설명. 인원 범위가 있으면 그걸, 없으면 여러 팀이 겨루는 오픈룸.
+ *
+ * ⚠️ 오픈룸 쪽은 좁은 화면에서 두 줄로 꺾여 두 버튼 높이가 어긋난다. 모바일은
+ *    가운뎃점으로 줄인 문구를 쓴다(2026-10-18 대표님).
+ */
+function ModeTagline({ v }: { v: ThemeDetail }) {
   const min = v.min_group_size ?? 1;
   const max = v.max_group_size;
-  return max ? `${min}~${max}인 우리끼리` : "여러 팀과 경쟁";
+  return (
+    <span className="mt-1.5 block text-label text-muted">
+      {max ? (
+        `${min}~${max}인 우리끼리`
+      ) : (
+        <>
+          <span className="sm:hidden">여러 팀과 경쟁 · 오픈룸</span>
+          <span className="hidden sm:inline">여러 팀과 경쟁하는 오픈룸 파티</span>
+        </>
+      )}
+    </span>
+  );
 }
 
 /**

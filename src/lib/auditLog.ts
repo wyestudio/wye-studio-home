@@ -69,6 +69,8 @@ export type AuditAction =
   // 접속 팝업 (고객 전원에게 바로 노출된다)
   | "popup.saved"
   | "popup.deleted"
+  | "ranking.saved"
+  | "ranking.deleted"
   // 단체 예약 문의 (접수함을 둘이 나눠 보면 "이거 연락했나" 가 겹친다)
   | "group_booking.updated"
   // 후기 후보 (고객 화면에 남의 글을 싣는 결정이다 — 누가 넣고 뺐는지 남긴다)
@@ -100,6 +102,7 @@ export type AuditTargetType =
   | "marketing_sms"
   | "promotion"
   | "popup"
+  | "ranking"
   | "group_booking_inquiry";
 
 /** 요청한 브라우저의 IP·UA. 공유 계정이라 이거라도 남겨야 구분이 된다. */

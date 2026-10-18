@@ -8,6 +8,7 @@ import {
   remainingSeats,
   isBookable,
   isPastSession,
+  getMonthlyRankings,
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
@@ -163,6 +164,12 @@ export default async function ThemeDetailPage({
   const acceptingApplications = theme.is_active && !theme.is_locked;
 
   const rawSessions = await getPublicSessionsForTheme(theme.id);
+
+  // 이달의 랭킹(theme_rankings). 랭킹 블록이 없는 테마도 읽지만 가볍다(이달치 몇 줄).
+  const rankingMonth = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" })
+    .format(new Date())
+    .slice(0, 7);
+  const rankings = await getMonthlyRankings(theme.id, rankingMonth);
   const withStats = await attachStats(rawSessions);
 
   /*
@@ -261,6 +268,8 @@ export default async function ThemeDetailPage({
   const synopsis = tidySynopsis(themeLevel.description);
   // 칸(p38)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const introNotice = theme.intro_notice?.trim() || "";
+  // 노말모드는 '예약'(themes.booking_verb). 칸이 생기기 전 캐시 응답에는 없다.
+  const verb = theme.booking_verb ?? "신청";
 
   // 자리가 두 군데(모드 있을 때 왼쪽 / 없을 때 오른쪽)라 한 번만 만들어 돌려 쓴다.
   const specs = (
@@ -405,7 +414,7 @@ export default async function ThemeDetailPage({
           </div>
         </section>
 
-        <ScrollToBookingButton accent={accent} themeName={theme.name} />
+        <ScrollToBookingButton accent={accent} themeName={theme.name} verb={verb} />
       </div>
 
       {/*
@@ -474,6 +483,8 @@ export default async function ThemeDetailPage({
             accentColor={accent}
             accepting={acceptingApplications}
             openingDate={theme.opening_date}
+            modeLabel={hasModes ? theme.variant_label : null}
+            verb={verb}
             promo={
               promoUsable
                 ? {
@@ -511,6 +522,9 @@ export default async function ThemeDetailPage({
           // base 기준이다. 변형 테마의 slug(baotalchul-normal)로 보면
           // 노말모드에서만 단체 안내가 사라진다.
           groupBooking={hasGroupBooking(base.slug)}
+          verb={verb}
+          rankings={rankings}
+          rankingMonth={rankingMonth}
           promo={
             promoUsable
               ? {
@@ -534,6 +548,7 @@ export default async function ThemeDetailPage({
           themeName={theme.name}
           direction="up"
           className="mt-0 md:mt-0"
+          verb={verb}
         />
       </div>
 

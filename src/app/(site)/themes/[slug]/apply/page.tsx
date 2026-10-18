@@ -17,15 +17,33 @@ import { ApplyForm } from "./ApplyForm";
 import { getActivePromotion, promotionTiersForTheme } from "@/lib/promotions";
 import { isEarlyBirdSession } from "@/lib/promotion";
 import { hasGroupBooking } from "@/lib/groupBooking";
+import { toRefundPolicy } from "@/lib/refundPolicy";
+import { createPublicClient } from "@/lib/supabase/public";
 
 export const dynamic = "force-dynamic";
 
 const DEFAULT_ACCENT = "#3dffb0";
 
-export const metadata: Metadata = {
-  title: "참여 신청",
-  robots: { index: false },
-};
+/*
+  탭 제목도 동사를 따른다 — 노말모드는 '예약하기'(themes.booking_verb).
+  회차 id 로 테마를 찾는다(본문과 같은 기준: 주소의 ?mode 가 아니라 회차).
+  못 찾으면 '참여 신청' — 본문이 어차피 '날짜를 다시 고르라' 고 안내한다.
+*/
+export async function generateMetadata({
+  searchParams,
+}: PageProps<"/themes/[slug]/apply">): Promise<Metadata> {
+  const { session } = await searchParams;
+  let verb: string | null = null;
+  if (typeof session === "string" && /^[0-9a-f-]{36}$/i.test(session)) {
+    const { data } = await createPublicClient()
+      .from("sessions")
+      .select("themes(booking_verb)")
+      .eq("id", session)
+      .maybeSingle();
+    verb = (data as { themes?: { booking_verb?: string } | null } | null)?.themes?.booking_verb ?? null;
+  }
+  return { title: verb === "예약" ? "예약하기" : "참여 신청", robots: { index: false } };
+}
 
 export default async function ApplyPage({
   params,
@@ -136,6 +154,8 @@ export default async function ApplyPage({
             : `/themes/${slug}`
         }
         groupBooking={hasGroupBooking(slug)}
+        verb={theme.booking_verb ?? "신청"}
+        refundPolicy={toRefundPolicy(theme.refund_policy)}
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={formatDateTimeFull(target.start_at)}

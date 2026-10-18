@@ -18,7 +18,10 @@ export function ScrollToBookingButton({
   // 데스크톱 48px(mt-12)은 소개 블록이 화면 하나를 꽉 채우게 만든 몫이 컸다
   // (버튼 위 여백 48 + 버튼 62 = 110px). 24px 으로 줄였다.
   className = "mt-10 md:mt-6",
+  verb = "신청",
 }: {
+  /** '신청' | '예약'(노말모드). */
+  verb?: string;
   accent: string;
   /** GA4 에 실어 보낼 테마명. 다른 이벤트들과 같은 값(theme.name)이어야 한다. */
   themeName: string;
@@ -38,7 +41,7 @@ export function ScrollToBookingButton({
       className={`group mx-auto hidden w-fit items-center gap-2 rounded-full border px-6 py-3 text-h3 font-semibold transition-colors sm:flex lg:px-8 lg:py-4  ${className}`}
       style={{ borderColor: `${accent}80`, color: accent }}
     >
-      신청하기
+      {verb}하기
       <Chevron
         dir={direction}
         className={`h-4 w-4 transition-transform ${direction === "down" ? "group-hover:translate-y-0.5" : "group-hover:-translate-y-0.5"}`}

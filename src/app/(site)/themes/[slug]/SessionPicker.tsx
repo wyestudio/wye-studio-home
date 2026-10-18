@@ -49,6 +49,14 @@ const kstDayLabel = (iso: string) =>
     weekday: "short",
   }).format(new Date(iso));
 
+/** "10월 25일" — 요일 없이. 신청 버튼은 요일 대신 모드 이름을 싣는다. */
+const kstMonthDay = (iso: string) =>
+  new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(iso));
+
 const kstTime = (iso: string) =>
   new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -88,8 +96,17 @@ export function SessionPicker({
   openingDate,
   promo = null,
   initialDateParam = null,
+  modeLabel = null,
+  verb = "신청",
 }: {
   themeSlug: string;
+  /**
+   * 고른 모드 이름("노말모드"). 신청 버튼에 날짜·시각과 함께 싣는다 — 모드를
+   * 바꿔 가며 보다가 어느 모드로 신청하는지 헷갈리지 않게. 모드가 없으면 null.
+   */
+  modeLabel?: string | null;
+  /** 버튼 동사. 노말모드는 단독 방을 잡는 것이라 '예약' 이다(themes.booking_verb). */
+  verb?: string;
   /** GA4 에 실어 보낼 테마명. 다른 이벤트들과 같은 값(theme.name)이어야 한다. */
   themeName: string;
   sessions: PickerSession[];
@@ -193,8 +210,9 @@ export function SessionPicker({
     );
   }
 
+  // 요일은 바로 위 '시간 선택 10월 25일 (일)' 에 이미 있다. 버튼에는 모드를 싣는다(2026-10-18).
   const ctaLabel = selected
-    ? `${kstDayLabel(selected.start_at)} ${kstTime(selected.start_at)} 신청하기`
+    ? `${kstMonthDay(selected.start_at)} ${kstTime(selected.start_at)} ${modeLabel ? `${modeLabel} ` : ""}${verb}하기`
     : "날짜와 시간을 선택해주세요";
 
   function selectDate(d: string) {
@@ -294,8 +312,12 @@ export function SessionPicker({
             칸이 좁아 시각 말고는 아무것도 못 붙였다. 한 줄을 다 쓰면 왼쪽에 시각,
             오른쪽에 상태(얼리버드·마감)를 두는 자리가 생긴다.
             '예약 가능' 은 적지 않는다 — 모두 가능한 날엔 읽을 게 없는 줄이 된다.
+
+            ⚠️ 단, 하루 회차가 넷 이상이면 2열로 접는다(2026-10-18, 노말모드 5회차).
+               한 줄씩이면 목록이 달력보다 길어져 신청 버튼이 달력 끝선 아래로 처진다.
+               2열이어도 시각 + 상태 배지까지는 들어간다.
           */
-          <div className="flex flex-col gap-2">
+          <div className={daySessions.length >= 4 ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2"}>
             {daySessions.map((s) => {
               const isActive = s.id === selectedId;
               const showEarlyBird = Boolean(promo && s.earlyBird && s.bookable);
@@ -405,6 +427,7 @@ export function SessionPicker({
             accentColor={ctaColor}
             themeName={themeName}
             selectedId={selected?.id ?? null}
+            verb={verb}
           />
         </div>
       </div>
@@ -436,6 +459,7 @@ function BookingCta({
   accentColor,
   themeName,
   selectedId,
+  verb,
 }: {
   accepting: boolean;
   href: string | null;
@@ -443,6 +467,7 @@ function BookingCta({
   accentColor: string;
   themeName: string;
   selectedId: string | null;
+  verb: string;
 }) {
   const anchorRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
@@ -468,8 +493,8 @@ function BookingCta({
 
   const inner = !accepting ? (
     <div className="rounded-lg border border-line bg-fill px-6 py-4 text-center">
-      <p className="font-semibold">현재 신청을 받고 있지 않습니다.</p>
-      <p className="mt-1 text-body-sm text-muted">신청이 열리면 공지로 안내드릴게요.</p>
+      <p className="font-semibold">현재 {verb}을 받고 있지 않습니다.</p>
+      <p className="mt-1 text-body-sm text-muted">{verb}이 열리면 공지로 안내드릴게요.</p>
     </div>
   ) : href ? (
     <a
@@ -525,7 +550,7 @@ function BookingCta({
               className="block rounded-lg border px-6 py-3.5 text-center text-body font-semibold"
               style={{ borderColor: accentColor, color: accentColor }}
             >
-              신청하기
+              {verb}하기
             </a>
           )}
         </div>

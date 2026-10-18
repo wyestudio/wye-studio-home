@@ -158,6 +158,32 @@ function sanitizeContent(raw: unknown): ThemeContent {
           };
         case "image":
           return { ...common, type: "image", src: str(b.src), alt: str(b.alt) };
+        case "timebar":
+          return {
+            ...common,
+            type: "timebar",
+            items: arr(b.items).map((x) => {
+              const o = x as Record<string, unknown>;
+              const minutes = Number(o?.minutes);
+              return {
+                title: str(o?.title),
+                // 음수·글자는 0 으로 — 0 인 구간은 화면이 그리지 않는다.
+                minutes: Number.isFinite(minutes) && minutes > 0 ? Math.round(minutes) : 0,
+                desc: str(o?.desc),
+              };
+            }),
+            ...(str(b.note) ? { note: str(b.note) } : {}),
+          };
+        case "ranking":
+          return {
+            ...common,
+            type: "ranking",
+            layout: b.layout === "by_size" ? "by_size" : "overall",
+            // ⚠️ teaser 를 떨어뜨리면 저장하는 순간 오픈 전 모드에서 빈 순위표가 나간다.
+            ...(b.teaser ? { teaser: true } : {}),
+            ...(str(b.criteria) ? { criteria: str(b.criteria) } : {}),
+            ...(str(b.note) ? { note: str(b.note) } : {}),
+          };
         case "reviews":
           return {
             ...common,

@@ -7,6 +7,7 @@ import { useCopyProtectionExemption } from "@/components/layout/CopyProtection";
 import { formatPhoneDigits } from "@/lib/phone";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { RefundPolicyBox } from "@/components/ui/RefundPolicyBox";
+import type { RefundPolicy } from "@/lib/refundPolicy";
 import type { ApplyResult, AttendeeInput } from "./actions";
 
 type Ok = Extract<ApplyResult, { success: true }>;
@@ -51,7 +52,12 @@ export function ApplyComplete({
   depositorName,
   attendees,
   accentColor,
+  verb = "신청",
+  refundPolicy = "standard",
 }: {
+  /** '신청' | '예약'(노말모드). */
+  verb?: string;
+  refundPolicy?: RefundPolicy;
   result: Ok;
   themeName: string;
   sessionLabel: string;
@@ -95,9 +101,9 @@ export function ApplyComplete({
     <div className="space-y-6 sm:space-y-8">
       <div className="pt-2 text-center">
         <h1 className="text-h1 font-extrabold">
-          {isWaiting ? "대기 신청이 접수되었습니다." : "신청이 완료되었습니다."}
+          {isWaiting ? `대기 ${verb}이 접수되었습니다.` : `${verb}이 완료되었습니다.`}
         </h1>
-        <p className="mt-1 text-h3 text-muted sm:mt-2">신청해주셔서 감사합니다 (__)</p>
+        <p className="mt-1 text-h3 text-muted sm:mt-2">{verb}해주셔서 감사합니다 (__)</p>
       </div>
 
       {/* ── 접수번호 ── */}
@@ -122,7 +128,7 @@ export function ApplyComplete({
           <p className="mt-4 text-h3 text-amber-300">
             현재 대기 {result.waitingNumber ?? "-"}번입니다. 자리가 나면 개별 연락드립니다.
             <span className="mt-1 block text-body-sm text-muted">
-              앞선 신청이 취소되면 순번은 앞당겨질 수 있습니다.
+              앞선 {verb}이 취소되면 순번은 앞당겨질 수 있습니다.
             </span>
           </p>
         )}
@@ -161,7 +167,7 @@ export function ApplyComplete({
 
       {/* ── 제출한 내용 ── */}
       <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
-        <h2 className="mb-2 font-semibold sm:mb-3 text-h3">신청 정보</h2>
+        <h2 className="mb-2 font-semibold sm:mb-3 text-h3">{verb} 정보</h2>
 
         <Row label="테마" value={themeName} />
         <Row label="일시" value={sessionLabel} />
@@ -196,7 +202,7 @@ export function ApplyComplete({
           {attendees.map((a, i) => (
             <div key={i} className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
               <p className="mb-1 text-label font-semibold text-muted">
-                {i === 0 ? (attendees.length > 1 ? "대표 신청자 (본인)" : "신청자") : `동행자 ${i}`}
+                {i === 0 ? (attendees.length > 1 ? `대표 ${verb}자 (본인)` : `${verb}자`) : `동행자 ${i}`}
               </p>
               <Row
                 label="이름"
@@ -225,7 +231,7 @@ export function ApplyComplete({
       </div>
 
       {/* ── 취소·환불 규정 ── */}
-      <RefundPolicyBox />
+      <RefundPolicyBox policy={refundPolicy} />
 
       {/* ── 다음 ── */}
       <div className="rounded-lg border border-line bg-fill p-5 text-center text-h3 sm:p-7 lg:p-8">

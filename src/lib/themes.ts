@@ -7,6 +7,7 @@ import type {
   ThemeWithTiers,
   SessionView,
   PublicVenue,
+  ThemeRanking,
 } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
 
@@ -292,4 +293,38 @@ export function isBookable(
   if (session.status !== "open") return false;
   const left = remainingSeats(session, stats);
   return left === null || left > 0;
+}
+
+/** 랭킹 캐시 태그. 어드민에서 기록을 고치면 이 태그로 털어낸다. */
+export const RANKINGS_TAG = "theme-rankings";
+
+/**
+ * 이달(KST)의 랭킹 기록. 감춘 줄은 RLS 가 거른다.
+ *
+ * ⚠️ 정렬은 하지 않는다 — 파티(포인트순)와 노말(인원별 · 포인트 → 남은 시간순)의
+ *    기준이 달라 화면(RankingBlock)이 정한다.
+ * ⚠️ 실패해도 화면을 무너뜨리지 않는다. 랭킹은 부가 정보라 빈 목록으로 넘긴다.
+ */
+export const getMonthlyRankings = unstable_cache(_getMonthlyRankings, ["theme-rankings"], {
+  revalidate: 120,
+  tags: [RANKINGS_TAG],
+});
+
+async function _getMonthlyRankings(themeId: string, monthYmd: string): Promise<ThemeRanking[]> {
+  const supabase = createPublicClient();
+  const start = `${monthYmd.slice(0, 7)}-01`;
+  const [y, m] = start.split("-").map(Number);
+  const next = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+
+  const { data, error } = await supabase
+    .from("theme_rankings")
+    .select("id, theme_id, played_on, team_name, points, remaining_sec, grade, group_size")
+    .eq("theme_id", themeId)
+    .gte("played_on", start)
+    .lt("played_on", next);
+  if (error) {
+    console.error("[rankings] 조회 실패", error);
+    return [];
+  }
+  return (data ?? []) as ThemeRanking[];
 }

@@ -5,6 +5,7 @@ import { formatKrw } from "@/lib/format";
 import { PriceTable, type PriceTablePromo } from "@/components/contents/PriceTable";
 import { discountPercent, promotionUnitPrice } from "@/lib/promotion";
 import { resolveUnitPrice, type ThemePriceTier } from "@/types/catalog";
+import type { RefundPolicy } from "@/lib/refundPolicy";
 import { Select } from "@/components/ui/Select";
 import { ApplyStepper } from "@/components/apply/ApplyStepper";
 import { AttendeeTabs } from "@/components/apply/AttendeeTabs";
@@ -133,7 +134,17 @@ export function ApplyForm({
   backHref,
   promo = null,
   groupBooking = false,
+  verb = "신청",
+  refundPolicy = "standard",
 }: {
+  /**
+   * '신청' | '예약'(노말모드, themes.booking_verb). 폼 제목·버튼·안내의 동사만 바꾼다.
+   * ⚠️ 이벤트 이름(pushDataLayerEvent '신청 시작' 등)은 바꾸지 않는다 — GTM 트리거가
+   *    그 글자로 걸려 있어 바꾸면 노말모드 전환이 집계에서 빠진다.
+   */
+  verb?: "신청" | "예약";
+  /** 완료 화면의 환불 규정 박스. 노말모드는 normal. */
+  refundPolicy?: RefundPolicy;
   sessionId: string;
   themeId: string;
   initialCouponCode: string;
@@ -285,7 +296,7 @@ export function ApplyForm({
       } else if (a.birth_year > maxBirthYear) {
         errors.push({
           field: `attendee-${i}-birthYear`,
-          message: `이 회차는 만 ${minAge}세 이상만 신청할 수 있어요.`,
+          message: `이 회차는 만 ${minAge}세 이상만 ${verb}할 수 있어요.`,
         });
       }
 
@@ -334,7 +345,7 @@ export function ApplyForm({
     });
 
     return errors;
-  }, [attendees, maxBirthYear, minAge]);
+  }, [attendees, maxBirthYear, minAge, verb]);
 
   const validateStep3 = useCallback((): FieldError[] => {
     const errors: FieldError[] = [];
@@ -515,7 +526,7 @@ export function ApplyForm({
     }
     if (!best) return;
     setActiveIndex(best.index);
-    setToast(best.index > 0 ? "동행자 정보를 확인해주세요." : "신청자 정보를 확인해주세요.");
+    setToast(best.index > 0 ? "동행자 정보를 확인해주세요." : `${verb}자 정보를 확인해주세요.`);
     focusField(`attendee-${best.index}-${order[best.priority]}`);
   }
 
@@ -576,7 +587,7 @@ export function ApplyForm({
       if (!("error" in result) && result.conflictPhones.length > 0) {
         setConflictPhones(new Set(result.conflictPhones));
         setSubmitAttempted(true);
-        setToast("같은 테마에 이미 신청하신 분이 포함되어 있어요.");
+        setToast(`같은 테마에 이미 ${verb}하신 분이 포함되어 있어요.`);
         const idx = attendees.findIndex((a) => result.conflictPhones.includes(phoneDigits(a.phoneInput)));
         if (idx !== -1) {
           setActiveIndex(idx);
@@ -663,6 +674,8 @@ export function ApplyForm({
         depositorName={depositorName}
         attendees={attendees.map(toPayload)}
         accentColor={accentColor}
+        verb={verb}
+        refundPolicy={refundPolicy}
       />
     );
   }
@@ -679,7 +692,7 @@ export function ApplyForm({
           ← 날짜 다시 선택
         </a>
       </div>
-      <h1 className="mb-4 text-h1 font-extrabold sm:mb-6">참여 신청</h1>
+      <h1 className="mb-4 text-h1 font-extrabold sm:mb-6">{verb === "예약" ? "예약하기" : "참여 신청"}</h1>
 
       <ApplyStepper
         accentColor={accentColor}
@@ -749,8 +762,8 @@ export function ApplyForm({
               */}
               {recommendedGroupSize && maxAttendees > recommendedGroupSize && (
                 <p className="mt-1.5 text-micro text-muted">
-                  권장 인원 {minAttendees}~{recommendedGroupSize}명 · 최대 {maxAttendees}명까지
-                  신청할 수 있어요.
+                  권장 인원 {minAttendees}~{recommendedGroupSize}명 · 최대 {maxAttendees}명까지{" "}
+                  {verb}할 수 있어요.
                 </p>
               )}
               {/*
@@ -780,6 +793,7 @@ export function ApplyForm({
 
             {attendees[activeIndex] && (
               <AttendeeFields
+                verb={verb}
                 index={activeIndex}
                 attendee={attendees[activeIndex]}
                 attendeeCount={headcount}
@@ -806,6 +820,7 @@ export function ApplyForm({
         {/* ══ 2. 약관동의 ══ */}
         {step === 1 && (
           <ConsentStep
+            verb={verb}
             attendeeCount={headcount}
             minAge={minAge}
             consents={consents}
@@ -1081,7 +1096,7 @@ export function ApplyForm({
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
             {pending
-              ? "신청 중…"
+              ? `${verb} 중…`
               : checkingConflicts || checkingNicknames
                 ? "확인 중…"
                 : step === 2

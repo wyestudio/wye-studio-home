@@ -124,6 +124,30 @@ export type ThemeBlock =
   /** 상세 컷. public/ 경로 또는 외부 URL. */
   | ({ type: "image"; src: string; alt: string } & BlockCommon)
   /**
+   * 진행 시간 막대. 구간 길이(분) 비율대로 칸을 나눠 그린다 — 노말모드의
+   * '방탈출 90분 + 코인마켓 10분' 처럼 한 회차가 어떻게 흘러가는지 한눈에.
+   * note 는 막대 아래 안내 한 줄(도착 시각 등).
+   */
+  | ({
+      type: "timebar";
+      items: { title: string; minutes: number; desc: string }[];
+      note?: string;
+    } & BlockCommon)
+  /**
+   * 이달의 랭킹. **순위는 블록이 아니라 theme_rankings 표에서 온다**(어드민 '랭킹'
+   * 화면에서 고치고, 현장 시스템이 결과를 보내 쌓는다). 블록은 자리와 안내만 잡는다.
+   *   layout   overall — 한 줄 순위(파티) / by_size — 2인·3인·4인 이상 따로(노말)
+   *   teaser   켜면 기록이 있어도 '곧 열린다' 화면만 보여준다(오픈 전 모드)
+   *   criteria 순위 기준 한 줄(노힌트 기준 등). note 는 맨 아래 안내 박스.
+   */
+  | ({
+      type: "ranking";
+      layout?: "overall" | "by_size";
+      teaser?: boolean;
+      criteria?: string;
+      note?: string;
+    } & BlockCommon)
+  /**
    * 후기. 설문 요약 수치 + 한 줄 후기 + 인스타 게시물 세 덩어리다.
    *
    * ⚠️ 수치는 **자동 집계가 아니라 운영자가 적는 값**이다. 설문이 구글 폼·
@@ -221,6 +245,26 @@ export const THEME_BLOCK_LABELS: Record<ThemeBlockType, string> = {
   callout: "강조 박스",
   faq: "자주 묻는 질문",
   image: "이미지",
+  timebar: "진행 시간 막대",
+  ranking: "이달의 랭킹",
+};
+
+/**
+ * 랭킹 한 줄(theme_rankings). 등급 이름은 현장 시스템과 같다(SSS~D).
+ * group_size 는 노말모드 구분용 — 2 · 3 · 4(4인 이상). 파티는 null.
+ */
+export type RankingGrade = "SSS" | "SS" | "S" | "A" | "B" | "C" | "D";
+export const RANKING_GRADES: RankingGrade[] = ["SSS", "SS", "S", "A", "B", "C", "D"];
+
+export type ThemeRanking = {
+  id: string;
+  theme_id: string;
+  played_on: string;
+  team_name: string;
+  points: number;
+  remaining_sec: number | null;
+  grade: RankingGrade;
+  group_size: number | null;
 };
 
 /**
@@ -296,18 +340,48 @@ const DATA_BLOCK_TYPES = new Set<ThemeBlock["type"]>(["price", "venue"]);
 /**
  * 대표 모드가 아닌 모드의 화면에 그릴 블록.
  *
- * **이 모드 블록이 먼저, 그 뒤에 대표 모드의 공통 블록**(대표 모드 순서대로).
- * 모드마다 다른 것(추천 대상·진행 순서)은 위에, 같은 것(후기·가격·장소·FAQ)은
- * 아래에 오는 것이 지금 상세 화면의 짜임이다.
+ * **같은 종류의 블록은 대표 모드의 같은 자리에 들어간다.** 대표 모드의 순서를
+ * 뼈대로 깔고 —
+ *   - 공통(shared) 블록은 그 자리에 그대로 둔다.
+ *   - 공통이 아닌 대표 모드 블록 자리는, 이 모드에 **같은 종류** 블록이 있으면 그걸로
+ *     바꾸고 없으면 비운다(앞에서부터 하나씩 짝짓는다).
+ *   - 짝이 없는 이 모드 블록(대표 모드에 없는 종류)은, 이 모드 목록에서 **바로 뒤에
+ *     오는 짝 있는 블록 앞**에 붙는다. 뒤에 짝 있는 블록이 없으면 맨 끝이다.
+ * 예) 파티 [진행순서, 랭킹, 후기*, 가격*, 장소*, 확인, FAQ] + 노말 [시간막대, 랭킹, 확인, FAQ]
+ *   → [시간막대, 랭킹, 후기, 가격, 장소, 확인, FAQ]  (2026-10-18)
  *
  * ⚠️ 가격표·장소가 공통이면 이 모드의 같은 종류 블록은 뺀다. 내용이 테마에서
  *    오므로 둘이 같은 것을 그리는데, 블록이 하나도 없는 테마에는
  *    `normalizeThemeContent()` 가 가격표를 저절로 끼워 넣어 두 번 나온다.
  */
 export function blocksForMode(own: ThemeBlock[], representative: ThemeBlock[]): ThemeBlock[] {
-  const shared = representative.filter((b) => b.shared);
-  const covered = new Set(shared.map((b) => b.type).filter((t) => DATA_BLOCK_TYPES.has(t)));
-  return [...own.filter((b) => !covered.has(b.type)), ...shared];
+  const covered = new Set(
+    representative.filter((b) => b.shared && DATA_BLOCK_TYPES.has(b.type)).map((b) => b.type)
+  );
+  const mine = own.filter((b) => !covered.has(b.type));
+
+  // 이 모드 블록 → 짝지은 대표 모드 자리(index). 짝이 없으면 -1.
+  const taken = new Set<number>();
+  const anchor = mine.map((b) => {
+    const at = representative.findIndex((r, i) => !r.shared && !taken.has(i) && r.type === b.type);
+    if (at >= 0) taken.add(at);
+    return at;
+  });
+  // 짝 없는 블록은 뒤에서 가장 가까운 짝 있는 블록의 자리를 빌린다. 없으면 맨 끝.
+  const END = representative.length;
+  for (let k = mine.length - 1, next = END; k >= 0; k--) {
+    if (anchor[k] >= 0) next = anchor[k];
+    else anchor[k] = next;
+  }
+
+  const out: ThemeBlock[] = [];
+  for (let i = 0; i <= END; i++) {
+    mine.forEach((b, k) => {
+      if (anchor[k] === i) out.push(b);
+    });
+    if (i < END && representative[i].shared) out.push(representative[i]);
+  }
+  return out;
 }
 
 /**
@@ -393,6 +467,13 @@ export type Theme = {
   mode_summary: string | null;
   /** 모드 차이 항목. 아이콘은 화면이 아는 키만 그린다(ModeHighlightIcon). */
   mode_highlights: ThemeModeHighlight[];
+  /**
+   * 화면 동사 — '신청' | '예약'(노말모드). 버튼·폼 제목·완료 화면이 읽는다.
+   * ⚠️ 칸을 만들기 전 캐시 응답에는 없다. 읽는 쪽은 `?? "신청"` 으로 받는다.
+   */
+  booking_verb?: "신청" | "예약";
+  /** 환불 규정 — standard | normal. 판정은 src/lib/refundPolicy.ts. */
+  refund_policy?: "standard" | "normal";
 };
 
 /**
@@ -405,6 +486,11 @@ export type ThemeModeHighlight = {
   icon: string | null;
   label: string;
   value: string;
+  /**
+   * 좁은 화면(sm 미만)에서 대신 쓸 짧은 값. 비우면 value 를 그대로 쓴다.
+   * 값이 두 줄로 꺾이면 칸 높이가 들쭉날쭉해져서, 모바일에서만 덜어낸 문구를 둔다.
+   */
+  value_short?: string | null;
 };
 
 export type ThemeWithTiers = Theme & { tiers: ThemePriceTier[] };

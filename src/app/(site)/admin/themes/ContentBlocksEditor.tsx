@@ -42,6 +42,14 @@ function emptyBlock(type: ThemeBlockType): ThemeBlock {
         quotes: [{ text: "", meta: "" }],
         links: [{ channel: "instagram", url: "", author: "", date: "" }],
       };
+    case "timebar":
+      return {
+        type,
+        title: "",
+        items: [{ title: "", minutes: 0, desc: "" }],
+      };
+    case "ranking":
+      return { type, title: "이달의 랭킹", eyebrow: "RANKING", layout: "overall" };
   }
 }
 
@@ -152,7 +160,7 @@ export function ContentBlocksEditor({
                     type="button"
                     onClick={() => patch(i, { shared: !b.shared } as Partial<ThemeBlock>)}
                     className="rounded-md border border-border px-2 py-1 text-micro"
-                    title={`켜면 ${shareWith} 화면에도 이 블록이 나옵니다. ${shareWith} 블록 뒤에 이 순서대로 붙어요.`}
+                    title={`켜면 ${shareWith} 화면에도 이 블록이 이 자리에 나옵니다.`}
                   >
                     {b.shared ? "공통 끄기" : "두 모드 공통"}
                   </button>
@@ -380,10 +388,61 @@ export function ContentBlocksEditor({
                     </div>
                   )}
 
+                  {b.type === "timebar" && (
+                    <input
+                      className={field}
+                      value={b.note ?? ""}
+                      onChange={(e) => patch(i, { note: e.target.value } as Partial<ThemeBlock>)}
+                      placeholder="막대 아래 안내 한 줄 (예: 도착 시각)"
+                    />
+                  )}
+
+                  {b.type === "ranking" && (
+                    <div className="space-y-2">
+                      <p className="text-micro text-muted">
+                        순위는 여기서 적지 않습니다. 어드민 <strong>랭킹</strong> 화면의 이번 달 기록이
+                        자동으로 들어갑니다.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <select
+                          className={`${field} w-56`}
+                          value={b.layout ?? "overall"}
+                          onChange={(e) =>
+                            patch(i, { layout: e.target.value as "overall" | "by_size" } as Partial<ThemeBlock>)
+                          }
+                        >
+                          <option value="overall">한 줄 순위 (파티)</option>
+                          <option value="by_size">2인·3인·4인 이상 따로 (노말)</option>
+                        </select>
+                        <label className="flex items-center gap-1.5 text-body-sm">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(b.teaser)}
+                            onChange={(e) => patch(i, { teaser: e.target.checked } as Partial<ThemeBlock>)}
+                          />
+                          오픈 전 — 기록 대신 &lsquo;곧 열림&rsquo; 화면
+                        </label>
+                      </div>
+                      <input
+                        className={field}
+                        value={b.criteria ?? ""}
+                        onChange={(e) => patch(i, { criteria: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="순위 기준 한 줄 (예: 노힌트 기준)"
+                      />
+                      <input
+                        className={field}
+                        value={b.note ?? ""}
+                        onChange={(e) => patch(i, { note: e.target.value } as Partial<ThemeBlock>)}
+                        placeholder="맨 아래 안내 박스 (비우면 안 나옴)"
+                      />
+                    </div>
+                  )}
+
                   {(b.type === "list" ||
                     b.type === "timetable" ||
                     b.type === "callout" ||
-                    b.type === "faq") && (
+                    b.type === "faq" ||
+                    b.type === "timebar") && (
                     <RowsEditor block={b} onChange={(items) => patch(i, { items } as Partial<ThemeBlock>)} />
                   )}
                 </div>
@@ -395,14 +454,15 @@ export function ContentBlocksEditor({
         );
       })}
 
-      {/* 대표 모드에서 공통으로 켠 블록. 고객 화면에서 이 모드 블록 뒤에 이 순서로 붙는다. */}
+      {/* 대표 모드에서 공통으로 켠 블록. 고객 화면에서의 자리는 blocksForMode() 가 정한다. */}
       {inherited && inherited.blocks.length > 0 && (
         <div className="mt-4 space-y-2">
           <p className="text-micro text-muted">
             아래 {inherited.blocks.length}개는 <strong>{inherited.from}</strong>에서 &lsquo;두 모드
-            공통&rsquo;으로 켠 블록이라 이 모드 화면에도 위 블록들 뒤에 붙어 나옵니다. 고치려면{" "}
-            {inherited.from}을 편집하세요. 가격표·장소는 이 모드의 요금·장소로 그려지고, 이
-            모드에 같은 종류 블록이 있으면 그 블록은 빠집니다.
+            공통&rsquo;으로 켠 블록이라 이 모드 화면에도 나옵니다. 고치려면 {inherited.from}을
+            편집하세요. 자리는 {inherited.from}의 순서를 따르고, 이 모드 블록은 {inherited.from}의
+            <strong>같은 종류 블록 자리</strong>에 들어갑니다(같은 종류가 없으면 바로 뒤 블록 앞).
+            가격표·장소는 이 모드의 요금·장소로 그려집니다.
           </p>
           {inherited.blocks.map((b, i) => (
             <div key={i} className="rounded-lg border border-dashed border-border">
@@ -499,6 +559,12 @@ function RowsEditor({
           { key: "q", label: "질문" },
           { key: "a", label: "답변" },
         ]
+      : block.type === "timebar"
+        ? [
+            { key: "title", label: "구간 이름" },
+            { key: "minutes", label: "분", numeric: true, width: "w-20" },
+            { key: "desc", label: "설명" },
+          ]
       : block.type === "timetable"
         ? [
             { key: "title", label: "제목" },

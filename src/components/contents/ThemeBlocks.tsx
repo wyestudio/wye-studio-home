@@ -14,7 +14,15 @@ import { ReviewLinkSlider } from "@/components/contents/ReviewLinkSlider";
 import { QuoteList } from "@/components/contents/QuoteList";
 import { instagramPostedDate } from "@/lib/instagramDate";
 import { VenueCard } from "@/components/contents/VenueCard";
-import { THEME_BLOCK_LABELS, type ThemeBlock, type ThemePriceTier, type PublicVenue } from "@/types/catalog";
+import { RankingBlock } from "@/components/contents/RankingBlock";
+import { TimeBarBlock } from "@/components/contents/TimeBarBlock";
+import {
+  THEME_BLOCK_LABELS,
+  type ThemeBlock,
+  type ThemePriceTier,
+  type PublicVenue,
+  type ThemeRanking,
+} from "@/types/catalog";
 import { SCREEN_SECTION } from "@/components/contents/screenSection";
 
 /**
@@ -66,7 +74,16 @@ export function ThemeBlocks({
   venue = null,
   promo = null,
   groupBooking = false,
+  verb = "신청",
+  rankings = [],
+  rankingMonth = "",
 }: {
+  /** '신청' | '예약'(노말모드). 가격표 아래 '최대 N인까지 …할 수 있어요' 에 쓴다. */
+  verb?: string;
+  /** 랭킹 블록이 쓸 이달 기록(theme_rankings). 블록이 아니라 표에서 온다. */
+  rankings?: ThemeRanking[];
+  /** 'YYYY-MM' — 랭킹 머리에 찍는 달. */
+  rankingMonth?: string;
   blocks: ThemeBlock[];
   accent: string;
   /**
@@ -134,6 +151,9 @@ export function ThemeBlocks({
                 venue={venue}
                 promo={promo}
                 groupBooking={groupBooking}
+                verb={verb}
+                rankings={rankings}
+                rankingMonth={rankingMonth}
               />
             </div>
           ))}
@@ -165,7 +185,16 @@ export function ThemeBlockView({
   venue = null,
   promo = null,
   groupBooking = false,
+  verb = "신청",
+  rankings = [],
+  rankingMonth = "",
 }: {
+  /** '신청' | '예약'(노말모드). 가격표 아래 '최대 N인까지 …할 수 있어요' 에 쓴다. */
+  verb?: string;
+  /** 랭킹 블록이 쓸 이달 기록(theme_rankings). 블록이 아니라 표에서 온다. */
+  rankings?: ThemeRanking[];
+  /** 'YYYY-MM' — 랭킹 머리에 찍는 달. */
+  rankingMonth?: string;
   block: ThemeBlock;
   accent: string;
   tiers?: ThemePriceTier[];
@@ -215,6 +244,7 @@ export function ThemeBlockView({
               min={minGroupSize ?? 1}
               recommended={recommendedGroupSize}
               max={maxGroupSize}
+              verb={verb}
             />
           )}
           {/* 안내 줄은 **테마 상세의 가격표 아래에만** 둔다. 신청 3단계에는
@@ -420,6 +450,12 @@ export function ThemeBlockView({
       {block.type === "reviews" && (
         <ReviewsBlock block={block} accent={accent} />
       )}
+
+      {block.type === "timebar" && <TimeBarBlock block={block} accent={accent} />}
+
+      {block.type === "ranking" && (
+        <RankingBlock block={block} rankings={rankings} accent={accent} month={rankingMonth} />
+      )}
     </>
   );
 }
@@ -493,7 +529,15 @@ function ReviewsBlock({
            보여줘야 "우리가 지어낸 값" 으로 읽히지 않는다.
       */}
       {block.stats.length > 0 && (
-        <div className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+        /*
+          ⚠️ 하나뿐이면 가운데에 둔다. 2열 격자에 하나만 놓으면 왼쪽 반쪽에 붙어
+             비어 보인다(2026-10-18).
+        */
+        <div
+          className={`mx-auto grid gap-3 sm:gap-4 ${
+            block.stats.length > 1 ? "w-full max-w-3xl grid-cols-1 sm:grid-cols-2" : "w-full max-w-md grid-cols-1"
+          }`}
+        >
           {block.stats.map((s, i) => (
             <div
               key={i}
