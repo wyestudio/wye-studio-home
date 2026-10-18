@@ -258,7 +258,8 @@ export function LookupResult() {
           <h2 className="font-semibold text-h3">
             {result.theme_name}
             {/* 테마명은 두 모드가 같다 — 어느 모드로 예약했는지 같이 적는다. */}
-            {result.mode_label && <span style={{ color: accent }}> · {result.mode_label}</span>}
+            {/* 점 없이 띄어쓰기만 — 강조색이라 테마명과 구분된다(2026-10-18). */}
+            {result.mode_label && <span style={{ color: accent }}> {result.mode_label}</span>}
           </h2>
           {result.category_name && (
             <span

@@ -168,7 +168,8 @@ export default async function ApplyPage({
         minGroupSize={theme.min_group_size}
         recommendedGroupSize={theme.recommended_group_size}
         tiers={theme.tiers}
-        accentColor={accent}
+        // 회차로 찾은 모드의 강조색 — 주소의 테마(대표 모드)가 아니다. 노말은 하늘색이어야 한다.
+        accentColor={theme.accent_color || accent}
         promo={
           earlyBird
             ? {

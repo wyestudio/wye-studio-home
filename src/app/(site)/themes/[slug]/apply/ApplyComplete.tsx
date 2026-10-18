@@ -175,7 +175,16 @@ export function ApplyComplete({
       <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
         <h2 className="mb-2 font-semibold sm:mb-3 text-h3">{verb} 정보</h2>
 
-        <Row label="테마" value={modeLabel ? `${themeName} · ${modeLabel}` : themeName} />
+        <Row
+          label="테마"
+          value={
+            <>
+              {themeName}
+              {/* 점 없이 띄어쓰기 + 강조색 — 폼 머리·조회 결과와 같은 표기 */}
+              {modeLabel && <span style={{ color: accentColor }}> {modeLabel}</span>}
+            </>
+          }
+        />
         <Row label="일시" value={sessionLabel} />
         <Row label="입금자명" value={depositorName} />
         <Row

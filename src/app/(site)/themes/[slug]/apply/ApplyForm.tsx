@@ -736,7 +736,8 @@ export function ApplyForm({
             <p className="font-semibold text-h3">
               {themeName}
               {/* 모드가 있는 테마는 어느 모드로 예약하는지 같이 적는다 — 테마명은 두 모드가 같다. */}
-              {modeLabel && <span style={{ color: accentColor }}> · {modeLabel}</span>}
+              {/* 점 없이 띄어쓰기만 — 강조색이라 테마명과 구분된다(2026-10-18). */}
+              {modeLabel && <span style={{ color: accentColor }}> {modeLabel}</span>}
             </p>
             {categoryName && (
               <span
