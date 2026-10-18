@@ -27,6 +27,8 @@ export type SmsSessionInfo = {
   themeMode?: string | null;
   /** 화면·문자 동사 — themes.booking_verb. 노말모드는 '예약'. */
   bookingVerb?: string | null;
+  /** 단독 진행 상품(노말모드)인가 — 노말 전용 템플릿을 쓴다. */
+  solo?: boolean;
   startAt: string;
   endAt: string | null;
   minAge: number;
@@ -54,6 +56,26 @@ async function getTemplateBody(key: string, fallback: string): Promise<string> {
   } catch {
     return fallback;
   }
+}
+
+/**
+ * 노말모드(단독 진행) 전용 템플릿 키. 'payment_confirmed_v2' → 'payment_confirmed_solo_v2'.
+ * 어드민 문자 화면이 이 이름으로 파티/노말 탭을 가른다(sms-templates/TemplateList).
+ */
+export function soloTemplateKey(key: string): string {
+  return key.replace(/_v2$/, "_solo_v2");
+}
+
+/**
+ * 모드에 맞는 템플릿 본문. 노말 회차는 전용 템플릿을 먼저 찾고, 없으면 파티(기본) 것을 쓴다
+ * — 공석입금안내처럼 노말에 없는 문자는 전용 템플릿을 두지 않는다.
+ */
+async function getTemplateBodyFor(key: string, solo: boolean, fallback: string): Promise<string> {
+  if (solo) {
+    const own = await getTemplateBody(soloTemplateKey(key), "");
+    if (own) return own;
+  }
+  return getTemplateBody(key, fallback);
 }
 
 function render(body: string, vars: Record<string, string>): string {
@@ -104,7 +126,7 @@ export async function sendApplicationConfirmationSmsV2(params: {
   }
 
   const { session } = params;
-  const body = await getTemplateBody("application_confirmation_v2", FALLBACK_CONFIRMATION);
+  const body = await getTemplateBodyFor("application_confirmation_v2", Boolean(session.solo), FALLBACK_CONFIRMATION);
 
   const text = render(body, {
     name: params.recipientName,
@@ -154,6 +176,8 @@ export type SessionDisplay = {
   refund_policy: RefundPolicy;
   /** 화면·문자 동사(themes.booking_verb). 옛 회차는 '신청'. */
   booking_verb: string;
+  /** 단독 진행 상품(노말모드)인가 — themes.reparticipation_limit 이 비어 있으면 그렇다(신청 처리와 같은 기준). */
+  solo: boolean;
 };
 
 /** 회차 표시 정보. 옛 회차·새 회차 모두 같은 모양으로 온다. */
@@ -171,17 +195,21 @@ export async function getSessionDisplay(sessionId: string): Promise<SessionDispl
       ⚠️ 못 읽으면 standard(파티 규정)로 간다 — 노말 고객이 덜 받는 쪽이 아니라
          더 엄격한 문구를 받게 되므로, 실패는 로그로 드러낸다.
     */
-    supabase.from("sessions").select("themes(refund_policy, booking_verb)").eq("id", sessionId).maybeSingle(),
+    supabase.from("sessions").select("themes(refund_policy, booking_verb, reparticipation_limit)").eq("id", sessionId).maybeSingle(),
   ]);
   if (error) {
     console.error("[smsV2] session_display 조회 실패", error);
     return null;
   }
-  const theme = (policyRow as { themes?: { refund_policy?: string; booking_verb?: string } | null } | null)?.themes;
+  const theme = (policyRow as {
+    themes?: { refund_policy?: string; booking_verb?: string; reparticipation_limit?: number | null } | null;
+  } | null)?.themes;
   return {
-    ...(data as Omit<SessionDisplay, "refund_policy" | "booking_verb">),
+    ...(data as Omit<SessionDisplay, "refund_policy" | "booking_verb" | "solo">),
     refund_policy: toRefundPolicy(theme?.refund_policy),
     booking_verb: theme?.booking_verb || "신청",
+    // 옛 회차(테마 없음)는 theme 이 null 이다 — 파티 문자로 간다.
+    solo: theme != null && theme.reparticipation_limit === null,
   };
 }
 
@@ -231,9 +259,10 @@ async function sendTemplate(
   key: string,
   to: string,
   vars: Record<string, string>,
-  logLabel: string
+  logLabel: string,
+  solo = false
 ): Promise<void> {
-  const body = await getTemplateBody(key, "");
+  const body = await getTemplateBodyFor(key, solo, "");
   if (!body) {
     console.error(`[smsV2] 템플릿(${key})을 찾을 수 없어 ${logLabel}를 건너뜁니다.`);
     return;
@@ -285,7 +314,7 @@ export async function sendPaymentConfirmedSmsV2(p: {
     name: p.name,
     confirmation_code: p.confirmationCode,
     attendee_count: String(p.headcount),
-  }, "입금확인 문자");
+  }, "입금확인 문자", p.session.solo);
 }
 
 /** 문자4 — 미입금취소 */
@@ -299,7 +328,7 @@ export async function sendApplicationCancelledSmsV2(p: {
     ...baseVars(p.session),
     name: p.name,
     confirmation_code: p.confirmationCode,
-  }, "미입금취소 문자");
+  }, "미입금취소 문자", p.session.solo);
 }
 
 /** 문자6 — 공석입금안내 (대기 → 확정) */
@@ -322,7 +351,7 @@ export async function sendWaitlistPromotedSmsV2(p: {
     account_number: BANK_ACCOUNT_NUMBER_SMS,
     account_holder: BANK_ACCOUNT_HOLDER_SMS,
     depositor_name: p.depositorName,
-  }, "공석입금안내 문자");
+  }, "공석입금안내 문자", p.session.solo);
 }
 
 /**
@@ -356,7 +385,7 @@ export async function sendSessionCancelledSmsV2(p: {
     name: p.name,
     attendee_count: String(p.headcount),
     refund_notice: refundNotice,
-  }, "회차취소 문자");
+  }, "회차취소 문자", p.session.solo);
 }
 
 /**
@@ -370,7 +399,7 @@ export async function buildSessionCancelledTextV2(p: {
   refundAmountKrw: number;
   isPaid: boolean;
 }): Promise<string> {
-  const body = await getTemplateBody("minimum_not_met_cancellation_v2", "");
+  const body = await getTemplateBodyFor("minimum_not_met_cancellation_v2", p.session.solo, "");
   if (!body) return "";
   const refundNotice =
     p.isPaid && p.refundAmountKrw > 0
@@ -396,7 +425,7 @@ export async function buildEventReminderTextV2(
   venueAddress: string | null,
   parkingNote: string | null
 ): Promise<string> {
-  const body = await getTemplateBody("event_reminder_v2", "");
+  const body = await getTemplateBodyFor("event_reminder_v2", sd.solo, "");
   if (!body) return "";
   return render(body, {
     ...baseVars(sd),
@@ -424,5 +453,5 @@ export async function sendEventReminderSmsV2(p: {
     name: p.name,
     venue_address_text: p.venueAddress ?? "현장 안내 예정",
     parking_note: p.parkingNote ?? "인근 유료주차장을 이용해 주세요.",
-  }, "장소안내 문자");
+  }, "장소안내 문자", p.session.solo);
 }

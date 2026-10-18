@@ -279,6 +279,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
             themeName: sv.theme_name as string,
             themeMode: (sv.theme_mode as string | null) ?? null,
             bookingVerb: verb,
+            solo,
             startAt: sv.start_at as string,
             endAt: (sv.end_at as string) ?? null,
             minAge: sv.min_age as number,

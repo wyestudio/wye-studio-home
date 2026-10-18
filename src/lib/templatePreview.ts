@@ -32,6 +32,8 @@ export type PreviewTheme = {
   examples: Record<string, string>;
   /** 미리보기의 근거를 화면에 적어주기 위한 한 줄 */
   basis: string;
+  /** 단독 진행 상품(노말모드)인가 — 노말 문자 탭에서 기본으로 고른다. */
+  solo: boolean;
 };
 
 function kst(iso: string, opts: Intl.DateTimeFormatOptions): string {
@@ -44,7 +46,7 @@ export async function loadPreviewThemes(): Promise<PreviewTheme[]> {
   const [themesRes, tiersRes, venuesRes, sessionsRes] = await Promise.all([
     supabase
       .from("themes")
-      .select("id, slug, name, variant_label, booking_verb, refund_policy, duration_minutes, venue_id, category_id, theme_categories(name)")
+      .select("id, slug, name, variant_label, booking_verb, refund_policy, reparticipation_limit, duration_minutes, venue_id, category_id, theme_categories(name)")
       .order("sort_order")
       .order("created_at"),
     supabase.from("theme_price_tiers").select("*").order("min_headcount"),
@@ -134,6 +136,12 @@ export async function loadPreviewThemes(): Promise<PreviewTheme[]> {
       : `회차가 없어 날짜·시각은 비어 있습니다 · ${SAMPLE_HEADCOUNT}명 기준`;
 
     // 두 모드가 테마명이 같아 고르는 목록에서 구분되지 않는다 — 모드를 붙인다.
-    return { id: themeId, name: mode ? `${t.name} ${mode}` : (t.name as string), examples, basis };
+    return {
+      id: themeId,
+      name: mode ? `${t.name} ${mode}` : (t.name as string),
+      examples,
+      basis,
+      solo: t.reparticipation_limit === null,
+    };
   });
 }

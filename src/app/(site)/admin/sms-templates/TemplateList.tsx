@@ -10,7 +10,31 @@ export type PreviewThemeOption = {
   name: string;
   examples: Record<string, string>;
   basis: string;
+  solo: boolean;
 };
+
+type Group = "party" | "solo" | "etc";
+
+/**
+ * 템플릿을 탭으로 가른다. 노말모드 전용은 키가 '_solo_v2' 로 끝난다(smsV2.ts soloTemplateKey —
+ * 노말 회차는 이 템플릿을 먼저 찾고, 없으면 파티 것을 쓴다). 나머지 회차 문자(_v2)는 파티,
+ * 그 밖(쿠폰 등)은 기타.
+ */
+function groupOf(key: string): Group {
+  if (key.endsWith("_solo_v2")) return "solo";
+  if (key.endsWith("_v2")) return "party";
+  return "etc";
+}
+
+const GROUPS: { id: Group; label: string; note: string }[] = [
+  { id: "party", label: "파티모드", note: "파티모드와 모드가 없는 테마에 나가는 문자입니다." },
+  {
+    id: "solo",
+    label: "노말모드",
+    note: "노말모드 회차에 나가는 문자입니다. 여기 없는 문자(공석 안내 등)는 파티모드 문자가 나갑니다.",
+  },
+  { id: "etc", label: "쿠폰 · 기타", note: "회차와 관계없이 보내는 문자입니다." },
+];
 
 export type TemplateRow = {
   key: string;
@@ -44,11 +68,45 @@ export function TemplateList({
   templates: TemplateRow[];
   themes: PreviewThemeOption[];
 }) {
-  const [themeId, setThemeId] = useState(themes[0]?.id ?? "");
+  const [group, setGroup] = useState<Group>("party");
+  const [themeId, setThemeId] = useState(themes.find((t) => !t.solo)?.id ?? themes[0]?.id ?? "");
   const theme = themes.find((t) => t.id === themeId) ?? themes[0];
+  const shown = templates.filter((t) => groupOf(t.key) === group);
+  const groupInfo = GROUPS.find((g) => g.id === group)!;
+
+  // 탭을 바꾸면 미리보기 테마도 그 모드로 맞춘다 — 노말 문자를 파티 값으로 미리 보면 헷갈린다.
+  function pickGroup(g: Group) {
+    setGroup(g);
+    if (g === "etc") return;
+    const wantSolo = g === "solo";
+    if (theme && theme.solo !== wantSolo) {
+      const next = themes.find((t) => t.solo === wantSolo);
+      if (next) setThemeId(next.id);
+    }
+  }
 
   return (
     <>
+      <div className="mb-4 flex flex-wrap gap-2" role="tablist">
+        {GROUPS.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            role="tab"
+            aria-selected={group === g.id}
+            onClick={() => pickGroup(g.id)}
+            className={`rounded-md border px-3 py-1.5 text-label transition-colors ${
+              group === g.id
+                ? "border-line-strong bg-fill-strong text-foreground"
+                : "border-line text-muted hover:bg-fill"
+            }`}
+          >
+            {g.label} ({templates.filter((t) => groupOf(t.key) === g.id).length})
+          </button>
+        ))}
+      </div>
+      <p className="mb-4 text-body-sm text-muted">{groupInfo.note}</p>
+
       <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-border p-4">
         <div>
           <label className="mb-1 block text-micro text-muted">미리보기 기준 테마</label>
@@ -69,7 +127,10 @@ export function TemplateList({
       </div>
 
       <div className="space-y-4">
-        {templates.map((t) => (
+        {shown.length === 0 && (
+          <div className="rounded-lg border border-border py-8 text-center text-muted">이 탭에 등록된 문자가 없습니다.</div>
+        )}
+        {shown.map((t) => (
           <MessageTemplateEditor
             key={t.key}
             templateKey={t.key}
