@@ -33,6 +33,12 @@ type Item = {
   required: boolean;
   /** 2인 이상일 때만 보인다 */
   groupOnly?: boolean;
+  /**
+   * 팀 대항 상품(파티)에만 / 단독 진행 상품(노말)에만 보인다.
+   * 단독 진행은 겨루는 팀이 없어 재참여 제한이 없고(약관 제5조), 1부·2부 구분도 없다.
+   */
+  partyOnly?: boolean;
+  soloOnly?: boolean;
   /** 회차 최소 연령처럼 회차마다 달라지는 값이 들어가면 함수로 둔다. */
   label: React.ReactNode | ((minAge: number, verb: string) => React.ReactNode);
   /** 펼쳐서 보여줄 요약. 오른쪽 '보기' 로 연다. */
@@ -97,7 +103,7 @@ const ITEMS: Item[] = [
     href: "/privacy",
   },
   {
-    key: "noRebooking", id: "no-rebooking", required: true,
+    key: "noRebooking", id: "no-rebooking", required: true, partyOnly: true,
     label: "동일 테마 재예약 불가를 확인했습니다.",
     detail: (
       <>
@@ -108,11 +114,24 @@ const ITEMS: Item[] = [
     ),
   },
   {
-    key: "phoneCollection", id: "phone-collection", required: true,
+    key: "phoneCollection", id: "phone-collection", required: true, partyOnly: true,
     label: "1부 진행 중 휴대폰 수거·보관에 동의합니다.",
     detail: (
       <>
         공정성·몰입·콘텐츠 유출 방지를 위해 <strong>1부 시작 직전 수거 → 종료 직후 즉시 반환</strong>합니다.
+        <br />· 개별 식별 봉투/보관함에 잠금 보관, 스태프 관리
+        <br />· 긴급 시 스태프에게 요청하면 즉시 사용 가능
+        <br />· 회사는 선량한 관리자의 주의를 다하되, 기존 파손·본인 부주의 손상은 책임지지 않음
+      </>
+    ),
+  },
+  {
+    // 노말(단독 진행)은 1부가 따로 없다 — 방탈출 진행 동안 보관한다.
+    key: "phoneCollection", id: "phone-collection-solo", required: true, soloOnly: true,
+    label: "방탈출 진행 중 휴대폰 수거·보관에 동의합니다.",
+    detail: (
+      <>
+        공정성·몰입·콘텐츠 유출 방지를 위해 <strong>방탈출 시작 직전 수거 → 종료 직후 즉시 반환</strong>합니다.
         <br />· 개별 식별 봉투/보관함에 잠금 보관, 스태프 관리
         <br />· 긴급 시 스태프에게 요청하면 즉시 사용 가능
         <br />· 회사는 선량한 관리자의 주의를 다하되, 기존 파손·본인 부주의 손상은 책임지지 않음
@@ -145,20 +164,32 @@ const ITEMS: Item[] = [
   },
 ];
 
-export function visibleConsentItems(attendeeCount: number) {
-  return ITEMS.filter((it) => !it.groupOnly || attendeeCount >= 2);
+/**
+ * 보여줄 동의 항목. solo — 단독 진행 상품(노말모드)인가.
+ * ⚠️ 검사(allRequiredChecked)도 같은 목록으로 한다. 화면과 검사가 다른 목록을 보면
+ *    노말에서 안 보이는 '재예약 불가' 때문에 제출이 영영 막힌다.
+ */
+export function visibleConsentItems(attendeeCount: number, solo = false) {
+  return ITEMS.filter(
+    (it) =>
+      (!it.groupOnly || attendeeCount >= 2) && !(solo ? it.partyOnly : it.soloOnly)
+  );
 }
 
 /** 필수 항목이 모두 체크됐는가. 동행자 대리 동의는 2인 이상일 때만 센다. */
-export function allRequiredChecked(consents: ConsentState, attendeeCount: number): boolean {
-  return visibleConsentItems(attendeeCount)
+export function allRequiredChecked(consents: ConsentState, attendeeCount: number, solo = false): boolean {
+  return visibleConsentItems(attendeeCount, solo)
     .filter((it) => it.required)
     .every((it) => consents[it.key]);
 }
 
 /** 아직 체크 안 된 첫 필수 항목의 id. 포커스를 옮길 때 쓴다. */
-export function firstMissingConsentId(consents: ConsentState, attendeeCount: number): string | null {
-  const miss = visibleConsentItems(attendeeCount).find((it) => it.required && !consents[it.key]);
+export function firstMissingConsentId(
+  consents: ConsentState,
+  attendeeCount: number,
+  solo = false
+): string | null {
+  const miss = visibleConsentItems(attendeeCount, solo).find((it) => it.required && !consents[it.key]);
   return miss?.id ?? null;
 }
 
@@ -179,7 +210,10 @@ export function ConsentStep({
   onChange,
   showError,
   verb = "신청",
+  solo = false,
 }: {
+  /** 단독 진행 상품(노말모드)인가. 재예약 불가 항목을 빼고 휴대폰 보관 문구를 바꾼다. */
+  solo?: boolean;
   /** '신청' | '예약'. 동의 문구의 동사만 바꾼다 — 약관과 묶인 내용은 그대로다. */
   verb?: string;
   attendeeCount: number;
@@ -190,7 +224,7 @@ export function ConsentStep({
   showError: boolean;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const items = visibleConsentItems(attendeeCount);
+  const items = visibleConsentItems(attendeeCount, solo);
   const allChecked = items.every((it) => consents[it.key]);
 
   function toggleAll() {
@@ -319,7 +353,7 @@ export function ConsentStep({
       {group("필수 동의", "required", items.filter((it) => it.required))}
       {group("선택 동의", "optional", items.filter((it) => !it.required))}
 
-      {showError && !allRequiredChecked(consents, attendeeCount) && (
+      {showError && !allRequiredChecked(consents, attendeeCount, solo) && (
         <p className="text-body text-danger">필수 항목에 모두 동의해주세요.</p>
       )}
     </div>

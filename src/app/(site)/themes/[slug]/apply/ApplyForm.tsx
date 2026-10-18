@@ -136,7 +136,13 @@ export function ApplyForm({
   groupBooking = false,
   verb = "신청",
   refundPolicy = "standard",
+  solo = false,
 }: {
+  /**
+   * 단독 진행 상품(노말모드 — 재참여 제한이 없는 테마)인가. 동의 항목이 갈린다
+   * (약관 제5조: 재신청 제한은 팀 대항 상품에만).
+   */
+  solo?: boolean;
   /**
    * '신청' | '예약'(노말모드, themes.booking_verb). 폼 제목·버튼·안내의 동사만 바꾼다.
    * ⚠️ 이벤트 이름(pushDataLayerEvent '신청 시작' 등)은 바꾸지 않는다 — GTM 트리거가
@@ -603,10 +609,10 @@ export function ApplyForm({
     }
 
     if (step === 1) {
-      if (!allRequiredChecked(consents, headcount)) {
+      if (!allRequiredChecked(consents, headcount, solo)) {
         setSubmitAttempted(true);
         setToast("약관 동의를 확인해주세요.");
-        const id = firstMissingConsentId(consents, headcount);
+        const id = firstMissingConsentId(consents, headcount, solo);
         if (id) focusField(id);
         return;
       }
@@ -636,7 +642,7 @@ export function ApplyForm({
         depositorName,
         attendees: attendees.map(toPayload),
         notes: "",
-        consentRequired: allRequiredChecked(consents, headcount),
+        consentRequired: allRequiredChecked(consents, headcount, solo),
         // 기존 폼과 같은 기준 — 선택 항목을 '전부' 동의했을 때만 참이다.
         consentOptional: consents.photo && consents.marketing,
         consentPhoto: consents.photo,
@@ -821,6 +827,7 @@ export function ApplyForm({
         {step === 1 && (
           <ConsentStep
             verb={verb}
+            solo={solo}
             attendeeCount={headcount}
             minAge={minAge}
             consents={consents}

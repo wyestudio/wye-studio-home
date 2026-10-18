@@ -156,6 +156,8 @@ export default async function ApplyPage({
         groupBooking={hasGroupBooking(slug)}
         verb={theme.booking_verb ?? "신청"}
         refundPolicy={toRefundPolicy(theme.refund_policy)}
+        // 재참여 한도가 비어 있으면 단독 진행 상품이다(노말모드, DB 판정과 같은 기준).
+        solo={theme.reparticipation_limit === null}
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={formatDateTimeFull(target.start_at)}
