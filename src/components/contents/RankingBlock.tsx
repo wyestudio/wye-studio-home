@@ -69,7 +69,8 @@ export function RankingBlock({
                     {g.label}
                   </p>
                   <RankTable
-                    rows={sortNormal(rankings.filter((r) => r.group_size === g.size))}
+                    // 노말 랭킹은 노힌트 기준이다 — 힌트를 쓴 기록은 싣지 않는다.
+                    rows={sortNormal(rankings.filter((r) => r.group_size === g.size && r.hint_free))}
                     accent={accent}
                     showTime
                   />

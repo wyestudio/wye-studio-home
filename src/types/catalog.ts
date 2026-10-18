@@ -265,6 +265,8 @@ export type ThemeRanking = {
   remaining_sec: number | null;
   grade: RankingGrade;
   group_size: number | null;
+  /** 힌트·정답 보기를 한 번도 안 쓴 기록. 노말 랭킹은 이것만 싣는다. */
+  hint_free: boolean;
 };
 
 /**

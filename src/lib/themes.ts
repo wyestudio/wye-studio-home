@@ -318,7 +318,7 @@ async function _getMonthlyRankings(themeId: string, monthYmd: string): Promise<T
 
   const { data, error } = await supabase
     .from("theme_rankings")
-    .select("id, theme_id, played_on, team_name, points, remaining_sec, grade, group_size")
+    .select("id, theme_id, played_on, team_name, points, remaining_sec, grade, group_size, hint_free")
     .eq("theme_id", themeId)
     .gte("played_on", start)
     .lt("played_on", next);
