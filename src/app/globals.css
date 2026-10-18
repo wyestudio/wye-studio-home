@@ -881,3 +881,90 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     margin: 14mm 12mm;
   }
 }
+
+/* 이달의 랭킹 판(RankingBlock) — 현장 앱(BAR-O) 엔딩 집계표(PLAY RESULT)와 같은 화면 언어.
+   현장에서 본 결과표를 사이트에서도 그대로 알아보게 한다(2026-10-18 대표님).
+
+   ⚠️ 색은 사이트 토큰이 아니라 **현장 앱 팔레트**다(wye-studio-webapp client/src/index.css
+      :root). 사이트 톤에 맞춰 바꾸면 "그 게임 화면" 으로 안 읽힌다. 바꿀 땐 현장 앱과 같이.
+   ⚠️ 등수로 줄을 달리 꾸미지 않는다 — 현장 집계표가 그렇다(모든 팀을 같은 무게로). */
+.baro-rank {
+  --bo-bg: #160b33;
+  --bo-card: #2d134de0;
+  --bo-border: #8c4ca4;
+  --bo-yellow: #fff36a;
+  --bo-pink: #ff4fa3;
+  --bo-pink-mid: #ff9aca;
+  --bo-sky: #b9f1ff;
+  --bo-mint: #72dfa7;
+  --bo-text: #fff7fc;
+  --bo-dim: #d9b9df;
+  --bo-ink: #29113f;
+  --bo-shadow: #0c041d;
+  position: relative;
+  overflow: hidden;
+  background: var(--bo-bg);
+  border: 2px solid var(--bo-border);
+  box-shadow: 4px 4px 0 var(--bo-shadow);
+  color: var(--bo-text);
+}
+
+/* 제목만 세로로 눌린 굵은 글씨 — 현장 PLAY RESULT 와 같다. */
+.baro-rank-title {
+  color: var(--bo-yellow);
+  letter-spacing: 0.12em;
+  transform: scaleY(0.86);
+  text-shadow: 3px 3px 0 var(--bo-shadow);
+}
+
+.baro-rank-row {
+  background: var(--bo-card);
+  border: 2px solid var(--bo-border);
+  animation: baro-rank-in 0.45s ease-out both;
+}
+
+.baro-rank-head {
+  color: var(--bo-pink-mid);
+  border-bottom: 2px solid var(--bo-pink);
+}
+
+.baro-rank-chip {
+  background: var(--bo-pink);
+  color: var(--bo-ink);
+}
+
+.baro-rank-pt {
+  color: var(--bo-yellow);
+  text-shadow: 2px 2px 0 var(--bo-shadow);
+}
+
+/* 도트 반짝이 — 네모 픽셀을 그림자로 쌓아 십자를 만든다(글자 ✦ 를 쓰면 둥근 별이 된다). */
+.baro-rank-star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: var(--c);
+  box-shadow:
+    2px 0 0 var(--c), -2px 0 0 var(--c), 0 2px 0 var(--c), 0 -2px 0 var(--c),
+    4px 0 0 var(--c), -4px 0 0 var(--c), 0 4px 0 var(--c), 0 -4px 0 var(--c);
+  pointer-events: none;
+  animation: baro-rank-twinkle 2.6s steps(1, end) infinite;
+}
+
+@keyframes baro-rank-in {
+  from { opacity: 0; transform: translateY(0.6em); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes baro-rank-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7); }
+  45%      { opacity: 1;    transform: scale(1); }
+  70%      { opacity: 0.5;  transform: scale(0.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .baro-rank-row,
+  .baro-rank-star {
+    animation: none;
+  }
+}
