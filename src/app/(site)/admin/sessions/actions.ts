@@ -185,9 +185,11 @@ export async function updateSessionStatus(id: string, status: "open" | "closed")
       }
     }
 
+    // 손으로 바꾼 상태는 시스템이 건드리지 않는다 — closed_by_team_limit 을 끄면
+    // 예약이 취소돼도 자동으로 다시 열리지 않는다(20261018095431_reopen_session_on_cancel).
     const { error } = await supabase
       .from("sessions")
-      .update({ status, updated_at: new Date().toISOString() })
+      .update({ status, closed_by_team_limit: false, updated_at: new Date().toISOString() })
       .eq("id", id);
     if (error) throw error;
 
