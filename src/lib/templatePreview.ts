@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatKrw, formatDuration } from "@/lib/format";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { resolveUnitPrice, type ThemePriceTier } from "@/types/catalog";
+import { refundPolicySms, toRefundPolicy } from "@/lib/refundPolicy";
 
 /**
  * 문자 포맷 미리보기에 넣을 **진짜 값**을 모은다.
@@ -43,7 +44,7 @@ export async function loadPreviewThemes(): Promise<PreviewTheme[]> {
   const [themesRes, tiersRes, venuesRes, sessionsRes] = await Promise.all([
     supabase
       .from("themes")
-      .select("id, slug, name, duration_minutes, venue_id, category_id, theme_categories(name)")
+      .select("id, slug, name, variant_label, booking_verb, refund_policy, duration_minutes, venue_id, category_id, theme_categories(name)")
       .order("sort_order")
       .order("created_at"),
     supabase.from("theme_price_tiers").select("*").order("min_headcount"),
@@ -82,8 +83,15 @@ export async function loadPreviewThemes(): Promise<PreviewTheme[]> {
       .theme_categories;
     const categoryName = Array.isArray(joined) ? (joined[0]?.name ?? null) : (joined?.name ?? null);
 
+    const policy = toRefundPolicy(t.refund_policy as string | null);
+    const mode = (t.variant_label as string | null) ?? "";
     const examples: Record<string, string> = {
       theme_name: t.name as string,
+      // 모드·동사·환불 규정은 테마마다 다르다 — 실제 발송(smsV2 baseVars)과 같은 값을 보여준다.
+      theme_mode: mode,
+      booking_verb: (t.booking_verb as string | null) || "신청",
+      refund_policy: refundPolicySms(policy),
+      no_refund_from: policy === "normal" ? "1일 전" : "2일 전",
       product_label: categoryName ?? "파티형 방탈출",
       attendee_count: String(SAMPLE_HEADCOUNT),
       price: total != null ? formatKrw(total) : "(요금 구간 미설정)",
@@ -125,6 +133,7 @@ export async function loadPreviewThemes(): Promise<PreviewTheme[]> {
       ? `${examples.event_date} ${examples.start_time} 회차 · ${SAMPLE_HEADCOUNT}명 기준`
       : `회차가 없어 날짜·시각은 비어 있습니다 · ${SAMPLE_HEADCOUNT}명 기준`;
 
-    return { id: themeId, name: t.name as string, examples, basis };
+    // 두 모드가 테마명이 같아 고르는 목록에서 구분되지 않는다 — 모드를 붙인다.
+    return { id: themeId, name: mode ? `${t.name} ${mode}` : (t.name as string), examples, basis };
   });
 }

@@ -269,7 +269,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
       const admin = createAdminClient();
       const { data: sv } = await admin
         .from("session_view")
-        .select("theme_name, start_at, end_at, min_age")
+        .select("theme_name, theme_mode, start_at, end_at, min_age")
         .eq("id", input.sessionId)
         .single();
 
@@ -277,6 +277,8 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
         await sendApplicationConfirmationSmsV2({
           session: {
             themeName: sv.theme_name as string,
+            themeMode: (sv.theme_mode as string | null) ?? null,
+            bookingVerb: verb,
             startAt: sv.start_at as string,
             endAt: (sv.end_at as string) ?? null,
             minAge: sv.min_age as number,

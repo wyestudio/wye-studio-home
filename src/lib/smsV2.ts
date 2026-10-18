@@ -23,6 +23,10 @@ const BANK_ACCOUNT_HOLDER_SMS = "김시온";
 
 export type SmsSessionInfo = {
   themeName: string;
+  /** 모드(파티모드/노말모드). 모드가 없는 테마는 빈 값. */
+  themeMode?: string | null;
+  /** 화면·문자 동사 — themes.booking_verb. 노말모드는 '예약'. */
+  bookingVerb?: string | null;
   startAt: string;
   endAt: string | null;
   minAge: number;
@@ -63,11 +67,11 @@ function getService() {
   return new SolapiMessageService(apiKey, apiSecret);
 }
 
-const FALLBACK_CONFIRMATION = `[우주이스케이프] 신청이 접수되었습니다.
+const FALLBACK_CONFIRMATION = `[우주이스케이프] {{booking_verb}}이 접수되었습니다.
 
-{{name}}님, 신청이 접수되었습니다.
+{{name}}님, {{booking_verb}}이 접수되었습니다.
 · 접수번호: {{confirmation_code}}
-· 테마: {{theme_name}}
+· 테마: {{theme_name}} {{theme_mode}}
 · 일시: {{event_date}} {{start_time}}
 · 인원: {{attendee_count}}명
 · 입금액: {{price}}
@@ -105,6 +109,8 @@ export async function sendApplicationConfirmationSmsV2(params: {
   const text = render(body, {
     name: params.recipientName,
     theme_name: session.themeName,
+    theme_mode: session.themeMode ?? "",
+    booking_verb: session.bookingVerb || "신청",
     event_date: eventDate(session.startAt),
     start_time: startTime(session.startAt),
     duration: durationLabel(session),
@@ -146,6 +152,8 @@ export type SessionDisplay = {
   venue_parking_note: string | null;
   /** 테마의 환불 규정. 옛 회차(테마 없음)는 standard. */
   refund_policy: RefundPolicy;
+  /** 화면·문자 동사(themes.booking_verb). 옛 회차는 '신청'. */
+  booking_verb: string;
 };
 
 /** 회차 표시 정보. 옛 회차·새 회차 모두 같은 모양으로 온다. */
@@ -163,14 +171,18 @@ export async function getSessionDisplay(sessionId: string): Promise<SessionDispl
       ⚠️ 못 읽으면 standard(파티 규정)로 간다 — 노말 고객이 덜 받는 쪽이 아니라
          더 엄격한 문구를 받게 되므로, 실패는 로그로 드러낸다.
     */
-    supabase.from("sessions").select("themes(refund_policy)").eq("id", sessionId).maybeSingle(),
+    supabase.from("sessions").select("themes(refund_policy, booking_verb)").eq("id", sessionId).maybeSingle(),
   ]);
   if (error) {
     console.error("[smsV2] session_display 조회 실패", error);
     return null;
   }
-  const theme = (policyRow as { themes?: { refund_policy?: string } | null } | null)?.themes;
-  return { ...(data as Omit<SessionDisplay, "refund_policy">), refund_policy: toRefundPolicy(theme?.refund_policy) };
+  const theme = (policyRow as { themes?: { refund_policy?: string; booking_verb?: string } | null } | null)?.themes;
+  return {
+    ...(data as Omit<SessionDisplay, "refund_policy" | "booking_verb">),
+    refund_policy: toRefundPolicy(theme?.refund_policy),
+    booking_verb: theme?.booking_verb || "신청",
+  };
 }
 
 /** "2일 전" — 이날부터 환불이 안 된다. 하루 전 안내 문자의 한 줄에 들어간다. */
@@ -187,6 +199,11 @@ function baseVars(sd: SessionDisplay) {
       ⚠️ 모드가 없는 테마는 빈 문자열이다 — 템플릿에 넣어 둬도 글자가 남지 않는다.
     */
     theme_mode: sd.theme_mode ?? "",
+    /*
+      '신청' | '예약'(노말모드). 문구의 동사를 템플릿에 박아 두면 노말 고객에게 '신청'이 나간다.
+      두 말 다 받침이 있어 뒤 조사(이/을)는 그대로 맞는다.
+    */
+    booking_verb: sd.booking_verb,
     event_date: eventDate(sd.start_at),
     start_time: startTime(sd.start_at),
     duration: sd.end_at ? formatDuration(sd.start_at, sd.end_at) : "-",
