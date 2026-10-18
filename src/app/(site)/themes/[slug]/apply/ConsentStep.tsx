@@ -121,12 +121,14 @@ const ITEMS: Item[] = [
   },
   {
     key: "noRebooking", id: "no-rebooking", required: true, partyOnly: true,
-    label: "동일 테마 재예약 불가를 확인했습니다.",
+    label: "동일 테마 재신청 불가를 확인했습니다.",
+    // 판정은 is_theme_participation_blocked() — 노말 참여자도 파티는 막히고, 파티 참여자는 노말로 다시 올 수 있다.
     detail: (
       <>
         팀 대항 방탈출 특성상 이미 참여한 테마는 정답을 알고 있어 공정성이 훼손됩니다.{" "}
-        <strong>pre-open 테스트 참여 이력을 포함해,</strong> 이미 참여한 테마는 다시 신청할 수 없습니다.
-        재참여를 원하시면 <strong>다른 테마</strong>를 선택해 주세요. (약관 제5조)
+        <strong>pre-open 테스트 참여 이력을 포함해,</strong> 이미 참여한 테마는 다시 신청할 수 없습니다.{" "}
+        <strong>노말모드에 참여하신 분도 파티모드는 다시 신청할 수 없습니다.</strong> 같은 테마를 다시
+        즐기시려면 노말모드로 예약해 주세요. (약관 제5조)
       </>
     ),
   },
@@ -184,7 +186,7 @@ const ITEMS: Item[] = [
 /**
  * 보여줄 동의 항목. solo — 단독 진행 상품(노말모드)인가.
  * ⚠️ 검사(allRequiredChecked)도 같은 목록으로 한다. 화면과 검사가 다른 목록을 보면
- *    노말에서 안 보이는 '재예약 불가' 때문에 제출이 영영 막힌다.
+ *    노말에서 안 보이는 '재신청 불가' 때문에 제출이 영영 막힌다.
  */
 export function visibleConsentItems(attendeeCount: number, solo = false) {
   return ITEMS.filter(
@@ -229,7 +231,7 @@ export function ConsentStep({
   verb = "신청",
   solo = false,
 }: {
-  /** 단독 진행 상품(노말모드)인가. 재예약 불가 항목을 빼고 휴대폰 보관 문구를 바꾼다. */
+  /** 단독 진행 상품(노말모드)인가. 재신청 불가 항목을 빼고 휴대폰 보관 문구를 바꾼다. */
   solo?: boolean;
   /** '신청' | '예약'. 동의 문구의 동사만 바꾼다 — 약관과 묶인 내용은 그대로다. */
   verb?: string;
