@@ -118,8 +118,8 @@ function sortNormal(rows: ThemeRanking[]) {
     .slice(0, TOP_N);
 }
 
-const COLS_TIME = "grid-cols-[2rem_minmax(0,1fr)_3.5rem_3rem_2.75rem]";
-const COLS = "grid-cols-[2rem_minmax(0,1fr)_3.5rem_2.75rem]";
+const COLS_TIME = "grid-cols-[2.75rem_minmax(0,1fr)_3.5rem_3rem_2.75rem]";
+const COLS = "grid-cols-[2.75rem_minmax(0,1fr)_3.5rem_2.75rem]";
 
 /** 인원 구분 머리 — 현장 엔딩의 단체명 줄과 같은 민트. */
 function GroupLabel({ label }: { label: string }) {
@@ -152,9 +152,61 @@ function HeaderRow({ showTime }: { showTime: boolean }) {
   );
 }
 
-function RankChip({ n }: { n: number }) {
+/**
+ * 순위 메달 도트 그림. 13×15 칸 — 위 넉 줄이 리본, 아래가 메달.
+ * R/r 리본 밝은·어두운 쪽, O 테두리, F 바탕, H 빛, S 그늘.
+ * 그림 파일이 아니라 SVG 칸으로 그려서 순위마다 색만 바꿔 끼운다.
+ */
+const MEDAL_PIXELS = [
+  "..RRR...rrr..",
+  "...RRR.rrr...",
+  "....RRrrr....",
+  ".....Rrr.....",
+  "....OOOOO....",
+  "..OOFFFFFOO..",
+  ".OFHHFFFFFSO.",
+  ".OFHFFFFFFSO.",
+  "OFFFFFFFFFFSO",
+  "OFFFFFFFFFFSO",
+  "OFFFFFFFFFFSO",
+  ".OFFFFFFFSSO.",
+  ".OSFFFFFSSSO.",
+  "..OOSSSSSOO..",
+  "....OOOOO....",
+];
+
+type MedalColors = { R: string; r: string; O: string; F: string; H: string; S: string; num: string };
+
+/** 1 금 · 2 은 · 3 동 · 4~5 보라. 리본은 현장 앱 팔레트(분홍·하늘·민트)에서 골랐다. */
+const MEDAL_COLORS: MedalColors[] = [
+  { R: "#ff4fa3", r: "#d72bb8", O: "#29113f", F: "#ffd23f", H: "#fff6b0", S: "#c98a12", num: "#29113f" },
+  { R: "#b9f1ff", r: "#6fb7d6", O: "#29113f", F: "#d9e2ec", H: "#ffffff", S: "#8c9bb0", num: "#29113f" },
+  { R: "#72dfa7", r: "#3aa877", O: "#29113f", F: "#e09a5b", H: "#ffd0a3", S: "#a35a28", num: "#29113f" },
+  { R: "#ff9aca", r: "#b35f8e", O: "#0c041d", F: "#8c4ca4", H: "#c89ad8", S: "#5d2c75", num: "#fff7fc" },
+];
+
+const MEDAL_RECTS = MEDAL_PIXELS.flatMap((row, y) =>
+  [...row].flatMap((k, x) => (k === "." ? [] : [{ x, y, k: k as keyof MedalColors }])),
+);
+
+function RankMedal({ n }: { n: number }) {
+  const c = MEDAL_COLORS[Math.min(n, 4) - 1];
   return (
-    <span className="baro-rank-chip block py-0.5 text-center font-galmuri text-label leading-none">{n}</span>
+    // 칸 하나가 3px — 정수 배율이라 도트가 번지지 않는다.
+    <span className="relative mx-auto block h-[45px] w-[39px]" aria-label={`${n}위`}>
+      <svg viewBox="0 0 13 15" shapeRendering="crispEdges" className="block h-full w-full" aria-hidden>
+        {MEDAL_RECTS.map((p) => (
+          <rect key={`${p.x}-${p.y}`} x={p.x} y={p.y} width={1} height={1} fill={c[p.k]} />
+        ))}
+      </svg>
+      {/* 숫자는 메달 원(아래 열한 줄)의 가운데에 얹는다 — 위 넉 줄은 리본이라 top 을 그만큼 내린다. */}
+      <span
+        className="absolute inset-x-0 bottom-[3px] top-[12px] flex items-center justify-center font-galmuri text-label leading-none"
+        style={{ color: c.num }}
+      >
+        {n}
+      </span>
+    </span>
   );
 }
 
@@ -178,10 +230,10 @@ function RankTable({ rows, showTime }: { rows: ThemeRanking[]; showTime: boolean
           key={r.id}
           // 한 줄씩 차례로 켜진다 — 현장 집계표와 같은 박자.
           style={{ animationDelay: `${0.1 + i * 0.12}s` }}
-          className={`baro-rank-row grid ${cols} items-center gap-x-2 px-3 py-2`}
+          className={`baro-rank-row grid ${cols} items-center gap-x-2 px-3 py-1.5`}
         >
           <span role="cell">
-            <RankChip n={i + 1} />
+            <RankMedal n={i + 1} />
           </span>
           <span role="cell" className="truncate font-semibold">
             {r.team_name}
@@ -241,7 +293,7 @@ function Teaser({ bySize }: { bySize: boolean }) {
                 key={n}
                 className={`baro-rank-row grid ${bySize ? COLS_TIME : COLS} items-center gap-x-2 px-3 py-2 font-galmuri text-[var(--bo-dim)]`}
               >
-                <RankChip n={n} />
+                <RankMedal n={n} />
                 <span>? ? ?</span>
                 {bySize && <span className="text-right">--:--</span>}
                 <span className="text-right">---</span>

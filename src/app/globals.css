@@ -928,11 +928,6 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-bottom: 2px solid var(--bo-pink);
 }
 
-.baro-rank-chip {
-  background: var(--bo-pink);
-  color: var(--bo-ink);
-}
-
 .baro-rank-pt {
   color: var(--bo-yellow);
   text-shadow: 2px 2px 0 var(--bo-shadow);
