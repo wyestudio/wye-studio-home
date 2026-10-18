@@ -86,13 +86,12 @@ export function RankingBlock({
                   <RankTable
                     // 노말 랭킹은 노힌트 기준이다 — 힌트를 쓴 기록은 싣지 않는다.
                     rows={sortNormal(rankings.filter((r) => r.group_size === g.size && r.hint_free))}
-                    showTime
                   />
                 </div>
               ))}
             </div>
           ) : (
-            <RankTable rows={sortParty(rankings)} showTime={false} />
+            <RankTable rows={sortParty(rankings)} />
           )}
         </div>
       </div>
@@ -111,14 +110,16 @@ function sortParty(rows: ThemeRanking[]) {
   return [...rows].sort((a, b) => b.points - a.points).slice(0, TOP_N);
 }
 
-/** 노말 — 포인트 높은 순, 같으면 남은 시간이 많은 순. */
+/**
+ * 노말 — 포인트 높은 순, 같으면 남은 시간이 많은 순.
+ * 남은 시간은 화면에 싣지 않지만(2026-10-18 대표님) 동점일 때 순서는 이걸로 정한다.
+ */
 function sortNormal(rows: ThemeRanking[]) {
   return [...rows]
     .sort((a, b) => b.points - a.points || (b.remaining_sec ?? -1) - (a.remaining_sec ?? -1))
     .slice(0, TOP_N);
 }
 
-const COLS_TIME = "grid-cols-[2.75rem_minmax(0,1fr)_3.5rem_3rem_2.75rem]";
 const COLS = "grid-cols-[2.75rem_minmax(0,1fr)_3.5rem_2.75rem]";
 
 /** 인원 구분 머리 — 현장 엔딩의 단체명 줄과 같은 민트. */
@@ -127,21 +128,16 @@ function GroupLabel({ label }: { label: string }) {
 }
 
 /** 순위표 머리. 오픈 전 화면에서도 무엇이 기록되는지 알려 주려고 같이 쓴다. */
-function HeaderRow({ showTime }: { showTime: boolean }) {
+function HeaderRow() {
   return (
     <div
       role="row"
-      className={`baro-rank-head grid ${showTime ? COLS_TIME : COLS} items-center gap-x-2 px-3 pb-2 font-galmuri text-micro`}
+      className={`baro-rank-head grid ${COLS} items-center gap-x-2 px-3 pb-2 font-galmuri text-micro`}
     >
       <span role="columnheader" className="text-center">
         #
       </span>
       <span role="columnheader">팀</span>
-      {showTime && (
-        <span role="columnheader" className="text-right">
-          남은 시간
-        </span>
-      )}
       <span role="columnheader" className="text-right">
         포인트
       </span>
@@ -210,8 +206,7 @@ function RankMedal({ n }: { n: number }) {
   );
 }
 
-function RankTable({ rows, showTime }: { rows: ThemeRanking[]; showTime: boolean }) {
-  const cols = showTime ? COLS_TIME : COLS;
+function RankTable({ rows }: { rows: ThemeRanking[] }) {
 
   if (rows.length === 0) {
     return (
@@ -223,14 +218,14 @@ function RankTable({ rows, showTime }: { rows: ThemeRanking[]; showTime: boolean
 
   return (
     <div role="table" aria-label="랭킹" className="flex flex-col gap-1.5 text-body">
-      <HeaderRow showTime={showTime} />
+      <HeaderRow />
       {rows.map((r, i) => (
         <div
           role="row"
           key={r.id}
           // 한 줄씩 차례로 켜진다 — 현장 집계표와 같은 박자.
           style={{ animationDelay: `${0.1 + i * 0.12}s` }}
-          className={`baro-rank-row grid ${cols} items-center gap-x-2 px-3 py-1.5`}
+          className={`baro-rank-row grid ${COLS} items-center gap-x-2 px-3 py-1.5`}
         >
           <span role="cell">
             <RankMedal n={i + 1} />
@@ -238,11 +233,6 @@ function RankTable({ rows, showTime }: { rows: ThemeRanking[]; showTime: boolean
           <span role="cell" className="truncate font-semibold">
             {r.team_name}
           </span>
-          {showTime && (
-            <span role="cell" className="text-right font-galmuri tabular-nums text-[var(--bo-sky)]">
-              {r.remaining_sec === null ? "-" : mmss(r.remaining_sec)}
-            </span>
-          )}
           <span role="cell" className="baro-rank-pt text-right font-galmuri text-h3 tabular-nums">
             {r.points}
           </span>
@@ -277,7 +267,7 @@ function GradeBadge({ grade }: { grade: RankingGrade }) {
 
 /**
  * 오픈 전 화면. 순위표 머리와 두 줄만 깔고 칸은 '???' 로 채운다 — 무엇이 기록되는지
- * (팀명·시간·포인트·등급) 미리 보여 주면서, 아직 아무도 없다는 걸 숨기지 않는다.
+ * (팀명·포인트·등급) 미리 보여 주면서, 아직 아무도 없다는 걸 숨기지 않는다.
  */
 function Teaser({ bySize }: { bySize: boolean }) {
   const groups = bySize ? SIZE_GROUPS : [{ size: 0, label: "" }];
@@ -287,15 +277,14 @@ function Teaser({ bySize }: { bySize: boolean }) {
         <div key={g.size}>
           {g.label && <GroupLabel label={g.label} />}
           <div aria-hidden className="flex flex-col gap-1.5 text-body">
-            <HeaderRow showTime={bySize} />
+            <HeaderRow />
             {[1, 2].map((n) => (
               <div
                 key={n}
-                className={`baro-rank-row grid ${bySize ? COLS_TIME : COLS} items-center gap-x-2 px-3 py-2 font-galmuri text-[var(--bo-dim)]`}
+                className={`baro-rank-row grid ${COLS} items-center gap-x-2 px-3 py-2 font-galmuri text-[var(--bo-dim)]`}
               >
                 <RankMedal n={n} />
                 <span>? ? ?</span>
-                {bySize && <span className="text-right">--:--</span>}
                 <span className="text-right">---</span>
                 <span className="text-center">?</span>
               </div>
@@ -307,10 +296,4 @@ function Teaser({ bySize }: { bySize: boolean }) {
       <p className="-mt-4 text-center text-body-sm text-[var(--bo-dim)]">오픈 후 첫 기록부터 이 자리에 올라갑니다.</p>
     </div>
   );
-}
-
-function mmss(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
 }
