@@ -141,6 +141,20 @@ export function ThemeEditor({
 
   const activeVenues = venues.filter((v) => v.is_active);
 
+  /*
+    편집 중인 테마가 모드 묶음(variant_group)에 속하면 그 묶음의 모드들.
+    ⚠️ 고객 화면(getThemeVariants)과 같은 기준이어야 한다 — 켜진 테마를 sort_order
+       순으로 세운 **첫 번째가 대표 모드**다. 기준이 어긋나면 어드민에서 공통으로
+       켠 블록이 고객 화면에서는 안 붙는다.
+  */
+  const editingRow = editing?.id ? themes.find((t) => t.id === editing.id) : undefined;
+  const modeGroup = editingRow?.variant_group
+    ? themes.filter((t) => t.variant_group === editingRow.variant_group && t.is_active)
+    : [];
+  const representative = modeGroup.length >= 2 ? modeGroup[0] : null;
+  const isRepresentative = !!representative && representative.id === editingRow?.id;
+  const modeName = (t: ThemeWithTiers) => t.variant_label || t.name;
+
   function patch(p: Partial<ThemeInput>) {
     setEditing((cur) => (cur ? { ...cur, ...p } : cur));
   }
@@ -464,6 +478,21 @@ export function ThemeEditor({
               maxGroupSize={editing.max_group_size}
               venue={activeVenues.find((v) => v.id === editing.venue_id) ?? null}
               onChange={(blocks) => patchContent({ blocks })}
+              shareWith={
+                isRepresentative
+                  ? modeGroup.filter((t) => t.id !== editingRow?.id).map(modeName).join("·")
+                  : null
+              }
+              inherited={
+                representative && !isRepresentative
+                  ? {
+                      from: modeName(representative),
+                      blocks: normalizeThemeContent(representative.content).blocks.filter(
+                        (b) => b.shared
+                      ),
+                    }
+                  : null
+              }
             />
           </div>
 

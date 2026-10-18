@@ -83,11 +83,12 @@ function sanitizeContent(raw: unknown): ThemeContent {
     .map((b): ThemeBlock | null => {
       const arr = (v: unknown) => (Array.isArray(v) ? v : []);
       // 모든 블록이 공통으로 갖는 머리말. 비어 있으면 아예 넣지 않는다.
-      // ⚠️ hidden 을 빠뜨리면 저장할 때마다 숨김이 풀린다.
+      // ⚠️ hidden·shared 를 빠뜨리면 저장할 때마다 숨김·공통이 풀린다.
       const common = {
         title: str(b.title),
         ...(str(b.eyebrow) ? { eyebrow: str(b.eyebrow) } : {}),
         ...(b.hidden ? { hidden: true } : {}),
+        ...(b.shared ? { shared: true } : {}),
       };
       switch (b.type) {
         case "text":

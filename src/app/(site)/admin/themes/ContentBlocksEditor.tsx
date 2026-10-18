@@ -61,6 +61,8 @@ export function ContentBlocksEditor({
   maxGroupSize,
   venue,
   onChange,
+  shareWith = null,
+  inherited = null,
 }: {
   blocks: ThemeBlock[];
   accent: string;
@@ -70,6 +72,16 @@ export function ContentBlocksEditor({
   /** 장소 블록 미리보기용. 위 '장소' 선택을 바꾸면 여기도 같이 바뀐다. */
   venue: PublicVenue | null;
   onChange: (blocks: ThemeBlock[]) => void;
+  /**
+   * 대표 모드를 편집할 때 나머지 모드 이름("노말모드"). 있으면 블록마다
+   * '두 모드 공통' 스위치가 생긴다. 대표 모드가 아니거나 모드가 없으면 null.
+   */
+  shareWith?: string | null;
+  /**
+   * 대표 모드가 아닌 모드를 편집할 때, 대표 모드에서 공통으로 켜서 이 모드 화면
+   * 아래에 붙는 블록들. 여기서는 고칠 수 없다 — 고치는 곳은 대표 모드 하나다.
+   */
+  inherited?: { from: string; blocks: ThemeBlock[] } | null;
 }) {
   /** 폼이 열려 있는 블록. 미리보기만 보고 싶을 때가 대부분이라 기본은 닫힘. */
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -126,6 +138,24 @@ export function ContentBlocksEditor({
                   <span className="shrink-0 rounded-md bg-amber-500/15 px-2 py-0.5 text-micro text-amber-400">
                     숨김
                   </span>
+                )}
+                {shareWith && b.shared && (
+                  <span
+                    className="shrink-0 rounded-md px-2 py-0.5 text-micro"
+                    style={{ color: accent, backgroundColor: `${accent}26` }}
+                  >
+                    공통
+                  </span>
+                )}
+                {shareWith && (
+                  <button
+                    type="button"
+                    onClick={() => patch(i, { shared: !b.shared } as Partial<ThemeBlock>)}
+                    className="rounded-md border border-border px-2 py-1 text-micro"
+                    title={`켜면 ${shareWith} 화면에도 이 블록이 나옵니다. ${shareWith} 블록 뒤에 이 순서대로 붙어요.`}
+                  >
+                    {b.shared ? "공통 끄기" : "두 모드 공통"}
+                  </button>
                 )}
                 <button
                   type="button"
@@ -364,6 +394,40 @@ export function ContentBlocksEditor({
           </div>
         );
       })}
+
+      {/* 대표 모드에서 공통으로 켠 블록. 고객 화면에서 이 모드 블록 뒤에 이 순서로 붙는다. */}
+      {inherited && inherited.blocks.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <p className="text-micro text-muted">
+            아래 {inherited.blocks.length}개는 <strong>{inherited.from}</strong>에서 &lsquo;두 모드
+            공통&rsquo;으로 켠 블록이라 이 모드 화면에도 위 블록들 뒤에 붙어 나옵니다. 고치려면{" "}
+            {inherited.from}을 편집하세요. 가격표·장소는 이 모드의 요금·장소로 그려지고, 이
+            모드에 같은 종류 블록이 있으면 그 블록은 빠집니다.
+          </p>
+          {inherited.blocks.map((b, i) => (
+            <div key={i} className="rounded-lg border border-dashed border-border">
+              <div className="flex items-center gap-2 border-b border-dashed border-border px-3 py-2">
+                <span className="shrink-0 rounded-md bg-muted/20 px-2 py-0.5 text-micro text-muted">
+                  {THEME_BLOCK_LABELS[b.type]}
+                </span>
+                <span className="flex-1 truncate text-micro text-muted">
+                  {b.title || "(제목 없음)"}
+                </span>
+                <span className="shrink-0 text-micro text-muted">{inherited.from}에서 가져옴</span>
+              </div>
+              <div className={`px-4 py-4 ${b.hidden ? "opacity-35" : ""}`}>
+                <ThemeBlockView
+                  block={b}
+                  accent={accent}
+                  tiers={tiers}
+                  maxGroupSize={maxGroupSize}
+                  venue={venue}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

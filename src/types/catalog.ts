@@ -49,6 +49,14 @@ type BlockCommon = {
    * 타이핑해야 한다. 실제로 '컨텐츠 구성' 을 잠깐 내리려다 그럴 뻔했다.
    */
   hidden?: boolean;
+  /**
+   * 두 모드 공통. **대표 모드(묶음의 첫 번째) 블록에서만** 뜻이 있다 — 켜면 다른
+   * 모드 화면에도 이 블록이 나온다. 합치는 규칙은 `blocksForMode()`.
+   *
+   * 장소·FAQ·참여 전 확인처럼 모드와 상관없는 내용을 모드마다 따로 쓰면 두 벌이
+   * 되어, 한쪽만 고치는 날 서로 달라진다.
+   */
+  shared?: boolean;
 };
 
 export type ThemeBlock =
@@ -277,6 +285,29 @@ export function normalizeThemeContent(raw: unknown): ThemeContent {
   }
 
   return { ...parsed, blocks };
+}
+
+/**
+ * 숫자·장소를 블록이 아니라 **테마에서** 읽는 블록. 공통으로 걸어도 모드마다
+ * 자기 가격·장소가 그려진다.
+ */
+const DATA_BLOCK_TYPES = new Set<ThemeBlock["type"]>(["price", "venue"]);
+
+/**
+ * 대표 모드가 아닌 모드의 화면에 그릴 블록.
+ *
+ * **이 모드 블록이 먼저, 그 뒤에 대표 모드의 공통 블록**(대표 모드 순서대로).
+ * 모드마다 다른 것(추천 대상·진행 순서)은 위에, 같은 것(후기·가격·장소·FAQ)은
+ * 아래에 오는 것이 지금 상세 화면의 짜임이다.
+ *
+ * ⚠️ 가격표·장소가 공통이면 이 모드의 같은 종류 블록은 뺀다. 내용이 테마에서
+ *    오므로 둘이 같은 것을 그리는데, 블록이 하나도 없는 테마에는
+ *    `normalizeThemeContent()` 가 가격표를 저절로 끼워 넣어 두 번 나온다.
+ */
+export function blocksForMode(own: ThemeBlock[], representative: ThemeBlock[]): ThemeBlock[] {
+  const shared = representative.filter((b) => b.shared);
+  const covered = new Set(shared.map((b) => b.type).filter((t) => DATA_BLOCK_TYPES.has(t)));
+  return [...own.filter((b) => !covered.has(b.type)), ...shared];
 }
 
 /**

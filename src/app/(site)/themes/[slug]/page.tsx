@@ -31,6 +31,7 @@ import { RichText } from "@/components/ui/RichText";
 import { ShareButton } from "@/components/ui/ShareButton";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import {
+  blocksForMode,
   normalizeThemeContent,
   tidySynopsis,
   type ThemeContent,
@@ -232,8 +233,10 @@ export default async function ThemeDetailPage({
 
     ⚠️ DB 의 노말 행에 같은 글을 복사해 넣지 않는다. 두 벌이 되면 **반드시 한쪽만
        고치는 날이 온다.** 어드민에서 시놉시스를 고칠 자리는 파티(대표) 행 하나다.
-    ⚠️ 카테고리·장르·난이도·소요시간·가격·인원·상세블록은 반대로 **모드의 것**이라
+    ⚠️ 카테고리·장르·난이도·소요시간·가격·인원은 반대로 **모드의 것**이라
        theme 에서 그대로 읽는다.
+    ⚠️ 상세블록은 둘 다다 — 모드의 블록에 대표 모드가 '두 모드 공통' 으로 켠
+       블록을 붙인다(blocksForMode).
   */
   const themeLevel = variants[0] ?? base;
   // 조인 결과라 타입에 없다. 없으면 카테고리 줄을 통째로 생략한다.
@@ -245,7 +248,14 @@ export default async function ThemeDetailPage({
     ).theme_categories ?? null;
   // 옛 4칸 구조(for_you/steps/timetable/precautions)로 저장된 테마도 읽어준다.
   // 어드민에서 저장하는 순간 새 블록 구조로 덮인다.
-  const content: ThemeContent = normalizeThemeContent(theme.content);
+  const ownContent: ThemeContent = normalizeThemeContent(theme.content);
+  const content: ThemeContent =
+    theme.id === themeLevel.id
+      ? ownContent
+      : {
+          ...ownContent,
+          blocks: blocksForMode(ownContent.blocks, normalizeThemeContent(themeLevel.content).blocks),
+        };
   // 컬럼(p30)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const genres = theme.genres ?? [];
   const synopsis = tidySynopsis(themeLevel.description);
