@@ -145,7 +145,7 @@ function settleOne(r: Raw, themes: Map<string, ThemeInfo>): SettlementRow {
   let ratio: number | null = null;
   let retained = paid;
   if (cancelled && r.sessions?.start_at) {
-    // 환불 비율은 테마 규정을 따른다(노말모드는 2일 전도 50%).
+    // 환불 비율은 테마 규정을 따른다(노말모드는 3일 전까지 전액 · 2일 전 50%).
     const policy = (r.sessions.theme_id && themes.get(r.sessions.theme_id)?.refundPolicy) || "standard";
     ratio = refundRate(r.sessions.start_at, new Date(r.cancelled_at ?? r.created_at), policy);
     retained = Math.round(paid * (1 - ratio));

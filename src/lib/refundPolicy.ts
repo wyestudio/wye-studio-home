@@ -27,7 +27,7 @@ export function daysUntilSession(startAt: string, now: Date = new Date()): numbe
 /**
  * 테마마다 고르는 환불 규정(themes.refund_policy).
  *   standard  파티모드 등 — 4일 전까지 100% / 3일 전 50% / 2일 전부터 불가
- *   normal    노말모드   — 4일 전까지 100% / 3~2일 전 50% / 1일 전부터 불가 (2026-10-18)
+ *   normal    노말모드   — 3일 전까지 100% / 2일 전 50% / 1일 전부터 불가 (2026-10-18 대표님 확정)
  *
  * ⚠️ 값을 늘리면 DB 제약(themes_refund_policy_chk)과 이용약관 제8조도 같이 고친다.
  */
@@ -45,9 +45,13 @@ export function refundRate(
   policy: RefundPolicy = "standard"
 ): number {
   const days = daysUntilSession(startAt, now);
+  if (policy === "normal") {
+    if (days >= 3) return 1;
+    if (days === 2) return 0.5;
+    return 0;
+  }
   if (days >= 4) return 1;
   if (days === 3) return 0.5;
-  if (policy === "normal" && days === 2) return 0.5;
   return 0;
 }
 
@@ -68,14 +72,14 @@ type RefundTier = { when: string; result: string; tone: "ok" | "warn" | "danger"
  */
 const TIERS: Record<RefundPolicy, RefundTier[]> = {
   standard: [
-    { when: "행사일 4일 전 23:59까지", result: "100% 환불", tone: "ok" },
-    { when: "행사일 3일 전 23:59까지", result: "50% 환불", tone: "warn" },
-    { when: "행사일 2일 전 00:00 이후", result: "환불 불가", tone: "danger" },
+    { when: "진행일 4일 전 23:59까지", result: "100% 환불", tone: "ok" },
+    { when: "진행일 3일 전 23:59까지", result: "50% 환불", tone: "warn" },
+    { when: "진행일 2일 전 00:00 이후", result: "환불 불가", tone: "danger" },
   ],
   normal: [
-    { when: "행사일 4일 전 23:59까지", result: "100% 환불", tone: "ok" },
-    { when: "행사일 2일 전 23:59까지", result: "50% 환불", tone: "warn" },
-    { when: "행사일 1일 전 00:00 이후", result: "환불 불가", tone: "danger" },
+    { when: "진행일 3일 전 23:59까지", result: "100% 환불", tone: "ok" },
+    { when: "진행일 2일 전 23:59까지", result: "50% 환불", tone: "warn" },
+    { when: "진행일 1일 전 00:00 이후", result: "환불 불가", tone: "danger" },
   ],
 };
 

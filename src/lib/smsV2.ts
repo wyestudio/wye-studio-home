@@ -198,7 +198,7 @@ function baseVars(sd: SessionDisplay) {
     parking_note: sd.venue_parking_note ?? "인근 유료주차장을 이용해 주세요.",
     reapply_url: `www.wouldyouescape.com${sd.public_path ?? "/contents"}`,
     /*
-      환불 규정은 테마마다 다르다(노말모드는 2일 전도 50%). 템플릿에 문장을 박아 두면
+      환불 규정은 테마마다 다르다(노말모드는 3일 전까지 전액 · 2일 전 50%). 템플릿에 문장을 박아 두면
       노말 고객에게 파티 규정이 나간다 — 규정은 refundPolicy.ts 에서만 만든다.
     */
     refund_policy: refundPolicySms(sd.refund_policy),

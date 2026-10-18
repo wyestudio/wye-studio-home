@@ -244,7 +244,7 @@ export default function PrivacyPage() {
                 </tr>
                 <tr>
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">노쇼·블랙리스트 관리 기록</td>
-                  <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">행사일로부터 2년</td>
+                  <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">진행일로부터 2년</td>
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">부정 예약 방지 목적</td>
                 </tr>
                 <tr>
