@@ -291,14 +291,19 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-h2 font-semibold mb-2">
-              {session.session_type} {session.theme_name}
+              {/*
+                ⚠️ 테마명·모드는 session_display 에서 읽는다. sessions 의 theme_name ·
+                   session_type · theme_mode 는 옛 회차 칸이라 새 구조 회차에서는 비어 있어,
+                   제목에 날짜만 남았다(2026-10-18).
+              */}
+              {display?.theme_name ?? `${session.session_type ?? ""} ${session.theme_name ?? ""}`.trim()}
               {/*
                 모드 배지. 테마명이 두 모드 모두 '바-ㅇ탈출' 이라, 이게 없으면
                 회차 상세만 보고는 파티인지 노말인지 알 수 없다.
               */}
-              {session.theme_mode && (
+              {display?.theme_mode && (
                 <span className="ml-2 rounded-md bg-muted/20 px-2 py-0.5 text-micro font-normal text-muted align-middle">
-                  {session.theme_mode}
+                  {display.theme_mode}
                 </span>
               )}
             </h1>
