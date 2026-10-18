@@ -12,7 +12,8 @@ export type EditableAttendee = {
   is_representative: boolean;
   name: string;
   phone: string;
-  birth_year: number;
+  /** 노말모드 예약은 비어 있다(null). */
+  birth_year: number | null;
   nickname: string | null;
   gender: "M" | "F" | null;
   experience_range: ExperienceRange | null;
@@ -26,7 +27,8 @@ function toRow(a: EditableAttendee): AttendeeRow {
     isRepresentative: a.is_representative,
     name: a.name,
     phone: a.phone,
-    birthYear: String(a.birth_year),
+    // 노말 예약은 출생연도가 없다 — "null" 글자가 칸에 들어가지 않게 비운다.
+    birthYear: a.birth_year ? String(a.birth_year) : "",
     nickname: a.nickname ?? "",
     gender: a.gender ?? "",
     experienceRange: a.experience_range ?? "",

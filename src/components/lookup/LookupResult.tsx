@@ -42,7 +42,7 @@ function CopyIcon() {
 }
 
 /**
- * 참여내역 조회 결과.
+ * 신청내역 조회 결과.
  *
  * 신청 완료 화면과 같은 언어로 그린다 — 접수번호를 먼저 보여주고, 제출한 내용을
  * 그대로 다시 확인시킨 뒤, 취소는 맨 아래에 둔다.
@@ -65,6 +65,10 @@ export function LookupResult() {
   const [refundAccountNumber, setRefundAccountNumber] = useState<string>("");
   const [refundAccountHolder, setRefundAccountHolder] = useState<string>("");
   const [refundFormError, setRefundFormError] = useState<string | null>(null);
+  // 노말모드는 '예약'·이름과 휴대폰만(lookupApplication 이 테마에서 읽어 붙인다).
+  // 이 기능 전에 담긴 조회 결과에는 없다 — 파티 기준으로 본다.
+  const verb = state?.result?.booking_verb ?? "신청";
+  const solo = state?.result?.solo ?? false;
 
   useEffect(() => {
     const stored = sessionStorage.getItem("lookup:result");
@@ -150,7 +154,7 @@ export function LookupResult() {
   if (cancelled) {
     return (
       <div className="py-10 text-center sm:py-16">
-        <h1 className="text-h1 font-extrabold">신청이 취소되었습니다.</h1>
+        <h1 className="text-h1 font-extrabold">{verb}이 취소되었습니다.</h1>
         <p className="mt-1 text-h3 text-muted sm:mt-3">다음 기회에 뵙겠습니다. (제발)</p>
         <Link
           href="/contents"
@@ -218,7 +222,7 @@ export function LookupResult() {
           <p className="mt-4 text-body text-amber-300">
             현재 대기 {result.waiting_number}번입니다. 자리가 나면 개별 연락드립니다.
             <span className="mt-1 block text-body-sm text-muted">
-              앞선 신청이 취소되면 순번은 앞당겨질 수 있습니다.
+              앞선 {verb}이 취소되면 순번은 앞당겨질 수 있습니다.
             </span>
           </p>
         ) : null}
@@ -251,7 +255,11 @@ export function LookupResult() {
       {/* ── 신청 내용 ── */}
       <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
         <div className="mb-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 sm:mb-4">
-          <h2 className="font-semibold text-h3">{result.theme_name}</h2>
+          <h2 className="font-semibold text-h3">
+            {result.theme_name}
+            {/* 테마명은 두 모드가 같다 — 어느 모드로 예약했는지 같이 적는다. */}
+            {result.mode_label && <span style={{ color: accent }}> · {result.mode_label}</span>}
+          </h2>
           {result.category_name && (
             <span
               className="rounded-full border px-2 py-0.5 text-micro font-semibold sm:px-2.5 sm:py-1"
@@ -274,7 +282,7 @@ export function LookupResult() {
 
         <Row label="일시" value={formatDateTimeFull(result.start_at)} />
         <Row label="위치" value={result.venue_area} />
-        <Row label="신청일" value={formatDateTimeFull(result.created_at)} />
+        <Row label={`${verb}일`} value={formatDateTimeFull(result.created_at)} />
         <Row label="입금확인일" value={paidAt ? formatDateTimeFull(paidAt) : "-"} />
         {result.status === "cancelled" && (
           <Row
@@ -336,9 +344,9 @@ export function LookupResult() {
         <div className="mt-4 space-y-3 sm:mt-6 sm:space-y-4">
           <div className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
             <p className="mb-1 text-body-sm font-semibold text-muted">
-              {isGroup ? "대표 신청자 (본인)" : "신청자"}
+              {isGroup ? `대표 ${verb}자 (본인)` : `${verb}자`}
             </p>
-            <AttendeeDisplay attendee={representative} />
+            <AttendeeDisplay attendee={representative} solo={solo} />
           </div>
 
           {companions.length > 0 && (
@@ -346,7 +354,7 @@ export function LookupResult() {
               {(index) => (
                 <div className="rounded-lg border border-line-subtle bg-fill-subtle p-4 sm:p-5">
                   <p className="mb-1 text-body-sm font-semibold text-muted">동행자 {index + 1}</p>
-                  <AttendeeDisplay attendee={companions[index]} />
+                  <AttendeeDisplay attendee={companions[index]} solo={solo} />
                 </div>
               )}
             </CompanionPager>
@@ -363,7 +371,7 @@ export function LookupResult() {
       </div>
 
       {/* ── 취소·환불 규정 ── */}
-      {canCancel && <RefundPolicyBox policy={result.refund_policy ?? "standard"} />}
+      {canCancel && <RefundPolicyBox policy={result.refund_policy ?? "standard"} verb={verb} />}
 
       {/* ── 버튼 ── */}
       <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -388,7 +396,7 @@ export function LookupResult() {
             disabled={cancelling}
             className="flex-1 rounded-lg border border-red-500/50 px-4 py-3 text-h3 font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50 sm:py-4"
           >
-            {cancelling ? "처리 중…" : "신청 취소"}
+            {cancelling ? "처리 중…" : `${verb} 취소`}
           </button>
         )}
       </div>
@@ -422,7 +430,7 @@ export function LookupResult() {
       <ConfirmDialog
         open={showCancelDialog}
         title="정말 취소하시겠어요?"
-        message="한 번 취소하면 다시 신청해야 합니다."
+        message={`한 번 취소하면 다시 ${verb}해야 합니다.`}
         cancelLabel="아니요"
         confirmLabel="네, 취소"
         onCancel={() => setShowCancelDialog(false)}
@@ -435,7 +443,8 @@ export function LookupResult() {
   );
 }
 
-function AttendeeDisplay({ attendee }: { attendee: ApplicationAttendee }) {
+/** 참여자 한 명. 노말(solo)은 이름·휴대폰만 받아서 나머지 줄을 그리지 않는다. */
+function AttendeeDisplay({ attendee, solo = false }: { attendee: ApplicationAttendee; solo?: boolean }) {
   return (
     <>
       <Row
@@ -448,15 +457,19 @@ function AttendeeDisplay({ attendee }: { attendee: ApplicationAttendee }) {
         }
       />
       <Row label="휴대폰" value={formatPhoneDigits(attendee.phone)} />
-      <Row label="출생연도" value={`${attendee.birth_year}년생`} />
-      <Row
-        label="방탈출 경험"
-        value={attendee.experience_range ? EXPERIENCE_RANGE_LABELS[attendee.experience_range] : "-"}
-      />
-      <Row
-        label="성별"
-        value={attendee.gender === "M" ? "남성" : attendee.gender === "F" ? "여성" : "선택 안 함"}
-      />
+      {!solo && (
+        <>
+          <Row label="출생연도" value={attendee.birth_year ? `${attendee.birth_year}년생` : "-"} />
+          <Row
+            label="방탈출 경험"
+            value={attendee.experience_range ? EXPERIENCE_RANGE_LABELS[attendee.experience_range] : "-"}
+          />
+          <Row
+            label="성별"
+            value={attendee.gender === "M" ? "남성" : attendee.gender === "F" ? "여성" : "선택 안 함"}
+          />
+        </>
+      )}
     </>
   );
 }

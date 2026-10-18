@@ -10,7 +10,7 @@ import {
   isBookable,
 } from "@/lib/themes";
 import { modeKey } from "../ModeBox";
-// 날짜 형식은 완료 화면·참여내역 조회와 같아야 한다. 한 화면 안에서 회차 일시와
+// 날짜 형식은 완료 화면·신청내역 조회와 같아야 한다. 한 화면 안에서 회차 일시와
 // 신청일이 다른 모양이면 같은 종류의 값으로 읽히지 않는다.
 import { formatDateTimeFull } from "@/lib/format";
 import { ApplyForm } from "./ApplyForm";
@@ -158,6 +158,8 @@ export default async function ApplyPage({
         refundPolicy={toRefundPolicy(theme.refund_policy)}
         // 재참여 한도가 비어 있으면 단독 진행 상품이다(노말모드, DB 판정과 같은 기준).
         solo={theme.reparticipation_limit === null}
+        // 모드가 둘 이상인 테마만 모드 이름을 적는다.
+        modeLabel={variants.length >= 2 ? theme.variant_label : null}
         sessionId={target.id}
         themeName={theme.name}
         sessionLabel={formatDateTimeFull(target.start_at)}

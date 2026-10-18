@@ -34,7 +34,7 @@ type AdminAttendee = {
   is_representative: boolean;
   name: string;
   phone: string;
-  birth_year: number;
+  birth_year: number | null;
   nickname: string | null;
   gender: "M" | "F" | null;
   experience_range: ExperienceRange | null;
@@ -151,7 +151,7 @@ export function ApplicationDetailDialog({
                       value={`${attendee.name}${attendee.nickname ? ` (${attendee.nickname})` : ""}`}
                     />
                     <InfoRow label="전화번호" value={attendee.phone} />
-                    <InfoRow label="출생년도" value={`${attendee.birth_year}년생`} />
+                    <InfoRow label="출생년도" value={attendee.birth_year ? `${attendee.birth_year}년생` : "-"} />
                     <InfoRow label="성별" value={attendee.gender === "M" ? "남성" : attendee.gender === "F" ? "여성" : "-"} />
                     <InfoRow
                       label="방탈출 경험"

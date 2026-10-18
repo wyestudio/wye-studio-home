@@ -95,7 +95,8 @@ export type Application = {
 export type ApplicationAttendee = {
   name: string;
   phone: string;
-  birth_year: number;
+  /** 노말모드(단독 진행) 예약은 받지 않아 null 이다. */
+  birth_year: number | null;
   nickname: string | null;
   is_representative: boolean;
   gender: Gender | null;
@@ -126,7 +127,7 @@ export type AttendeeInput = {
 };
 
 /**
- * 참여내역 조회(lookup_application_v2 RPC) 결과.
+ * 신청내역 조회(lookup_application_v2 RPC) 결과.
  *
  * 이 한 타입이 신·구 신청을 모두 담는다. DB 함수가 coalesce 로 양쪽에서
  * 값을 끌어오므로, 기존 8/29 신청도 새 구조 신청도 같은 모양으로 온다.
@@ -172,4 +173,10 @@ export type ApplicationLookupResult = {
    * 테마에서 따로 읽어 붙인다. 못 읽으면 standard.
    */
   refund_policy?: "standard" | "normal";
+  /** 테마의 모드 이름(파티모드/노말모드). 모드가 없으면 null. lookupApplication 이 붙인다. */
+  mode_label?: string | null;
+  /** 화면 동사 — 노말모드는 '예약'. */
+  booking_verb?: "신청" | "예약";
+  /** 단독 진행 상품(노말)인가. 이름·휴대폰만 받아서 나머지 줄을 그리지 않는다. */
+  solo?: boolean;
 };

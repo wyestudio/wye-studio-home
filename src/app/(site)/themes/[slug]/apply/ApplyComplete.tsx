@@ -54,7 +54,13 @@ export function ApplyComplete({
   accentColor,
   verb = "신청",
   refundPolicy = "standard",
+  solo = false,
+  modeLabel = null,
 }: {
+  /** 노말(단독 진행) — 이름·휴대폰만 받아서 나머지 줄을 그리지 않는다. */
+  solo?: boolean;
+  /** 모드 이름. 테마 줄에 같이 적는다. */
+  modeLabel?: string | null;
   /** '신청' | '예약'(노말모드). */
   verb?: string;
   refundPolicy?: RefundPolicy;
@@ -122,7 +128,7 @@ export function ApplyComplete({
             {copied ? <>복사됨</> : <CopyIcon />}
           </button>
         </div>
-        <p className="mt-2 text-body text-muted sm:mt-3">참여 내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
+        <p className="mt-2 text-body text-muted sm:mt-3">신청내역 조회에 쓰입니다. 꼭 저장해주세요.</p>
 
         {isWaiting && (
           <p className="mt-4 text-h3 text-amber-300">
@@ -169,7 +175,7 @@ export function ApplyComplete({
       <div className="rounded-xl border border-line p-5 sm:p-7 lg:p-8">
         <h2 className="mb-2 font-semibold sm:mb-3 text-h3">{verb} 정보</h2>
 
-        <Row label="테마" value={themeName} />
+        <Row label="테마" value={modeLabel ? `${themeName} · ${modeLabel}` : themeName} />
         <Row label="일시" value={sessionLabel} />
         <Row label="입금자명" value={depositorName} />
         <Row
@@ -216,26 +222,31 @@ export function ApplyComplete({
                 }
               />
               <Row label="휴대폰" value={formatPhoneDigits(a.phone)} />
-              <Row label="출생연도" value={`${a.birth_year}년생`} />
-              <Row
-                label="방탈출 경험"
-                value={EXPERIENCE_RANGE_LABELS[a.experience_range] ?? "-"}
-              />
-              <Row
-                label="성별"
-                value={a.gender === "M" ? "남성" : a.gender === "F" ? "여성" : "선택 안 함"}
-              />
+              {/* 노말은 이 셋을 받지 않는다 — 비어 있는 줄을 '선택 안 함' 으로 채워 보이지 않는다. */}
+              {!solo && (
+                <>
+                  <Row label="출생연도" value={a.birth_year ? `${a.birth_year}년생` : "-"} />
+                  <Row
+                    label="방탈출 경험"
+                    value={EXPERIENCE_RANGE_LABELS[a.experience_range] ?? "-"}
+                  />
+                  <Row
+                    label="성별"
+                    value={a.gender === "M" ? "남성" : a.gender === "F" ? "여성" : "선택 안 함"}
+                  />
+                </>
+              )}
             </div>
           ))}
         </div>
       </div>
 
       {/* ── 취소·환불 규정 ── */}
-      <RefundPolicyBox policy={refundPolicy} />
+      <RefundPolicyBox policy={refundPolicy} verb={verb} />
 
       {/* ── 다음 ── */}
       <div className="rounded-lg border border-line bg-fill p-5 text-center text-h3 sm:p-7 lg:p-8">
-        <p className="font-semibold">참여 내역은 언제든 확인할 수 있어요</p>
+        <p className="font-semibold">신청내역은 언제든 확인할 수 있어요</p>
         <p className="mt-1 text-muted sm:mt-2">
           휴대폰 번호와 접수번호 <strong>{result.confirmationCode}</strong>로 조회하실 수 있습니다.
         </p>
@@ -245,7 +256,7 @@ export function ApplyComplete({
             className="rounded-lg px-4 py-2.5 text-body font-semibold sm:px-6 sm:py-3.5"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}
           >
-            참여 내역 조회
+            신청내역 조회
           </Link>
           <Link href="/contents" className="rounded-lg border border-line px-4 py-2.5 text-body sm:px-6 sm:py-3.5">
             다른 콘텐츠 보기

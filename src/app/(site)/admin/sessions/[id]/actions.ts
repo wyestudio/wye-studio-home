@@ -711,6 +711,17 @@ export type ManualAttendeeInput = {
 //    unit_price_krw·amount_krw 를 아예 넣지 않아 금액이 NULL 인 신청이 만들어졌다.
 //    규칙을 두 벌로 두면 반드시 갈라지므로 판정은 v3 한 곳에만 둔다.
 //    쿠폰은 넘기지 않는다 — 어드민 수동 등록에는 쿠폰 입력 칸이 없다.
+/**
+ * 이 회차가 단독 진행 상품(노말모드)인가 — 재참여 한도가 비어 있는 테마. 노말 예약은
+ * 이름·휴대폰만 받으므로 어드민 등록·수정에서도 출생연도·성별·경험을 비워 둘 수 있다.
+ * 테마가 없거나(옛 회차) 못 읽으면 파티 기준(false).
+ */
+async function isSoloSession(adminClient: ReturnType<typeof createAdminClient>, themeId: string | null) {
+  if (!themeId) return false;
+  const { data } = await adminClient.from("themes").select("reparticipation_limit").eq("id", themeId).maybeSingle();
+  return data != null && data.reparticipation_limit === null;
+}
+
 export async function adminManualApply(
   sessionId: string,
   depositorName: string,
@@ -737,6 +748,7 @@ export async function adminManualApply(
   const isDatingSession = isDatingTheme(session.session_type);
   // 새 구조 회차는 min_age 가 항상 채워져 있다. 옛 회차(null)만 만 16세로 본다.
   const minAge = (session.min_age as number | null) ?? 16;
+  const solo = await isSoloSession(adminClient, session.theme_id as string | null);
 
   const trimmedDepositorName = depositorName.trim();
   if (!trimmedDepositorName || !isValidKoreanName(trimmedDepositorName)) {
@@ -762,13 +774,17 @@ export async function adminManualApply(
     }
     // 고객 신청과 같은 기준 — 회차의 min_age 다. 최종 판정은 v3 안의
     // is_eligible_birth_year() 가 하고, 여기서는 먼저 걸러 안내만 한다.
-    if (!isEligibleBirthYearForMinAge(attendee.birthYear, minAge)) {
+    // 노말(solo)은 출생연도를 받지 않는다 — 넣었을 때만 연령을 본다.
+    if ((!solo || attendee.birthYear) && !isEligibleBirthYearForMinAge(attendee.birthYear, minAge)) {
       return { error: `이 회차는 만 ${minAge}세 이상만 참여할 수 있습니다.` };
     }
-    if (!attendee.gender) {
+    if (!solo && !attendee.gender) {
       return { error: "모든 참여자의 성별을 선택해주세요." };
     }
-    if (!attendee.experienceRange || !isValidExperienceRange(attendee.experienceRange)) {
+    if (
+      (!solo || attendee.experienceRange) &&
+      (!attendee.experienceRange || !isValidExperienceRange(attendee.experienceRange))
+    ) {
       return { error: "모든 참여자의 방탈출 경험 횟수를 선택해주세요." };
     }
     if (attendee.nickname && !isValidNickname(attendee.nickname)) {
@@ -794,7 +810,7 @@ export async function adminManualApply(
     p_attendees: attendees.map((a) => ({
       name: a.name.trim(),
       phone: a.phone.trim(),
-      birth_year: a.birthYear,
+      birth_year: a.birthYear || null,
       nickname: a.nickname,
       gender: a.gender,
       experience_range: a.experienceRange,
@@ -889,6 +905,7 @@ export async function adminUpdateApplication(
 
   // 새 구조 회차는 min_age 가 항상 채워져 있다. 옛 회차(null)만 만 16세로 본다.
   const minAge = (session.min_age as number | null) ?? 16;
+  const solo = await isSoloSession(adminClient, session.theme_id as string | null);
 
   const trimmedDepositorName = depositorName.trim();
   if (!trimmedDepositorName || !isValidKoreanName(trimmedDepositorName)) {
@@ -911,13 +928,17 @@ export async function adminUpdateApplication(
     }
     // 수동 등록과 같은 기준 — 회차의 min_age 다. 최종 판정은
     // admin_update_application() 안의 is_eligible_birth_year() 가 한다.
-    if (!isEligibleBirthYearForMinAge(attendee.birthYear, minAge)) {
+    // 노말(solo)은 출생연도를 받지 않는다 — 넣었을 때만 연령을 본다.
+    if ((!solo || attendee.birthYear) && !isEligibleBirthYearForMinAge(attendee.birthYear, minAge)) {
       return { error: `이 회차는 만 ${minAge}세 이상만 참여할 수 있습니다.` };
     }
-    if (!attendee.gender) {
+    if (!solo && !attendee.gender) {
       return { error: "모든 참여자의 성별을 선택해주세요." };
     }
-    if (!attendee.experienceRange || !isValidExperienceRange(attendee.experienceRange)) {
+    if (
+      (!solo || attendee.experienceRange) &&
+      (!attendee.experienceRange || !isValidExperienceRange(attendee.experienceRange))
+    ) {
       return { error: "모든 참여자의 방탈출 경험 횟수를 선택해주세요." };
     }
     if (attendee.nickname && !isValidNickname(attendee.nickname)) {
@@ -942,7 +963,7 @@ export async function adminUpdateApplication(
       id: a.id,
       name: a.name.trim(),
       phone: a.phone.trim(),
-      birth_year: a.birthYear,
+      birth_year: a.birthYear || null,
       nickname: a.nickname,
       gender: a.gender,
       experience_range: a.experienceRange,

@@ -13,13 +13,13 @@ import type { AttendeeForm } from "./ApplyForm";
  *    때마다 화면이 확대됐다(2026-10-04 UX 진단 P0). 16px 아래로 내리지 말 것.
  * ⚠️ 높이 48px(h-12) 은 터치 영역 기준이다(Apple HIG 44pt · Material 48dp).
  */
-const field =
+export const field =
   "h-12 w-full rounded-lg border border-line bg-fill px-3 text-input outline-none focus:border-line-strong sm:h-14 text-h3";
-const fieldInvalid =
+export const fieldInvalid =
   "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 text-h3";
-const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
+export const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
 const hint = "mt-1 text-body-sm text-muted sm:mt-1.5";
-const errorText = "mt-1 text-body-sm text-danger sm:mt-1.5";
+export const errorText = "mt-1 text-body-sm text-danger sm:mt-1.5";
 
 /*
   입력칸이 자기 오류 문구를 가리키게 하는 속성 묶음(aria-describedby).
@@ -27,7 +27,7 @@ const errorText = "mt-1 text-body-sm text-danger sm:mt-1.5";
   읽어주지 못한다 — 2026-10-04 접근성 진단에서 공개 폼에 이 연결이 0건이었다.
   오류 문구 쪽에는 같은 규칙의 id(`<입력칸 id>-error`)를 단다.
 */
-function errorProps(id: string, hasError: boolean) {
+export function errorProps(id: string, hasError: boolean) {
   return {
     id,
     "aria-invalid": hasError || undefined,

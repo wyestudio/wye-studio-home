@@ -14,7 +14,8 @@ import { isInternalDevice, markInternalApplication } from "@/lib/internalTraffic
 export type AttendeeInput = {
   name: string;
   phone: string;
-  birth_year: number;
+  /** 노말모드(단독 진행) 예약은 받지 않는다 — null. */
+  birth_year: number | null;
   nickname: string;
   gender: string;
   experience_range: string;
@@ -168,15 +169,31 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
   if (!input.depositorName.trim()) return { error: "입금자명을 입력해주세요." };
   if (input.attendees.length === 0) return { error: "참여자 정보를 입력해주세요." };
 
+  const supabase = await createClient();
+
+  /*
+    노말모드(단독 진행 상품)는 이름·휴대폰만 받는다(2026-10-18). 어느 쪽인지는 **회차의
+    테마로 여기서 정한다** — 브라우저가 보낸 값을 믿으면 파티 회차에 출생연도 없이
+    신청할 수 있게 된다. 재참여 한도가 비어 있으면 단독 진행이다(DB 판정과 같은 기준).
+    ⚠️ 노말이면 받은 출생연도·닉네임·성별·경험을 **버린다**. 화면에 없는 칸의 값이
+       섞여 들어오면 안 된다.
+  */
+  const { data: sessionTheme } = await supabase
+    .from("sessions")
+    .select("themes(reparticipation_limit)")
+    .eq("id", input.sessionId)
+    .maybeSingle();
+  const themeRow = (sessionTheme as { themes?: { reparticipation_limit: number | null } | null } | null)?.themes;
+  const solo = themeRow != null && themeRow.reparticipation_limit === null;
+  const verb = solo ? "예약" : "신청";
+
   for (const [i, a] of input.attendees.entries()) {
-    const label = i === 0 ? "신청자" : `동행자 ${i}`;
+    const label = i === 0 ? `${verb}자` : `동행자 ${i}`;
     if (!a.name.trim()) return { error: `${label}의 이름을 입력해주세요.` };
     if (!/^01[016789]\d{7,8}$/.test(a.phone.replace(/\D/g, "")))
       return { error: `${label}의 휴대폰 번호를 정확히 입력해주세요.` };
-    if (!a.birth_year) return { error: `${label}의 출생연도를 선택해주세요.` };
+    if (!solo && !a.birth_year) return { error: `${label}의 출생연도를 선택해주세요.` };
   }
-
-  const supabase = await createClient();
 
   // 로그인 상태면 신청을 계정에 붙인다. 비회원 신청도 그대로 받는다(D-06).
   const {
@@ -189,14 +206,18 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
     p_depositor_name: input.depositorName.trim(),
     p_consent_required: input.consentRequired,
     p_consent_optional: input.consentOptional,
-    p_attendees: input.attendees.map((a) => ({
-      name: a.name.trim(),
-      phone: a.phone.replace(/\D/g, ""),
-      birth_year: a.birth_year,
-      nickname: a.nickname.trim() || null,
-      gender: a.gender || null,
-      experience_range: a.experience_range || null,
-    })),
+    p_attendees: input.attendees.map((a) =>
+      solo
+        ? { name: a.name.trim(), phone: a.phone.replace(/\D/g, ""), birth_year: null }
+        : {
+            name: a.name.trim(),
+            phone: a.phone.replace(/\D/g, ""),
+            birth_year: a.birth_year,
+            nickname: a.nickname.trim() || null,
+            gender: a.gender || null,
+            experience_range: a.experience_range || null,
+          }
+    ),
     p_notes: input.notes.trim() || null,
     p_consent_photo: input.consentPhoto,
     p_consent_marketing: input.consentMarketing,
@@ -294,10 +315,11 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
           attendees: input.attendees.map((a) => ({
             name: a.name.trim(),
             phone: a.phone.replace(/\D/g, ""),
-            nickname: a.nickname?.trim() || null,
-            birthYear: a.birth_year,
-            gender: a.gender || null,
-            experienceRange: a.experience_range || null,
+            // 노말은 이름·휴대폰만 받았다 — 저장한 것과 같게 비워서 넘긴다.
+            nickname: solo ? null : a.nickname?.trim() || null,
+            birthYear: solo ? null : a.birth_year,
+            gender: solo ? null : a.gender || null,
+            experienceRange: solo ? null : a.experience_range || null,
           })),
         });
       }

@@ -29,6 +29,7 @@ import {
 } from "./actions";
 import { readAttribution } from "@/lib/attribution";
 import { AttendeeFields, type NicknameCheckState } from "./AttendeeFields";
+import { SoloAttendeeRows } from "./SoloAttendeeRows";
 import {
   ConsentStep,
   EMPTY_CONSENTS,
@@ -77,12 +78,15 @@ function emptyAttendee(): AttendeeForm {
   };
 }
 
-/** 폼 상태에서 서버로 보낼 모양만 남긴다. */
-function toPayload(a: AttendeeForm): AttendeeInput {
+/**
+ * 폼 상태에서 서버로 보낼 모양만 남긴다.
+ * 노말(solo)은 출생연도를 받지 않는다 — 0 이 아니라 null 로 보낸다(서버도 한 번 더 비운다).
+ */
+function toPayload(a: AttendeeForm, solo = false): AttendeeInput {
   return {
     name: a.name,
     phone: phoneDigits(a.phoneInput),
-    birth_year: a.birth_year,
+    birth_year: solo ? null : a.birth_year,
     nickname: a.nickname,
     gender: a.gender,
     experience_range: a.experience_range,
@@ -137,7 +141,10 @@ export function ApplyForm({
   verb = "신청",
   refundPolicy = "standard",
   solo = false,
+  modeLabel = null,
 }: {
+  /** 모드 이름("노말모드"). 회차 요약·완료 화면에 테마명과 함께 적는다. 모드가 없으면 null. */
+  modeLabel?: string | null;
   /**
    * 단독 진행 상품(노말모드 — 재참여 제한이 없는 테마)인가. 동의 항목이 갈린다
    * (약관 제5조: 재신청 제한은 팀 대항 상품에만).
@@ -297,6 +304,9 @@ export function ApplyForm({
         errors.push({ field: `attendee-${i}-phone`, message: getValidationErrorMessage("phone", "invalid") });
       }
 
+      // 노말(단독 진행)은 이름·휴대폰만 받는다 — 아래 칸들은 화면에 없다.
+      if (solo) return;
+
       if (!a.birth_year) {
         errors.push({ field: `attendee-${i}-birthYear`, message: getValidationErrorMessage("birthYear", "required") });
       } else if (a.birth_year > maxBirthYear) {
@@ -351,7 +361,7 @@ export function ApplyForm({
     });
 
     return errors;
-  }, [attendees, maxBirthYear, minAge, verb]);
+  }, [attendees, maxBirthYear, minAge, verb, solo]);
 
   const validateStep3 = useCallback((): FieldError[] => {
     const errors: FieldError[] = [];
@@ -640,7 +650,7 @@ export function ApplyForm({
         // ⚠️ 마지막 '적용' 시도가 거부됐더라도, 이미 성공한 쿠폰은 그대로 보낸다.
         couponCodes: appliedCodes,
         depositorName,
-        attendees: attendees.map(toPayload),
+        attendees: attendees.map((a) => toPayload(a, solo)),
         notes: "",
         consentRequired: allRequiredChecked(consents, headcount, solo),
         // 기존 폼과 같은 기준 — 선택 항목을 '전부' 동의했을 때만 참이다.
@@ -678,10 +688,12 @@ export function ApplyForm({
         themeName={themeName}
         sessionLabel={sessionLabel}
         depositorName={depositorName}
-        attendees={attendees.map(toPayload)}
+        attendees={attendees.map((a) => toPayload(a, solo))}
         accentColor={accentColor}
         verb={verb}
         refundPolicy={refundPolicy}
+        solo={solo}
+        modeLabel={modeLabel}
       />
     );
   }
@@ -721,7 +733,11 @@ export function ApplyForm({
         {/* ── 회차 요약 ── */}
         <div className="rounded-lg border border-line bg-fill p-4 sm:p-6">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <p className="font-semibold text-h3">{themeName}</p>
+            <p className="font-semibold text-h3">
+              {themeName}
+              {/* 모드가 있는 테마는 어느 모드로 예약하는지 같이 적는다 — 테마명은 두 모드가 같다. */}
+              {modeLabel && <span style={{ color: accentColor }}> · {modeLabel}</span>}
+            </p>
             {categoryName && (
               <span
                 className="rounded-full border px-2 py-0.5 text-micro font-semibold sm:px-2.5"
@@ -790,14 +806,25 @@ export function ApplyForm({
               )}
             </div>
 
-            <AttendeeTabs
-              count={headcount}
-              activeIndex={activeIndex}
-              errorIndexes={errorIndexes}
-              onSelect={setActiveIndex}
-            />
+            {solo ? (
+              <SoloAttendeeRows
+                attendees={attendees}
+                verb={verb}
+                errorOf={(id) => errOf(step1Errors, id)}
+                conflictPhones={conflictPhones}
+                onChange={patchAttendee}
+                onTouch={markTouched}
+              />
+            ) : (
+              <AttendeeTabs
+                count={headcount}
+                activeIndex={activeIndex}
+                errorIndexes={errorIndexes}
+                onSelect={setActiveIndex}
+              />
+            )}
 
-            {attendees[activeIndex] && (
+            {!solo && attendees[activeIndex] && (
               <AttendeeFields
                 verb={verb}
                 index={activeIndex}

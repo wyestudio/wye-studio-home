@@ -76,7 +76,7 @@ const ITEMS: Item[] = [
     ),
   },
   {
-    key: "pii", id: "pii", required: true,
+    key: "pii", id: "pii", required: true, partyOnly: true,
     label: "개인정보 수집·이용에 동의합니다.",
     detail: (
       <>
@@ -92,6 +92,23 @@ const ITEMS: Item[] = [
         <strong>선택 항목:</strong> 성별, 닉네임 — 동의하지 않아도 신청할 수 있습니다.
         <br />
         <strong>목적:</strong> 예약 관리·현장 본인확인·팀 편성·결제/환불
+        <br />
+        <strong>보유:</strong> 행사 종료 후 5년. 필수항목 미동의 시 예약이 제한됩니다.
+      </>
+    ),
+  },
+  {
+    /*
+      노말(단독 진행)은 이름·휴대폰만 받는다(2026-10-18). 수집하지 않는 출생연도·경험·성별·
+      닉네임을 고지에 남기면 실제와 다른 고지가 된다 — 폼에서 칸을 늘리면 여기도 같이 고친다.
+    */
+    key: "pii", id: "pii-solo", required: true, soloOnly: true,
+    label: "개인정보 수집·이용에 동의합니다.",
+    detail: (
+      <>
+        <strong>필수 항목:</strong> 이름, 연락처, 예약정보, 입금자명·환불계좌
+        <br />
+        <strong>목적:</strong> 예약 관리·현장 본인확인·결제/환불
         <br />
         <strong>보유:</strong> 행사 종료 후 5년. 필수항목 미동의 시 예약이 제한됩니다.
       </>
@@ -317,7 +334,7 @@ export function ConsentStep({
         */}
         {tone === "optional" && (
           <p className="mb-3 text-body-sm text-muted sm:mb-4">
-            동의하지 않아도 신청할 수 있어요.
+            동의하지 않아도 {verb}할 수 있어요.
           </p>
         )}
         <div className="space-y-3 sm:space-y-4">{list.map(row)}</div>

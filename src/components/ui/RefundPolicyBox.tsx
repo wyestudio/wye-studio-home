@@ -3,14 +3,21 @@ import { refundTiers, type RefundPolicy } from "@/lib/refundPolicy";
 /**
  * 취소·환불 규정 안내.
  *
- * 신청 완료·참여내역 조회에서 같은 모양으로 쓴다. 규정 자체는
+ * 신청 완료·신청내역 조회에서 같은 모양으로 쓴다. 규정 자체는
  * src/lib/refundPolicy.ts 한 곳에만 있다.
  *
  * 붉은 계열로 눈에 띄게 하되, 예전처럼 배경을 통째로 붉게 칠하지는 않는다 —
  * 이 화면의 다른 카드들과 이질적이라 '경고' 가 아니라 '오류' 처럼 읽혔다.
  * 테두리와 제목만 붉게 두고 표의 마지막 줄(환불 불가)만 강조한다.
  */
-export function RefundPolicyBox({ policy = "standard" }: { policy?: RefundPolicy }) {
+export function RefundPolicyBox({
+  policy = "standard",
+  verb = "신청",
+}: {
+  policy?: RefundPolicy;
+  /** '신청' | '예약'(노말모드). */
+  verb?: string;
+}) {
   return (
     // 신청 완료·조회 결과 화면 크기(2026-09-15 키움)에 맞춰 sm·lg 에서 한 단계씩 키운다.
     <div className="rounded-xl border border-danger/40 bg-danger/[0.07] p-5 sm:p-7 lg:p-8">
@@ -32,8 +39,8 @@ export function RefundPolicyBox({ policy = "standard" }: { policy?: RefundPolicy
       </ul>
 
       <p className="mt-3 border-t border-danger/20 pt-3 text-body-sm leading-relaxed text-muted sm:mt-4 sm:pt-4">
-        취소는 참여 내역 조회에서 직접 하실 수 있고, 환불은 영업일 기준 3~5일 이내 처리됩니다.
-        연락 없이 불참(노쇼)하시면 이후 신청이 제한될 수 있습니다.
+        취소는 신청내역 조회에서 직접 하실 수 있고, 환불은 영업일 기준 3~5일 이내 처리됩니다.
+        연락 없이 불참(노쇼)하시면 이후 {verb}이 제한될 수 있습니다.
       </p>
     </div>
   );
