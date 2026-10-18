@@ -10,6 +10,7 @@ import { phoneDigits } from "@/lib/phone";
 import type { Attribution } from "@/lib/attribution";
 import { recordAttribution } from "@/lib/attributionServer";
 import { isInternalDevice, markInternalApplication } from "@/lib/internalTraffic";
+import { getParticipationHistory, revisitLabel } from "@/lib/participationHistory";
 
 export type AttendeeInput = {
   name: string;
@@ -294,6 +295,9 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
       //    2026-09-13 이전에는 이 호출 자체가 없어서 신규 신청이 Slack 에
       //    전혀 뜨지 않았다(레거시 폼에만 붙어 있었다).
       if (sv) {
+        // 참여자별 '몇 번째 참여인가'(운영자 전용 — 고객 화면에는 내보내지 않는다).
+        const history = await getParticipationHistory([r.id]);
+        const historyByPhone = new Map([...history.values()].map((h) => [h.phone, h]));
         await sendApplicationSlackAlertV2({
           // 노말은 이름·휴대폰만 있는 노말용 템플릿으로 보낸다.
           solo,
@@ -325,6 +329,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
             birthYear: solo ? null : a.birth_year,
             gender: solo ? null : a.gender || null,
             experienceRange: solo ? null : a.experience_range || null,
+            visit: revisitLabel(historyByPhone.get(a.phone.replace(/\D/g, ""))) ?? "첫 참여",
           })),
         });
       }

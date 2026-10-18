@@ -89,6 +89,8 @@ export type SlackAttendee = {
   birthYear?: number | null;
   gender?: string | null;
   experienceRange?: string | null;
+  /** '첫 참여' / '재참여 3번째 (노말 2)' — 운영자 전용(participationHistory.ts). 모르면 빈 값. */
+  visit?: string | null;
 };
 
 /** 반복 블록 한 줄에 들어갈 값. 어드민 미리보기와 반드시 같은 키를 써야 한다. */
@@ -106,6 +108,7 @@ export function attendeeRow(a: SlackAttendee, i: number): TemplateVars {
       ? (EXPERIENCE_RANGE_LABELS[a.experienceRange as keyof typeof EXPERIENCE_RANGE_LABELS] ??
         a.experienceRange)
       : "-",
+    visit: a.visit ?? "",
   };
 }
 
@@ -133,7 +136,7 @@ const FALLBACK_APPLICATION_SOLO = `📥 새예약 — {{theme_name}} {{theme_mod
 인원: {{headcount}}명
 
 {{#attendees}}
-{{index}}. {{role}} {{name}} · {{phone}}
+{{index}}. {{role}} {{name}} · {{phone}} · {{visit}}
 {{/attendees}}
 
 입금자명: {{depositor_name}}

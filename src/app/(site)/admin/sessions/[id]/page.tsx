@@ -17,6 +17,7 @@ import {
   type SessionDisplayRow,
 } from "@/lib/sessionStatsFormat";
 import { isDatingTheme } from "@/lib/theme";
+import { getParticipationHistory, revisitLabel } from "@/lib/participationHistory";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,12 @@ function CommonCells({ app, appAttendees }: { app: any; appAttendees: any[] }) {
               <div key={idx} className="text-micro">
                 {att.is_representative && <span className="font-semibold">대표 </span>}
                 {att.name} [{att.phone}]
+                {/* 몇 번째 참여인가 — 운영자 전용(participationHistory.ts). 첫 참여면 안 붙인다. */}
+                {att.revisit && (
+                  <span className="ml-1.5 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-amber-400">
+                    {att.revisit}
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -250,6 +257,13 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
   const internalIds = await getInternalApplicationIds((applications ?? []).map((a) => a.id as string));
   const allApplications = (applications ?? []).map((a) => ({ ...a, is_internal: internalIds.has(a.id as string) }));
 
+  // 참여자별 '몇 번째 참여인가'(노말은 재참여 무제한). 운영자 화면에서만 보인다.
+  const history = await getParticipationHistory(allApplications.map((a) => a.id as string));
+  const attendeesWithVisit = (attendees ?? []).map((a) => ({
+    ...a,
+    revisit: revisitLabel(history.get(a.id as string)),
+  }));
+
   // 입금 전 건이 위로 오도록 정렬 (동순위는 기존 created_at desc 순서 유지, Array#sort는 안정 정렬).
   const confirmedApps = allApplications
     .filter((a: any) => a.status === "confirmed")
@@ -357,7 +371,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
               <tbody>
                 {confirmedApps.length > 0 ? (
                   confirmedApps.map((app: any) => {
-                    const appAttendees = attendees?.filter((a: any) => a.application_id === app.id) || [];
+                    const appAttendees = attendeesWithVisit.filter((a: any) => a.application_id === app.id);
                     return (
                       <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
                         <CommonCells app={app} appAttendees={appAttendees} />
@@ -398,7 +412,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
               <tbody>
                 {waitingApps.length > 0 ? (
                   waitingApps.map((app: any) => {
-                    const appAttendees = attendees?.filter((a: any) => a.application_id === app.id) || [];
+                    const appAttendees = attendeesWithVisit.filter((a: any) => a.application_id === app.id);
                     return (
                       <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
                         <CommonCells app={app} appAttendees={appAttendees} />
@@ -439,7 +453,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
               <tbody>
                 {cancelledApps.length > 0 ? (
                   cancelledApps.map((app: any) => {
-                    const appAttendees = attendees?.filter((a: any) => a.application_id === app.id) || [];
+                    const appAttendees = attendeesWithVisit.filter((a: any) => a.application_id === app.id);
                     return (
                       <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
                         <CommonCells app={app} appAttendees={appAttendees} />

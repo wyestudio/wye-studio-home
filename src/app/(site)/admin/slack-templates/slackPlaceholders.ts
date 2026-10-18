@@ -60,13 +60,15 @@ export const ATTENDEE_FIELDS = [
   "birth_year",
   "gender",
   "experience",
+  // 몇 번째 참여인가 — '첫 참여' / '재참여 3번째 (노말 2)'. 운영자 전용.
+  "visit",
 ];
 
 export const BLOCK_HINTS_BY_KEY: Record<string, BlockHint[]> = {
   // 노말 예약은 이름·휴대폰만 받는다 — 출생연도·성별·경험은 늘 비어 있다.
   application_new_solo: [
-    { name: "attendees", label: "대표 포함 전원", fields: ["index", "role", "name", "phone"] },
-    { name: "companions", label: "동행자만", fields: ["index", "role", "name", "phone"] },
+    { name: "attendees", label: "대표 포함 전원", fields: ["index", "role", "name", "phone", "visit"] },
+    { name: "companions", label: "동행자만", fields: ["index", "role", "name", "phone", "visit"] },
   ],
   application_new: [
     { name: "attendees", label: "대표 포함 전원", fields: ATTENDEE_FIELDS },
@@ -129,6 +131,7 @@ export function sampleBlocks(templateKey?: string): TemplateBlocks {
     birth_year: a.birth_year,
     gender: a.gender,
     experience: a.experience,
+    visit: i === 1 ? "재참여 3번째 (노말 2)" : "첫 참여",
   }));
 
   if (templateKey === "unpaid_alert") {
