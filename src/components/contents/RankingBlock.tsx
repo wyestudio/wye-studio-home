@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { RankingGrade, ThemeBlock, ThemeRanking } from "@/types/catalog";
 
 type RankingBlockData = Extract<ThemeBlock, { type: "ranking" }>;
@@ -182,16 +183,23 @@ function RankTable({
   );
 }
 
-/** 등급. S 계열만 강조색 — 위 등급이 한눈에 튀게. */
-function GradeBadge({ grade, accent }: { grade: RankingGrade; accent: string }) {
-  const top = grade.startsWith("S");
+/**
+ * 등급 배지 — 현장 앱(BAR-O)의 엔딩 집계표와 **같은 그림**(public/ranking-grade/<등급>.png).
+ * 현장에서 받은 배지를 사이트에서도 그대로 알아보게 한다(2026-10-18 대표님).
+ *
+ * ⚠️ 72px 도트 그림이라 줄일 때 흐려지지 않게 `image-rendering: pixelated` 를 준다.
+ * ⚠️ 그림을 갈아 끼울 때는 파일명을 바꾼다(wye-customer-facing — 검색 이미지 캐시).
+ */
+function GradeBadge({ grade }: { grade: RankingGrade; accent: string }) {
   return (
-    <span
-      className={`font-galmuri text-label ${top ? "" : grade === "A" || grade === "B" ? "text-foreground" : "text-muted"}`}
-      style={top ? { color: accent } : undefined}
-    >
-      {grade}
-    </span>
+    <Image
+      src={`/ranking-grade/${grade.toLowerCase()}.png`}
+      alt={`${grade} 등급`}
+      width={72}
+      height={72}
+      unoptimized
+      className="ml-auto block h-7 w-7 [image-rendering:pixelated]"
+    />
   );
 }
 
