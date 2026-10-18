@@ -771,13 +771,8 @@ export function ApplyForm({
                 size="lg"
                 value={String(headcount)}
                 onChange={(v) => setCount(Number(v))}
-                options={attendeeOptions.map((n) => ({
-                  value: String(n),
-                  label:
-                    recommendedGroupSize && n > recommendedGroupSize
-                      ? `${n}명 (권장 인원 초과)`
-                      : `${n}명`,
-                }))}
+                // 권장 인원 초과 표시는 붙이지 않는다(2026-10-18 대표님) — 아래 안내 줄이 권장 인원을 알린다.
+                options={attendeeOptions.map((n) => ({ value: String(n), label: `${n}명` }))}
               />
               {/*
                 권장 인원은 신청 상한과 다르다 — 넘겨도 신청은 된다. 노말모드는
