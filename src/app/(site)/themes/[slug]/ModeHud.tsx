@@ -39,35 +39,61 @@ export function ModeHud({
 
   useEffect(() => {
     /*
-      ⚠️ `[data-screen][id]` 로 좁히면 안 된다. 상세의 **콘텐츠 블록들은
-         data-screen 만 있고 id 가 없어서** 통째로 빠지고, 그러면 후기를 보고
-         있는데도 마지막으로 걸린 '회차 선택' 으로 돌아간다(2026-10-09 실측).
-         id 가 없는 블록은 그 블록을 감싸는 섹션(#detail)으로 보낸다.
+      상세 블록은 영문 라벨로 지은 id(sec-reviews 등)를 단다(ThemeBlocks). 두 모드가 같은
+      라벨을 쓰므로 바꾼 모드에서도 같은 섹션에 내려앉는다.
+      ⚠️ `[data-screen][id]` 로 좁히지 않는다. id 가 없는 화면은 감싸는 섹션(#detail)으로
+         보낸다 — 좁히면 마지막으로 걸린 '회차 선택' 으로 돌아간다(2026-10-09 실측).
     */
     const screens = Array.from(document.querySelectorAll<HTMLElement>("[data-screen]"))
       .map((el) => ({ el, id: el.id || el.parentElement?.closest("[id]")?.id || "" }))
       .filter((s) => s.id !== "");
     if (screens.length === 0) return;
 
-    const idOf = new Map(screens.map((s) => [s.el, s.id]));
-
     /*
-      위아래를 50% 씩 깎으면 **화면 한가운데 선을 지나는 요소만** 걸린다.
-      스크롤 이벤트를 직접 듣는 것보다 싸고, 관성 스크롤에서도 안 튄다.
+      **화면 가운데 선보다 위에서 시작한 마지막 화면**을 지금 섹션으로 본다.
+      ⚠️ '가운데 선을 지나는 화면' 으로 고르면(IntersectionObserver -50%) 페이지 맨 끝에서
+         틀린다 — 마지막 섹션(FAQ)이 짧으면 가운데 선이 그 아래 빈 곳에 걸려 아무것도
+         안 잡히고, 직전에 지나간 '참여 전 확인' 이 남는다(2026-10-18 실측).
+      ⚠️ 모드를 바꾸면 화면이 새로 그려지므로 매번 다시 찾는다(DOM 을 붙잡아 두지 않는다).
     */
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) {
-          if (!e.isIntersecting) continue;
-          const id = idOf.get(e.target as HTMLElement);
-          if (id) setSection(id);
-        }
-      },
-      { rootMargin: "-50% 0px -50% 0px", threshold: 0 },
-    );
-    screens.forEach((s) => io.observe(s.el));
-    return () => io.disconnect();
+    let raf = 0;
+    const pick = () => {
+      raf = 0;
+      // 맨 아래까지 내렸으면 화면 안에 머리가 보이는 마지막 섹션 — 짧은 마지막 섹션은
+      // 끝까지 내려도 가운데 선 위로 못 올라온다.
+      const atBottom =
+        window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+      const mid = atBottom ? window.innerHeight - 1 : window.innerHeight / 2;
+      let current: string | null = null;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-screen]")) {
+        if (el.getBoundingClientRect().top > mid) break;
+        current = el.id || el.parentElement?.closest("[id]")?.id || current;
+      }
+      setSection(current);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(pick);
+    };
+    pick();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
   }, []);
+
+  /*
+    한쪽 모드에만 있는 섹션(파티의 진행 순서 등)에서 바꿔 오면 주소의 #id 가 이 화면에
+    없다. 그러면 브라우저가 맨 위에 둔다 — 상세 맨 앞(#detail)으로 보낸다.
+  */
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (id && !document.getElementById(id)) {
+      document.getElementById("detail")?.scrollIntoView({ block: "start" });
+    }
+  }, [activeId]);
 
   // 소개 섹션을 보고 있는 동안에는 안 띄운다 — 바로 위에 모드 창이 있다.
   const shown = section !== null && section !== "intro-screen";

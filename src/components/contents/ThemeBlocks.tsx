@@ -23,7 +23,7 @@ import {
   type PublicVenue,
   type ThemeRanking,
 } from "@/types/catalog";
-import { SCREEN_SECTION } from "@/components/contents/screenSection";
+import { SCREEN_SCROLL_MARGIN, SCREEN_SECTION } from "@/components/contents/screenSection";
 
 /**
  * 가격표 블록이 쓸 프로모션. 켜져 있지 않으면 null 이고, 그때는 표가
@@ -125,18 +125,35 @@ export function ThemeBlocks({
     else groups.push([b]);
   }
 
+  /*
+    섹션 id — **영문 라벨(eyebrow)로 짓는다.** 파티·노말이 같은 라벨(CONTENTS · REVIEWS ·
+    PRICE · LOCATION · PLEASE CHECK · FAQ)을 쓰므로, 모드를 바꿔도 같은 id 로 이어진다.
+    모드 전환 패드(ModeHud)가 이 id 를 주소에 달아 보내 같은 섹션에 내려앉는다(2026-10-18).
+    ⚠️ 블록 종류(type)로 지으면 안 된다 — 파티 CONTENTS 는 목록, 노말은 시간 막대다.
+    ⚠️ 같은 라벨이 두 번 나오면 뒤엣것에 번호를 붙인다(id 는 한 페이지에 하나).
+  */
+  const seen = new Map<string, number>();
+  const sectionId = (b: ThemeBlock) => {
+    const base = `sec-${(b.eyebrow?.trim() || b.type).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || b.type}`;
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    return n === 1 ? base : `${base}-${n}`;
+  };
+
   return (
     <>
       {groups.map((group, i) => (
         <section
           key={i}
+          id={sectionId(group[0])}
           data-screen
           // 데스크톱 목차(SectionNav)가 읽는 이름
           data-nav-label={navLabelOf(group[0])}
           // 어디까지 읽고 나가는지 세는 집계용 키(SectionViewTracker).
           // 라벨은 운영자가 바꿀 수 있어 집계 기준으로 못 쓴다 — 종류로 센다.
           data-section-key={`block-${group[0].type}`}
-          className={SCREEN_SECTION}
+          // 모드 전환·목차로 #id 에 내려앉을 때 헤더에 제목이 가리지 않게.
+          className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}
         >
           {group.map((block, j) => (
             // 같은 묶음에 붙은 덧붙임 블록은 조금만 띄운다.
