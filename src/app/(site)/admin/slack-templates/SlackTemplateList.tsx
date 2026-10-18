@@ -28,6 +28,7 @@ const field = "rounded-md border border-border bg-background px-3 py-2 text-body
 
 /** 테마와 무관한 값들. 미리보기에서만 쓰는 샘플이다. */
 const SAMPLE_VARS: Record<string, string> = {
+  theme_mode: "노말모드",
   confirmation_code: "384920",
   headcount: "3",
   depositor_name: "홍길동",

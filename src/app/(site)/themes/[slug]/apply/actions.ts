@@ -180,10 +180,12 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
   */
   const { data: sessionTheme } = await supabase
     .from("sessions")
-    .select("themes(reparticipation_limit)")
+    .select("themes(reparticipation_limit, variant_label)")
     .eq("id", input.sessionId)
     .maybeSingle();
-  const themeRow = (sessionTheme as { themes?: { reparticipation_limit: number | null } | null } | null)?.themes;
+  const themeRow = (
+    sessionTheme as { themes?: { reparticipation_limit: number | null; variant_label: string | null } | null } | null
+  )?.themes;
   const solo = themeRow != null && themeRow.reparticipation_limit === null;
   const verb = solo ? "예약" : "신청";
 
@@ -293,6 +295,9 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
       //    전혀 뜨지 않았다(레거시 폼에만 붙어 있었다).
       if (sv) {
         await sendApplicationSlackAlertV2({
+          // 노말은 이름·휴대폰만 있는 노말용 템플릿으로 보낸다.
+          solo,
+          modeLabel: themeRow?.variant_label ?? null,
           sessionId: input.sessionId,
           themeName: sv.theme_name as string,
           sessionLabel: formatSessionDateTime(sv.start_at as string),

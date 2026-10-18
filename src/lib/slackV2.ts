@@ -124,8 +124,32 @@ const FALLBACK_APPLICATION = `📥 새신청 — {{theme_name}} {{session_label}
 
 현재 인원 — 확정 {{confirmed_count}}명 · 대기 {{waiting_count}}명`;
 
+/**
+ * 노말모드(단독 진행) 새 예약 알림의 폴백. 이름·휴대폰만 받아서 출생연도·성별·경험 칸이
+ * 없다. 본문은 slack_templates 의 application_new_solo 가 먼저다.
+ */
+const FALLBACK_APPLICATION_SOLO = `📥 새예약 — {{theme_name}} {{theme_mode}} {{session_label}}{{status_suffix}}
+접수번호: {{confirmation_code}}
+인원: {{headcount}}명
+
+{{#attendees}}
+{{index}}. {{role}} {{name}} · {{phone}}
+{{/attendees}}
+
+입금자명: {{depositor_name}}
+입금액: {{amount}}{{discount_suffix}}{{coupons_line}}
+예약일시: {{created_at}}
+입금기한: {{payment_deadline}}`;
+
 /** 문자1 과 같은 시점에 나가는 새 신청 알림. */
 export async function sendApplicationSlackAlertV2(p: {
+  /**
+   * 노말모드(단독 진행) 예약인가. 그러면 이름·휴대폰만 있는 노말용 템플릿
+   * (application_new_solo)을 쓴다 — 파티 템플릿이면 빈 칸이 '-년생 · -' 로 찍힌다.
+   */
+  solo?: boolean;
+  /** 모드 이름(파티모드/노말모드). {{theme_mode}} 로 들어간다. 모드가 없으면 빈 값. */
+  modeLabel?: string | null;
   sessionId: string;
   themeName: string;
   /** '9월 26일 (토) 19:30' 같은 표시용 문구 */
@@ -151,6 +175,7 @@ export async function sendApplicationSlackAlertV2(p: {
 
   const vars: TemplateVars = {
     theme_name: p.themeName,
+    theme_mode: p.modeLabel ?? "",
     session_label: p.sessionLabel,
     status: p.status === "waiting" ? "대기" : "확정",
     status_suffix: p.status === "waiting" ? " [대기]" : "",
@@ -189,8 +214,10 @@ export async function sendApplicationSlackAlertV2(p: {
     companions: p.attendees.slice(1).map((a, i) => attendeeRow(a, i + 1)),
   };
 
-  const body = await getSlackTemplateBody("application_new", FALLBACK_APPLICATION);
-  await post(process.env.SLACK_WEBHOOK_URL, renderTemplate(body, vars, blocks), "새신청");
+  const body = p.solo
+    ? await getSlackTemplateBody("application_new_solo", FALLBACK_APPLICATION_SOLO)
+    : await getSlackTemplateBody("application_new", FALLBACK_APPLICATION);
+  await post(process.env.SLACK_WEBHOOK_URL, renderTemplate(body, vars, blocks), p.solo ? "새예약" : "새신청");
 }
 
 const FALLBACK_REFUND = `💰 환불 필요 — {{theme_name}} {{session_label}}

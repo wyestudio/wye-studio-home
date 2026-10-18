@@ -10,6 +10,7 @@ import type { TemplateBlocks } from "@/lib/messageTemplate";
  */
 export const SLACK_PLACEHOLDER_LABELS: Record<string, string> = {
   theme_name: "테마명",
+  theme_mode: "모드 (파티모드/노말모드 · 모드 없는 테마는 빈 값)",
   session_label: "회차 일시",
   status: "확정/대기",
   status_suffix: "대기일 때만 ' [대기]' (확정이면 빈 값)",
@@ -62,6 +63,11 @@ export const ATTENDEE_FIELDS = [
 ];
 
 export const BLOCK_HINTS_BY_KEY: Record<string, BlockHint[]> = {
+  // 노말 예약은 이름·휴대폰만 받는다 — 출생연도·성별·경험은 늘 비어 있다.
+  application_new_solo: [
+    { name: "attendees", label: "대표 포함 전원", fields: ["index", "role", "name", "phone"] },
+    { name: "companions", label: "동행자만", fields: ["index", "role", "name", "phone"] },
+  ],
   application_new: [
     { name: "attendees", label: "대표 포함 전원", fields: ATTENDEE_FIELDS },
     { name: "companions", label: "동행자만", fields: ATTENDEE_FIELDS },
