@@ -459,7 +459,14 @@ export default async function ThemeDetailPage({
           size="lg"
         />
         <div className="mx-auto w-full max-w-4xl">
+          {/*
+            ⚠️ key 는 모드마다 다르게 둔다. 모드 전환은 주소만 바꾸는 이동이라 key 가
+               없으면 이 컴포넌트가 그대로 남아, 앞 모드에서 고른 날(파티 토요일)을
+               들고 노말모드로 넘어가 "이 날짜에는 회차가 없습니다" 가 뜬다. 새로
+               그려지면 그 모드에서 신청 가능한 가장 가까운 날이 선택된다.
+          */}
           <SessionPicker
+            key={theme.id}
             initialDateParam={dParam}
             themeSlug={theme.slug}
             themeName={theme.name}
