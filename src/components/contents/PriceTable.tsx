@@ -320,15 +320,26 @@ export function PriceTableEarlyBirdNote({
   accent: string;
 }) {
   return (
-    <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-line-subtle bg-fill-subtle px-4 py-3 text-body-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+    <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-line-subtle bg-fill-subtle px-4 py-3 text-body-sm text-muted">
+      <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          <span aria-hidden="true">🚀</span> 회차가{" "}
+          <strong className="font-semibold" style={{ color: accent }}>
+            {badgeLabel} 표시
+          </strong>
+          되어 있으면 해당 금액이 적용됩니다.
+        </p>
+        {note && <p className="text-muted sm:text-right">{note}</p>}
+      </div>
+      {/*
+        얼리버드가를 정가로 읽고 "단체는 왜 더 비싸냐" 는 문의가 들어왔다(2026-10-19).
+        기본가가 정가이고 얼리버드는 오픈룸 사전 신청에만 붙는다는 걸 표 바로 아래에 적는다.
+      */}
       <p>
-        <span aria-hidden="true">🚀</span> 회차가{" "}
-        <strong className="font-semibold" style={{ color: accent }}>
-          {badgeLabel} 표시
-        </strong>
-        되어 있으면 해당 금액이 적용됩니다.
+        <strong className="font-semibold text-foreground">기본가가 정가입니다.</strong>{" "}
+        {badgeLabel}가는 오픈룸 파티모드 사전 신청에만 적용되며, 단체 대관 · 노말모드에는
+        적용되지 않습니다.
       </p>
-      {note && <p className="text-muted sm:text-right">{note}</p>}
     </div>
   );
 }

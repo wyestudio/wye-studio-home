@@ -371,6 +371,9 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
             </ul>
             <p className="mt-4 text-body-sm leading-relaxed text-muted">
               참가비는 인원 · 일정 · 시기에 따라 달라져, 견적 신청 후 개별 안내드립니다.
+              {/* 오픈룸 얼리버드가를 정가로 알고 단체에도 요구하는 문의가 있었다(2026-10-19). */}
+              <br />
+              오픈룸 얼리버드 할인은 단체 대관에 적용되지 않습니다.
             </p>
           </Panel>
         </Block>
