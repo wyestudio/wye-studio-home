@@ -51,6 +51,25 @@ function monthCells(monthYmd: string): (string | null)[] {
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /**
+ * 날짜 한 칸의 표시. 기본은 hasOpen(흐린 점 여부)과 hasEarlyBird(프로모션 색)뿐이다.
+ *
+ * 모드가 여럿인 테마(바-ㅇ탈출 파티/노말)는 한 달력에 모든 모드의 회차를 같이 찍는다
+ * (2026-10-19 대표님). 그때는 부르는 쪽이 점 색을 정해서 dots 로 넘긴다 — 모드마다
+ * 색이 다르고, 하루에 두 모드가 다 있으면 점이 둘이다.
+ */
+export type CalendarDayStatus = {
+  hasOpen: boolean;
+  hasEarlyBird?: boolean;
+  /** 점 색(왼쪽부터). 있으면 아래 promo/accent 규칙 대신 이걸 그린다. */
+  dots?: string[];
+  /** 고른 칸의 바탕색. 없으면 promo/accent 규칙대로. */
+  selectedColor?: string;
+};
+
+/** 범례 한 칸. 묶음(배열) 사이에는 옅은 세로줄이 들어간다. */
+export type CalendarLegendItem = { color: string; label: string };
+
+/**
  * 호박을 그릴 날 (KST 'YYYY-MM-DD' → 읽어 주는 이름).
  *
  * 날짜를 코드에 박는다. 1년에 한 번 쓰자고 어드민에 '그날의 그림' 칸을 만들
@@ -86,8 +105,9 @@ export function BookingCalendar({
   openingDate,
   promoColor = null,
   promoLabel = "얼리버드",
+  legend = null,
 }: {
-  dateStatus: Map<string, { hasOpen: boolean; hasEarlyBird?: boolean }>;
+  dateStatus: Map<string, CalendarDayStatus>;
   selected: string;
   onSelect: (ymd: string) => void;
   accentColor: string;
@@ -99,6 +119,11 @@ export function BookingCalendar({
    */
   promoColor?: string | null;
   promoLabel?: string;
+  /**
+   * 범례를 직접 줄 때. 묶음끼리는 옅은 세로줄로 가른다(얼리버드 · 파티 | 노말 · 마감).
+   * 없으면 프로모션이 켜졌을 때만 기본 범례(얼리버드 · 일반 · 마감)를 그린다.
+   */
+  legend?: CalendarLegendItem[][] | null;
 }) {
   const today = kstYmd(new Date());
 
@@ -172,7 +197,7 @@ export function BookingCalendar({
           // 얼리버드인 날은 **고른 뒤에도** 같은 색으로 남는다. 색이 곧 뜻이라
           // (프로모션 색 = 얼리버드), 선택했다고 색이 바뀌면 그 뜻이 사라진다.
           const earlyBird = Boolean(promoColor && status?.hasEarlyBird);
-          const dayColor = earlyBird ? promoColor! : accentColor;
+          const dayColor = status?.selectedColor ?? (earlyBird ? promoColor! : accentColor);
           const isToday = ymd === today;
           /*
             호박은 글씨(오픈·오늘)보다 앞선다 — 칸 아래 자리는 하나뿐이다.
@@ -222,7 +247,15 @@ export function BookingCalendar({
               )}
 
               {/* 회차가 있는 날 표시. 전부 마감이면 흐리게. 글씨·그림이 있으면 생략. */}
-              {status && !isSelected && !note && !pumpkin && (
+              {status && !isSelected && !note && !pumpkin && status.dots && (
+                // 모드별 점. 회색(마감)은 이미 색으로 흐리므로 투명도를 따로 주지 않는다.
+                <span className="absolute bottom-1.5 left-1/2 flex -translate-x-1/2 gap-0.5">
+                  {status.dots.map((c, j) => (
+                    <span key={j} className="h-1 w-1 rounded-full" style={{ backgroundColor: c }} />
+                  ))}
+                </span>
+              )}
+              {status && !isSelected && !note && !pumpkin && !status.dots && (
                 <span
                   className="absolute bottom-1.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full"
                   style={{
@@ -241,7 +274,19 @@ export function BookingCalendar({
         '다른 색' 으로만 보인다. 프로모션이 꺼져 있으면(promoColor 없음) 색이
         한 가지뿐이라 범례를 그리지 않는다.
       */}
-      {promoColor && (
+      {legend ? (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 border-t border-line-subtle pt-2.5">
+          {legend.map((group, gi) => (
+            <span key={gi} className="flex items-center gap-x-3">
+              {/* 묶음 사이 구분. 있는 듯 없는 듯 옅게(2026-10-19 대표님). */}
+              {gi > 0 && <span aria-hidden="true" className="h-3 w-px bg-line" />}
+              {group.map((it) => (
+                <LegendDot key={it.label} color={it.color} label={it.label} />
+              ))}
+            </span>
+          ))}
+        </div>
+      ) : promoColor && (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-t border-line-subtle pt-2.5">
           <LegendDot color={promoColor} label={promoLabel} />
           <LegendDot color={accentColor} label="일반" />

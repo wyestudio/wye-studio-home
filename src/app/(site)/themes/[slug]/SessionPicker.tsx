@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { SCREEN_SCROLL_MARGIN } from "@/components/contents/screenSection";
 import type { SessionView } from "@/types/catalog";
 import type { SessionStats } from "@/types/domain";
-import { BookingCalendar } from "@/components/booking/BookingCalendar";
+import {
+  BookingCalendar,
+  type CalendarDayStatus,
+  type CalendarLegendItem,
+} from "@/components/booking/BookingCalendar";
 import { EarlyBirdBanner } from "@/components/promo/EarlyBirdBanner";
 import { scrollToBooking } from "./scrollToBooking";
 import { DETAIL_EVENT, pushGa4Event } from "@/lib/analytics";
@@ -78,6 +82,40 @@ const kstTime = (iso: string) =>
  * 예전에는 포스터 옆 칸에 있었는데(2026-09-15 까지), 그 자리를 난이도·시간·
  * 장르·시놉시스에 내주고 상세 설명 블록처럼 아래 섹션으로 내려왔다.
  */
+/**
+ * 달력에 같이 찍을 모드 하나(바-ㅇ탈출 파티/노말).
+ *
+ * 모드마다 회차가 다른 요일에 열린다(파티 토요일 · 노말 일요일). 예전에는 달력이 지금
+ * 고른 모드의 회차만 보여서, 파티 화면(기본)으로 들어온 손님에게 노말 회차가 안 열린
+ * 것처럼 보였다(2026-10-19 대표님). 그래서 모든 모드의 날짜를 한 달력에 찍고, 다른
+ * 모드의 날짜를 누르면 그 모드로 넘어간다.
+ *
+ * ⚠️ 날짜별 상태는 **서버가 판정해서** 내려준다(earlyBird·bookable 과 같은 이유).
+ */
+export type CalendarMode = {
+  id: string;
+  /** '파티모드' | '노말모드' */
+  label: string;
+  /** 이 모드의 점 색(themes.accent_color). */
+  accent: string;
+  /** 이 모드로 가는 주소(modeHref). */
+  href: string;
+  /** 이 모드에 지금 쓸 수 있는 얼리버드가 있으면 그 색, 없으면 null. */
+  promoColor: string | null;
+  promoLabel: string;
+  days: Record<string, { hasOpen: boolean; hasEarlyBird: boolean }>;
+};
+
+/** 마감 점. 모드와 상관없이 회색 하나다(2026-10-19 대표님). */
+const CLOSED_DOT = "var(--disabled)";
+
+/**
+ * 다른 모드의 날짜를 눌러 넘어갈 때 고른 날짜를 들고 간다.
+ * 그 날이 전부 마감이어도 '마감돼서 옮겼다' 로 다른 날로 옮기지 않게 — 그 규칙은
+ * 공유 링크(?d=)를 뒤늦게 연 사람을 위한 것이다.
+ */
+const KEEP_DATE_KEY = "wye:keep-picked-date";
+
 export type PickerPromotion = {
   badgeLabel: string;
   accentColor: string;
@@ -98,7 +136,12 @@ export function SessionPicker({
   initialDateParam = null,
   modeLabel = null,
   verb = "신청",
+  calendarModes = null,
+  activeModeId = null,
 }: {
+  /** 모드가 여럿일 때 한 달력에 같이 찍을 모드들(지금 모드 포함). 없으면 이 테마 회차만. */
+  calendarModes?: CalendarMode[] | null;
+  activeModeId?: string | null;
   themeSlug: string;
   /**
    * 고른 모드 이름("노말모드"). 신청 버튼에 날짜·시각과 함께 싣는다 — 모드를
@@ -144,7 +187,34 @@ export function SessionPicker({
   }, [sessions]);
 
   const dateStatus = useMemo(() => {
-    const map = new Map<string, { hasOpen: boolean; hasEarlyBird: boolean }>();
+    const map = new Map<string, CalendarDayStatus>();
+    if (calendarModes && calendarModes.length >= 2) {
+      /*
+        모든 모드를 한 달력에. 점 색은 노랑(얼리버드) · 모드색(파티 초록 · 노말 파랑) ·
+        회색(마감, 모드 무관)이다. 하루에 두 모드가 다 있으면 점이 둘이다.
+      */
+      const dates = new Set(calendarModes.flatMap((m) => Object.keys(m.days)));
+      for (const d of dates) {
+        const dots: string[] = [];
+        let hasOpen = false;
+        let selectedColor: string | undefined;
+        for (const m of calendarModes) {
+          const day = m.days[d];
+          if (!day) continue;
+          const color = !day.hasOpen
+            ? CLOSED_DOT
+            : m.promoColor && day.hasEarlyBird
+              ? m.promoColor
+              : m.accent;
+          hasOpen ||= day.hasOpen;
+          if (!dots.includes(color)) dots.push(color);
+          // 고른 칸은 지금 모드의 색으로 칠한다. 마감이면 회색 대신 모드색.
+          if (m.id === activeModeId) selectedColor = day.hasOpen ? color : m.accent;
+        }
+        map.set(d, { hasOpen, dots, selectedColor });
+      }
+      return map;
+    }
     for (const [d, list] of byDate)
       map.set(d, {
         hasOpen: list.some((s) => s.bookable),
@@ -153,7 +223,21 @@ export function SessionPicker({
         hasEarlyBird: list.some((s) => s.earlyBird),
       });
     return map;
-  }, [byDate]);
+  }, [byDate, calendarModes, activeModeId]);
+
+  /*
+    범례 — 얼리버드 · 파티 | 노말 · 마감(2026-10-19 대표님).
+    모드 하나가 한 묶음이고 그 모드의 얼리버드가 앞에 붙는다. 마감은 맨 끝.
+  */
+  const legend = useMemo((): CalendarLegendItem[][] | null => {
+    if (!calendarModes || calendarModes.length < 2) return null;
+    const groups = calendarModes.map((m) => [
+      ...(m.promoColor ? [{ color: m.promoColor, label: m.promoLabel }] : []),
+      { color: m.accent, label: m.label },
+    ]);
+    groups[groups.length - 1].push({ color: CLOSED_DOT, label: "마감" });
+    return groups;
+  }, [calendarModes]);
 
   const dates = useMemo(() => [...byDate.keys()].sort(), [byDate]);
 
@@ -187,19 +271,41 @@ export function SessionPicker({
     return { initialDate: bookable, missedDate: q };
   })();
 
-  const [selectedDate, setSelectedDate] = useState(initialDate);
+  /*
+    다른 모드의 날짜를 눌러 넘어온 경우 — 그 날이 마감이어도 그대로 연다(KEEP_DATE_KEY).
+    ⚠️ 모드 전환은 화면 안 이동이라 이 컴포넌트는 브라우저에서만 새로 그려진다
+       (서버 HTML 과 맞출 일이 없다). 표시는 바로 아래 effect 가 지운다.
+  */
+  const [keptDate] = useState(() => {
+    try {
+      const k = typeof window === "undefined" ? null : window.sessionStorage.getItem(KEEP_DATE_KEY);
+      return k && k === initialDateParam && byDate.has(k) ? k : null;
+    } catch {
+      return null;
+    }
+  });
+  const [selectedDate, setSelectedDate] = useState(keptDate ?? initialDate);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /*
     안내는 한 번만 보여준다. 사용자가 달력에서 다른 날을 고르면 지운다 —
     이미 스스로 날짜를 옮긴 사람에게 "선택하신 날은 마감됐어요" 가 계속
     붙어 있으면 지금 고른 날이 마감인 줄 안다.
   */
-  const [missedNotice, setMissedNotice] = useState(missedDate);
+  const [missedNotice, setMissedNotice] = useState(keptDate ? null : missedDate);
+
+  // 읽은 표시는 그린 뒤에 지운다. 초기값 함수에서 지우면 개발 모드의 두 번 호출에서 사라진다.
+  useEffect(() => {
+    try {
+      window.sessionStorage.removeItem(KEEP_DATE_KEY);
+    } catch {
+      // 저장소가 막혀 있으면 애초에 남은 표시도 없다.
+    }
+  }, []);
 
   const daySessions = byDate.get(selectedDate) ?? [];
   const selected = daySessions.find((s) => s.id === selectedId) ?? null;
 
-  if (sessions.length === 0) {
+  if (sessions.length === 0 && dateStatus.size === 0) {
     return (
       <div className="rounded-lg border border-line bg-fill p-8 text-center">
         <p className="font-semibold">현재 예정된 회차가 없습니다.</p>
@@ -215,7 +321,35 @@ export function SessionPicker({
     ? `${kstMonthDay(selected.start_at)} ${kstTime(selected.start_at)} ${modeLabel ? `${modeLabel} ` : ""}${verb}하기`
     : "날짜와 시간을 선택해주세요";
 
+  /*
+    누른 날짜를 어느 모드로 볼지. 지금 모드에 그 날 회차가 있으면 그대로 둔다 — 단, 지금
+    모드는 전부 마감인데 다른 모드에 자리가 있으면 그쪽으로. 지금 모드에 없으면 그 날
+    회차가 있는 모드로(자리 있는 쪽 먼저).
+  */
+  function modeForDate(d: string): CalendarMode | null {
+    if (!calendarModes || calendarModes.length < 2) return null;
+    const onDay = calendarModes.filter((m) => m.days[d]);
+    const current = onDay.find((m) => m.id === activeModeId);
+    const open = onDay.find((m) => m.days[d].hasOpen);
+    if (current && (current.days[d].hasOpen || !open)) return current;
+    return open ?? onDay[0] ?? null;
+  }
+
   function selectDate(d: string) {
+    const target = modeForDate(d);
+    if (target && target.id !== activeModeId) {
+      // 다른 모드로 넘어간다. 가격표·안내까지 그 모드 것으로 바뀌어야 해서 주소째 옮긴다.
+      try {
+        window.sessionStorage.setItem(KEEP_DATE_KEY, d);
+      } catch {
+        // 저장이 막힌 브라우저면 마감인 날만 가까운 날로 옮겨 열린다. 넘어가는 건 된다.
+      }
+      const url = new URL(target.href, window.location.origin);
+      url.searchParams.set("d", d);
+      // #booking — 넘어간 화면에서도 달력 자리에 내려앉는다.
+      router.push(`${url.pathname}${url.search}#booking`);
+      return;
+    }
     setSelectedDate(d);
     setSelectedId(null);
     // 스스로 날짜를 골랐으면 '마감돼서 옮겼다' 안내는 더 보여주지 않는다.
@@ -290,6 +424,7 @@ export function SessionPicker({
           onSelect={selectDate}
           promoColor={promo?.accentColor ?? null}
           promoLabel={promo?.badgeLabel ?? "얼리버드"}
+          legend={legend}
         />
       </div>
 

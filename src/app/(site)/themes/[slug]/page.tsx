@@ -39,12 +39,12 @@ import {
 } from "@/types/catalog";
 import { GROUP_ENTRY, hasGroupBooking } from "@/lib/groupBooking";
 import { PrivateRoomPanel } from "@/components/group/PrivateRoomPanel";
-import { SessionPicker, type PickerSession } from "./SessionPicker";
+import { SessionPicker, type CalendarMode, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
 import { SectionNav } from "./SectionNav";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
-import { ModeBox, modeKey } from "./ModeBox";
+import { ModeBox, modeHref, modeKey } from "./ModeBox";
 import { ModeHud } from "./ModeHud";
 import { SectionViewTracker } from "./SectionViewTracker";
 
@@ -236,6 +236,54 @@ export default async function ThemeDetailPage({
     : null;
 
   const accent = theme.accent_color || DEFAULT_ACCENT;
+
+  /*
+    한 달력에 모든 모드의 회차를 찍는다(2026-10-19 대표님) — 파티(기본) 화면으로 들어온
+    손님에게 노말 회차가 안 열린 것처럼 보였다. 지금 모드는 위에서 만든 sessions 를 쓰고,
+    다른 모드는 같은 규칙(bookable · earlyBird)으로 날짜별 상태만 만든다.
+    ⚠️ 회차·집계는 30초 캐시라(src/lib/themes.ts) 모드를 하나 더 읽어도 가볍다.
+  */
+  const kstDay = (iso: string) =>
+    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date(iso));
+  const calendarModes: CalendarMode[] | null =
+    variants.length >= 2
+      ? await Promise.all(
+          variants.map(async (v) => {
+            const tiers = promotionTiersForTheme(activePromo, v.id);
+            const list =
+              v.id === theme.id
+                ? sessions.map((s) => ({ start_at: s.start_at, bookable: s.bookable, earlyBird: s.earlyBird }))
+                : (await attachStats(await getPublicSessionsForTheme(v.id))).map((s) => ({
+                    start_at: s.start_at,
+                    bookable: isBookable(s, s.stats),
+                    earlyBird:
+                      activePromo !== null &&
+                      tiers.length > 0 &&
+                      isEarlyBirdSession(activePromo.promo, s.start_at, now),
+                  }));
+            const days: CalendarMode["days"] = {};
+            for (const s of list) {
+              const d = kstDay(s.start_at);
+              const prev = days[d];
+              days[d] = {
+                hasOpen: (prev?.hasOpen ?? false) || s.bookable,
+                hasEarlyBird: (prev?.hasEarlyBird ?? false) || s.earlyBird,
+              };
+            }
+            // 배너·가격표와 같은 규칙 — 지금 얼리버드로 신청할 수 있는 회차가 있을 때만 노랑.
+            const usable = list.some((s) => s.earlyBird && s.bookable);
+            return {
+              id: v.id,
+              label: v.variant_label ?? v.name,
+              accent: v.accent_color || DEFAULT_ACCENT,
+              href: modeHref(base.slug, variants, v),
+              promoColor: usable ? activePromo!.promo.accent_color : null,
+              promoLabel: activePromo?.promo.badge_label ?? "얼리버드",
+              days,
+            };
+          }),
+        )
+      : null;
   /*
     모드가 둘 이상일 때만 첫 화면을 두 칸으로 쪼갠다.
 
@@ -497,6 +545,8 @@ export default async function ThemeDetailPage({
             accepting={acceptingApplications}
             openingDate={theme.opening_date}
             modeLabel={hasModes ? theme.variant_label : null}
+            calendarModes={calendarModes}
+            activeModeId={theme.id}
             verb={verb}
             promo={
               promoUsable
