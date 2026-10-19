@@ -226,8 +226,8 @@ export function SessionPicker({
   }, [byDate, calendarModes, activeModeId]);
 
   /*
-    범례 — 얼리버드 · 파티 | 노말 · 마감(2026-10-19 대표님).
-    모드 하나가 한 묶음이고 그 모드의 얼리버드가 앞에 붙는다. 마감은 맨 끝.
+    범례 — 얼리버드 · 파티 | 노말 | 마감(2026-10-19 대표님).
+    모드 하나가 한 묶음이고 그 모드의 얼리버드가 앞에 붙는다. 마감은 맨 끝 따로.
   */
   const legend = useMemo((): CalendarLegendItem[][] | null => {
     if (!calendarModes || calendarModes.length < 2) return null;
@@ -235,7 +235,8 @@ export function SessionPicker({
       ...(m.promoColor ? [{ color: m.promoColor, label: m.promoLabel }] : []),
       { color: m.accent, label: m.label },
     ]);
-    groups[groups.length - 1].push({ color: CLOSED_DOT, label: "마감" });
+    // 마감은 모드와 상관없는 표시라 따로 한 묶음(앞에 세로줄).
+    groups.push([{ color: CLOSED_DOT, label: "마감" }]);
     return groups;
   }, [calendarModes]);
 
