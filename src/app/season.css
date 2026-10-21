@@ -333,7 +333,7 @@ html[data-season="halloween"] [data-season-highlight] button {
   자주 묻는 질문 카드 — 흰 유리 카드(hud-panel)를 보라 유리 + 주황 테두리로.
   질문 앞에 작은 호박, 펼친 카드는 공지 강조와 같은 왼쪽 주황 선.
 */
-html[data-season="halloween"] .season-faq .hud-panel {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) {
   background:
     linear-gradient(120deg, transparent 62%, rgb(255 190 110 / 0.1) 78%, rgb(255 190 110 / 0.1) 84%, transparent 100%),
     linear-gradient(160deg, rgb(64 32 92 / 0.55), rgb(25 13 40 / 0.7));
@@ -344,7 +344,7 @@ html[data-season="halloween"] .season-faq .hud-panel {
     0 20px 45px rgb(0 0 0 / 0.4);
 }
 
-html[data-season="halloween"] .season-faq .hud-panel:hover {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row):hover {
   border-color: rgb(255 178 90 / 0.75);
   box-shadow:
     inset 0 1px 0 rgb(255 210 150 / 0.18),
@@ -352,11 +352,11 @@ html[data-season="halloween"] .season-faq .hud-panel:hover {
     0 24px 55px rgb(0 0 0 / 0.45);
 }
 
-html[data-season="halloween"] .season-faq .hud-panel::after {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row)::after {
   background-image: linear-gradient(120deg, transparent 46%, rgb(255 200 130 / 0.35) 50%, transparent 54%);
 }
 
-html[data-season="halloween"] .season-faq .hud-panel:has(> button[aria-expanded="true"]) {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row):has(> button[aria-expanded="true"]) {
   border-color: rgb(255 178 90 / 0.6);
   box-shadow:
     inset 3px 0 #ffae45,
@@ -364,7 +364,7 @@ html[data-season="halloween"] .season-faq .hud-panel:has(> button[aria-expanded=
     0 20px 45px rgb(0 0 0 / 0.4);
 }
 
-html[data-season="halloween"] .season-faq .hud-panel > button > span:first-child::before {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) > button > span:first-child::before {
   content: "";
   display: inline-block;
   width: 1.15em;
@@ -375,8 +375,33 @@ html[data-season="halloween"] .season-faq .hud-panel > button > span:first-child
 }
 
 /* 펼침 표시(+) */
-html[data-season="halloween"] .season-faq .hud-panel > button > span:last-child {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) > button > span:last-child {
   color: #ffb14e;
+}
+
+/* ── 테마 상세 블록 카드 ─────────────────────────────────────────────────── */
+
+/* 콘텐츠·진행 순서·참여 전 확인 카드. FAQ 카드보다 한 톤 약하게 — 블록이 많아 다 빛나면 시끄럽다. */
+html[data-season="halloween"] .season-card {
+  background: linear-gradient(160deg, rgb(64 32 92 / 0.45), rgb(25 13 40 / 0.6));
+  border-color: rgb(255 178 90 / 0.22);
+  box-shadow: inset 0 1px 0 rgb(255 210 150 / 0.08);
+}
+
+/* '참여 전 확인' 번호 → 유령 · 박쥐 · 호박. 꺼져 있으면 번호 그대로. */
+html[data-season="halloween"] .season-callout-badge {
+  background: rgb(255 168 70 / 0.12);
+  box-shadow: 0 0 14px -4px rgb(255 170 70 / 0.5);
+}
+
+html[data-season="halloween"] .season-callout-num {
+  display: none;
+}
+
+.season-callout-art {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
 }
 
 /* ── 제목 위 영문 문구 ───────────────────────────────────────────────────── */
@@ -620,6 +645,27 @@ html[data-season="halloween"] .season-faq .hud-panel > button > span:last-child 
   .season-bd-ground {
     height: 100px;
     object-position: right bottom;
+  }
+}
+
+/*
+  하단 고정 버튼 막대가 있으면 성 실루엣·호박을 그 위로 올린다 — 막대가 거의 불투명이라
+  그대로 두면 덮여서 안 보인다(2026-10-21 대표님, 모바일 테마 상세).
+  높이는 막대 실측값: 테마 상세 79px(모바일에서 스크롤했을 때만 뜬다), 신청 폼 88px · 95px(lg).
+*/
+@media (max-width: 639px) {
+  body:has(.mobile-cta-bar) :is(.season-bd-ground, .season-bd-pumpkin) {
+    translate: 0 -79px;
+  }
+}
+
+body:has(.apply-cta-bar) :is(.season-bd-ground, .season-bd-pumpkin) {
+  translate: 0 -88px;
+}
+
+@media (min-width: 1024px) {
+  body:has(.apply-cta-bar) :is(.season-bd-ground, .season-bd-pumpkin) {
+    translate: 0 -95px;
   }
 }
 

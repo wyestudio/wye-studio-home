@@ -3,6 +3,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
+import { SeasonArt, type SeasonArtName } from "@/components/season/SeasonArt";
 import {
   PriceTable,
   PriceTableEarlyBirdNote,
@@ -49,6 +50,9 @@ export type ThemeBlocksPromo = PriceTablePromo & {
  */
 const GROUP_LINK_CLASS =
   "font-extrabold text-[#f082f4] underline underline-offset-4 hover:text-[#f6a8f9]";
+
+/** 시즌 스킨 때 '참여 전 확인' 번호 자리에 돌아가며 붙는 그림(season.css 가 번호를 감춘다). */
+const SEASON_CALLOUT_ART: SeasonArtName[] = ["ghost", "bat-orange", "pumpkin"];
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
@@ -368,7 +372,7 @@ export function ThemeBlockView({
             {block.items.map((step, i) => (
               <div
                 key={i}
-                className="relative rounded-xl border border-panel-border bg-panel p-5 pt-6 sm:p-7 sm:pt-8"
+                className="season-card relative rounded-xl border border-panel-border bg-panel p-5 pt-6 sm:p-7 sm:pt-8"
               >
                 <span className="absolute -top-3 left-4 rounded-full bg-brand px-3 py-1 text-micro font-extrabold text-brand-foreground">
                   STEP {i + 1}
@@ -385,7 +389,7 @@ export function ThemeBlockView({
             {block.items.map((card, i) => (
               <div
                 key={i}
-                className="flex gap-3 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-7 lg:p-8"
+                className="season-card flex gap-3 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-7 lg:p-8"
               >
                 {card.emoji && (
                   <span className="text-2xl sm:text-4xl" aria-hidden>
@@ -438,10 +442,15 @@ export function ThemeBlockView({
           {block.items.map((p, i) => (
             <div
               key={i}
-              className="flex gap-4 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-6 lg:p-7"
+              // season-card · season-callout-badge — 시즌 스킨 때 카드 테두리와 번호 모양을 바꾼다(season.css).
+              className="season-card flex gap-4 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-6 lg:p-7"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-semibold text-danger sm:h-9 sm:w-9">
-                {i + 1}
+              <span className="season-callout-badge flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-semibold text-danger sm:h-9 sm:w-9">
+                <span className="season-callout-num">{i + 1}</span>
+                <SeasonArt
+                  art={SEASON_CALLOUT_ART[i % SEASON_CALLOUT_ART.length]}
+                  className="season-callout-art"
+                />
               </span>
               <div className="flex flex-col gap-1 sm:gap-1.5">
                 <p className="font-semibold text-foreground text-h3">{p.title}</p>
@@ -455,7 +464,8 @@ export function ThemeBlockView({
       )}
 
       {block.type === "faq" && (
-        <div className="mx-auto w-full max-w-3xl">
+        // season-faq — 시즌 스킨 때 공지 페이지의 자주 묻는 질문과 같은 카드가 된다(season.css).
+        <div className="season-faq mx-auto w-full max-w-3xl">
           <FlatFaqAccordion
             items={block.items}
             size="lg"

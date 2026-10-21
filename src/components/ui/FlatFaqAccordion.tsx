@@ -9,7 +9,8 @@ function FaqRow({ item, lg, linkClassName }: { item: FaqItem; lg: boolean; linkC
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded-xl border border-panel-border bg-panel">
+    // faq-row — 시즌 스킨이 카드 모양을 바꿀 때 잡는 이름(season.css 의 .season-faq).
+    <div className="faq-row rounded-xl border border-panel-border bg-panel">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

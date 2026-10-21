@@ -1114,8 +1114,8 @@ export function ApplyForm({
         )}
       </div>
 
-      {/* 고정 하단 버튼 */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line-subtle bg-background/95 p-4 backdrop-blur">
+      {/* 고정 하단 버튼. apply-cta-bar — 시즌 배경 장식이 이 막대 위로 비켜 간다(season.css). */}
+      <div className="apply-cta-bar fixed inset-x-0 bottom-0 z-30 border-t border-line-subtle bg-background/95 p-4 backdrop-blur">
         {/* 폭은 page.tsx 의 main 과 같게(lg:max-w-3xl) 맞춘다 — 다르면 버튼만 폼보다 좁거나 넓어 보인다. */}
         <div className="mx-auto max-w-2xl px-1 lg:max-w-3xl">
           <button
