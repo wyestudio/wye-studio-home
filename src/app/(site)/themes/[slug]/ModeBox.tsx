@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ThemeDetail } from "@/lib/themes";
+import { SeasonArt } from "@/components/season/SeasonArt";
 
 /**
  * 주소에 쓸 모드 키. `/themes/baotalchul?mode=normal` 처럼 짧게 둔다.
@@ -96,7 +97,7 @@ export function ModeBox({
                   '눌려 있는 키' 처럼 보이게 하는 게 시안의 핵심이다.
                   ⚠️ 굵어지는 만큼 안쪽 여백을 1px 줄여 **칸 크기가 안 흔들리게** 한다.
                 */
-                className={`group/mode min-w-0 rounded-md border text-left transition-[transform,border-color,background-color] duration-150 ${
+                className={`group/mode relative min-w-0 rounded-md border text-left transition-[transform,border-color,background-color] duration-150 ${
                   on
                     ? "border-2 bg-fill-strong px-[0.6875rem] py-[0.8125rem]"
                     : "border-line bg-fill-subtle px-3 py-3.5 hover:-translate-y-0.5 hover:border-line-strong"
@@ -121,6 +122,8 @@ export function ModeBox({
                   {v.duration_minutes}
                   <span className="ml-0.5 text-label font-normal text-muted">분</span>
                 </span>
+                {/* 시즌 스킨 때 고른 모드 오른쪽 위에 작은 별(season.css). 글자는 안 가린다. */}
+                {on && <SeasonArt art="sparkle" className="season-mode-spark" />}
               </Link>
             );
           })}

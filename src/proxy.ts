@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { verifyAdminToken } from "@/lib/adminAuth";
 import { verifySiteGateToken } from "@/lib/siteGateAuth";
 import { verifyGateToken as verifyOydGateToken, getGateCookieName as getOydGateCookieName } from "@/lib/openYourDreamGateAuth";
-import { isProductionHost } from "@/lib/hosts";
+import { isAdminHost, isProductionHost } from "@/lib/hosts";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인 시스템은 더 이상
 // 활성 플로우에서 쓰이지 않음. 삭제하지 않고 보존 — 결제 연동 등으로 계정이 다시
@@ -12,20 +12,9 @@ import { isProductionHost } from "@/lib/hosts";
 // sessions/*/apply는 이제 로그인 없이 누구나 접근 가능해야 해서 가드에서 제외했다.
 const PROTECTED_PATTERN = /^\/(account|auth\/(naver|kakao)\/link)/;
 
-const ADMIN_HOSTS = new Set([
-  "admin.wouldyouescape.com",
-  "test.admin.wouldyouescape.com",
-  "admin.localhost:3000",
-  "test.admin.localhost:3000",
-]);
-
 const SITE_GATE_PATH = process.env.SITE_GATE_PATH || "/site-gate-w3k9m5x7";
 const ADMIN_PATH = process.env.ADMIN_PATH || "/admin";
 const OYD_GATE_PATH = "/openyourdream/gate";
-
-function isAdminHost(host: string): boolean {
-  return ADMIN_HOSTS.has(host);
-}
 
 function isAdminProtectedPath(pathname: string): boolean {
   const adminRegex = new RegExp(`^${ADMIN_PATH}(?!/login$)`);

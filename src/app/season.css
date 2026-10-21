@@ -1,0 +1,599 @@
+/*
+  시즌 스킨 (2026-10-21, 할로윈).
+
+  켜고 끄는 건 어드민 > 시즌 스킨이다. 켜지면 루트 레이아웃이 <html data-season="halloween">
+  을 달고, 이 파일의 규칙이 전부 그 표시를 조건으로 걸린다. **표시가 없으면 이 파일은
+  아무것도 바꾸지 않는다** — 장식은 감추고 색은 :root 의 원래 값 그대로다.
+
+  수치는 승인 시안(wouldyouescape-halloween-claude 패키지의 halloween-reference.css ·
+  ASSET-MAP.md)을 따랐다. 로고 모자는 우리 로고 크기가 시안과 달라 비율(%)로 옮겼다.
+
+  ⚠️ 이 파일은 Tailwind 레이어 **밖**에 있다. 같은 요소에 Tailwind 클래스가 있어도 여기
+     규칙이 이긴다(레이어 밖 > 레이어 안). 장식 요소에만 쓰는 이름(season-*)을 겨냥할 것.
+  ⚠️ 상태 색(--confirm · --wait · --danger)은 건드리지 않는다. 마감·오류까지 주황이 되면
+     무슨 뜻인지 못 읽는다.
+*/
+
+/* ── 켜고 끄기 ───────────────────────────────────────────────────────────── */
+
+/* 꺼져 있으면 장식은 아예 없는 것처럼. 켜지면 요소 자신의 display(Tailwind 포함)를 쓴다. */
+html:not([data-season="halloween"]) :is(.season-art, .season-only) {
+  display: none !important;
+}
+
+.season-art {
+  pointer-events: none;
+  user-select: none;
+  max-width: none;
+}
+
+/* ── 색 ──────────────────────────────────────────────────────────────────── */
+
+html[data-season="halloween"] {
+  --background: #190d2b;
+  --background-deep: #150d24;
+  --surface: #29153c;
+  --foreground: #fff2df;
+  --muted: #bdb0cf;
+  --border: #664478;
+  --brand: #ff9c38;
+  --brand-soft: #ff9c3825;
+  --brand-foreground: #22102e;
+  --glow: #ffb956;
+  --glass-border: #ffffff25;
+  /*
+    상세 블록 패널. 시안에 값이 없어 보라 배경에 맞춰 같은 밝기 차이로 옮겼다 —
+    원래 값(차가운 슬레이트)을 두면 보라 위에서 회색 판이 떠 보인다.
+  */
+  --panel: #22132f;
+  --panel-raised: #2b1840;
+  --panel-border: #4a3160;
+  --surface-glass-from: #2c193ee8;
+  --surface-glass-to: #1d1028e8;
+  /* 홈 궤도 선(MascotOrbit) — 옅은 금빛 */
+  --orbit-ring: #ffc25b50;
+}
+
+/* 밤하늘. 별빛 캔버스(-z-10) 뒤에 깐다. */
+html[data-season="halloween"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 8%, #542774 0, #2b153f 38%, #150d24 85%);
+}
+
+html[data-season="halloween"] .site-header {
+  border-bottom: 1px solid #ffb65c23;
+}
+
+/*
+  헤더 배경은 **화면 폭 전체**에 깐다. 원래는 가운데 틀(max-w-5xl) 안쪽 줄에만 배경이 있어
+  보라 배경 위에서 가운데만 네모로 떠 보였다(2026-10-21 대표님). 안쪽 줄은 투명으로 돌린다.
+  ⚠️ 홈은 원래대로 투명이다(data-home) — 히어로가 헤더 밑까지 깔린다.
+*/
+html[data-season="halloween"] .site-header:not([data-home]) {
+  background-color: #1d1028d9;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+html[data-season="halloween"] .site-header:not([data-home]) > div {
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* ── 로고 모자 ───────────────────────────────────────────────────────────── */
+
+/*
+  로고를 감싸는 칸. 모자는 이 칸 기준으로 **비율**로 붙는다 — 로고가 화면마다
+  크기가 달라도(헤더 40/32px, 홈 106/74px) 같은 자리에 쓰고 있게 된다.
+  ⚠️ 모자가 로고 위로 튀어나오지만 칸 크기는 로고 그대로라 헤더 높이·클릭 영역이 안 바뀐다.
+*/
+.season-logo {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.season-hat {
+  position: absolute;
+  z-index: 1;
+  height: auto;
+  filter: drop-shadow(0 2px 2px #0005);
+}
+
+/*
+  헤더 로고도 홈 메인 로고와 **같은 비율**로 씌운다. 시안 수치(39×29, top -10)대로 두니
+  모자가 왼쪽 아래로 처져 깨져 보였다(2026-10-21 대표님). 홈 쪽은 자연스럽다고 하셨다.
+*/
+.season-hat--header {
+  width: 66%;
+  left: 5%;
+  top: -36%;
+  transform: rotate(-18deg);
+}
+
+/* 시안: 로고 138×96 에 91×66, left 8, top -35, -18deg (모바일 110 에 73×54 — 같은 비율) */
+.season-hat--hero {
+  width: 66%;
+  left: 5%;
+  top: -36%;
+  transform: rotate(-18deg);
+}
+
+/* ── 홈 ──────────────────────────────────────────────────────────────────── */
+
+.season-hero-bat {
+  position: absolute;
+  left: calc(50% + 180px);
+  top: 25%;
+  width: 80px;
+}
+
+/*
+  YES 버튼 — 버튼 모양은 **원래 그대로**(투명 + 흰 글자 + 호버 때 흰 원)이고, 기다리는
+  동안의 빛 반짝임만 주황으로 바꾼다(2026-10-21 대표님). 주황 바탕 버튼은 걷었다.
+  버튼 자체가 overflow:hidden 이라 호박은 바깥 칸(season-cta)에 붙인다.
+*/
+.season-cta {
+  position: relative;
+  display: inline-flex;
+}
+
+/* globals.css 의 hero-cta-idle 과 같은 모양. 색만 주황이고, 같은 이유로 색은 고정한 채 알파만 움직인다. */
+@keyframes season-cta-idle {
+  0%,
+  100% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 6px rgb(255 168 65 / 0)) drop-shadow(0 0 16px rgb(255 168 65 / 0))
+      drop-shadow(0 0 30px rgb(255 168 65 / 0));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgb(255 168 65 / 0.95)) drop-shadow(0 0 16px rgb(255 168 65 / 0.6))
+      drop-shadow(0 0 30px rgb(255 168 65 / 0.35));
+  }
+}
+
+/* 이름만 바꾼다 — 호버 때 멈추는 규칙(globals.css)이 이보다 구체적이라 그대로 먹는다. */
+html[data-season="halloween"] .hero-cta-label-default {
+  animation-name: season-cta-idle;
+}
+
+/*
+  버튼 네모(호버 때 흰 원이 채우는 칸)의 왼쪽 아래 모서리에 단다 — 시안 수치 그대로.
+  ⚠️ 화살표 쪽으로 당겨 봤더니(left 6px) '> YES' 에 너무 붙었다(2026-10-21 대표님).
+*/
+.season-cta-pumpkin {
+  position: absolute;
+  z-index: 11;
+  left: -19px;
+  bottom: -8px;
+  width: 38px;
+  height: 35px;
+  transform: rotate(-14deg);
+  filter: drop-shadow(0 3px 4px #25102870);
+  transition: transform 0.3s ease;
+}
+
+.season-cta:hover .season-cta-pumpkin {
+  transform: rotate(6deg);
+}
+
+/* 'Planets to Escape' 왼쪽 위 박쥐. 표시 여부(lg 이상)는 요소의 Tailwind 클래스가 정한다. */
+.season-title-bat {
+  position: absolute;
+  width: 45px;
+  height: 27px;
+  left: -48px;
+  top: -10px;
+  transform: rotate(-15deg);
+}
+
+/* ── 제목 옆 유령 (회차 선택 · 공지사항) ─────────────────────────────────── */
+
+.season-heading {
+  position: relative;
+  display: inline-block;
+}
+
+.season-heading-ghost {
+  position: absolute;
+  right: -46px;
+  top: -17px;
+  width: 38px;
+  height: 48px;
+  transform: rotate(15deg);
+}
+
+/* ── 포스터 ──────────────────────────────────────────────────────────────── */
+
+html[data-season="halloween"] .season-poster-frame {
+  border-color: #ffb158;
+  box-shadow: 0 0 0 4px #ffac3d0d, 0 10px 40px #10081866;
+}
+
+html[data-season="halloween"] .season-poster-frame:hover {
+  border-color: #ffd08a;
+}
+
+.season-poster-web {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  top: 0;
+  width: 88px;
+  height: 88px;
+  opacity: 0.75;
+}
+
+.season-poster-pumpkin {
+  position: absolute;
+  z-index: 4;
+  right: 8px;
+  bottom: 9px;
+  width: 51px;
+  height: 45px;
+  transform: rotate(9deg);
+  filter: drop-shadow(0 3px 3px #0008);
+}
+
+/*
+  ⚠️ 11px(모바일 10px)은 글자 척도(text-micro 12px) 밖이다. 읽는 글이 아니라 포스터에 붙인
+     **스티커 그림**이라(aria-hidden) 척도를 따르지 않는다. 시안은 9px 였는데 작다고 하셔서
+     키웠다(2026-10-21 대표님) — 12px 이면 모바일 카드에서 거미줄을 덮는다.
+  시안은 주황 통판에 굵은 검정 글자 + 3도 기울임이었는데 투박하다고 하셔서(2026-10-21 대표님)
+  주황 바탕 + 흰 글자의 작은 알약으로 바꿨다. 글자 굵기를 낮추고 기울임은 뺐다.
+*/
+.season-poster-tag {
+  position: absolute;
+  z-index: 4;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px 5px 9px;
+  border: 1px solid rgb(255 214 150 / 0.7);
+  border-radius: 9999px;
+  /*
+    주황 바탕 + 흰 글자(2026-10-21 대표님). 반투명이면 포스터 그림 위에서 글자가 묻혔다.
+    흰 글자가 읽히도록 밝은 주황이 아니라 한 톤 깊은 주황으로 깔고 글자에 옅은 그림자를 준다.
+  */
+  background: linear-gradient(180deg, #ff9a3c, #ec7419);
+  box-shadow: 0 2px 10px rgb(16 8 24 / 0.5);
+  color: #fff;
+  text-shadow: 0 1px 1px rgb(120 45 0 / 0.45);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+
+/* 반짝이 그림은 원래 주황이라 주황 바탕에서 안 보인다 — 흰색으로 칠한다. */
+.season-poster-tag-spark {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  filter: brightness(0) invert(1);
+}
+
+/* 7rem 짜리 포스터(모바일 테마 상세) */
+.season-poster-decor--compact .season-poster-web {
+  width: 40px;
+  height: 40px;
+}
+
+.season-poster-decor--compact .season-poster-pumpkin {
+  width: 26px;
+  height: 23px;
+  right: 5px;
+  bottom: 6px;
+}
+
+.season-poster-decor--compact .season-poster-tag {
+  display: none;
+}
+
+/* ── 테마 상세 모드 창 ───────────────────────────────────────────────────── */
+
+.season-mode-spark {
+  position: absolute;
+  right: 10px;
+  top: -12px;
+  width: 23px;
+  height: 23px;
+  filter: drop-shadow(0 0 8px #ffad4966);
+}
+
+/* ── 공지 ────────────────────────────────────────────────────────────────── */
+
+/* 할로윈 공지(제목에 '할로윈') — 첫 줄이라서가 아니라 그 공지라서 강조한다. */
+html[data-season="halloween"] [data-season-highlight] {
+  background: linear-gradient(90deg, #e68c301d, #ae6cf31a);
+  box-shadow: inset 3px 0 #ffae45;
+}
+
+html[data-season="halloween"] [data-season-highlight] button {
+  color: #ffd18c;
+}
+
+/* 공지 · 자주 묻는 질문 탭 양옆 반짝이 */
+.season-tab-spark {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+/*
+  자주 묻는 질문 카드 — 흰 유리 카드(hud-panel)를 보라 유리 + 주황 테두리로.
+  질문 앞에 작은 호박, 펼친 카드는 공지 강조와 같은 왼쪽 주황 선.
+*/
+html[data-season="halloween"] .season-faq .hud-panel {
+  background:
+    linear-gradient(120deg, transparent 62%, rgb(255 190 110 / 0.1) 78%, rgb(255 190 110 / 0.1) 84%, transparent 100%),
+    linear-gradient(160deg, rgb(64 32 92 / 0.55), rgb(25 13 40 / 0.7));
+  border-color: rgb(255 178 90 / 0.35);
+  box-shadow:
+    inset 0 1px 0 rgb(255 210 150 / 0.12),
+    0 0 20px -8px rgb(255 170 70 / 0.35),
+    0 20px 45px rgb(0 0 0 / 0.4);
+}
+
+html[data-season="halloween"] .season-faq .hud-panel:hover {
+  border-color: rgb(255 178 90 / 0.75);
+  box-shadow:
+    inset 0 1px 0 rgb(255 210 150 / 0.18),
+    0 0 28px -4px rgb(255 170 70 / 0.5),
+    0 24px 55px rgb(0 0 0 / 0.45);
+}
+
+html[data-season="halloween"] .season-faq .hud-panel::after {
+  background-image: linear-gradient(120deg, transparent 46%, rgb(255 200 130 / 0.35) 50%, transparent 54%);
+}
+
+html[data-season="halloween"] .season-faq .hud-panel:has(> button[aria-expanded="true"]) {
+  border-color: rgb(255 178 90 / 0.6);
+  box-shadow:
+    inset 3px 0 #ffae45,
+    0 0 24px -6px rgb(255 170 70 / 0.45),
+    0 20px 45px rgb(0 0 0 / 0.4);
+}
+
+html[data-season="halloween"] .season-faq .hud-panel > button > span:first-child::before {
+  content: "";
+  display: inline-block;
+  width: 1.15em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.12em;
+  background: url("/season/halloween/pumpkin.svg") center / contain no-repeat;
+}
+
+/* 펼침 표시(+) */
+html[data-season="halloween"] .season-faq .hud-panel > button > span:last-child {
+  color: #ffb14e;
+}
+
+/* ── 제목 위 영문 문구 ───────────────────────────────────────────────────── */
+
+.season-label {
+  color: #ffd581;
+}
+
+.season-label-spark {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+}
+
+/* ── 배경 장식 ───────────────────────────────────────────────────────────── */
+
+/* 별빛(-z-10)보다 앞, 콘텐츠보다 뒤. 클릭은 전부 통과시킨다. */
+.season-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -5;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.season-backdrop > .season-art {
+  position: absolute;
+}
+
+/* 고정 위치는 헤더 아래 선(Header.tsx 가 넣는 --header-bottom)에 맞춘다. */
+.season-bd-moon {
+  right: -40px;
+  top: calc(var(--header-bottom, var(--header-height, 72px)) + 23px);
+  width: 220px;
+  opacity: 0.55;
+}
+
+.season-bd-bat--1 {
+  right: 90px;
+  top: calc(var(--header-bottom, var(--header-height, 72px)) + 103px);
+  width: 65px;
+  transform: rotate(-16deg);
+}
+
+.season-bd-bat--2 {
+  right: 28px;
+  top: calc(var(--header-bottom, var(--header-height, 72px)) + 203px);
+  width: 39px;
+  transform: rotate(14deg);
+}
+
+/* 거미줄 윗변을 헤더 아래 선에 맞춘다. 홈은 헤더가 투명이라 화면 맨 위 구석에 붙인다. */
+.season-bd-web {
+  left: 0;
+  top: var(--header-bottom, var(--header-height, 72px));
+  width: 185px;
+  opacity: 0.28;
+}
+
+.season-backdrop--home .season-bd-web {
+  top: 0;
+}
+
+/*
+  ⚠️ 시안(left 12% · right 14%)대로 두면 1280px 에서 테마 상세 제목과 모드 창 위에 겹친다.
+     본문 틀(max-w-5xl) 바깥 여백으로 옮겼다. 여백이 좁은 화면은 아래 '중간 폭' 에서 정리한다.
+*/
+.season-bd-spark--1 {
+  left: 5%;
+  top: 27%;
+  width: 20px;
+}
+
+.season-bd-spark--2 {
+  right: 3%;
+  top: 80%;
+  width: 13px;
+}
+
+
+.season-bd-ghost {
+  right: 38px;
+  top: 53%;
+  width: 48px;
+  opacity: 0.35;
+  animation: season-bob 5s ease-in-out infinite;
+}
+
+.season-bd-ground {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 185px;
+  opacity: 0.8;
+  object-fit: cover;
+  object-position: center bottom;
+}
+
+.season-bd-pumpkin {
+  left: 25px;
+  bottom: 21px;
+  width: 85px;
+  opacity: 0.8;
+}
+
+@keyframes season-bob {
+  50% {
+    transform: translateY(-9px) rotate(3deg);
+  }
+}
+
+/*
+  중간 폭(1279px 이하) — 본문 틀(1024px) 양옆 여백이 128px 아래로 줄어 가장자리 장식이
+  글자 뒤로 들어온다(1024px 에서 별이 '파티형 방탈출' 위, 호박이 시놉시스 뒤, 유령이 모드 창
+  위에 겹쳤다). 별·호박은 빼고, 달·유령은 화면 밖으로 더 밀어 끝만 보이게 한다.
+*/
+@media (max-width: 1279px) {
+  .season-bd-spark,
+  .season-bd-pumpkin {
+    display: none;
+  }
+
+  .season-bd-moon {
+    right: -70px;
+    width: 160px;
+  }
+
+  .season-bd-bat--1 {
+    right: 30px;
+    top: calc(var(--header-bottom, var(--header-height, 72px)) + 70px);
+    width: 50px;
+  }
+
+  .season-bd-bat--2 {
+    display: none;
+  }
+
+  .season-bd-ghost {
+    right: -20px;
+    width: 43px;
+  }
+
+  .season-bd-web {
+    width: 120px;
+  }
+}
+
+/* ── 좁은 화면 ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .season-poster-tag-more {
+    display: none;
+  }
+
+  .season-poster-tag {
+    top: 8px;
+    right: 8px;
+    padding: 4px 9px 4px 7px;
+    font-size: 10px;
+  }
+
+  .season-poster-tag-spark {
+    width: 9px;
+    height: 9px;
+  }
+
+  .season-poster-web {
+    width: 55px;
+    height: 55px;
+  }
+
+  .season-poster-pumpkin {
+    width: 35px;
+    height: 32px;
+  }
+
+  .season-heading-ghost {
+    right: -32px;
+    top: -12px;
+    width: 29px;
+    height: 36px;
+  }
+
+  .season-bd-web {
+    width: 90px;
+  }
+
+  .season-bd-moon {
+    right: -70px;
+    width: 130px;
+  }
+
+  .season-bd-bat--1 {
+    right: 15px;
+    top: calc(var(--header-bottom, var(--header-height, 64px)) + 63px);
+    width: 45px;
+  }
+
+  /* 좁으면 가운데를 자르면 성이 잘려 나간다. 성이 있는 오른쪽을 남긴다. */
+  .season-bd-ground {
+    height: 100px;
+    object-position: right bottom;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-bd-ghost {
+    animation: none;
+  }
+
+  /* 움직임을 끄면 반짝임은 멈추되 주황 빛은 남긴다(globals.css 와 같은 원칙). */
+  html[data-season="halloween"] .hero-cta-label-default {
+    animation: none;
+    filter: drop-shadow(0 0 5px rgb(255 168 65 / 0.55));
+  }
+
+  .season-cta-pumpkin {
+    transition: none;
+  }
+}

@@ -5,6 +5,7 @@ export function SectionHeading({
   className = "",
   eyebrowColor,
   size = "md",
+  titleDecor,
 }: {
   eyebrow: string;
   /** 비우면 eyebrow 만 보인다. 제목이 군더더기인 화면에서 쓴다. */
@@ -24,6 +25,8 @@ export function SectionHeading({
    * 되돌리기 쉽다.
    */
   size?: "md" | "lg";
+  /** 제목 글자에 붙이는 장식(시즌 유령 등). 제목 끝을 기준으로 absolute 로 붙는다. */
+  titleDecor?: React.ReactNode;
 }) {
   const lg = size === "lg";
   return (
@@ -36,7 +39,14 @@ export function SectionHeading({
       </p>
       {title && (
         <h2 className="text-h2 font-extrabold">
-          {title}
+          {titleDecor ? (
+            <span className="season-heading">
+              {title}
+              {titleDecor}
+            </span>
+          ) : (
+            title
+          )}
         </h2>
       )}
     </div>

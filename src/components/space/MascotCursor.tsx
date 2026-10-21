@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { MASCOTS } from "@/lib/mascots";
+import { mascotsForSkin } from "@/lib/mascots";
+import { useSiteSkin } from "@/components/season/SeasonContext";
 import { useMascotSelection } from "@/components/space/MascotSelectionContext";
 
 // 클릭 가능한 요소 위에서는 마스코트 커서가 버튼/링크 위 텍스트나 호버 애니메이션을
@@ -13,7 +14,8 @@ const DIMMED_OPACITY = "0.3";
 export function MascotCursor() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { selectedMascot } = useMascotSelection();
-  const mascot = MASCOTS[selectedMascot];
+  // 시즌 스킨이면 커서도 할로윈 그림(유령 우쥬 · 뱀파이어 이스 · 미라 케이프).
+  const mascot = mascotsForSkin(useSiteSkin())[selectedMascot];
   const mascotRef = useRef(mascot);
 
   useEffect(() => {

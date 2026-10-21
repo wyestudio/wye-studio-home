@@ -8,6 +8,9 @@ import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
 import { MascotOrbit } from "@/components/space/MascotOrbit";
 import { MascotFreeRoam } from "@/components/space/MascotFreeRoam";
 import { HeroCtaButton } from "@/components/home/HeroCtaButton";
+import { SeasonArt } from "@/components/season/SeasonArt";
+import { useSiteSkin } from "@/components/season/SeasonContext";
+import { HALLOWEEN_ROAM } from "@/lib/mascots";
 import { clamp01 } from "@/lib/motion";
 import { useIsMobileViewport } from "@/lib/useIsMobileViewport";
 
@@ -23,6 +26,8 @@ export function HeroScene({
   const { local, reduceMotion, isFirst, isLast } = useScene(index, total, range);
   const mascotProgress = clamp01((local - 0.7) / 0.3);
   const isMobile = useIsMobileViewport();
+  // 할로윈 동안은 데스크톱도 모바일처럼 자유이동이다(움직임은 HALLOWEEN_ROAM).
+  const halloween = useSiteSkin() === "halloween";
 
   const contentWrapperRef = useRef<HTMLDivElement>(null);
   const [contentRadius, setContentRadius] = useState(0);
@@ -49,21 +54,38 @@ export function HeroScene({
 
   return (
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
-      {reduceMotion || !isMobile ? (
+      {reduceMotion || (!isMobile && !halloween) ? (
         <MascotOrbit progress={mascotProgress} reduceMotion={reduceMotion} minRadius={contentRadius} />
       ) : (
-        <MascotFreeRoam progress={mascotProgress} reduceMotion={reduceMotion} contentRef={contentWrapperRef} />
+        <MascotFreeRoam
+          // 모바일 ↔ 데스크톱으로 바뀌면 크기가 달라 처음부터 다시 배치한다.
+          key={isMobile ? "mobile" : "desktop"}
+          progress={mascotProgress}
+          reduceMotion={reduceMotion}
+          contentRef={contentWrapperRef}
+          scale={isMobile ? 0.7 : 1}
+          roam={halloween ? HALLOWEEN_ROAM : undefined}
+        />
       )}
       <div className="pointer-events-none relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center justify-center">
+        {/*
+          시즌 스킨 — 오른쪽 위 박쥐(season.css). 꺼지면 감춰진다.
+          ⚠️ contentWrapperRef **바깥**에 둔다. 안에 두면 궤도 반지름 계산이 장식 크기를 먹는다.
+          ⚠️ 로고 뒤 반투명 달빛 원은 걷었다(2026-10-21 대표님).
+        */}
+        <SeasonArt art="bat-dark" className="season-hero-bat hidden md:block" />
         <div ref={contentWrapperRef} className="inline-flex flex-col items-center gap-3 text-center">
-          <Image
-            src="/logo-white.png"
-            alt="Would You Escape"
-            width={138}
-            height={96}
-            priority
-            className="h-[4.6rem] w-auto sm:h-[6.6rem]"
-          />
+          <span className="season-logo">
+            <Image
+              src="/logo-white.png"
+              alt="Would You Escape"
+              width={138}
+              height={96}
+              priority
+              className="h-[4.6rem] w-auto sm:h-[6.6rem]"
+            />
+            <SeasonArt art="witch-hat" className="season-hat season-hat--hero" />
+          </span>
           <h1 className="text-[2rem] font-semibold tracking-tight text-foreground sm:text-[3rem]">
             would you escape?
           </h1>

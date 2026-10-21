@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
 import { RichText } from "@/components/ui/RichText";
+import { SeasonArt } from "@/components/season/SeasonArt";
 import type { Notice } from "@/lib/content";
 
 const kstDate = (iso: string) =>
@@ -27,14 +28,23 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
 
   return (
     <section>
-      <h2 className="mb-6 text-center text-h1 font-extrabold sm:mb-10">공지사항</h2>
+      <h2 className="mb-6 text-center text-h1 font-extrabold sm:mb-10">
+        <span className="season-heading">
+          공지사항
+          <SeasonArt art="ghost" className="season-heading-ghost" />
+        </span>
+      </h2>
 
       {notices.length === 0 ? (
         <HudPlaceholder label="등록된 공지가 없습니다." />
       ) : (
         <ul className="divide-y divide-glass-border overflow-hidden rounded-xl border border-glass-border">
           {notices.map((n) => (
-            <li key={n.id}>
+            <li
+              key={n.id}
+              // 시즌 스킨 때 할로윈 공지를 강조한다(season.css). 첫 줄이 아니라 제목으로 고른다.
+              data-season-highlight={n.title.includes("할로윈") ? "" : undefined}
+            >
               <button
                 onClick={() => setOpen(n)}
                 className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-fill sm:gap-5 sm:px-6 sm:py-5 lg:px-7 lg:py-6"

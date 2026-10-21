@@ -12,8 +12,13 @@ import TestEnvBanner from "@/components/layout/TestEnvBanner";
 import { CopyProtectionProvider } from "@/components/layout/CopyProtection";
 import { AttributionTracker } from "@/components/AttributionTracker";
 import "../globals.css";
+import "../season.css";
 import { headers } from "next/headers";
-import { isProductionHost } from "@/lib/hosts";
+import { isAdminHost, isProductionHost } from "@/lib/hosts";
+import { getSiteSkin } from "@/lib/siteSeason";
+import type { SiteSkin } from "@/lib/season";
+import { SeasonProvider } from "@/components/season/SeasonContext";
+import { SeasonBackdrop } from "@/components/season/SeasonBackdrop";
 
 // SUIT(가변 폰트, SIL OFL) — https://github.com/sun-typeface/SUIT
 const suit = localFont({
@@ -136,11 +141,28 @@ async function shouldTrack(): Promise<boolean> {
   }
 }
 
+/**
+ * 고객 화면에 씌울 시즌 스킨(어드민 > 시즌 스킨에서 켠다).
+ * ⚠️ 어드민 호스트에는 씌우지 않는다 — 어드민도 이 레이아웃을 쓰는데, 색이 바뀌면
+ *    입금확인·마감 같은 상태 색을 읽기 어려워진다.
+ */
+async function currentSkin(): Promise<SiteSkin | null> {
+  try {
+    const host = (await headers()).get("host") || "";
+    if (isAdminHost(host)) return null;
+    return await getSiteSkin();
+  } catch {
+    return null;
+  }
+}
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const track = await shouldTrack();
+  const [track, skin] = await Promise.all([shouldTrack(), currentSkin()]);
   return (
     <html
       lang="ko"
+      // 시즌 장식과 색은 전부 season.css 가 이 표시를 보고 켠다. 없으면 원래 화면.
+      data-season={skin ?? undefined}
       className={`${suit.variable} ${wyeSymbols.variable} ${geistMono.variable} ${galmuri.variable} h-full antialiased`}
     >
       {track ? (
@@ -178,14 +200,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
           <AttributionTracker />
         </Suspense>
         <CopyProtectionProvider>
-          <MascotSelectionProvider>
-            <StarfieldCanvas />
-            <MascotCursor />
-            <TestEnvBanner />
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </MascotSelectionProvider>
+          <SeasonProvider skin={skin}>
+            <MascotSelectionProvider>
+              <StarfieldCanvas />
+              {/* 시즌 배경 장식 — 고객 화면 전체. 스킨이 없으면(어드민 포함) 아예 그리지 않는다. */}
+              {skin && <SeasonBackdrop />}
+              <MascotCursor />
+              <TestEnvBanner />
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </MascotSelectionProvider>
+          </SeasonProvider>
         </CopyProtectionProvider>
       </body>
     </html>

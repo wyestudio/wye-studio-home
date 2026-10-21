@@ -3,6 +3,7 @@
 import { useScene } from "@/components/home/scroll-stage/ScrollStageContext";
 import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
 import { ThemeHomeShowcase, type HomeThemeCard } from "@/components/home/ThemeHomeShowcase";
+import { SeasonArt } from "@/components/season/SeasonArt";
 
 export function ThemeScene({
   index = 0,
@@ -36,7 +37,11 @@ export function ThemeScene({
       <div className="w-full">
         <div className="mx-auto w-full max-w-4xl px-5 sm:px-8 lg:px-0">
           <h2 className="mb-10 text-left text-2xl font-extrabold tracking-[0.12em] sm:mb-16 sm:text-4xl">
-            Planets to Escape
+            <span className="season-heading">
+              Planets to Escape
+              {/* 시즌 박쥐. 왼쪽으로 48px 튀어나가서, 제목 옆 여백이 넉넉한 lg 부터만. */}
+              <SeasonArt art="bat-orange" className="season-title-bat hidden lg:block" />
+            </span>
           </h2>
         </div>
         <ThemeHomeShowcase themes={themes} />

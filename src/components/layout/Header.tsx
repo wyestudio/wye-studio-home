@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { RandomLetterSwap } from "@/components/ui/RandomLetterSwap";
+import { SeasonArt } from "@/components/season/SeasonArt";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인/계정 네비게이션은
 // 제거함. 로그인 시스템 자체는 삭제하지 않고 보존 — 자세한 배경은 CLAUDE.md
@@ -36,6 +37,37 @@ export function Header() {
     const resizeObserver = new ResizeObserver(setHeaderHeightVar);
     resizeObserver.observe(el);
     return () => resizeObserver.disconnect();
+  }, []);
+
+  /*
+    헤더 아래 선이 화면에서 지금 몇 px 에 있는지(--header-bottom).
+    시즌 배경 장식(거미줄·달)을 이 선에 붙인다(season.css). 높이(--header-height)만으로는
+    모자란다 — 테스트 배너가 위에 있으면 헤더가 그만큼 내려와 있고, 스크롤하면 붙어
+    올라가고, 모바일 테마 상세에서는 헤더가 숨는다.
+  */
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    let raf = 0;
+    const update = () => {
+      root.style.setProperty("--header-bottom", `${Math.max(0, Math.round(el.getBoundingClientRect().bottom))}px`);
+    };
+    const schedule = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    // 숨김/보임 전환(translate)은 스크롤이 멈춘 뒤에도 300ms 움직인다.
+    el.addEventListener("transitionend", schedule);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      el.removeEventListener("transitionend", schedule);
+    };
   }, []);
 
   /*
@@ -112,7 +144,9 @@ export function Header() {
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-20 transition-transform duration-300 ease-out max-md:[html[data-header-hidden]_&]:-translate-y-full"
+      // site-header — 시즌 스킨(season.css)이 배경·아래 경계선을 단다. 홈은 투명 그대로.
+      data-home={isHome ? "" : undefined}
+      className="site-header sticky top-0 z-20 transition-transform duration-300 ease-out max-md:[html[data-header-hidden]_&]:-translate-y-full"
     >
       {/* 데스크톱 헤더 */}
       {/*
@@ -132,14 +166,18 @@ export function Header() {
       <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-4 ${isHome ? "bg-transparent" : "bg-background/95 backdrop-blur-md"}`}>
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5">
-            <Image
-              src="/logo-white.png"
-              alt=""
-              width={92}
-              height={64}
-              priority
-              className="h-10 w-auto"
-            />
+            {/* 시즌 스킨이 켜지면 로고에 모자를 씌운다(season.css). 꺼지면 로고만. */}
+            <span className="season-logo">
+              <Image
+                src="/logo-white.png"
+                alt=""
+                width={92}
+                height={64}
+                priority
+                className="h-10 w-auto"
+              />
+              <SeasonArt art="witch-hat" className="season-hat season-hat--header" />
+            </span>
             <span className="whitespace-nowrap text-h3 font-extrabold tracking-tight text-foreground">
               우주이스케이프
             </span>
@@ -167,14 +205,17 @@ export function Header() {
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-4">
           <div className="flex shrink-0 items-center gap-2">
             <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-1.5">
-              <Image
-                src="/logo-white.png"
-                alt=""
-                width={92}
-                height={64}
-                priority
-                className="h-8 w-auto"
-              />
+              <span className="season-logo">
+                <Image
+                  src="/logo-white.png"
+                  alt=""
+                  width={92}
+                  height={64}
+                  priority
+                  className="h-8 w-auto"
+                />
+                <SeasonArt art="witch-hat" className="season-hat season-hat--header" />
+              </span>
               <span className="whitespace-nowrap text-body font-extrabold tracking-tight text-foreground">
                 우주이스케이프
               </span>

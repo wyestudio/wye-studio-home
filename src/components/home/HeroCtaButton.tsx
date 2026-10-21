@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef } from "react";
 
 import { Chevron } from "@/components/ui/Chevron";
+import { SeasonArt } from "@/components/season/SeasonArt";
 
 // 호버 시 커서가 들어온 지점에서 흰 원이 퍼지며 배경이 하얗게 뒤집히는 연출
 // (21st.dev "Origin Button" 참고) — --origin-x/y를 진입 지점으로 세팅해두면
@@ -19,25 +20,32 @@ export function HeroCtaButton() {
   const ref = useRef<HTMLAnchorElement>(null);
 
   return (
-    <Link
-      ref={ref}
-      href="/contents"
-      onPointerEnter={handlePointerEnter}
-      className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] pl-10 pr-[55px] text-[1.1rem] font-semibold tracking-wide text-white"
-    >
-      <span aria-hidden className="hero-cta-fill" />
-      <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">
-        <Chevron dir="right" className="h-4 w-4" />
-        YES
-      </span>
-      {/* 호버 라벨은 왼쪽 정렬된 기본 라벨과 별개로 버튼 전체 폭 기준 정중앙에 오게
-          absolute + inset-0으로 독립시킨다(기본 라벨의 비대칭 패딩에 안 끌려가게). */}
-      <span
-        aria-hidden
-        className="hero-cta-label-hover absolute inset-0 z-10 flex items-center justify-center"
+    /*
+      season-cta — 시즌 스킨 때 버튼 왼쪽 아래에 호박을 붙이는 칸.
+      ⚠️ 호박을 버튼 안에 넣으면 버튼의 overflow:hidden(퍼지는 원을 자르는 것)에 잘린다.
+    */
+    <span className="season-cta">
+      <Link
+        ref={ref}
+        href="/contents"
+        onPointerEnter={handlePointerEnter}
+        className="hero-cta-button pointer-events-auto relative inline-flex items-center py-[13px] pl-10 pr-[55px] text-[1.1rem] font-semibold tracking-wide text-white"
       >
-        참여하기
-      </span>
-    </Link>
+        <span aria-hidden className="hero-cta-fill" />
+        <span className="hero-cta-label-default relative z-10 inline-flex items-center gap-4">
+          <Chevron dir="right" className="h-4 w-4" />
+          YES
+        </span>
+        {/* 호버 라벨은 왼쪽 정렬된 기본 라벨과 별개로 버튼 전체 폭 기준 정중앙에 오게
+            absolute + inset-0으로 독립시킨다(기본 라벨의 비대칭 패딩에 안 끌려가게). */}
+        <span
+          aria-hidden
+          className="hero-cta-label-hover absolute inset-0 z-10 flex items-center justify-center"
+        >
+          참여하기
+        </span>
+      </Link>
+      <SeasonArt art="pumpkin" className="season-cta-pumpkin" />
+    </span>
   );
 }

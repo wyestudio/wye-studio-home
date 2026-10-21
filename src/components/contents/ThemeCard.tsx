@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { hoursLabel } from "@/components/contents/ThemeSpecs";
+import { PosterSeasonDecor } from "@/components/season/SeasonArt";
 
 /**
  * 잠긴 테마 위에 올리는 자물쇠.
@@ -95,6 +96,8 @@ export function ThemeCard({
             <LockIcon shaking={knocked} px={40} />
           </div>
         )}
+        {/* 시즌 장식(거미줄·호박·태그)은 열린 테마 포스터에만. 잠긴 카드는 그대로 둔다. */}
+        {!locked && posterPath && <PosterSeasonDecor />}
       </div>
 
       {/* lg:p-5 였다 — 카드 아래 글자 묶음이 포스터만큼 두꺼워 보였다(2026-10-05). */}
@@ -151,7 +154,8 @@ export function ThemeCard({
   return (
     <Link
       href={`/themes/${slug}`}
-      className={`group ${BASE} transition-colors duration-200 hover:border-line-strong`}
+      // season-poster-frame — 시즌 스킨 때 호박색 테두리(season.css)
+      className={`group ${BASE} season-poster-frame transition-colors duration-200 hover:border-line-strong`}
     >
       {body}
     </Link>

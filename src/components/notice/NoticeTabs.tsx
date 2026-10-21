@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { NoticeSection } from "@/components/notice/NoticeSection";
 import { FaqSection } from "@/components/notice/FaqSection";
+import { SeasonArt } from "@/components/season/SeasonArt";
 import type { Notice, Faq } from "@/lib/content";
 
 type TabKey = "notice" | "faq";
@@ -21,35 +22,39 @@ export function NoticeTabs({ notices, faqs }: { notices: Notice[]; faqs: Faq[] }
 
   return (
     <div className="flex flex-col gap-8 sm:gap-12">
-      {/* Tab Bar */}
-      <div className="flex justify-center gap-3 sm:gap-4" role="tablist">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setSelected(tab.key)}
-            role="tab"
-            aria-selected={selected === tab.key}
-            className="relative overflow-hidden rounded-lg border px-4 py-2 text-h3 font-semibold transition-colors sm:px-6 sm:py-3 lg:px-7 lg:py-3.5"
-            style={{
-              borderColor: selected === tab.key ? "var(--brand)" : "var(--border)",
-              color: selected === tab.key ? "var(--brand-foreground)" : "var(--muted)",
-            }}
-          >
-            <span className="relative z-10">{tab.label}</span>
-            <AnimatePresence>
-              {selected === tab.key && !reduceMotion && (
-                <motion.span
-                  initial={{ y: "100%" }}
-                  animate={{ y: "0%" }}
-                  exit={{ y: "100%" }}
-                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute inset-0 z-0"
-                  style={{ backgroundColor: "var(--brand)" }}
-                />
-              )}
-            </AnimatePresence>
-          </button>
-        ))}
+      {/* Tab Bar — 시즌 스킨 때 양옆에 반짝이(season.css). 꺼지면 탭만 남는다. */}
+      <div className="flex items-center justify-center gap-3 sm:gap-4">
+        <SeasonArt art="sparkle" className="season-tab-spark" />
+        <div className="flex justify-center gap-3 sm:gap-4" role="tablist">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setSelected(tab.key)}
+              role="tab"
+              aria-selected={selected === tab.key}
+              className="relative overflow-hidden rounded-lg border px-4 py-2 text-h3 font-semibold transition-colors sm:px-6 sm:py-3 lg:px-7 lg:py-3.5"
+              style={{
+                borderColor: selected === tab.key ? "var(--brand)" : "var(--border)",
+                color: selected === tab.key ? "var(--brand-foreground)" : "var(--muted)",
+              }}
+            >
+              <span className="relative z-10">{tab.label}</span>
+              <AnimatePresence>
+                {selected === tab.key && !reduceMotion && (
+                  <motion.span
+                    initial={{ y: "100%" }}
+                    animate={{ y: "0%" }}
+                    exit={{ y: "100%" }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute inset-0 z-0"
+                    style={{ backgroundColor: "var(--brand)" }}
+                  />
+                )}
+              </AnimatePresence>
+            </button>
+          ))}
+        </div>
+        <SeasonArt art="sparkle" className="season-tab-spark" />
       </div>
 
       {/* Content Area */}

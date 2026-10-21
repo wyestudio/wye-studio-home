@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { MASCOTS, MASCOT_ORDER, type MascotId } from "@/lib/mascots";
+import { MASCOT_ORDER, mascotsForSkin, type MascotId, type MascotMeta } from "@/lib/mascots";
+import { useSiteSkin } from "@/components/season/SeasonContext";
 import { useMascotSelection } from "@/components/space/MascotSelectionContext";
 import { clamp01 } from "@/lib/motion";
 import { useHasHover } from "@/lib/useHasHover";
@@ -18,8 +19,7 @@ const RADIUS_FLOOR_PX = 80;
 const MASCOT_CLEARANCE_PX = 30;
 
 // 마스코트 절반 대각선 길이 계산
-function getMascotHalfDiagonal(id: MascotId): number {
-  const meta = MASCOTS[id];
+function getMascotHalfDiagonal(meta: MascotMeta): number {
   return Math.sqrt((meta.orbitWidth / 2) ** 2 + (meta.orbitHeight / 2) ** 2);
 }
 
@@ -27,6 +27,8 @@ type Vec2 = { x: number; y: number };
 
 export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progress: number; reduceMotion: boolean; minRadius?: number }) {
   const { selectMascot } = useMascotSelection();
+  // 시즌 스킨이면 할로윈 그림(크기도 다르다). 아래 MASCOTS 는 전부 이걸 가리킨다.
+  const MASCOTS = mascotsForSkin(useSiteSkin());
   const hasHover = useHasHover();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
@@ -54,14 +56,14 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
 
     const { width, height } = rectRef.current;
     if (width > 0 && height > 0) {
-      const maxMascotDiagonal = Math.max(...MASCOT_ORDER.map(getMascotHalfDiagonal));
+      const maxMascotDiagonal = Math.max(...MASCOT_ORDER.map((id) => getMascotHalfDiagonal(MASCOTS[id])));
       const minDesiredRadius = minRadius + maxMascotDiagonal + MASCOT_CLEARANCE_PX;
       const edgeSafe = Math.min(minDesiredRadius, width / 2 - EDGE_MARGIN_PX, height / 2 - EDGE_MARGIN_PX);
       const newRadius = Math.max(RADIUS_FLOOR_PX, edgeSafe);
       radiusRef.current = newRadius;
       setRingRadius(newRadius);
     }
-  }, [minRadius]);
+  }, [minRadius, MASCOTS]);
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -75,7 +77,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
       // 첫 측정 후 반지름 계산
       const { width, height } = rect;
       if (width > 0 && height > 0) {
-        const maxMascotDiagonal = Math.max(...MASCOT_ORDER.map(getMascotHalfDiagonal));
+        const maxMascotDiagonal = Math.max(...MASCOT_ORDER.map((id) => getMascotHalfDiagonal(MASCOTS[id])));
         const minDesiredRadius = minRadiusRef.current + maxMascotDiagonal + MASCOT_CLEARANCE_PX;
         const edgeSafe = Math.min(minDesiredRadius, width / 2 - EDGE_MARGIN_PX, height / 2 - EDGE_MARGIN_PX);
         const newRadius = Math.max(RADIUS_FLOOR_PX, edgeSafe);
@@ -159,7 +161,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
       document.removeEventListener("pointerdown", handleDocumentPointerDown);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [reduceMotion, hasHover]);
+  }, [reduceMotion, hasHover, MASCOTS]);
 
   function handleSelect(idx: number, id: MascotId) {
     if (hasHover) {
@@ -234,7 +236,8 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
               width: ringRadius * 2,
               height: ringRadius * 2,
               transform: "translate(-50%, -50%)",
-              border: "1px solid rgba(148, 163, 255, 0.25)",
+              // 시즌 스킨이 --orbit-ring 을 금빛으로 바꾼다(season.css). 평소엔 원래 색.
+              border: "1px solid var(--orbit-ring, rgba(148, 163, 255, 0.25))",
             }}
           />
         )}

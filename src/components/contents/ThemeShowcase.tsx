@@ -1,5 +1,6 @@
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { ThemeCard } from "@/components/contents/ThemeCard";
+import { SeasonLabel } from "@/components/season/SeasonArt";
 import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
 export type ThemeCardData = ThemeWithTiers & {
@@ -31,6 +32,8 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
          py-14(56px)였을 때 마지막 카드와 푸터가 붙어 답답했다(2026-10-06).
     */
     <section className="mx-auto max-w-5xl px-5 pb-16 pt-14 sm:pb-24">
+      {/* 시즌 스킨 때만 보이는 장식 문구(season.css). */}
+      <SeasonLabel text="TRICK OR ESCAPE" className="mb-3" />
       <SectionHeading eyebrow="CONTENTS" size="lg" />
 
       {themes.length === 0 ? (

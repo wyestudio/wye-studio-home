@@ -46,6 +46,9 @@ import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
 import { ModeBox, modeHref, modeKey } from "./ModeBox";
 import { ModeHud } from "./ModeHud";
+import { getSiteSkin } from "@/lib/siteSeason";
+import { HALLOWEEN_ACCENT } from "@/lib/season";
+import { PosterSeasonDecor, SeasonArt } from "@/components/season/SeasonArt";
 import { SectionViewTracker } from "./SectionViewTracker";
 
 /*
@@ -327,6 +330,19 @@ export default async function ThemeDetailPage({
   // 컬럼(p30)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const genres = theme.genres ?? [];
   const synopsis = tidySynopsis(themeLevel.description);
+
+  /*
+    시즌 스킨(할로윈) 동안 파티모드 강조색(민트)을 주황으로 바꾼다 — 승인 시안.
+    강조색은 인라인 style 로 칠해져 CSS 로는 못 바꾼다.
+    ⚠️ **달력(SessionPicker)만은 원래 색**이다. 달력은 파티(초록) · 얼리버드(노랑) ·
+       노말(파랑)을 색으로 가르는데, 파티가 주황이 되면 얼리버드 노랑과 헷갈린다.
+    ⚠️ 노말모드(시안)는 그대로다. 모드를 색으로 구분하는 건 시즌에도 유지한다.
+  */
+  const halloween = (await getSiteSkin()) === "halloween";
+  const seasonAccent = halloween && theme.id === themeLevel.id ? HALLOWEEN_ACCENT : accent;
+  const modeVariants = halloween
+    ? variants.map((v) => (v.id === themeLevel.id ? { ...v, accent_color: HALLOWEEN_ACCENT } : v))
+    : variants;
   // 칸(p38)이 아직 없는 DB 에서 읽어도 깨지지 않게.
   const introNotice = theme.intro_notice?.trim() || "";
   // 노말모드는 '예약'(themes.booking_verb). 칸이 생기기 전 캐시 응답에는 없다.
@@ -338,14 +354,14 @@ export default async function ThemeDetailPage({
       difficulty={theme.difficulty}
       durationMinutes={theme.duration_minutes}
       genres={genres}
-      accent={accent}
+      accent={seasonAccent}
     />
   );
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20">
       {/* 모바일에서만 — 소개 / 회차 선택 / 상세 정보 사이를 오가는 탭 */}
-      <DetailTabs accent={accent} />
+      <DetailTabs accent={seasonAccent} />
 
       {/*
         ── 상단: 테마 소개 ──
@@ -383,7 +399,7 @@ export default async function ThemeDetailPage({
             카테고리를 제목 옆 알약으로 두면 장르 태그와 구분이 안 됐다(CategoryLabel 참고).
           */}
           <div className="min-w-0 md:col-span-2">
-            {category && <CategoryLabel category={category} accent={accent} />}
+            {category && <CategoryLabel category={category} accent={seasonAccent} />}
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 {/*
@@ -394,7 +410,7 @@ export default async function ThemeDetailPage({
                 <h1 className="text-h1 font-extrabold">{base.name}</h1>
               </div>
               <div className="shrink-0">
-                <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} accent={accent} />
+                <ShareButton url={`${SITE_URL}/themes/${theme.slug}`} title={theme.name} accent={seasonAccent} />
               </div>
             </div>
           </div>
@@ -440,24 +456,38 @@ export default async function ThemeDetailPage({
                   : "max-w-[7rem] sm:max-w-none"
               }
             >
-              <div className="relative aspect-[4/5] overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="season-poster-frame relative aspect-[4/5] overflow-hidden rounded-xl border border-line bg-surface">
                 <PosterImage
                   src={themeLevel.hero_image_path}
                   alt={`${theme.name} 포스터`}
                   sizes="(min-width: 640px) 420px, 7rem"
                   priority
                 />
+                {/*
+                  시즌 장식 — 테마 목록 카드와 같은 것. 모바일에서 시놉시스 옆 7rem 포스터일
+                  때는 태그가 안 들어가 작은 쪽(compact)을 쓴다.
+                */}
+                {themeLevel.hero_image_path && (
+                  <>
+                    <span className={synopsis ? "sm:hidden" : ""}>
+                      <PosterSeasonDecor compact />
+                    </span>
+                    <span className={synopsis ? "hidden sm:inline" : "hidden"}>
+                      <PosterSeasonDecor />
+                    </span>
+                  </>
+                )}
               </div>
 
               {synopsis && (
                 <div className="min-w-0">
                   <p
                     className="mb-1.5 font-galmuri text-micro tracking-[0.2em]"
-                    style={{ color: accent }}
+                    style={{ color: seasonAccent }}
                   >
                     SYNOPSIS
                   </p>
-                  <SynopsisText text={synopsis} accent={accent} />
+                  <SynopsisText text={synopsis} accent={seasonAccent} />
                 </div>
               )}
             </div>
@@ -470,12 +500,12 @@ export default async function ThemeDetailPage({
             모드가 하나뿐인 테마에서는 ModeBox 가 null 이라 스펙이 그 자리를 메운다.
           */}
           <div className="flex min-w-0 flex-col gap-4">
-            <ModeBox variants={variants} active={theme} baseSlug={base.slug} accent={accent} />
+            <ModeBox variants={modeVariants} active={theme} baseSlug={base.slug} accent={seasonAccent} />
             {!hasModes && specs}
           </div>
         </section>
 
-        <ScrollToBookingButton accent={accent} themeName={theme.name} verb={verb} />
+        <ScrollToBookingButton accent={seasonAccent} themeName={theme.name} verb={verb} />
       </div>
 
       {/*
@@ -524,8 +554,9 @@ export default async function ThemeDetailPage({
           eyebrow="BOOKING"
           // 달력 위에 이미 '날짜 선택' 이 있어 겹친다. 블록 제목은 '회차 선택'.
           title="회차 선택"
+          titleDecor={<SeasonArt art="ghost" className="season-heading-ghost" />}
           className="mb-6 sm:mb-10"
-          eyebrowColor={accent}
+          eyebrowColor={seasonAccent}
           size="lg"
         />
         <div className="mx-auto w-full max-w-4xl">
@@ -574,7 +605,7 @@ export default async function ThemeDetailPage({
         */}
         <ThemeBlocks
           blocks={content.blocks}
-          accent={accent}
+          accent={seasonAccent}
           tiers={theme.tiers}
           maxGroupSize={theme.max_group_size}
           minGroupSize={theme.min_group_size}
@@ -607,7 +638,7 @@ export default async function ThemeDetailPage({
       */}
       <div className="flex justify-center pb-16 sm:pb-24">
         <ScrollToBookingButton
-          accent={accent}
+          accent={seasonAccent}
           themeName={theme.name}
           direction="up"
           className="mt-0 md:mt-0"
@@ -622,10 +653,10 @@ export default async function ThemeDetailPage({
         ⚠️ 모드를 바꾸면 고른 날짜(?d=)는 버린다 — 모드마다 여는 요일이 달라
            넘겨봐야 없는 날이고, 남겨 두면 '마감' 뿐인 달력이 된다.
       */}
-      <ModeHud variants={variants} activeId={theme.id} baseSlug={base.slug} accent={accent} />
+      <ModeHud variants={modeVariants} activeId={theme.id} baseSlug={base.slug} accent={seasonAccent} />
 
       {/* 넓은 화면 왼쪽 목차 — 지금 보는 블록 표시 + 눌러서 이동 */}
-      <SectionNav accent={accent} />
+      <SectionNav accent={seasonAccent} />
       {/* 어느 블록까지 내려가고 멈추는지 기록한다(화면에 아무것도 그리지 않는다) */}
       <SectionViewTracker themeLabel={theme.name} />
 
