@@ -468,20 +468,10 @@ html[data-season="halloween"] .season-callout-num {
   padding: 30px 0;
 }
 
-.hw-event-kicker {
-  margin-bottom: 12px;
-  color: #c6a4d9;
-  letter-spacing: 0.23em;
-}
-
+/* 테마 이름이 '바-' / 'ㅇ탈출!' 로 끊기지 않게 통째로 넘긴다. */
 .hw-event-em {
   color: #ffb750;
-}
-
-.hw-event-lead {
-  margin-top: 16px;
-  color: #cbbcd7;
-  line-height: 1.8;
+  white-space: nowrap;
 }
 
 .hw-event-cauldron {
@@ -563,51 +553,21 @@ html[data-season="halloween"] .season-callout-num {
   line-height: 1.9;
 }
 
-.hw-event-foot {
-  margin-top: 26px;
-  color: #ffbc68;
-}
-
-.hw-event-friends {
-  display: flex;
-  gap: 20px;
-  margin-top: 16px;
-}
-
-.hw-event-friends > li {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  color: #ad9abb;
-}
-
-.hw-event-friends img {
-  width: 46px;
-  height: 37px;
-  object-fit: contain;
-}
-
 .hw-event-costume {
   grid-column: 1 / -1;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 30px;
   border-color: #ffc36c40;
   background: linear-gradient(110deg, #ffb54e10, #8c4fbd16);
 }
 
-.hw-event-costume-top {
-  max-width: 350px;
+.hw-event-costume-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
 }
 
 .hw-event-costume-title {
   margin-bottom: 14px;
-}
-
-.hw-event-costume .hw-event-foot {
-  margin-top: 18px;
 }
 
 /* 도트 그림 — 굵은 도트가 뭉개지지 않게. */
@@ -618,42 +578,6 @@ html[data-season="halloween"] .season-callout-num {
   height: auto;
   object-fit: contain;
   image-rendering: pixelated;
-}
-
-.hw-event-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  margin-top: 26px;
-}
-
-.hw-event-period {
-  color: #ffce86;
-}
-
-.hw-event-sub {
-  color: #bcabc8;
-}
-
-.hw-event-booking {
-  display: inline-flex;
-  align-items: center;
-  gap: 18px;
-  padding: 13px 19px;
-  border-radius: 7px;
-  background: #ffb04a;
-  color: #25132d;
-  white-space: nowrap;
-}
-
-.hw-event-booking:hover {
-  background: #ffc777;
-}
-
-.hw-event-booking:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 4px;
 }
 
 @media (max-width: 1000px) {
@@ -682,14 +606,7 @@ html[data-season="halloween"] .season-callout-num {
     padding: 0 3px;
   }
 
-  /* 자간이 넓으면 390px 에서 두 줄로 꺾인다. */
-  .hw-event-kicker {
-    letter-spacing: 0.13em;
-    white-space: nowrap;
-  }
-
   .hw-event-heading {
-    align-items: flex-start;
     gap: 8px;
     padding: 24px 0;
   }
@@ -697,7 +614,6 @@ html[data-season="halloween"] .season-callout-num {
   .hw-event-cauldron {
     width: 78px;
     height: 92px;
-    margin-top: 24px;
   }
 
   .hw-event-cards {
@@ -722,16 +638,8 @@ html[data-season="halloween"] .season-callout-num {
     height: 78px;
   }
 
-  .hw-event-foot {
-    margin-top: 20px;
-  }
-
-  .hw-event-friends {
-    margin-top: 20px;
-  }
-
   /* 03 — 그림은 문구 아래 가운데. */
-  .hw-event-costume {
+  .hw-event-costume-row {
     flex-direction: column;
     align-items: stretch;
     gap: 16px;
@@ -741,16 +649,6 @@ html[data-season="halloween"] .season-callout-num {
     align-self: center;
     width: 230px;
     max-width: 100%;
-  }
-
-  .hw-event-bottom {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .hw-event-booking {
-    justify-content: space-between;
   }
 }
 

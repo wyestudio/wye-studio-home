@@ -1,14 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- 미리 줄여 둔 작은 그림이다(public/season/halloween/event). */
-import { HalloweenEventBookingLink } from "./HalloweenEventBookingLink";
 
 const ART = "/season/halloween/event";
-
-/** 02 카드의 마스코트 — 원래 모습 그대로(시즌 의상 아님). 순서는 우쥬 · 이스 · 케이프. */
-const FRIENDS = [
-  { name: "우쥬", src: `${ART}/mascot-wooju.webp` },
-  { name: "이스", src: `${ART}/mascot-is.webp` },
-  { name: "케이프", src: `${ART}/mascot-cape.webp` },
-];
 
 /**
  * 바-ㅇ탈출 할로윈 이벤트 안내 — 회차 선택과 CONTENTS 사이(2026-10-21 승인 시안).
@@ -16,7 +8,10 @@ const FRIENDS = [
  * 할로윈 스킨이 켜져 있고 파티모드일 때만 붙는다(page.tsx). 할로윈 회차가 파티모드에만 있다.
  * 모양은 season.css 의 .hw-event 에 있고, 글자 크기는 사이트 토큰(text-*)을 쓴다.
  *
- * ⚠️ 문구는 확정된 내용만 적는다 — 한정 서브 문제 · 행운 호박 뽑기 · 코스튬 굿즈 증정.
+ * 머리는 '기간 + 제목 한 줄' 만 둔다. 영문 소제목·요약 문단까지 세 겹이면 어느 것도
+ * 눈에 안 들어와 부산했다 — 내용은 아래 카드 세 장이 말한다(2026-10-22 대표님).
+ *
+ * ⚠️ 문구는 확정된 내용만 적는다 — 한정 서브 문제 · 행운의 호박 뽑기 · 코스튬 굿즈 증정.
  *    굿즈 종류·수량·선착순·확률 같은 조건은 정해지지 않았으니 지어 넣지 않는다.
  */
 export function HalloweenEventSection() {
@@ -30,18 +25,11 @@ export function HalloweenEventSection() {
       </div>
 
       <div className="hw-event-heading">
-        <div className="min-w-0">
-          <p className="hw-event-kicker text-micro">HALLOWEEN SPECIAL EVENT</p>
-          <h2 id="hw-event-title" className="text-h2 font-extrabold">
-            딱 이틀,
-            <br />
-            평소와는 다른 <span className="hw-event-em">바-ㅇ탈출!</span>
-          </h2>
-          <p className="hw-event-lead text-body">
-            특별한 문제와 깜짝 행운 호박 뽑기,
-            <br className="max-sm:hidden" /> 코스튬을 입고 오면 한정 굿즈까지!
-          </p>
-        </div>
+        <h2 id="hw-event-title" className="min-w-0 text-h1 font-extrabold">
+          딱 이틀,
+          <br />
+          평소와는 다른 <span className="hw-event-em">바-ㅇ탈출!</span>
+        </h2>
         <img src={`${ART}/cauldron.webp`} alt="" aria-hidden className="hw-event-cauldron" />
       </div>
 
@@ -53,18 +41,17 @@ export function HalloweenEventSection() {
           </div>
           <div className="hw-event-title-art">
             <h3 className="text-h2 font-extrabold">
-              할로윈 특별
+              할로윈 한정
               <br />
-              한정 서브 문제
+              서브 문제 추가
             </h3>
             <img src={`${ART}/candy-pink.webp`} alt="" aria-hidden className="hw-event-art" />
           </div>
           <p className="hw-event-body text-body-sm">
-            기존 플레이에 특별함을 더했어요.
+            할로윈 이벤트 기간에만 만날 수 있는
             <br />
-            이틀 동안만 등장하는 할로윈 서브 문제에 도전해보세요!
+            추가 서브 문제를 풀어보세요!
           </p>
-          <p className="hw-event-foot text-label font-semibold">풀 수 있는 기회는, 단 이틀.</p>
         </article>
 
         <article className="hw-event-card">
@@ -74,7 +61,7 @@ export function HalloweenEventSection() {
           </div>
           <div className="hw-event-title-art">
             <h3 className="text-h2 font-extrabold">
-              깜짝 행운
+              행운의
               <br />
               호박 뽑기
             </h3>
@@ -86,53 +73,37 @@ export function HalloweenEventSection() {
             />
           </div>
           <p className="hw-event-body text-body-sm">
-            문제를 푸는 중, 우쥬·이스·케이프가 내는
+            문제 풀이 중 우쥬, 이스, 케이프가 보여주는
             <br />
-            깜짝 행운 호박 뽑기 이벤트를 만나보세요.
+            행운의 호박을 뽑아보세요! Trick or treat?
           </p>
-          <ul className="hw-event-friends">
-            {FRIENDS.map((f) => (
-              <li key={f.name}>
-                <img src={f.src} alt="" />
-                <span className="text-micro">{f.name}</span>
-              </li>
-            ))}
-          </ul>
         </article>
 
         <article className="hw-event-card hw-event-costume">
-          <div className="min-w-0 flex-1">
-            <div className="hw-event-card-top hw-event-costume-top">
-              <span className="hw-event-num font-galmuri text-body">03</span>
-              <span className="hw-event-chip text-micro font-semibold">코스튬 참여 혜택</span>
-            </div>
-            <h3 className="hw-event-costume-title text-h2 font-extrabold">
-              할로윈 코스튬 입고,
-              <br />
-              한정 굿즈 받아가세요!
-            </h3>
-            <p className="hw-event-body text-body-sm">
-              할로윈 코스튬을 하고 오시면
-              <br />
-              할로윈 한정 굿즈를 증정해드려요.
-            </p>
-            <p className="hw-event-foot text-label font-semibold">이틀간의 특별한 추억을 굿즈로 간직하세요.</p>
+          {/* 번호·뱃지 줄은 카드 전체 폭 — 01·02 처럼 뱃지가 우상단에 온다. */}
+          <div className="hw-event-card-top">
+            <span className="hw-event-num font-galmuri text-body">03</span>
+            <span className="hw-event-chip text-micro font-semibold">코스튬 참여 혜택</span>
           </div>
-          <img
-            src={`${ART}/costume-witch-vampire.webp`}
-            alt="보라색 마녀 코스튬과 뱀파이어 코스튬을 입은 두 캐릭터"
-            className="hw-event-costume-art"
-          />
+          <div className="hw-event-costume-row">
+            <div className="min-w-0 flex-1">
+              <h3 className="hw-event-costume-title text-h2 font-extrabold">
+                할로윈 코스튬 입고 참여 시,
+                <br />
+                이벤트 한정 굿즈 증정!
+              </h3>
+              <p className="hw-event-body text-body-sm">
+                머리띠나 호박 바구니 같은 아주 간단한 소품만 착용해도 좋아요!
+                <br className="max-sm:hidden" /> 참여만 해도 이벤트 한정 굿즈를 드립니다.
+              </p>
+            </div>
+            <img
+              src={`${ART}/costume-witch-vampire.webp`}
+              alt="보라색 마녀 코스튬과 뱀파이어 코스튬을 입은 두 캐릭터"
+              className="hw-event-costume-art"
+            />
+          </div>
         </article>
-      </div>
-
-      <div className="hw-event-bottom">
-        <p>
-          <strong className="hw-event-period text-body font-extrabold">10월 31일 ~ 11월 1일</strong>
-          <br />
-          <span className="hw-event-sub text-label">이틀간 진행되는 할로윈 특별 이벤트</span>
-        </p>
-        <HalloweenEventBookingLink />
       </div>
     </section>
   );
