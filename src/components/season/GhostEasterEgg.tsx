@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { creepster } from "@/components/season/creepster";
+import { creepster } from "@/components/season/seasonFonts";
 
 /** 말풍선 문구. 하나씩 돌아가며 뜬다. */
 const TAUNTS = ["Trick or treat!", "날 눌러 봐", "Boo?"];

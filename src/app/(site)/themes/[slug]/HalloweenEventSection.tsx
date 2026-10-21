@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- 미리 줄여 둔 작은 그림이다(public/season/halloween/event). */
 
-import { creepster } from "@/components/season/creepster";
+import { hennyPenny } from "@/components/season/seasonFonts";
 
 const ART = "/season/halloween/event";
 
@@ -30,10 +30,10 @@ export function HalloweenEventSection() {
 
       <div className="hw-event-heading">
         <div className="min-w-0">
-          {/* 제목 위 이벤트 이름 — 녹아내리는 공포체로 할로윈 느낌만 얹는다(2026-10-22 대표님). */}
-          <p className={`hw-event-name ${creepster.className}`}>
+          {/* 제목 위 이벤트 이름 — 귀여운 할로윈체와 거꾸로 매달린 박쥐(2026-10-22 대표님). */}
+          <p className={`hw-event-name ${hennyPenny.className}`}>
             <img
-              src="/season/halloween/pumpkin.svg"
+              src={`${ART}/bat-hanging.svg`}
               alt=""
               aria-hidden
               className="hw-event-name-icon"
