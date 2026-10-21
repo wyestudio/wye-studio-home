@@ -404,6 +404,356 @@ html[data-season="halloween"] .season-callout-num {
   object-fit: contain;
 }
 
+/* ── 테마 상세 할로윈 이벤트 안내(HalloweenEventSection.tsx) ─────────────── */
+
+/*
+  승인 시안(GPT, 2026-10-21) 그대로. 이 섹션 안에서만 쓰는 이름(.hw-event-*)이다.
+  글자 크기·굵기는 컴포넌트의 text-* 토큰이 맡고, 여기는 색·배치·그림 크기만.
+  ⚠️ 발광·반짝임·애니메이션은 넣지 않는다(시안 지시).
+*/
+.hw-event {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 36px;
+  border: 1px solid #b8783f;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 95% 0, #8d4b272e, transparent 50%),
+    linear-gradient(145deg, #30203e, #1d122b);
+  color: #fff1df;
+}
+
+.hw-event::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #ff9b32, #ffd38a, #ff9b32);
+}
+
+.hw-event-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #ffc56b26;
+}
+
+.hw-event-badge {
+  padding: 7px 12px;
+  border-radius: 4px;
+  background: #ffb350;
+  color: #271430;
+  letter-spacing: 0.15em;
+  white-space: nowrap;
+}
+
+.hw-event-date {
+  color: #ffcf84;
+  white-space: nowrap;
+}
+
+.hw-event-date > span {
+  padding: 0 10px;
+  color: #a67d59;
+}
+
+.hw-event-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 30px 0;
+}
+
+.hw-event-kicker {
+  margin-bottom: 12px;
+  color: #c6a4d9;
+  letter-spacing: 0.23em;
+}
+
+.hw-event-em {
+  color: #ffb750;
+}
+
+.hw-event-lead {
+  margin-top: 16px;
+  color: #cbbcd7;
+  line-height: 1.8;
+}
+
+.hw-event-cauldron {
+  flex: none;
+  width: 172px;
+  height: 172px;
+  object-fit: contain;
+}
+
+.hw-event-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.hw-event-card {
+  position: relative;
+  min-width: 0;
+  padding: 25px;
+  border: 1px solid #ebc0ff21;
+  border-radius: 12px;
+  background: #ffffff04;
+}
+
+.hw-event-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.hw-event-num {
+  color: #9f79b5;
+}
+
+.hw-event-chip {
+  padding: 4px 10px;
+  border: 1px solid #ffc36c40;
+  border-radius: 99px;
+  background: #ffb54e0c;
+  color: #ffd08c;
+  white-space: nowrap;
+}
+
+.hw-event-card h3 {
+  color: #fff1df;
+  line-height: 1.4;
+}
+
+/* 제목과 그림이 칸을 나눠 겹치지 않게 한 줄에 둔다. */
+.hw-event-title-art {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.hw-event-title-art h3 {
+  flex: 1;
+  min-width: 0;
+}
+
+.hw-event-art {
+  flex: none;
+  width: 112px;
+  height: 92px;
+  object-fit: contain;
+}
+
+.hw-event-art--pumpkin {
+  width: 100px;
+  transform: rotate(8deg);
+}
+
+.hw-event-body {
+  color: #c5b5d1;
+  line-height: 1.9;
+}
+
+.hw-event-foot {
+  margin-top: 26px;
+  color: #ffbc68;
+}
+
+.hw-event-friends {
+  display: flex;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.hw-event-friends > li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #ad9abb;
+}
+
+.hw-event-friends img {
+  width: 46px;
+  height: 37px;
+  object-fit: contain;
+}
+
+.hw-event-costume {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  border-color: #ffc36c40;
+  background: linear-gradient(110deg, #ffb54e10, #8c4fbd16);
+}
+
+.hw-event-costume-top {
+  max-width: 350px;
+}
+
+.hw-event-costume-title {
+  margin-bottom: 14px;
+}
+
+.hw-event-costume .hw-event-foot {
+  margin-top: 18px;
+}
+
+/* 도트 그림 — 굵은 도트가 뭉개지지 않게. */
+.hw-event-costume-art {
+  flex: none;
+  width: 270px;
+  max-width: 42%;
+  height: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.hw-event-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 26px;
+}
+
+.hw-event-period {
+  color: #ffce86;
+}
+
+.hw-event-sub {
+  color: #bcabc8;
+}
+
+.hw-event-booking {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  padding: 13px 19px;
+  border-radius: 7px;
+  background: #ffb04a;
+  color: #25132d;
+  white-space: nowrap;
+}
+
+.hw-event-booking:hover {
+  background: #ffc777;
+}
+
+.hw-event-booking:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
+
+@media (max-width: 1000px) {
+  .hw-event-art {
+    width: 82px;
+    height: 78px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hw-event {
+    padding: 22px 18px;
+    border-radius: 13px;
+  }
+
+  .hw-event-topline {
+    gap: 8px;
+    padding-bottom: 18px;
+  }
+
+  .hw-event-badge {
+    padding: 6px 8px;
+  }
+
+  .hw-event-date > span {
+    padding: 0 3px;
+  }
+
+  /* 자간이 넓으면 390px 에서 두 줄로 꺾인다. */
+  .hw-event-kicker {
+    letter-spacing: 0.13em;
+    white-space: nowrap;
+  }
+
+  .hw-event-heading {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 24px 0;
+  }
+
+  .hw-event-cauldron {
+    width: 78px;
+    height: 92px;
+    margin-top: 24px;
+  }
+
+  .hw-event-cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .hw-event-card {
+    padding: 20px;
+  }
+
+  .hw-event-card-top {
+    margin-bottom: 15px;
+  }
+
+  .hw-event-title-art {
+    gap: 8px;
+  }
+
+  .hw-event-art {
+    width: 86px;
+    height: 78px;
+  }
+
+  .hw-event-foot {
+    margin-top: 20px;
+  }
+
+  .hw-event-friends {
+    margin-top: 20px;
+  }
+
+  /* 03 — 그림은 문구 아래 가운데. */
+  .hw-event-costume {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .hw-event-costume-art {
+    align-self: center;
+    width: 230px;
+    max-width: 100%;
+  }
+
+  .hw-event-bottom {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .hw-event-booking {
+    justify-content: space-between;
+  }
+}
+
 /* ── 제목 위 영문 문구 ───────────────────────────────────────────────────── */
 
 .season-label {

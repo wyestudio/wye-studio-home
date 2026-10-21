@@ -47,6 +47,7 @@ import { CategoryLabel } from "./CategoryLabel";
 import { ModeBox, modeHref, modeKey } from "./ModeBox";
 import { ModeHud } from "./ModeHud";
 import { getSiteSkin } from "@/lib/siteSeason";
+import { HalloweenEventSection } from "./HalloweenEventSection";
 import { HALLOWEEN_ACCENT } from "@/lib/season";
 import { PosterSeasonDecor, SeasonArt } from "@/components/season/SeasonArt";
 import { SectionViewTracker } from "./SectionViewTracker";
@@ -596,6 +597,16 @@ export default async function ThemeDetailPage({
           />
         </div>
       </section>
+
+      {/*
+        ── 할로윈 이벤트 안내 ── 회차 선택과 CONTENTS 사이. 스킨이 켜져 있고 바-ㅇ탈출
+        파티모드일 때만(할로윈 회차가 파티모드에만 있다). 스킨을 끄면 같이 사라진다.
+      */}
+      {halloween && theme.slug === "baotalchul" && (
+        <div className={`mx-auto w-full max-w-4xl ${SCREEN_SECTION}`}>
+          <HalloweenEventSection />
+        </div>
+      )}
 
       {/* ── 상세 정보 ── */}
       <div id="detail" className={SCREEN_SCROLL_MARGIN}>
