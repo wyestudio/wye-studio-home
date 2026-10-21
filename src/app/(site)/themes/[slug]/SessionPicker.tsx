@@ -13,6 +13,7 @@ import {
 import { EarlyBirdBanner } from "@/components/promo/EarlyBirdBanner";
 import { scrollToBooking } from "./scrollToBooking";
 import { DETAIL_EVENT, pushGa4Event } from "@/lib/analytics";
+import { HALLOWEEN_ACCENT } from "@/lib/season";
 
 export type PickerSession = SessionView & {
   stats: SessionStats | null;
@@ -510,7 +511,15 @@ export function SessionPicker({
                       className={`whitespace-nowrap rounded-full px-2 py-0.5 text-micro font-extrabold leading-tight ${
                         isActive ? "bg-[#0a0a12] text-white" : ""
                       }`}
-                      style={isActive ? undefined : { backgroundColor: accentColor, color: "#0a0a12" }}
+                      // '할로윈' 태그는 테마색이 아니라 할로윈 주황으로(2026-10-21 대표님).
+                      style={
+                        isActive
+                          ? undefined
+                          : {
+                              backgroundColor: /할로윈|halloween/i.test(s.badge) ? HALLOWEEN_ACCENT : accentColor,
+                              color: "#0a0a12",
+                            }
+                      }
                     >
                       {s.badge}
                     </span>

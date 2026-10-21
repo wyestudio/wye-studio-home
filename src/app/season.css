@@ -436,8 +436,11 @@ html[data-season="halloween"] .season-faq .hud-panel > button > span:last-child 
   opacity: 0.28;
 }
 
-.season-backdrop--home .season-bd-web {
-  top: 0;
+/* 모바일 헤더는 홈에서도 불투명이라(Header.tsx) 맨 위에 붙이면 헤더에 가려 안 보인다. 768px 이상만. */
+@media (min-width: 768px) {
+  .season-backdrop--home .season-bd-web {
+    top: 0;
+  }
 }
 
 /*
@@ -560,19 +563,57 @@ html[data-season="halloween"] .season-faq .hud-panel > button > span:last-child 
     height: 36px;
   }
 
+  /*
+    모바일은 화면 밖으로 밀면 반쯤 잘려 무엇인지 안 보이고, 왼쪽은 거미줄밖에 없었다
+    (2026-10-21 대표님). 작게 줄여 **화면 안에 다 들어오게** 두고, 왼쪽에도 별·호박을 둔다.
+  */
   .season-bd-web {
     width: 90px;
   }
 
   .season-bd-moon {
-    right: -70px;
-    width: 130px;
+    right: 12px;
+    /* 테마 상세는 헤더 밑에 탭 줄(약 50px)이 하나 더 붙는다 — 그 아래로 내려 가려지지 않게. */
+    top: calc(var(--header-bottom, var(--header-height, 64px)) + 56px);
+    width: 78px;
+    opacity: 0.5;
   }
 
   .season-bd-bat--1 {
-    right: 15px;
-    top: calc(var(--header-bottom, var(--header-height, 64px)) + 63px);
-    width: 45px;
+    right: 62px;
+    top: calc(var(--header-bottom, var(--header-height, 64px)) + 70px);
+    width: 38px;
+  }
+
+  /* 본문 옆 여백(20px) 안에 거의 들어오는 크기. */
+  .season-bd-ghost {
+    right: 2px;
+    width: 26px;
+  }
+
+  .season-bd-spark {
+    display: block;
+  }
+
+  .season-bd-spark--1 {
+    left: 14px;
+    top: 40%;
+    width: 14px;
+  }
+
+  .season-bd-spark--2 {
+    right: 16px;
+    top: 72%;
+    width: 11px;
+  }
+
+  .season-bd-pumpkin {
+    display: block;
+    left: 12px;
+    bottom: 10px;
+    width: 44px;
+    /* 끝까지 내리면 푸터 글자 뒤로 들어온다 — 글자가 읽히게 연하게. */
+    opacity: 0.5;
   }
 
   /* 좁으면 가운데를 자르면 성이 잘려 나간다. 성이 있는 오른쪽을 남긴다. */
