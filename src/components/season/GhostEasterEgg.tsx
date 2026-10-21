@@ -15,10 +15,10 @@ const TAUNTS = ["Trick or treat!", "날 눌러 봐", "Boo?"];
 
 /*
   말풍선은 가끔만 — 2초마다 띄웠더니 말이 많고 본문에 자꾸 겹쳤다(2026-10-21 대표님).
-  들어와서 잠깐 뒤 처음 뜨고, 그 뒤로 9초마다 2.5초씩.
+  들어와서 잠깐 뒤 처음 뜨고, 그 뒤로 6초마다 2.5초씩.
 */
 const TAUNT_FIRST_MS = 4000;
-const TAUNT_EVERY_MS = 9000;
+const TAUNT_EVERY_MS = 6000;
 const TAUNT_SHOW_MS = 2500;
 
 /** 각 단계의 길이(ms). 사라짐 → (빈 화면) → BOO! → 걷힘 → 돌아옴. */
@@ -42,7 +42,12 @@ type Phase = "idle" | "vanish" | "boo" | "leave" | "return";
  */
 export function GhostEasterEgg() {
   const [phase, setPhase] = useState<Phase>("idle");
-  const [taunt, setTaunt] = useState<number | null>(null);
+  /*
+    문구 번호와 보임 여부를 따로 든다. 하나로 합쳐 숨길 때 null 로 지웠더니, 사라지는
+    0.2초 동안 글자가 첫 문구('Trick or treat!')로 바뀌어 보였다(2026-10-21 대표님).
+  */
+  const [taunt, setTaunt] = useState(0);
+  const [talking, setTalking] = useState(false);
   const timers = useRef<number[]>([]);
 
   useEffect(() => {
@@ -54,7 +59,8 @@ export function GhostEasterEgg() {
     let id = 0;
     const say = () => {
       setTaunt(n++ % TAUNTS.length);
-      hide = window.setTimeout(() => setTaunt(null), TAUNT_SHOW_MS);
+      setTalking(true);
+      hide = window.setTimeout(() => setTalking(false), TAUNT_SHOW_MS);
     };
     const first = window.setTimeout(() => {
       say();
@@ -117,8 +123,8 @@ export function GhostEasterEgg() {
         {/* 장식 그림이라 SeasonArt 와 같은 파일을 쓴다. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/season/halloween/ghost.svg" alt="" draggable={false} className="season-egg-ghost" />
-        <span aria-hidden className="season-egg-bubble" data-show={taunt !== null && phase === "idle" ? "" : undefined}>
-          {TAUNTS[taunt ?? 0]}
+        <span aria-hidden className="season-egg-bubble" data-show={talking && phase === "idle" ? "" : undefined}>
+          {TAUNTS[taunt]}
         </span>
       </button>
 
