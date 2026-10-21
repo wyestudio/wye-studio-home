@@ -468,7 +468,7 @@ html[data-season="halloween"] .season-callout-num {
   padding: 30px 0;
 }
 
-/* 제목 위 'Halloween Event'. 글꼴(Henny Penny)은 컴포넌트가 붙인다. */
+/* 제목 위 'Halloween Event'. 글꼴(갈무리 픽셀체)은 컴포넌트가 붙인다. */
 .hw-event-name {
   display: flex;
   align-items: center;
@@ -637,7 +637,8 @@ html[data-season="halloween"] .season-callout-num {
 
   .hw-event-name {
     gap: 8px;
-    font-size: 24px;
+    font-size: 20px;
+    white-space: nowrap;
   }
 
   .hw-event-name-icon {
@@ -679,6 +680,13 @@ html[data-season="halloween"] .season-callout-num {
     align-self: center;
     width: 230px;
     max-width: 100%;
+  }
+}
+
+/* 360px 대 — 픽셀체가 넓어 20px 이면 솥 그림까지 닿는다. */
+@media (max-width: 380px) {
+  .hw-event-name {
+    font-size: 18px;
   }
 }
 

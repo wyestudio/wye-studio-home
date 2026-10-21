@@ -1,7 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- 미리 줄여 둔 작은 그림이다(public/season/halloween/event). */
 
-import { hennyPenny } from "@/components/season/seasonFonts";
-
 const ART = "/season/halloween/event";
 
 /**
@@ -31,7 +29,7 @@ export function HalloweenEventSection() {
       <div className="hw-event-heading">
         <div className="min-w-0">
           {/* 제목 위 이벤트 이름 — 귀여운 할로윈체와 거꾸로 매달린 박쥐(2026-10-22 대표님). */}
-          <p className={`hw-event-name ${hennyPenny.className}`}>
+          <p className="hw-event-name font-galmuri">
             <img
               src={`${ART}/bat-hanging.svg`}
               alt=""
