@@ -48,6 +48,12 @@ export function GhostEasterEgg() {
   */
   const [taunt, setTaunt] = useState(0);
   const [talking, setTalking] = useState(false);
+  /*
+    스크롤하는 동안. 모바일은 본문 옆 여백이 20px 뿐이라 유령·말풍선이 본문에 겹친다 —
+    읽으며 내리는 동안엔 화면 밖으로 숨고(season.css), 멈추면 다시 빼꼼 나온다(2026-10-21 대표님).
+  */
+  const [scrolling, setScrolling] = useState(false);
+  const scrollingRef = useRef(false);
   const timers = useRef<number[]>([]);
 
   useEffect(() => {
@@ -58,6 +64,7 @@ export function GhostEasterEgg() {
     let hide = 0;
     let id = 0;
     const say = () => {
+      if (scrollingRef.current) return;
       setTaunt(n++ % TAUNTS.length);
       setTalking(true);
       hide = window.setTimeout(() => setTalking(false), TAUNT_SHOW_MS);
@@ -66,8 +73,24 @@ export function GhostEasterEgg() {
       say();
       id = window.setInterval(say, TAUNT_EVERY_MS);
     }, TAUNT_FIRST_MS);
+    let still = 0;
+    const onScroll = () => {
+      if (!scrollingRef.current) {
+        scrollingRef.current = true;
+        setScrolling(true);
+        setTalking(false);
+      }
+      window.clearTimeout(still);
+      still = window.setTimeout(() => {
+        scrollingRef.current = false;
+        setScrolling(false);
+      }, 700);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
     const pending = timers;
     return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(still);
       window.clearTimeout(first);
       window.clearInterval(id);
       window.clearTimeout(hide);
@@ -118,6 +141,7 @@ export function GhostEasterEgg() {
         onClick={play}
         aria-label="유령 누르기"
         data-phase={phase}
+        data-scrolling={scrolling ? "" : undefined}
         className="season-only season-egg"
       >
         {/* 장식 그림이라 SeasonArt 와 같은 파일을 쓴다. */}

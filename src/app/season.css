@@ -767,6 +767,12 @@ html[data-season="halloween"] .season-callout-num {
   .season-egg {
     right: -8px;
     width: 34px;
+    transition: translate 0.35s ease;
+  }
+
+  /* 스크롤하는 동안은 화면 밖으로 쏙 숨는다(GhostEasterEgg 의 scrolling). */
+  .season-egg[data-scrolling] {
+    translate: 120% 0;
   }
 
   .season-egg-bubble {
