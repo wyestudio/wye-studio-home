@@ -485,12 +485,164 @@ html[data-season="halloween"] .season-callout-num {
 }
 
 
-.season-bd-ghost {
+/* ── 유령 이스터에그(GhostEasterEgg.tsx) ─────────────────────────────────── */
+
+/* 콘텐츠 앞에 떠서 눌린다. 헤더(z-20)보다 위, 하단 막대(z-30·40)보다 아래. */
+.season-egg {
+  position: fixed;
   right: 38px;
   top: 53%;
+  z-index: 25;
   width: 48px;
-  opacity: 0.35;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
   animation: season-bob 5s ease-in-out infinite;
+}
+
+.season-egg:focus-visible {
+  outline: 2px solid #ffae49;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.season-egg-ghost {
+  display: block;
+  width: 100%;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 8px rgb(255 240 220 / 0.3));
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.season-egg:hover .season-egg-ghost {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+/* 스르륵 — 위로 떠오르며 흐려져 사라진다. */
+.season-egg[data-phase="vanish"] .season-egg-ghost {
+  animation: season-egg-vanish 650ms ease-in forwards;
+}
+
+.season-egg:is([data-phase="boo"], [data-phase="leave"]) .season-egg-ghost {
+  opacity: 0;
+}
+
+.season-egg[data-phase="return"] .season-egg-ghost {
+  animation: season-egg-return 600ms ease-out;
+}
+
+@keyframes season-egg-vanish {
+  to {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.6);
+    filter: blur(4px);
+  }
+}
+
+@keyframes season-egg-return {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+/* 말풍선 — 유령 왼쪽 위. 꼬리는 유령 쪽(오른쪽 아래)으로. */
+.season-egg-bubble {
+  position: absolute;
+  right: calc(100% + 4px);
+  bottom: 72%;
+  padding: 5px 10px;
+  border-radius: 12px 12px 3px 12px;
+  background: #fff4e2;
+  color: #2a1638;
+  font-size: var(--text-label);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.35), 0 0 16px -4px rgb(255 170 70 / 0.6);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px) scale(0.85);
+  transform-origin: bottom right;
+  transition: opacity 0.2s, transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.season-egg-bubble[data-show] {
+  opacity: 1;
+  transform: none;
+}
+
+/* BOO! — 화면 전체를 덮고 크게 튀어나온다. 누르면 바로 걷힌다. */
+.season-boo {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2vh;
+  background: rgb(8 4 14 / 0.92);
+  cursor: pointer;
+  animation: season-boo-in 0.15s ease-out;
+}
+
+.season-boo[data-leaving] {
+  animation: season-boo-out 0.35s ease-in forwards;
+}
+
+.season-boo-text {
+  color: #ff9a1f;
+  font-size: clamp(96px, 30vw, 260px);
+  line-height: 0.9;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 40px rgb(255 140 30 / 0.45);
+  animation:
+    season-boo-pop 0.5s cubic-bezier(0.2, 1.8, 0.4, 1) both,
+    season-boo-shake 0.12s 0.5s 4 linear;
+}
+
+.season-boo-ghost {
+  width: clamp(130px, 34vw, 280px);
+  animation:
+    season-boo-rise 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both,
+    season-bob 1.4s 0.45s ease-in-out infinite;
+}
+
+@keyframes season-boo-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes season-boo-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes season-boo-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotate(-8deg);
+  }
+}
+
+@keyframes season-boo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(35vh) scale(0.4);
+  }
+}
+
+@keyframes season-boo-shake {
+  25% {
+    transform: translate(-5px, 2px) rotate(-2deg);
+  }
+  75% {
+    transform: translate(5px, -2px) rotate(2deg);
+  }
 }
 
 .season-bd-ground {
@@ -542,9 +694,10 @@ html[data-season="halloween"] .season-callout-num {
     display: none;
   }
 
-  .season-bd-ghost {
-    right: -20px;
-    width: 43px;
+  /* 본문 옆 여백이 좁아 글자 위를 덮지 않게, 화면 끝에서 빼꼼 내다보게 둔다. */
+  .season-egg {
+    right: -10px;
+    width: 42px;
   }
 
   .season-bd-web {
@@ -610,10 +763,14 @@ html[data-season="halloween"] .season-callout-num {
     width: 38px;
   }
 
-  /* 본문 옆 여백(20px) 안에 거의 들어오는 크기. */
-  .season-bd-ghost {
-    right: 2px;
-    width: 26px;
+  /* 본문 옆 여백(20px) 남짓만 내다본다 — 그 이상 들어오면 본문 오른쪽 끝을 못 누른다. */
+  .season-egg {
+    right: -8px;
+    width: 34px;
+  }
+
+  .season-egg-bubble {
+    font-size: var(--text-micro);
   }
 
   .season-bd-spark {
@@ -670,7 +827,10 @@ body:has(.apply-cta-bar) :is(.season-bd-ground, .season-bd-pumpkin) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .season-bd-ghost {
+  /* 흔들림·튀어오름은 빼고 나타났다 사라지기만 한다. */
+  .season-egg,
+  .season-boo-text,
+  .season-boo-ghost {
     animation: none;
   }
 
