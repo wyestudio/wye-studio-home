@@ -80,8 +80,9 @@ export type CalendarLegendItem = { color: string; label: string };
  *    안 지우면 작년 호박이 계속 보인다.
  */
 const PUMPKIN_DAYS: Record<string, string> = {
-  // 2026 할로윈 — 오후 2시 · 저녁 7시 두 회차만 운영한다.
-  "2026-10-31": "할로윈",
+  // 2026 할로윈 주말
+  "2026-10-31": "할로윈", // 오후 2시 · 저녁 7시 두 회차만 운영한다.
+  "2026-11-01": "할로윈",
 };
 
 /*
