@@ -35,9 +35,9 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
         제목은 신청내역 조회·공지사항과 같은 페이지 제목 크기(text-h1)다. 영문 라벨 'CONTENTS'
         대신 한글로 바꿨다(2026-10-21 대표님).
       */}
+      {/* 시즌 스킨 때만 보이는 장식 문구(season.css). 제목 위에 얹는다. */}
+      <SeasonLabel text="TRICK OR ESCAPE" className="mb-3" />
       <h1 className="text-center text-h1 font-extrabold">테마 목록</h1>
-      {/* 시즌 스킨 때만 보이는 장식 문구(season.css). 제목 아래에 붙는다. */}
-      <SeasonLabel text="TRICK OR ESCAPE" className="mt-3" />
 
       {themes.length === 0 ? (
         <div className="mt-10 rounded-xl border border-line bg-fill p-10 text-center sm:mt-12 sm:p-14">
