@@ -10,11 +10,21 @@ import { Creepster } from "next/font/google";
 */
 const creepster = Creepster({ weight: "400", subsets: ["latin"], preload: false, display: "swap" });
 
-/** 말풍선 문구. 2초마다 하나씩 돌아가며 뜬다. */
-const TAUNTS = ["Trick or treat!", "날 눌러 봐", "심심해…", "Boo?"];
+/** 말풍선 문구. 하나씩 돌아가며 뜬다. */
+const TAUNTS = ["Trick or treat!", "날 눌러 봐", "Boo?"];
 
-/** 각 단계의 길이(ms). 사라짐 → BOO! → 걷힘 → 돌아옴. */
+/*
+  말풍선은 가끔만 — 2초마다 띄웠더니 말이 많고 본문에 자꾸 겹쳤다(2026-10-21 대표님).
+  들어와서 잠깐 뒤 처음 뜨고, 그 뒤로 9초마다 2.5초씩.
+*/
+const TAUNT_FIRST_MS = 4000;
+const TAUNT_EVERY_MS = 9000;
+const TAUNT_SHOW_MS = 2500;
+
+/** 각 단계의 길이(ms). 사라짐 → (빈 화면) → BOO! → 걷힘 → 돌아옴. */
 const VANISH_MS = 650;
+/** 사라진 뒤 BOO! 까지 비워 두는 시간 — "어디 갔지? 다시 나오나?" 할 즈음 튀어나온다. */
+const GONE_MS = 1800;
 const BOO_MS = 1700;
 const LEAVE_MS = 350;
 const RETURN_MS = 600;
@@ -24,7 +34,7 @@ type Phase = "idle" | "vanish" | "boo" | "leave" | "return";
 /**
  * 오른쪽 가장자리 유령 — 이스터에그.
  *
- * 2초마다 말풍선으로 눌러 보라고 꼬시고, 누르면 스르륵 사라졌다가 화면 가득 BOO! 하고
+ * 가끔 말풍선으로 눌러 보라고 꼬시고, 누르면 스르륵 사라졌다가 잠깐 뒤 화면 가득 BOO! 하고
  * 튀어나온 뒤 제자리로 돌아온다(2026-10-21 대표님).
  *
  * 배경 장식(SeasonBackdrop)은 콘텐츠 **뒤**에 깔려 클릭을 못 받으므로 이 유령만 따로
@@ -41,12 +51,18 @@ export function GhostEasterEgg() {
 
     let n = 0;
     let hide = 0;
-    const id = window.setInterval(() => {
+    let id = 0;
+    const say = () => {
       setTaunt(n++ % TAUNTS.length);
-      hide = window.setTimeout(() => setTaunt(null), 1300);
-    }, 2000);
+      hide = window.setTimeout(() => setTaunt(null), TAUNT_SHOW_MS);
+    };
+    const first = window.setTimeout(() => {
+      say();
+      id = window.setInterval(say, TAUNT_EVERY_MS);
+    }, TAUNT_FIRST_MS);
     const pending = timers;
     return () => {
+      window.clearTimeout(first);
       window.clearInterval(id);
       window.clearTimeout(hide);
       pending.current.forEach(window.clearTimeout);
@@ -59,11 +75,13 @@ export function GhostEasterEgg() {
 
   function play() {
     if (phase !== "idle") return;
+    // vanish 단계 동안 유령은 사라진 채로(애니메이션 forwards) 빈 화면을 둔다.
     setPhase("vanish");
-    at(VANISH_MS, "boo");
-    at(VANISH_MS + BOO_MS, "leave");
-    at(VANISH_MS + BOO_MS + LEAVE_MS, "return");
-    at(VANISH_MS + BOO_MS + LEAVE_MS + RETURN_MS, "idle");
+    const boo = VANISH_MS + GONE_MS;
+    at(boo, "boo");
+    at(boo + BOO_MS, "leave");
+    at(boo + BOO_MS + LEAVE_MS, "return");
+    at(boo + BOO_MS + LEAVE_MS + RETURN_MS, "idle");
   }
 
   // BOO! 화면을 누르거나 Esc 를 누르면 바로 걷는다.
