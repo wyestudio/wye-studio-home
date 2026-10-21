@@ -1,14 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Creepster } from "next/font/google";
-
-/*
-  BOO! 글자 전용. 녹아내리는 공포체라 시안의 'BOO!' 느낌이 난다.
-  ⚠️ preload 하지 않는다 — 누르기 전엔 안 쓰는 글꼴을 모든 페이지가 받게 된다.
-     유령이 뜨면 그때 받아 둔다(아래 useEffect).
-*/
-const creepster = Creepster({ weight: "400", subsets: ["latin"], preload: false, display: "swap" });
+import { creepster } from "@/components/season/creepster";
 
 /** 말풍선 문구. 하나씩 돌아가며 뜬다. */
 const TAUNTS = ["Trick or treat!", "날 눌러 봐", "Boo?"];

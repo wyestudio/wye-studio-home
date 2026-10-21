@@ -1,5 +1,7 @@
 /* eslint-disable @next/next/no-img-element -- 미리 줄여 둔 작은 그림이다(public/season/halloween/event). */
 
+import { creepster } from "@/components/season/creepster";
+
 const ART = "/season/halloween/event";
 
 /**
@@ -18,26 +20,47 @@ export function HalloweenEventSection() {
   return (
     <section aria-labelledby="hw-event-title" className="hw-event">
       <div className="hw-event-topline">
-        <span className="hw-event-badge text-micro font-extrabold">ONLY 2 DAYS</span>
+        <span className="hw-event-badge text-micro font-extrabold">
+          ONLY 2 DAYS
+        </span>
         <span className="hw-event-date font-galmuri text-h2">
           10.31 <span aria-hidden>—</span> 11.01
         </span>
       </div>
 
       <div className="hw-event-heading">
-        <h2 id="hw-event-title" className="min-w-0 text-h1 font-extrabold">
-          딱 이틀,
-          <br />
-          평소와는 다른 <span className="hw-event-em">바-ㅇ탈출!</span>
-        </h2>
-        <img src={`${ART}/cauldron.webp`} alt="" aria-hidden className="hw-event-cauldron" />
+        <div className="min-w-0">
+          {/* 제목 위 이벤트 이름 — 녹아내리는 공포체로 할로윈 느낌만 얹는다(2026-10-22 대표님). */}
+          <p className={`hw-event-name ${creepster.className}`}>
+            <img
+              src="/season/halloween/pumpkin.svg"
+              alt=""
+              aria-hidden
+              className="hw-event-name-icon"
+            />
+            Halloween Event
+          </p>
+          <h2 id="hw-event-title" className="text-h1 font-extrabold">
+            딱 이틀,
+            <br />
+            평소와는 다른 <span className="hw-event-em">바-ㅇ탈출!</span>
+          </h2>
+        </div>
+        <img
+          src={`${ART}/cauldron.webp`}
+          alt=""
+          aria-hidden
+          className="hw-event-cauldron"
+        />
       </div>
 
       <div className="hw-event-cards">
         <article className="hw-event-card">
           <div className="hw-event-card-top">
             <span className="hw-event-num font-galmuri text-body">01</span>
-            <span className="hw-event-chip text-micro font-semibold">기간 한정</span>
+            <span className="hw-event-chip text-micro font-semibold">
+              기간 한정
+            </span>
           </div>
           <div className="hw-event-title-art">
             <h3 className="text-h2 font-extrabold">
@@ -45,7 +68,12 @@ export function HalloweenEventSection() {
               <br />
               서브 문제 추가
             </h3>
-            <img src={`${ART}/candy-pink.webp`} alt="" aria-hidden className="hw-event-art" />
+            <img
+              src={`${ART}/candy-pink.webp`}
+              alt=""
+              aria-hidden
+              className="hw-event-art"
+            />
           </div>
           <p className="hw-event-body text-body-sm">
             할로윈 이벤트 기간에만 만날 수 있는
@@ -57,7 +85,9 @@ export function HalloweenEventSection() {
         <article className="hw-event-card">
           <div className="hw-event-card-top">
             <span className="hw-event-num font-galmuri text-body">02</span>
-            <span className="hw-event-chip text-micro font-semibold">깜짝 이벤트</span>
+            <span className="hw-event-chip text-micro font-semibold">
+              깜짝 이벤트
+            </span>
           </div>
           <div className="hw-event-title-art">
             <h3 className="text-h2 font-extrabold">
@@ -83,7 +113,9 @@ export function HalloweenEventSection() {
           {/* 번호·뱃지 줄은 카드 전체 폭 — 01·02 처럼 뱃지가 우상단에 온다. */}
           <div className="hw-event-card-top">
             <span className="hw-event-num font-galmuri text-body">03</span>
-            <span className="hw-event-chip text-micro font-semibold">코스튬 참여 혜택</span>
+            <span className="hw-event-chip text-micro font-semibold">
+              코스튬 참여 혜택
+            </span>
           </div>
           <div className="hw-event-costume-row">
             <div className="min-w-0 flex-1">
@@ -94,7 +126,8 @@ export function HalloweenEventSection() {
               </h3>
               <p className="hw-event-body text-body-sm">
                 머리띠나 호박 바구니 같은 아주 간단한 소품만 착용해도 좋아요!
-                <br className="max-sm:hidden" /> 참여만 해도 이벤트 한정 굿즈를 드립니다.
+                <br className="max-sm:hidden" /> 참여만 해도 이벤트 한정 굿즈를
+                드립니다
               </p>
             </div>
             <img
