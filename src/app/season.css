@@ -811,12 +811,13 @@ html[data-season="halloween"] .season-callout-num {
   animation: season-egg-vanish 650ms ease-in forwards;
 }
 
-.season-egg:is([data-phase="boo"], [data-phase="leave"]) .season-egg-ghost {
+.season-egg:is([data-phase="boo"], [data-phase="leave"], [data-phase="away"]) .season-egg-ghost {
   opacity: 0;
 }
 
+/* 돌아올 때는 흐릿하게 아래에서 떠오르며 천천히 짙어진다 — 사라질 때(위로)의 반대. */
 .season-egg[data-phase="return"] .season-egg-ghost {
-  animation: season-egg-return 600ms ease-out;
+  animation: season-egg-return 1400ms ease-out both;
 }
 
 @keyframes season-egg-vanish {
@@ -830,7 +831,8 @@ html[data-season="halloween"] .season-callout-num {
 @keyframes season-egg-return {
   from {
     opacity: 0;
-    transform: scale(0.6);
+    transform: translateY(10px) scale(0.85);
+    filter: blur(4px);
   }
 }
 

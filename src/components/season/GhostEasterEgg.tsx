@@ -20,9 +20,14 @@ const VANISH_MS = 650;
 const GONE_MS = 1800;
 const BOO_MS = 1700;
 const LEAVE_MS = 350;
-const RETURN_MS = 600;
+/*
+  BOO! 가 걷힌 뒤 바로 돌아오면 장치처럼 보인다. 잠깐 비워 뒀다가 천천히 스르륵 나타나야
+  살아 있는 느낌이 난다(2026-10-22 대표님).
+*/
+const AWAY_MS = 1200;
+const RETURN_MS = 1400;
 
-type Phase = "idle" | "vanish" | "boo" | "leave" | "return";
+type Phase = "idle" | "vanish" | "boo" | "leave" | "away" | "return";
 
 /**
  * 오른쪽 가장자리 유령 — 이스터에그.
@@ -102,8 +107,9 @@ export function GhostEasterEgg() {
     const boo = VANISH_MS + GONE_MS;
     at(boo, "boo");
     at(boo + BOO_MS, "leave");
-    at(boo + BOO_MS + LEAVE_MS, "return");
-    at(boo + BOO_MS + LEAVE_MS + RETURN_MS, "idle");
+    at(boo + BOO_MS + LEAVE_MS, "away");
+    at(boo + BOO_MS + LEAVE_MS + AWAY_MS, "return");
+    at(boo + BOO_MS + LEAVE_MS + AWAY_MS + RETURN_MS, "idle");
   }
 
   // BOO! 화면을 누르거나 Esc 를 누르면 바로 걷는다.
@@ -112,8 +118,9 @@ export function GhostEasterEgg() {
     timers.current.forEach(window.clearTimeout);
     timers.current = [];
     setPhase("leave");
-    at(LEAVE_MS, "return");
-    at(LEAVE_MS + RETURN_MS, "idle");
+    at(LEAVE_MS, "away");
+    at(LEAVE_MS + AWAY_MS, "return");
+    at(LEAVE_MS + AWAY_MS + RETURN_MS, "idle");
   }
 
   useEffect(() => {
