@@ -1,14 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "@/lib/useReducedMotion";
 
 export function useScrollStageProgress(reduceMotionFallback = 0.5) {
   const stageRef = useRef<HTMLDivElement>(null);
-  const [reduceMotion] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+  const reduceMotion = useReducedMotion();
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {

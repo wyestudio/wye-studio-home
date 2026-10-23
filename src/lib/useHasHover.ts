@@ -1,12 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 
 export function useHasHover() {
-  const [hasHover] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return window.matchMedia("(hover: hover)").matches;
-  });
-
-  return hasHover;
+  return useMediaQuery("(hover: hover)", true);
 }
