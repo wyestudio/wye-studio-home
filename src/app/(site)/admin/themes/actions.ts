@@ -251,7 +251,11 @@ function sanitizeGenres(raw: unknown): string[] {
   return out;
 }
 
-function validate(input: ThemeInput): string | null {
+/**
+ * minGroupSize — 그 테마의 최소 신청 인원(themes.min_group_size, null = 1).
+ * 편집 화면이 보내지 않는 칸이라 저장 직전에 DB 에서 읽어 넘긴다.
+ */
+function validate(input: ThemeInput, minGroupSize: number | null = null): string | null {
   if (!input.slug.trim()) return "slug 를 입력해주세요.";
   if (!/^[a-z0-9-]+$/.test(input.slug.trim())) return "slug 는 영문 소문자·숫자·하이픈만 쓸 수 있습니다.";
   if (!input.name.trim()) return "테마 이름을 입력해주세요.";
@@ -287,8 +291,10 @@ function validate(input: ThemeInput): string | null {
   if (input.capacity_confirm_line > input.capacity_max)
     return "즉시확정 인원은 정원보다 클 수 없습니다.";
   if (input.tiers.length === 0) return "요금 구간을 최소 1개 등록해주세요.";
-  if (!input.tiers.some((t) => t.min_headcount === 1))
-    return "1인 기준 요금 구간이 반드시 있어야 합니다.";
+  // 가장 적은 신청 인원에도 가격이 매겨져야 한다. 노말모드는 2인부터라 1인 구간이 없다.
+  const minHeadcount = Math.max(1, minGroupSize ?? 1);
+  if (!input.tiers.some((t) => t.min_headcount <= minHeadcount))
+    return `${minHeadcount}인 기준 요금 구간이 반드시 있어야 합니다.`;
 
   const seen = new Set<number>();
   for (const t of input.tiers) {
@@ -304,10 +310,21 @@ function validate(input: ThemeInput): string | null {
 
 export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
   try {
-    const invalid = validate(input);
+    const supabase = await requireAdmin();
+
+    let minGroupSize: number | null = null;
+    if (input.id) {
+      const { data, error } = await supabase
+        .from("themes")
+        .select("min_group_size")
+        .eq("id", input.id)
+        .maybeSingle();
+      if (error) throw error;
+      minGroupSize = (data?.min_group_size as number | null) ?? null;
+    }
+    const invalid = validate(input, minGroupSize);
     if (invalid) return { error: invalid };
 
-    const supabase = await requireAdmin();
     const row = {
       slug: input.slug.trim(),
       name: input.name.trim(),
