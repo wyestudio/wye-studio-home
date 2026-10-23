@@ -939,8 +939,11 @@ html[data-season="halloween"] .season-callout-num {
   width: 100%;
   height: 185px;
   opacity: 0.8;
-  object-fit: cover;
-  object-position: center bottom;
+}
+
+/* 맞춤(cover · 아래 붙임)은 SeasonBackdrop 의 fit 에 있다. 폭에 따라 한 장만 보인다. */
+.season-bd-ground--narrow {
+  display: none;
 }
 
 .season-bd-pumpkin {
@@ -1095,7 +1098,14 @@ html[data-season="halloween"] .season-callout-num {
   /* 좁으면 가운데를 자르면 성이 잘려 나간다. 성이 있는 오른쪽을 남긴다. */
   .season-bd-ground {
     height: 100px;
-    object-position: right bottom;
+  }
+
+  .season-bd-ground--wide {
+    display: none;
+  }
+
+  .season-bd-ground--narrow {
+    display: block;
   }
 }
 
