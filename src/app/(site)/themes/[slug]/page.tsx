@@ -599,10 +599,11 @@ export default async function ThemeDetailPage({
       </section>
 
       {/*
-        ── 할로윈 이벤트 안내 ── 회차 선택과 CONTENTS 사이. 스킨이 켜져 있고 바-ㅇ탈출
-        파티모드일 때만(할로윈 회차가 파티모드에만 있다). 스킨을 끄면 같이 사라진다.
+        ── 할로윈 이벤트 안내 ── 회차 선택과 CONTENTS 사이. 스킨이 켜져 있으면 바-ㅇ탈출
+        파티·노말 두 모드 모두(2026-10-23 대표님). 스킨을 끄면 같이 사라진다.
+        모드는 같은 주소(?mode=)라 묶음 대표(base)의 slug 로 가른다.
       */}
-      {halloween && theme.slug === "baotalchul" && (
+      {halloween && base.slug === "baotalchul" && (
         <div className={`mx-auto w-full max-w-4xl ${SCREEN_SECTION}`}>
           <HalloweenEventSection />
         </div>

@@ -589,6 +589,12 @@ html[data-season="halloween"] .season-callout-num {
   margin-bottom: 14px;
 }
 
+/* 굿즈 수량 안내 — 본문(#c5b5d1)보다 한 톤 연하게. */
+.hw-event-note {
+  margin-top: 18px;
+  color: #8f7f9e;
+}
+
 /* 도트 그림 — 굵은 도트가 뭉개지지 않게. */
 .hw-event-costume-art {
   flex: none;
