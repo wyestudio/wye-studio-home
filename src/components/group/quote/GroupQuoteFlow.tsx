@@ -1955,7 +1955,7 @@ function QuoteDone({ done }: { done: Done }) {
 
       <ol className="flex flex-col gap-3">
         {[
-          "운영자가 희망 일시를 확인해요",
+          "우주이스케이프가 견적 신청을 확인해요",
           `일정과 최종 견적을 ${done.contact}로 안내해 드려요`,
           "예약금(30%) 입금이 확인되면 예약이 확정돼요",
         ].map((t, i) => (
