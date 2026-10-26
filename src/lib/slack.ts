@@ -148,6 +148,8 @@ export async function sendGroupBookingInquirySlackAlert({
   groupKind,
   contactMethod,
   contact,
+  estimate = null,
+  options = [],
 }: {
   headcount: number;
   preferredDate: string | null;
@@ -155,6 +157,10 @@ export async function sendGroupBookingInquirySlackAlert({
   groupKind: string;
   contactMethod: string;
   contact: string;
+  /** 서버가 계산한 예상 총액. 요금표 밖(25명 이상 등)이면 null. */
+  estimate?: number | null;
+  /** 고른 옵션 한 줄씩('애프터파티 2시간'). */
+  options?: string[];
 }): Promise<void> {
   const webhookUrl =
     pickSlackWebhook("SLACK_GROUP_BOOKING_WEBHOOK_URL") ?? pickSlackWebhook("SLACK_WEBHOOK_URL");
@@ -170,6 +176,8 @@ export async function sendGroupBookingInquirySlackAlert({
     `인원: ${headcount}명`,
     `희망: ${preferredDate ?? "날짜 미정"} ${preferredTime}`,
     `모임: ${groupKind}`,
+    `옵션: ${options.length ? options.join(", ") : "없음"}`,
+    `예상 금액: ${estimate == null ? "상담 후 안내" : `${estimate.toLocaleString("ko-KR")}원`}`,
     `연락: ${contactMethod} ${contact}`,
   ].join("\n");
 

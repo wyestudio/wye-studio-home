@@ -24,9 +24,12 @@ export const metadata: Metadata = {
  * 2026-10-08 (v3): 성별을 필수 항목에서 **선택 항목**으로 옮김. 신청 폼은 처음부터
  *   '성별 (선택)' 이었는데 방침·동의 화면만 필수로 적혀 있었다 — 비워도 되는 칸을
  *   필수라고 알린 셈이라 개인정보보호법 제22조의 필수·선택 구분 고지에 어긋났다.
+ * 2026-10-25 (v4): 단체 견적이 단계형(/group)으로 바뀌며 담당자 이름(필수)과
+ *   모임 이름·팀 구성·재참여 여부·기념일(선택)을 더 받는다. 모임 성격은 선택으로 내렸다.
+ *   ⚠️ 시행일은 운영 배포일로 맞춘다 — 배포 전에 날짜를 다시 본다.
  */
-const EFFECTIVE_DATE = "2026년 10월 8일";
-const VERSION = "v3";
+const EFFECTIVE_DATE = "2026년 10월 25일";
+const VERSION = "v4";
 
 export default function PrivacyPage() {
   // 긴 문서라 가운데 정렬 대신 읽기 편한 크기로만 키운다(테마 상세 비율에 맞춤, 2026-09-15).
@@ -179,9 +182,8 @@ export default function PrivacyPage() {
               <p className="font-semibold">4. 단체 예약 견적 신청</p>
               <p className="mb-2">단체 예약 안내 페이지에서 견적을 신청하는 경우 다음 정보가 수집·처리됩니다.</p>
               <ul className="ml-4 list-disc space-y-1 text-muted">
-                <li>연락처(전화번호 · 카카오톡 ID · 이메일 중 신청자가 선택한 한 가지)</li>
-                <li>희망 일시, 예상 참여 인원, 모임 성격</li>
-                <li>기타 문의 및 요청사항(선택)</li>
+                <li>필수: 담당자 이름, 연락처(전화번호 · 카카오톡 ID · 이메일 중 신청자가 선택한 한 가지), 희망 일시, 예상 참여 인원, 선택한 프로그램 옵션</li>
+                <li>선택: 모임 · 단체 이름, 모임 성격, 팀 구성 희망, 재참여자 여부, 생일 · 기념일, 기타 요청사항</li>
               </ul>
               <p className="mt-2 text-body-sm">위 정보는 단체 예약 상담 및 견적 안내 목적으로만 이용되며, 예약이 확정되면 예약자·참여자 정보는 제1항에 따라 별도로 수집합니다.</p>
             </div>
@@ -233,7 +235,7 @@ export default function PrivacyPage() {
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">고객 문의 대응 및 서비스 개선</td>
                 </tr>
                 <tr>
-                  <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">단체 예약 견적 신청 정보(연락처, 희망 일시, 예상 인원, 모임 성격, 요청사항)</td>
+                  <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">단체 예약 견적 신청 정보(담당자 이름, 연락처, 희망 일시, 예상 인원, 프로그램 옵션 및 선택 항목)</td>
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">상담 종료 후 1년</td>
                   <td className="border border-border px-3 py-2 sm:px-4 sm:py-2.5">단체 예약 상담 대응 및 재문의 응대</td>
                 </tr>
@@ -551,6 +553,11 @@ export default function PrivacyPage() {
               <strong> 선택 항목</strong>으로 옮김. 신청 화면은 이전부터 성별을 선택 입력으로
               운영해 왔으며, 이를 방침에 맞춰 바로잡은 것입니다. 성별을 입력하지 않아도 예약
               신청은 제한되지 않습니다.
+            </li>
+            <li>
+              v4 (2026년 10월 25일 시행): 단체 예약 견적 신청(제2조 4항)에서 담당자 이름을 필수 항목으로
+              추가하고, 모임 · 단체 이름 · 팀 구성 희망 · 재참여자 여부 · 생일 · 기념일을 선택 항목으로 추가.
+              모임 성격은 선택 항목으로 변경
             </li>
           </ul>
         </div>

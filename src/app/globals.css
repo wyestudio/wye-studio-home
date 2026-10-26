@@ -963,3 +963,20 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     animation: none;
   }
 }
+
+/* 단체 예약 타임테이블(ProgramBuilder) — 옵션을 넣고 빼면 숫자가 튀고 스테이지가 내려앉는다.
+   게임의 '해금' 느낌을 내려는 것. 크게 움직이면 산만해서 폭을 작게 뒀다. */
+@keyframes hud-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes stage-in {
+  from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.hud-pop { animation: hud-pop 0.35s ease-out; }
+.stage-in { animation: stage-in 0.3s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .hud-pop, .stage-in { animation: none; }
+}

@@ -73,6 +73,8 @@ export type AuditAction =
   | "ranking.deleted"
   // 단체 예약 문의 (접수함을 둘이 나눠 보면 "이거 연락했나" 가 겹친다)
   | "group_booking.updated"
+  | "group_booking.closure_added"
+  | "group_booking.closure_removed"
   // 후기 후보 (고객 화면에 남의 글을 싣는 결정이다 — 누가 넣고 뺐는지 남긴다)
   | "review_candidate.published"
   | "review_candidate.ignored"
@@ -103,7 +105,8 @@ export type AuditTargetType =
   | "promotion"
   | "popup"
   | "ranking"
-  | "group_booking_inquiry";
+  | "group_booking_inquiry"
+  | "group_booking_closure";
 
 /** 요청한 브라우저의 IP·UA. 공유 계정이라 이거라도 남겨야 구분이 된다. */
 async function requestContext(): Promise<{ ip: string | null; ua: string | null }> {

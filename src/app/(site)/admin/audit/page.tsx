@@ -52,6 +52,9 @@ const ACTION_LABEL: Record<string, string> = {
   "marketing_sms.sent": "광고 문자 발송",
   "marketing_optout.added": "광고 수신거부 등록",
   "marketing_optout.removed": "광고 수신거부 해제",
+  "group_booking.updated": "단체 문의 상태 변경",
+  "group_booking.closure_added": "단체 일정 마감 표시",
+  "group_booking.closure_removed": "단체 일정 마감 해제",
 };
 
 /** 되돌리기 어렵거나 고객에게 문자가 나가는 액션은 눈에 띄게 한다. */

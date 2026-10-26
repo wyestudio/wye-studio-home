@@ -1154,3 +1154,8 @@ body:has(.apply-cta-bar) :is(.season-bd-ground, .season-bd-pumpkin) {
     transition: none;
   }
 }
+
+/* 단체 예약 페이지(/group)에서는 유령을 숨긴다 — 오른쪽 가장자리의 스위치·버튼을 가린다. */
+body:has(.group-quote-flow) .season-egg {
+  display: none;
+}

@@ -75,7 +75,10 @@ export const CONTACT_METHODS = [
 
 export type ContactMethodCode = (typeof CONTACT_METHODS)[number]["code"];
 
-/** 희망 시간대. DB 에 제약이 없으므로 선택지는 여기서만 늘리면 된다. */
+/**
+ * 희망 시간대 — **v1 폼의 코드값**이다. v2(/group 단계형 견적)는 'HH:MM' 을 그대로 넣는다.
+ * 옛 접수분을 어드민에서 읽으려고 남겨 둔다(모르는 값은 labelOf 가 그대로 보여준다).
+ */
 export const PREFERRED_TIMES = [
   { code: "t1130", label: "11:30" },
   { code: "t1530", label: "15:30" },
@@ -84,15 +87,34 @@ export const PREFERRED_TIMES = [
   { code: "flexible", label: "협의 희망" },
 ] as const;
 
-/** 모임 성격. 상담할 때 레크리에이션을 맞추는 기준이라 받아 둔다. */
+/**
+ * 모임 성격. 상담할 때 레크리에이션을 맞추는 기준이라 받아 둔다(v2 부터 선택 항목).
+ * 코드는 옛 접수분과 같이 쓰므로 바꾸지 않는다. 라벨만 가시안 v2 에 맞췄다.
+ */
 export const GROUP_KINDS = [
+  { code: "company", label: "회사 워크숍·회식" },
+  { code: "school", label: "학교·동아리" },
+  { code: "friends", label: "친구·지인 모임" },
   { code: "escape", label: "방탈출 모임" },
   { code: "boardgame", label: "보드게임 모임" },
-  { code: "friends", label: "지인 모임" },
-  { code: "company", label: "회사 워크숍" },
-  { code: "school", label: "학교·동아리" },
-  { code: "church", label: "교회" },
+  { code: "church", label: "교회 모임" },
   { code: "etc", label: "기타" },
+] as const;
+
+/** 팀 편성 희망(선택). 정하지 않은 사람이 대부분이라 '상담 후 결정' 이 기본값이다. */
+// 순서 = 화면 순서. 첫 칸(밸런스 편성)이 기본 선택이다(2026-10-26 대표님).
+export const TEAM_STYLES = [
+  { code: "balance", label: "밸런스 편성", desc: "방탈출 경험을 고려해 고르게" },
+  { code: "mixed", label: "친목형 편성", desc: "덜 친한 사람끼리 섞어서" },
+  { code: "self", label: "직접 구성", desc: "우리가 원하는 팀으로" },
+  { code: "undecided", label: "상담 후 결정", desc: "추천받고 천천히 정할게요" },
+] as const;
+
+/** 같은 테마 재참여자 여부(선택). 있으면 참여 방식·금액을 따로 안내한다. */
+export const REPEAT_PLAYER = [
+  { code: "unknown", label: "아직 몰라요" },
+  { code: "none", label: "모두 처음이에요" },
+  { code: "some", label: "재참여자가 있어요" },
 ] as const;
 
 /** 코드 → 화면 문구. 모르는 코드는 코드 그대로 보여준다(옛 접수분이 섞일 수 있다). */
@@ -103,12 +125,15 @@ function labelOf(options: readonly { code: string; label: string }[], code: stri
 export const contactMethodLabel = (code: string) => labelOf(CONTACT_METHODS, code);
 export const preferredTimeLabel = (code: string) => labelOf(PREFERRED_TIMES, code);
 export const groupKindLabel = (code: string) => labelOf(GROUP_KINDS, code);
+export const teamStyleLabel = (code: string) => labelOf(TEAM_STYLES, code);
+export const repeatPlayerLabel = (code: string) => labelOf(REPEAT_PLAYER, code);
 
 export function isContactMethod(code: string): code is ContactMethodCode {
   return CONTACT_METHODS.some((o) => o.code === code);
 }
-export const isPreferredTime = (code: string) => PREFERRED_TIMES.some((o) => o.code === code);
 export const isGroupKind = (code: string) => GROUP_KINDS.some((o) => o.code === code);
+export const isTeamStyle = (code: string) => TEAM_STYLES.some((o) => o.code === code);
+export const isRepeatPlayer = (code: string) => REPEAT_PLAYER.some((o) => o.code === code);
 
 /**
  * 접수 상태. 접수함이지 예약이 아니므로 '확정'까지 가는 단계를 여기서 센다.
@@ -167,3 +192,6 @@ export function isGroupEntry(v: string): v is GroupEntryKey {
 export function groupBookingHref(entry: GroupEntryKey): string {
   return `${GROUP_BOOKING_PATH}?from=${entry}`;
 }
+
+/** 애프터파티에서 할 수 있는 것. 견적 카드 옵션 줄과 안내 타임테이블이 같이 쓴다. */
+export const AFTER_PARTY_INCLUDES = ["외부 음식 · 배달", "BYOB", "블루투스 스피커", "화면 · 프로젝터", "보드게임", "단체사진"];
