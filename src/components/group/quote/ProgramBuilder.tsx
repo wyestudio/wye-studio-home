@@ -85,7 +85,11 @@ export function ProgramBuilder() {
         </div>
       </div>
 
-      <ol className="flex flex-col gap-2.5" aria-label="타임테이블">
+      {/* 왼쪽 숫자가 '분' 이라는 표시 — 숫자만 있으면 무슨 단위인지 몰랐다(2026-10-26 대표님). */}
+      <div className="-mb-2 flex gap-2" aria-hidden>
+        <span className="w-11 shrink-0 text-right text-micro text-muted">min</span>
+      </div>
+      <ol className="flex flex-col gap-2.5" aria-label="타임테이블 (시작부터 흐른 분)">
         <Stage
           first
           // 뺐으면 시각이 없다 — 1부가 그 자리에서 시작한다.
