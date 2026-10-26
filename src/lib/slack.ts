@@ -149,6 +149,7 @@ export async function sendGroupBookingInquirySlackAlert({
   contactMethod,
   contact,
   estimate = null,
+  deposit = null,
   options = [],
 }: {
   headcount: number;
@@ -159,6 +160,8 @@ export async function sendGroupBookingInquirySlackAlert({
   contact: string;
   /** 서버가 계산한 예상 총액. 요금표 밖(25명 이상 등)이면 null. */
   estimate?: number | null;
+  /** 예약금(예상 총액의 30%, 천 원 단위 반올림). 총액이 없으면 null. */
+  deposit?: number | null;
   /** 고른 옵션 한 줄씩('애프터파티 2시간'). */
   options?: string[];
 }): Promise<void> {
@@ -178,6 +181,7 @@ export async function sendGroupBookingInquirySlackAlert({
     `모임: ${groupKind}`,
     `옵션: ${options.length ? options.join(", ") : "없음"}`,
     `예상 금액: ${estimate == null ? "상담 후 안내" : `${estimate.toLocaleString("ko-KR")}원`}`,
+    ...(deposit == null ? [] : [`예약금(30%): ${deposit.toLocaleString("ko-KR")}원`]),
     `연락: ${contactMethod} ${contact}`,
   ].join("\n");
 

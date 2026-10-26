@@ -154,6 +154,7 @@ export async function POST(request: NextRequest) {
         contactMethod: contactMethodLabel(contactMethod),
         contact,
         estimate: quote.total,
+        deposit: quote.deposit,
         options: quote.lines
           .filter((l) => l.label !== "기본 프로그램")
           .map((l) => (l.detail ? `${l.label} ${l.detail}` : l.label)),
