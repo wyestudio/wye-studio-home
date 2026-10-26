@@ -475,7 +475,8 @@ function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { sa
 
   if (done) {
     return (
-      <div className="mx-auto max-w-xl">
+      // group-quote-flow — 이 페이지에서 할로윈 유령을 숨기는 표식(season.css). 완료 화면에도 붙인다.
+      <div className="group-quote-flow mx-auto max-w-xl">
         <QuoteDone done={done} />
       </div>
     );
