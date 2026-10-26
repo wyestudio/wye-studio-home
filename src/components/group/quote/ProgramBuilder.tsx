@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { AFTER_PARTY_INCLUDES, GROUP_ACCENT } from "@/lib/groupBooking";
-import { AFTER_PARTY_WEEKEND_TIME, BASE_MINUTES, OPTION, won } from "@/lib/groupPricing";
+import { AFTER_PARTY_WEEKEND_TIME, BASE_MINUTES, OPTION, durationLabel, won } from "@/lib/groupPricing";
 import { NumberStepper } from "./controls";
 import { useQuoteContext } from "./quoteContext";
 
@@ -21,12 +21,6 @@ import { useQuoteContext } from "./quoteContext";
 
 /** 애프터파티까지 꽉 채웠을 때의 길이. 플레이 타임 게이지의 끝. */
 const MAX_MINUTES = BASE_MINUTES + OPTION.afterParty.maxHours * 60;
-
-function duration(min: number): string {
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return [h ? `${h}시간` : "", m ? `${m}분` : ""].filter(Boolean).join(" ") || "0분";
-}
 
 /**
  * 왼쪽 시각 칸은 시작부터 흐른 **분**이다(0 · +30 · +180). 회차를 골라도 실제 시각으로 바꾸지 않는다 —
@@ -61,7 +55,7 @@ export function ProgramBuilder() {
           <p className="text-micro text-muted">플레이 타임</p>
           <p className="text-h2 font-extrabold tabular-nums">
             <span key={play} className="hud-pop inline-block">
-              {duration(play)}
+              {durationLabel(play)}
             </span>
           </p>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-fill" aria-hidden>

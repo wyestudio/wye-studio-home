@@ -261,6 +261,13 @@ export function calcQuote(input: {
   };
 }
 
+/** 분 → '3시간 30분'. 견적 카드와 타임테이블이 같이 쓴다. */
+export function durationLabel(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return [h ? `${h}시간` : "", m ? `${m}분` : ""].filter(Boolean).join(" ") || "0분";
+}
+
 /** 'HH:MM' + 분 → 'HH:MM'. 자정을 넘기면 '익일 ' 을 붙인다. */
 export function addMinutes(time: string, minutes: number): string {
   const [h, m] = time.split(":").map(Number);

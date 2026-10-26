@@ -35,6 +35,7 @@ import {
   canAfterParty,
   dateLabel,
   dayTypeRates,
+  durationLabel,
   isWeekdayTime,
   isWeekend,
   normalizeOptions,
@@ -216,6 +217,9 @@ function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { sa
   const band = validHeadcount ? bandIndex(headcount) : null;
   const fromUnit = !date && band != null ? bandUnit(band, null).price : null;
   const previewTotal = quote.total ?? (fromUnit != null ? fromUnit * headcount + quote.optionsTotal : null);
+  // 총 이용 시간 = 프로그램(레크리에이션을 빼면 30분 짧다) + 애프터파티.
+  const totalMinutes = quote.minutes + opts.afterPartyHours * 60;
+  const timeRange = time ? `${time} ~ ${addMinutes(time, totalMinutes)}` : null;
 
   const closedSlot = (d: string, t: string | null) =>
     closures.some((c) => c.date === d && (c.time == null || c.time === t));
@@ -669,7 +673,7 @@ function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { sa
               </button>
             </div>
             <p className="mt-2 text-body-sm">
-              {headcount}명 · {date ? dateLabel(date) : "-"} {time ?? ""}
+              {headcount}명 · {date ? dateLabel(date) : "-"} {time ?? ""} · 총 {durationLabel(totalMinutes)}
             </p>
             <QuoteTotals quote={shownQuote} />
           </div>
@@ -864,6 +868,14 @@ function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { sa
 
             {/* 카드 바닥 — 금액과 버튼. 모바일 시트에서도 늘 바닥에 보인다. */}
             <div className="border-t border-line-subtle px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5 lg:pb-4">
+              {/* 옵션에 따라 길이가 바뀌므로 금액 바로 위에 같이 보여 준다(2026-10-26 대표님). */}
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <p className="text-body-sm text-muted">총 이용 시간</p>
+                <p className="text-body font-semibold tabular-nums">
+                  {timeRange && <span className="mr-1.5 text-body-sm font-normal text-muted">{timeRange}</span>}
+                  {durationLabel(totalMinutes)}
+                </p>
+              </div>
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-body-sm text-muted">예상 금액</p>
                 <p className="text-h2 font-extrabold tabular-nums" style={{ color: GROUP_ACCENT }}>
