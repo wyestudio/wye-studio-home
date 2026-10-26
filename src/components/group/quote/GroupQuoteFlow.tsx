@@ -48,6 +48,8 @@ import {
 } from "@/lib/groupPricing";
 import { QuoteCalendar } from "./QuoteCalendar";
 import { QuoteContext, type QuoteCtx } from "./quoteContext";
+import { QuotePdfButtons } from "./QuotePdfButtons";
+import type { QuoteDocInput } from "./quoteDocument";
 import { CheckRow, ChipGroup, FieldError, FieldLabel, NumberStepper, Switch } from "./controls";
 
 /** 견적 선택값(개인정보 아님)만 새로고침에 살아남게 둔다. 연락처는 저장하지 않는다. */
@@ -79,6 +81,8 @@ type Done = {
   date: string;
   time: string;
   contact: string;
+  /** 회사 결재용 견적서(PDF)에 들어갈 값. 이 화면에만 있고 어디에도 저장하지 않는다. */
+  pdf: QuoteDocInput;
 };
 type Saved = {
   headcount?: number;
@@ -439,7 +443,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
           attribution: readAttribution(),
         }),
       });
-      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      const json = (await res.json().catch(() => ({}))) as { error?: string; id?: string };
       if (!res.ok) {
         setServerError(json.error || "접수에 실패했어요. 잠시 후 다시 시도해주세요.");
         reportError("서버");
@@ -458,6 +462,20 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
         time,
         // '전화(010-…)로' — 번호 뒤에 조사를 바로 붙이면 '으로/로' 가 어색해진다.
         contact: `${contactMethodLabel(contactMethod ?? "")}(${contact.trim()})`,
+        pdf: {
+          id: json.id ?? "",
+          quote,
+          options: opts,
+          headcount,
+          date,
+          time,
+          organizerName: organizerName.trim(),
+          groupName: groupName.trim() || null,
+          contact:
+            contactMethod === "phone" || contactMethod === "sms"
+              ? contact.trim()
+              : `${contactMethodLabel(contactMethod ?? "")} ${contact.trim()}`,
+        },
       });
       window.scrollTo({ top: 0 });
     } catch {
@@ -2031,6 +2049,17 @@ function QuoteDone({ done }: { done: Done }) {
           </div>
         ))}
       </dl>
+
+      {/* 회사 결재용 예상 견적서 — 금액이 정해진 경우만(25명 이상은 상담 후 견적). */}
+      {done.quote.total != null && done.pdf.id && (
+        <div className="flex flex-col gap-3 rounded-xl border border-panel-border bg-panel px-5 py-4">
+          <div>
+            <p className="text-body font-semibold">회사 결재용 견적서</p>
+            <p className="mt-1 text-body-sm text-muted">결재 서류에 첨부할 수 있는 예상 견적서(PDF)예요.</p>
+          </div>
+          <QuotePdfButtons input={done.pdf} />
+        </div>
+      )}
 
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <Link
