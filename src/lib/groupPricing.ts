@@ -261,6 +261,27 @@ export function calcQuote(input: {
   };
 }
 
+/**
+ * 같은 장소에서 신청자가 있는 일반 회차의 시간대(KST). 단체가 이 시간과 겹치면 받을 수 없다.
+ * 화면과 접수 API 가 같은 함수(overlapsBusy)로 본다.
+ */
+export type BusySlot = { date: string; start: string; end: string };
+
+const hhmmToMin = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+
+/** date 의 time 부터 minutes 동안이 busy 의 어느 시간대와 겹치는가. */
+export function overlapsBusy(busy: readonly BusySlot[], date: string, time: string, minutes: number): boolean {
+  const s = hhmmToMin(time);
+  const e = s + minutes;
+  return busy.some((b) => {
+    if (b.date !== date) return false;
+    const bs = hhmmToMin(b.start);
+    let be = hhmmToMin(b.end);
+    if (be <= bs) be += 24 * 60; // 자정을 넘기는 회차
+    return bs < e && be > s;
+  });
+}
+
 /** 분 → '3시간 30분'. 견적 카드와 타임테이블이 같이 쓴다. */
 export function durationLabel(min: number): string {
   const h = Math.floor(min / 60);

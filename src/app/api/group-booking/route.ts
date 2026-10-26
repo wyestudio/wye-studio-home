@@ -21,6 +21,7 @@ import {
   isWeekdayTime,
   isWeekend,
   normalizeOptions,
+  overlapsBusy,
   quoteFirstDate,
   type QuoteOptions,
 } from "@/lib/groupPricing";
@@ -114,6 +115,22 @@ export async function POST(request: NextRequest) {
   const quote = calcQuote({ headcount, date: preferredDate, time: preferredTime, options });
 
   const supabase = await createClient();
+
+  // 같은 장소에서 신청자가 있는 일반 회차와 겹치면 받지 않는다. 화면 목록은 60초 캐시라
+  // 그 사이 들어온 신청은 여기서 캐시 없이 다시 본다.
+  const { data: busyRows } = await supabase
+    .from("public_group_busy_slots")
+    .select("date, start_time, end_time")
+    .eq("date", preferredDate);
+  const busy = ((busyRows ?? []) as { date: string; start_time: string; end_time: string }[]).map((r) => ({
+    date: r.date,
+    start: r.start_time,
+    end: r.end_time,
+  }));
+  if (overlapsBusy(busy, preferredDate, preferredTime, quote.minutes + options.afterPartyHours * 60)) {
+    return bad("선택한 시간에 다른 예약이 있어요. 다른 날짜나 시간을 골라주세요.");
+  }
+
   const { data, error } = await supabase.rpc("submit_group_booking_inquiry_v2", {
     p_headcount: headcount,
     p_organizer_name: organizerName,

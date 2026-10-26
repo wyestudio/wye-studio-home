@@ -16,7 +16,7 @@ import {
   GROUP_PAGE_LABEL,
   isGroupEntry,
 } from "@/lib/groupBooking";
-import { getGroupClosures } from "@/lib/groupClosures";
+import { getGroupBusySlots, getGroupClosures } from "@/lib/groupClosures";
 import { quoteFirstDate } from "@/lib/groupPricing";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
@@ -136,7 +136,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
   // 주소의 값은 누구나 바꿀 수 있다 — 아는 진입 지점만 집계한다.
   const rawFrom = typeof params.from === "string" ? params.from : "";
   const entry = isGroupEntry(rawFrom) ? rawFrom : null;
-  const closures = await getGroupClosures();
+  const [closures, busy] = await Promise.all([getGroupClosures(), getGroupBusySlots()]);
 
   // ── 첫 화면 ── 무엇을 · 얼마부터인지만. 데스크톱은 오른쪽에 견적 카드, 모바일은 아래 막대에서 연다.
   const hero = (
@@ -320,7 +320,7 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
   return (
     // 견적 + 오른쪽 금액 카드 두 칸이 들어가야 해서 사이트 틀 폭(5xl)을 쓴다.
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-6 sm:pt-10">
-      <GroupQuoteFlow closures={closures} firstDate={quoteFirstDate()} hero={hero} info={info} />
+      <GroupQuoteFlow closures={closures} busy={busy} firstDate={quoteFirstDate()} hero={hero} info={info} />
 
       {/* 어느 블록까지 읽고 멈추는지 기록한다(화면에 아무것도 그리지 않는다) */}
       <SectionViewTracker event={GROUP_EVENT.sectionView} themeLabel={GROUP_PAGE_LABEL} />

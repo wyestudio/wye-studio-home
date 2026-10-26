@@ -1,6 +1,7 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
 import { createPublicClient } from "@/lib/supabase/public";
+import type { BusySlot } from "@/lib/groupPricing";
 
 /**
  * 운영자가 마감으로 표시한 단체 일정(어드민 > 단체 예약 문의).
@@ -24,6 +25,27 @@ async function _getGroupClosures(): Promise<GroupClosure[]> {
     time: r.start_time,
   }));
 }
+
+/**
+ * 같은 장소에서 신청자가 있는 일반 회차의 시간대(DB 뷰 public_group_busy_slots).
+ * 신청이 들어오는 시점에 태그를 털지는 않는다 — 60초 안에 화면에 반영되고, 그 사이 들어온
+ * 단체 신청은 접수 API 가 캐시 없이 다시 본다.
+ */
+async function _getGroupBusySlots(): Promise<BusySlot[]> {
+  const supabase = createPublicClient();
+  const { data, error } = await supabase.from("public_group_busy_slots").select("date, start_time, end_time");
+  if (error || !data) return [];
+  return (data as { date: string; start_time: string; end_time: string }[]).map((r) => ({
+    date: r.date,
+    start: r.start_time,
+    end: r.end_time,
+  }));
+}
+
+export const getGroupBusySlots = unstable_cache(_getGroupBusySlots, ["group-busy-slots"], {
+  revalidate: 60,
+  tags: [GROUP_CLOSURES_TAG],
+});
 
 /** 60초. 어드민에서 마감을 바꾸면 태그로 바로 턴다. */
 export const getGroupClosures = unstable_cache(_getGroupClosures, ["group-closures"], {

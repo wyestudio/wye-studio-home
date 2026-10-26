@@ -41,6 +41,8 @@ import {
   normalizeOptions,
   unitPriceRange,
   won,
+  overlapsBusy,
+  type BusySlot,
   type Quote,
   type QuoteOptions,
 } from "@/lib/groupPricing";
@@ -120,6 +122,8 @@ function parseSaved(raw: string | null, firstDate: string): Saved {
 
 type Props = {
   closures: Closure[];
+  /** 같은 장소에서 신청자가 있는 일반 회차의 시간대. 겹치는 단체 시간은 마감으로 본다. */
+  busy: BusySlot[];
   firstDate: string;
   /** 첫 화면(서버에서 그린다). 데스크톱 왼쪽 맨 위, 모바일 맨 위. */
   hero: React.ReactNode;
@@ -156,7 +160,7 @@ export function GroupQuoteFlow(props: Props) {
   return <QuoteFlowInner key={raw ? "restored" : "fresh"} {...props} saved={parseSaved(raw, props.firstDate)} />;
 }
 
-function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { saved: Saved }) {
+function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props & { saved: Saved }) {
   const [step, setStep] = useState<0 | 1>(0);
   const [openRow, setOpenRow] = useState<RowKey | null>(null);
   // 모바일 견적 시트. 한 번 열었거나 되살린 값이 있으면 아래 막대가 '이어서 작성' 이 된다.
@@ -221,8 +225,13 @@ function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { sa
   const totalMinutes = quote.minutes + opts.afterPartyHours * 60;
   const timeRange = time ? `${time} ~ ${addMinutes(time, totalMinutes)}` : null;
 
+  // 그 시간에 단체를 하면 걸리는 길이 — 프로그램 + (그 회차에서 가능하면) 애프터파티.
+  const slotMinutes = (d: string, t: string) =>
+    quote.minutes + (canAfterParty(d, t) ? options.afterPartyHours * 60 : 0);
+  // 운영자가 막아 둔 일정이거나, 신청자가 있는 일반 회차(파티 · 노말)와 겹치면 마감이다.
   const closedSlot = (d: string, t: string | null) =>
-    closures.some((c) => c.date === d && (c.time == null || c.time === t));
+    closures.some((c) => c.date === d && (c.time == null || c.time === t)) ||
+    (t != null && overlapsBusy(busy, d, t, slotMinutes(d, t)));
   // 주말은 세 회차가 다 막히면 그날이 마감이다. 평일은 시간을 자유롭게 고르므로 종일 마감만 본다.
   const dayClosed = (d: string) =>
     closures.some((c) => c.date === d && c.time == null) ||
@@ -353,7 +362,7 @@ function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { sa
           : "희망 시작 시간을 입력해주세요.";
       key = "time";
     } else if (closedSlot(date, time)) {
-      e.time = "마감된 시간이에요. 다른 시간을 골라주세요.";
+      e.time = weekend ? "마감된 시간이에요. 다른 시간을 골라주세요." : "다른 예약과 겹치는 시간이에요. 다른 시간을 골라주세요.";
       key = "time";
     }
     if (!key) return true;
@@ -827,6 +836,7 @@ function QuoteFlowInner({ closures, firstDate, hero, info, saved }: Props & { sa
                   weekendTime={weekendTime}
                   weekdayTime={weekdayTime}
                   closedSlot={closedSlot}
+                  busyToday={date ? busy.filter((b) => b.date === date) : []}
                   onWeekend={(t) => {
                     setWeekendTime(t);
                     clearError("time");
@@ -1247,6 +1257,7 @@ function TimePicker({
   weekendTime,
   weekdayTime,
   closedSlot,
+  busyToday,
   onWeekend,
   onWeekday,
   openDate,
@@ -1255,6 +1266,7 @@ function TimePicker({
   weekendTime: string | null;
   weekdayTime: string;
   closedSlot: (d: string, t: string | null) => boolean;
+  busyToday: BusySlot[];
   onWeekend: (t: string) => void;
   onWeekday: (t: string) => void;
   openDate: () => void;
@@ -1273,7 +1285,12 @@ function TimePicker({
   if (!isWeekend(date)) {
     return (
       <>
-        <WeekdayTimePicker value={weekdayTime} onChange={onWeekday} />
+        <WeekdayTimePicker
+          value={weekdayTime}
+          onChange={onWeekday}
+          busyToday={busyToday}
+          conflict={isWeekdayTime(weekdayTime) && closedSlot(date, weekdayTime)}
+        />
       </>
     );
   }
@@ -1313,7 +1330,18 @@ const PM_HOURS = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
 const hourLabel = (h: number) => String(h > 12 ? h - 12 : h);
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
-function WeekdayTimePicker({ value, onChange }: { value: string; onChange: (t: string) => void }) {
+function WeekdayTimePicker({
+  value,
+  onChange,
+  busyToday,
+  conflict,
+}: {
+  value: string;
+  onChange: (t: string) => void;
+  /** 그날 이미 예약이 있는 시간대. 평일은 시간을 자유롭게 받으므로 피할 시간을 알려 준다. */
+  busyToday: BusySlot[];
+  conflict: boolean;
+}) {
   const init = /^\d{2}:\d{2}$/.test(value) ? { h: Number(value.slice(0, 2)), m: value.slice(3) } : null;
   const [half, setHalf] = useState<"am" | "pm">(init && init.h < 12 ? "am" : "pm");
   const [hour, setHour] = useState<number | null>(init?.h ?? null);
@@ -1401,6 +1429,14 @@ function WeekdayTimePicker({ value, onChange }: { value: string; onChange: (t: s
       {out && (
         <p className="text-body-sm font-semibold text-danger">
           {WEEKDAY_TIME_FIRST}~{WEEKDAY_TIME_LAST} 사이로 입력해주세요.
+        </p>
+      )}
+      {!out && conflict && (
+        <p className="text-body-sm font-semibold text-danger">다른 예약과 겹치는 시간이에요. 다른 시간을 골라주세요.</p>
+      )}
+      {busyToday.length > 0 && (
+        <p className="text-body-sm text-muted">
+          이날 예약이 있는 시간: {busyToday.map((b) => `${b.start}~${b.end}`).join(", ")}
         </p>
       )}
     </>
