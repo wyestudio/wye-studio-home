@@ -3,9 +3,10 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
-import { isInquiryStatus, inquiryStatusLabel } from "@/lib/groupBooking";
+import { GROUP_BOOKING_THEME_SLUGS, isInquiryStatus, inquiryStatusLabel } from "@/lib/groupBooking";
 import { GROUP_CLOSURES_TAG } from "@/lib/groupClosures";
-import { HHMM, ISO_DATE } from "@/lib/groupPricing";
+import { BASE_MINUTES, HHMM, ISO_DATE } from "@/lib/groupPricing";
+import { kstToUtcIso } from "@/lib/scheduleRules";
 
 /**
  * 단체 예약 문의의 진행 상태·메모 저장.
@@ -57,6 +58,10 @@ export async function saveInquiryStatus(input: {
  * 단체 일정 데이터가 따로 없어서 견적은 '희망 일시' 로 받는다. 다른 단체가 입금해
  * 확정된 날처럼 이미 찬 일정만 여기서 막는다(2026-10-25 대표님). time 이 null 이면 종일.
  * ⚠️ 막는 순간 고객 화면(캐시 60초 안)과 접수 함수 양쪽에 걸린다.
+ *
+ * 같은 장소에서 시간이 겹치는 일반 회차(파티 · 노말 모드)도 같이 닫는다(2026-10-26 대표님).
+ * 단체가 공간을 통째로 쓰기 때문이다. 단, 신청자가 있는 회차는 닫지 않고 알려만 준다 —
+ * 이미 받은 손님을 어떻게 할지는 사람이 정한다.
  */
 export async function addGroupClosure(input: {
   date: string;
@@ -80,20 +85,131 @@ export async function addGroupClosure(input: {
     }
 
     const label = `${input.date} ${input.time ?? "종일"}`;
+    const sessions = await closeOverlappingSessions(supabase, input.date, input.time, label);
     await writeAuditLog({
       action: "group_booking.closure_added",
       targetType: "group_booking_closure",
       targetId: (data as { id: string }).id,
-      summary: `단체 일정 마감 ${label}`,
-      detail: { date: input.date, time: input.time },
+      summary: `단체 일정 마감 ${label}${sessions.closed.length ? ` — 겹치는 회차 ${sessions.closed.length}개 마감` : ""}`,
+      detail: { date: input.date, time: input.time, closedSessions: sessions.closed, keptSessions: sessions.kept },
     });
 
     updateTag(GROUP_CLOSURES_TAG);
     revalidatePath("/admin/group-bookings");
-    return { success: true, message: `${label} 을 마감으로 표시했습니다.` };
+    revalidatePath("/admin/sessions");
+    const parts = [`${label} 을 마감으로 표시했습니다.`];
+    if (sessions.closed.length) parts.push(`겹치는 회차 ${sessions.closed.length}개도 닫았습니다(${sessions.closed.join(", ")}).`);
+    if (sessions.kept.length)
+      parts.push(`신청자가 있어 열어 둔 회차: ${sessions.kept.join(", ")} — 회차 관리에서 직접 확인해주세요.`);
+    return { success: true, message: parts.join(" ") };
   } catch (err) {
     return toActionError(err, "마감 표시에 실패했습니다.");
   }
+}
+
+type AdminClient = Awaited<ReturnType<typeof requireAdmin>>;
+
+/** 회차 한 줄 표시용 'HH:MM 테마이름' (KST). */
+function sessionLabel(startAt: string, themeName: string | null): string {
+  const hm = new Intl.DateTimeFormat("ko-KR", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(startAt));
+  return `${hm}${themeName ? ` ${themeName}` : ""}`;
+}
+
+/**
+ * 단체 시간(시작 ~ 기본 3시간, 종일이면 그날 전체)과 겹치는 같은 장소의 열린 회차를 닫는다.
+ * 장소는 단체 예약 테마(바-ㅇ탈출)의 장소로 본다 — 파티 · 노말 모드가 같은 공간을 쓴다.
+ * 신청자(취소 제외)가 있는 회차는 닫지 않고 kept 로 돌려준다.
+ * ⚠️ 마감을 풀어도 여기서 닫은 회차는 다시 열지 않는다(그 사이 사정이 바뀌었을 수 있다).
+ */
+async function closeOverlappingSessions(
+  supabase: AdminClient,
+  date: string,
+  time: string | null,
+  label: string
+): Promise<{ closed: string[]; kept: string[] }> {
+  const from = kstToUtcIso(date, time ?? "00:00");
+  const to = time
+    ? new Date(new Date(from).getTime() + BASE_MINUTES * 60_000).toISOString()
+    : kstToUtcIso(date, "23:59");
+
+  const { data: groupTheme } = await supabase
+    .from("themes")
+    .select("venue_id")
+    .in("slug", [...GROUP_BOOKING_THEME_SLUGS])
+    .limit(1)
+    .maybeSingle();
+  const venueId = (groupTheme as { venue_id: string | null } | null)?.venue_id ?? null;
+  if (!venueId) return { closed: [], kept: [] };
+
+  // 겹침: 회차 시작 < 단체 끝 && 회차 끝 > 단체 시작
+  const { data: rows, error } = await supabase
+    .from("sessions")
+    .select("id, start_at, end_at, status, admin_note, venue_id_override, themes!inner(name, variant_label, venue_id)")
+    .eq("status", "open")
+    .lt("start_at", to)
+    .gt("end_at", from);
+  if (error) throw error;
+
+  type ThemeRef = { name: string | null; variant_label: string | null; venue_id: string | null };
+  type Row = {
+    id: string;
+    start_at: string;
+    admin_note: string | null;
+    venue_id_override: string | null;
+    themes: ThemeRef | ThemeRef[];
+  };
+  const candidates = ((rows ?? []) as Row[])
+    .map((r) => ({ ...r, theme: Array.isArray(r.themes) ? r.themes[0] : r.themes }))
+    .filter((r) => (r.venue_id_override ?? r.theme?.venue_id) === venueId);
+  if (candidates.length === 0) return { closed: [], kept: [] };
+
+  const { data: apps, error: appsErr } = await supabase
+    .from("applications")
+    .select("session_id")
+    .in(
+      "session_id",
+      candidates.map((c) => c.id)
+    )
+    .neq("status", "cancelled");
+  if (appsErr) throw appsErr;
+  const busy = new Set(((apps ?? []) as { session_id: string }[]).map((a) => a.session_id));
+
+  const closed: string[] = [];
+  const kept: string[] = [];
+  const note = `단체 대관(${label})으로 마감`;
+  for (const c of candidates) {
+    // 파티 · 노말 모드가 이름이 같다 — 모드 이름(variant_label)이 있으면 그걸로 가른다.
+    const name = sessionLabel(c.start_at, c.theme?.variant_label ?? c.theme?.name ?? null);
+    if (busy.has(c.id)) {
+      kept.push(name);
+      continue;
+    }
+    const { error: upErr } = await supabase
+      .from("sessions")
+      .update({
+        status: "closed",
+        closed_by_team_limit: false,
+        admin_note: [c.admin_note, note].filter(Boolean).join("\n"),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", c.id)
+      .eq("status", "open");
+    if (upErr) throw upErr;
+    await writeAuditLog({
+      action: "session.status_changed",
+      targetType: "session",
+      targetId: c.id,
+      summary: `회차 상태를 'closed' 로 변경 — ${note}`,
+      detail: { status: "closed", reason: "group_booking_closure" },
+    });
+    closed.push(name);
+  }
+  return { closed, kept };
 }
 
 export async function removeGroupClosure(id: string): Promise<ActionResult> {

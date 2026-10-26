@@ -55,6 +55,8 @@ export function ClosureManager({ closures }: { closures: Closure[] }) {
       <h2 className="text-h3 font-semibold">일정 마감 표시</h2>
       <p className="mt-1 text-body-sm text-muted">
         견적 화면에서 고를 수 없게 막습니다. 평일은 종일로만 막을 수 있어요(평일은 시간을 자유롭게 받습니다).
+        <br />
+        같은 시간대(시작부터 3시간)에 겹치는 바-ㅇ탈출 회차도 같이 닫힙니다. 신청자가 있는 회차는 닫지 않고 알려 드려요.
       </p>
 
       <div className="mt-4 flex flex-wrap items-end gap-2">
