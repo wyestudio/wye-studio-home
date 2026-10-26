@@ -145,7 +145,9 @@ export async function sendGroupBookingInquirySlackAlert({
   headcount,
   preferredDate,
   preferredTime,
-  groupKind,
+  organizerName,
+  groupName = null,
+  groupKind = null,
   contactMethod,
   contact,
   estimate = null,
@@ -155,7 +157,11 @@ export async function sendGroupBookingInquirySlackAlert({
   headcount: number;
   preferredDate: string | null;
   preferredTime: string;
-  groupKind: string;
+  organizerName: string;
+  /** 모임 · 단체 이름(선택). */
+  groupName?: string | null;
+  /** 모임 성격 라벨(선택). */
+  groupKind?: string | null;
   contactMethod: string;
   contact: string;
   /** 서버가 계산한 예상 총액. 요금표 밖(25명 이상 등)이면 null. */
@@ -178,7 +184,10 @@ export async function sendGroupBookingInquirySlackAlert({
     `${testPrefix}[단체예약] 새 견적 신청`,
     `인원: ${headcount}명`,
     `희망: ${preferredDate ?? "날짜 미정"} ${preferredTime}`,
-    `모임: ${groupKind}`,
+    `담당자: ${organizerName}`,
+    // '모임: 미입력' 하나로 두면 모임 이름을 안 쓴 건지 성격을 안 고른 건지 헷갈렸다 — 두 줄로 나눈다.
+    `모임 이름: ${groupName ?? "미입력"}`,
+    `모임 성격: ${groupKind ?? "미입력"}`,
     `옵션: ${options.length ? options.join(", ") : "없음"}`,
     `예상 금액: ${estimate == null ? "상담 후 안내" : `${estimate.toLocaleString("ko-KR")}원`}`,
     ...(deposit == null ? [] : [`예약금(30%): ${deposit.toLocaleString("ko-KR")}원`]),
