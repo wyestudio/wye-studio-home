@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
 
   const supabase = await createClient();
 
-  // 같은 장소에서 신청자가 있는 일반 회차와 겹치면 받지 않는다. 화면 목록은 60초 캐시라
+  // 같은 장소에서 신청자가 있는 노말모드 회차와 겹치면 받지 않는다(파티모드는 조정 가능해 막지 않는다). 화면 목록은 60초 캐시라
   // 그 사이 들어온 신청은 여기서 캐시 없이 다시 본다.
   const { data: busyRows } = await supabase
     .from("public_group_busy_slots")

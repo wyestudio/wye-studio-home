@@ -27,7 +27,7 @@ async function _getGroupClosures(): Promise<GroupClosure[]> {
 }
 
 /**
- * 같은 장소에서 신청자가 있는 일반 회차의 시간대(DB 뷰 public_group_busy_slots).
+ * 같은 장소에서 신청자가 있는 노말모드 회차의 시간대(DB 뷰 public_group_busy_slots).
  * 신청이 들어오는 시점에 태그를 털지는 않는다 — 60초 안에 화면에 반영되고, 그 사이 들어온
  * 단체 신청은 접수 API 가 캐시 없이 다시 본다.
  */

@@ -126,7 +126,7 @@ function parseSaved(raw: string | null, firstDate: string): Saved {
 
 type Props = {
   closures: Closure[];
-  /** 같은 장소에서 신청자가 있는 일반 회차의 시간대. 겹치는 단체 시간은 마감으로 본다. */
+  /** 같은 장소에서 신청자가 있는 노말모드 회차의 시간대. 겹치는 단체 시간은 마감으로 본다. 파티모드는 조정할 수 있어 막지 않는다. */
   busy: BusySlot[];
   firstDate: string;
   /** 첫 화면(서버에서 그린다). 데스크톱 왼쪽 맨 위, 모바일 맨 위. */
@@ -232,7 +232,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
   // 그 시간에 단체를 하면 걸리는 길이 — 프로그램 + (그 회차에서 가능하면) 애프터파티.
   const slotMinutes = (d: string, t: string) =>
     quote.minutes + (canAfterParty(d, t) ? options.afterPartyHours * 60 : 0);
-  // 운영자가 막아 둔 일정이거나, 신청자가 있는 일반 회차(파티 · 노말)와 겹치면 마감이다.
+  // 운영자가 막아 둔 일정이거나, 신청자가 있는 노말모드 회차와 겹치면 마감이다.
   const closedSlot = (d: string, t: string | null) =>
     closures.some((c) => c.date === d && (c.time == null || c.time === t)) ||
     (t != null && overlapsBusy(busy, d, t, slotMinutes(d, t)));
