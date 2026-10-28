@@ -44,6 +44,18 @@ const DEADLINE_MINUTES = 30;
 /** 한 번에 나열할 최대 건수. 너무 길면 Slack 이 자른다. */
 const MAX_LINES = 20;
 
+/**
+ * 한국 시각 이 시간대(0시~6시 전)에는 보내지 않는다 — 새벽엔 어차피 입금 확인을 못 해서
+ * 같은 알림만 쌓인다(2026-10-28 대표님). 6시 첫 실행 때 밀린 건이 한 번에 나간다.
+ */
+const QUIET_FROM_HOUR = 0;
+const QUIET_UNTIL_HOUR = 6;
+
+function isQuietHourKst(now: Date): boolean {
+  const hour = (now.getUTCHours() + 9) % 24;
+  return hour >= QUIET_FROM_HOUR && hour < QUIET_UNTIL_HOUR;
+}
+
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token") || request.headers.get("x-cron-secret");
   const expected = process.env.CRON_SECRET;
@@ -55,9 +67,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "인증 실패" }, { status: 401 });
   }
 
+  const now = new Date();
+  if (isQuietHourKst(now)) {
+    return NextResponse.json({ success: true, skipped: "quiet-hours", message: "새벽(0~6시)이라 알림을 보내지 않습니다." });
+  }
+
   try {
     const supabase = createAdminClient();
-    const now = new Date();
     const deadline = new Date(now.getTime() - DEADLINE_MINUTES * 60 * 1000).toISOString();
 
     // 아직 진행하지 않은 회차만. 취소된 회차도 제외한다.
