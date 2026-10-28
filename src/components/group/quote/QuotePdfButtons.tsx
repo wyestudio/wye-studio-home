@@ -14,7 +14,7 @@ import {
 } from "./quoteDocument";
 
 /*
-  신청 완료 화면의 「견적서 받기」 — 회사 결재에 첨부할 예상 견적서 PDF(2026-10-26 대표님).
+  신청 화면 · 신청 완료 화면의 「견적서 받기」 — 회사 결재에 첨부할 예상 견적서 PDF(2026-10-26 대표님).
 
   왜 브라우저에서 만드는가
     서버가 신청 번호로 PDF 를 만들어 주면, 번호만 알면 남의 담당자 이름 · 연락처가 든 서류를 받을 수
@@ -179,14 +179,19 @@ function QuoteSheet({ doc, ref }: { doc: QuoteDoc; ref: React.Ref<HTMLDivElement
       <section style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6mm", marginTop: "4.5mm" }}>
         <div>
           <div style={{ fontSize: "15pt", fontWeight: 800 }}>
-            {doc.recipient}
+            {/* 신청 전에 받은 견적서는 이름이 비어 있을 수 있다 — 손으로 적을 밑줄을 둔다. */}
+            {doc.recipient || (
+              <span style={{ display: "inline-block", width: "50mm", borderBottom: `1px solid ${C.muted}` }}>
+                &nbsp;
+              </span>
+            )}
             <span style={{ fontSize: "10.5pt", fontWeight: 600, marginLeft: 4 }}>귀하</span>
           </div>
           <table style={{ ...kv, marginTop: "3mm" }}>
             <tbody>
               <tr>
                 <th style={th}>담당자</th>
-                <td style={td}>{doc.organizerName} 님</td>
+                <td style={td}>{doc.organizerName ? `${doc.organizerName} 님` : ""}</td>
               </tr>
               <tr>
                 <th style={th}>연락처</th>

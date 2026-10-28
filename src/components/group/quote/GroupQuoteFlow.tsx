@@ -208,6 +208,9 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
   const [sending, setSending] = useState(false);
   const [serverError, setServerError] = useState("");
   const [done, setDone] = useState<Done | null>(null);
+  // 견적서 번호에 쓰는 값. 신청 전에 받은 견적서와 완료 화면에서 받은 견적서가 같은 번호를 갖게
+  // 신청 번호(서버) 대신 이 화면에서 한 번 만든 값을 쓴다.
+  const [quoteDocId] = useState(() => crypto.randomUUID());
 
   const weekend = date ? isWeekend(date) : false;
   const time = date ? (weekend ? weekendTime : isWeekdayTime(weekdayTime) ? weekdayTime : null) : null;
@@ -476,20 +479,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
                 `예상 금액: ${quote.total != null ? won(quote.total) : "상담 후 안내"}`,
               ].join("\n")
             : null,
-        pdf: {
-          id: json.id ?? "",
-          quote,
-          options: opts,
-          headcount,
-          date,
-          time,
-          organizerName: organizerName.trim(),
-          groupName: groupName.trim() || null,
-          contact:
-            contactMethod === "phone" || contactMethod === "sms"
-              ? contact.trim()
-              : `${contactMethodLabel(contactMethod ?? "")} ${contact.trim()}`,
-        },
+        pdf: quoteDocInput(date, time),
       });
       window.scrollTo({ top: 0 });
     } catch {
@@ -497,6 +487,27 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
     } finally {
       setSending(false);
     }
+  }
+
+  /** 견적서(PDF)에 들어갈 값 — 지금 화면에 적힌 그대로. 아직 안 적은 칸은 견적서에서 빈칸이 된다. */
+  function quoteDocInput(d: string, t: string): QuoteDocInput {
+    const c = contact.trim();
+    return {
+      id: quoteDocId,
+      quote,
+      options: opts,
+      headcount,
+      date: d,
+      time: t,
+      organizerName: organizerName.trim(),
+      groupName: groupName.trim() || null,
+      contact:
+        !contactMethod || !c
+          ? ""
+          : contactMethod === "phone" || contactMethod === "sms"
+            ? c
+            : `${contactMethodLabel(contactMethod)} ${c}`,
+    };
   }
 
   const primary = step === 0 ? goContact : () => void submit();
@@ -690,6 +701,14 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
             </p>
           )}
 
+          {/* 모바일은 오른쪽 견적 카드가 없어 폼 끝에 둔다 — 담당자 · 모임 이름을 적은 뒤에 받게. */}
+          {date && time && quote.total != null && validHeadcount && (
+            <PreQuotePdf
+              input={quoteDocInput(date, time)}
+              className="rounded-xl border border-panel-border bg-panel px-5 py-4 lg:hidden"
+            />
+          )}
+
           {/* 데스크톱 신청 버튼은 폼 끝에. 모바일은 아래 고정 막대가 맡는다. */}
           <button
             type="button"
@@ -717,6 +736,9 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
               {headcount}명 · {date ? dateLabel(date) : "-"} {time ?? ""} · 총 {durationLabel(totalMinutes)}
             </p>
             <QuoteTotals quote={shownQuote} />
+            {date && time && quote.total != null && validHeadcount && (
+              <PreQuotePdf input={quoteDocInput(date, time)} className="mt-5 border-t border-line-subtle pt-5" />
+            )}
           </div>
         </aside>
 
@@ -1998,6 +2020,24 @@ function PrivacyNotice({ className = "" }: { className?: string }) {
           개인정보처리방침
         </Link>
       </p>
+    </div>
+  );
+}
+
+/*
+  신청하기 전에 받는 예상 견적서(2026-10-28 대표님) — 회사 결재를 받은 뒤에 신청하는 경우.
+  완료 화면의 견적서와 같은 것을 지금 적힌 값으로 만든다. 담당자 · 모임 이름을 안 적었으면 그 칸은 빈칸이다.
+*/
+function PreQuotePdf({ input, className = "" }: { input: QuoteDocInput; className?: string }) {
+  return (
+    <div className={`flex flex-col gap-3 ${className}`}>
+      <div>
+        <p className="text-body font-semibold">회사 결재용 견적서</p>
+        <p className="mt-1 text-body-sm text-muted">
+          신청 전에 받아 결재에 첨부할 수 있어요. 담당자와 모임 이름을 적으면 함께 들어가요.
+        </p>
+      </div>
+      <QuotePdfButtons input={input} />
     </div>
   );
 }
