@@ -1107,8 +1107,9 @@ export async function adminUpdateApplication(
     },
   });
 
-  revalidateSession(sessionId);
-  revalidateSession(targetSessionId);
+  // ⚠️ 여기서 revalidatePath 를 부르면 응답과 함께 지금 화면이 다시 그려져, 옮긴 줄과 함께 결과 창
+  //    (금액 · 확정/대기 변경 안내)이 사라진다. 어드민 화면은 전부 force-dynamic 이라 결과 창의
+  //    '확인' 에서 router.refresh() 하는 것으로 충분하다.
   return {
     success: true,
     moved: {
