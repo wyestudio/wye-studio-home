@@ -152,6 +152,7 @@ export async function sendGroupBookingInquirySlackAlert({
   estimate = null,
   deposit = null,
   options = [],
+  note = null,
 }: {
   headcount: number;
   preferredDate: string | null;
@@ -169,6 +170,8 @@ export async function sendGroupBookingInquirySlackAlert({
   deposit?: number | null;
   /** 고른 옵션 한 줄씩('애프터파티 2시간'). */
   options?: string[];
+  /** 손님이 적은 요청사항(선택). 애프터파티 5시간 이상 같은 문의가 여기로 온다. */
+  note?: string | null;
 }): Promise<void> {
   if (process.env.NEXT_PUBLIC_IS_TEST_ENV === "true") return;
 
@@ -193,6 +196,8 @@ export async function sendGroupBookingInquirySlackAlert({
     `예상 금액: ${estimate == null ? "상담 후 안내" : `${estimate.toLocaleString("ko-KR")}원`}`,
     ...(deposit == null ? [] : [`예약금(30%): ${deposit.toLocaleString("ko-KR")}원`]),
     `연락: ${contactMethod} ${contact}`,
+    // 손님이 쓴 글이라 < > & 를 그대로 두면 슬랙이 링크·멘션으로 해석한다.
+    ...(note ? [`요청사항:\n${note.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}`] : []),
   ].join("\n");
 
   try {

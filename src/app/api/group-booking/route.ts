@@ -177,6 +177,7 @@ export async function POST(request: NextRequest) {
         options: quote.lines
           .filter((l) => l.label !== "기본 프로그램")
           .map((l) => (l.detail ? `${l.label} ${l.detail}` : l.label)),
+        note: opt(body.note, 1500),
       });
     } catch (err) {
       console.error("[group-booking] 슬랙 알림 처리 중 에러", err);

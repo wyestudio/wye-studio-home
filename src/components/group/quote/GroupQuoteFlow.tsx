@@ -1617,6 +1617,10 @@ function OptionsPicker({
                 onChange={(n) => set({ afterPartyHours: n })}
               />
             </div>
+            {/* 화면에서 고를 수 있는 건 최대 시간까지 — 더 길게는 상담으로 받는다(2026-10-28 대표님). */}
+            <p className="mt-1.5 text-micro leading-relaxed text-muted">
+              ※ {OPTION.afterParty.maxHours + 1}시간 이상은 다음 단계 신청서의 요청사항에 적어주세요.
+            </p>
           </>
         )}
         {!partyOk && (
