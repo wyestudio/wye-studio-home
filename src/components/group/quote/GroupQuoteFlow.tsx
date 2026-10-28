@@ -337,13 +337,16 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
     });
 
   function toggleRow(k: RowKey) {
-    const opening = openRow !== k;
-    setOpenRow(opening ? k : null);
+    if (openRow === k) setOpenRow(null);
+    else showRow(k);
+  }
+
+  function showRow(k: RowKey) {
+    setOpenRow(k);
     // 카드 안쪽이 스크롤된 상태에서 연 줄이 밀려나 있으면 보이게 당긴다.
-    if (opening)
-      requestAnimationFrame(() =>
-        document.getElementById(`row-${k}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" })
-      );
+    requestAnimationFrame(() =>
+      document.getElementById(`row-${k}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" })
+    );
   }
 
   function reportError(label: string) {
@@ -896,14 +899,19 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
                   weekdayTime={weekdayTime}
                   closedSlot={closedSlot}
                   busyToday={date ? busy.filter((b) => b.date === date) : []}
+                  // 시간을 다 고르면 옵션 줄로 넘어간다 — 날짜를 고르면 시간 줄이 열리는 것과 같다(2026-10-28 대표님).
                   onWeekend={(t) => {
                     setWeekendTime(t);
                     clearError("time");
-                    setOpenRow(null);
+                    showRow("options");
                   }}
                   onWeekday={(t) => {
                     setWeekdayTime(t);
                     clearError("time");
+                  }}
+                  // 평일은 분 두 자리를 다 넣었을 때. 범위 밖이거나 다른 예약과 겹치면 안내를 보도록 남는다.
+                  onWeekdayDone={(t) => {
+                    if (date && isWeekdayTime(t) && !closedSlot(date, t)) showRow("options");
                   }}
                   openDate={() => setOpenRow("date")}
                 />
@@ -1319,6 +1327,7 @@ function TimePicker({
   busyToday,
   onWeekend,
   onWeekday,
+  onWeekdayDone,
   openDate,
 }: {
   date: string | null;
@@ -1328,6 +1337,7 @@ function TimePicker({
   busyToday: BusySlot[];
   onWeekend: (t: string) => void;
   onWeekday: (t: string) => void;
+  onWeekdayDone: (t: string) => void;
   openDate: () => void;
 }) {
   if (!date) {
@@ -1347,6 +1357,7 @@ function TimePicker({
         <WeekdayTimePicker
           value={weekdayTime}
           onChange={onWeekday}
+          onDone={onWeekdayDone}
           busyToday={busyToday}
           conflict={isWeekdayTime(weekdayTime) && closedSlot(date, weekdayTime)}
         />
@@ -1392,11 +1403,14 @@ const pad2 = (n: number) => String(n).padStart(2, "0");
 function WeekdayTimePicker({
   value,
   onChange,
+  onDone,
   busyToday,
   conflict,
 }: {
   value: string;
   onChange: (t: string) => void;
+  /** 분 두 자리를 다 넣었을 때. */
+  onDone: (t: string) => void;
   /** 그날 이미 예약이 있는 시간대. 평일은 시간을 자유롭게 받으므로 피할 시간을 알려 준다. */
   busyToday: BusySlot[];
   conflict: boolean;
@@ -1473,6 +1487,7 @@ function WeekdayTimePicker({
             const m = d === "" ? "" : String(Math.min(59, Number(d)));
             setMinute(d.length === 2 ? pad2(Number(m)) : m);
             emit(hour, m);
+            if (hour != null && d.length === 2) onDone(`${pad2(hour)}:${pad2(Number(m))}`);
           }}
           // field 는 w-full 이라 그대로 쓰면 w-20 과 부딪쳐 칸이 늘어난다.
           className={`${field.replace("w-full ", "")} w-20 text-center tabular-nums disabled:opacity-40`}
