@@ -136,10 +136,9 @@ function pickSlackWebhook(name: string): string | null {
  * 전용 웹훅이 없으면 기본 채널로 보낸다 — 알림이 안 가는 쪽이 더 나쁘다.
  *
  * ⚠️ 테스트 환경(`test.wouldyouescape.com`)도 **운영과 같은 슬랙 웹훅**을 쓴다.
- *    그래서 테스트에서 눌러 본 접수가 진짜 접수처럼 채널에 올라간다. 신청 알림은
- *    테스트에서 아예 안 보내지만(apply/actions.ts), 이쪽은 문자처럼 돈이 들지도
- *    고객에게 가지도 않아서 **[테스트] 를 붙여 보낸다** — 알림이 실제로 오는지
- *    테스트에서 확인할 수 있어야 한다.
+ *    그래서 테스트에서 눌러 본 접수가 진짜 접수처럼 채널에 올라간다. 테스트에서는
+ *    보내지 않는다(2026-10-28 대표님) — 테스트 신청이 운영 채널에 쌓이고 지울 수도 없었다.
+ *    알림 문구를 테스트에서 다시 확인해야 하면 이 검사를 잠시 빼고 [테스트] 머리말로 본다.
  */
 export async function sendGroupBookingInquirySlackAlert({
   headcount,
@@ -171,6 +170,8 @@ export async function sendGroupBookingInquirySlackAlert({
   /** 고른 옵션 한 줄씩('애프터파티 2시간'). */
   options?: string[];
 }): Promise<void> {
+  if (process.env.NEXT_PUBLIC_IS_TEST_ENV === "true") return;
+
   const webhookUrl =
     pickSlackWebhook("SLACK_GROUP_BOOKING_WEBHOOK_URL") ?? pickSlackWebhook("SLACK_WEBHOOK_URL");
   if (!webhookUrl) {
