@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { maxBirthYearForMinAge } from "@/lib/eligibility";
 import type { ExperienceRange } from "@/lib/validation";
 import { AttendeeFormFields, attendeeInputClassName, type AttendeeFormValue } from "./AttendeeFormFields";
-import { adminUpdateApplication, type EditAttendeeInput } from "./actions";
+import { formatSessionDateTime } from "@/lib/format";
+import {
+  adminUpdateApplication,
+  listMoveTargets,
+  type EditAttendeeInput,
+  type MoveResult,
+  type MoveTarget,
+} from "./actions";
 
 export type EditableAttendee = {
   id: string;
@@ -63,9 +71,23 @@ export function EditApplicationDialog({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 회차 변경 — 같은 묶음(파티 ↔ 노말)의 다가오는 열린 회차로 옮긴다(2026-10-28 대표님).
+  const [targets, setTargets] = useState<MoveTarget[] | null>(null);
+  const [targetId, setTargetId] = useState("");
+  const [moved, setMoved] = useState<MoveResult | null>(null);
+  const router = useRouter();
 
-  // 수동 등록·고객 신청과 같은 기준 — 회차의 min_age 로 매번 계산한다.
-  const birthYearMax = maxBirthYearForMinAge(minAge);
+  useEffect(() => {
+    if (!open || targets) return;
+    listMoveTargets(sessionId)
+      .then(setTargets)
+      .catch(() => setTargets([]));
+  }, [open, targets, sessionId]);
+
+  const target = targets?.find((t) => t.id === targetId) ?? null;
+
+  // 수동 등록·고객 신청과 같은 기준 — 회차의 min_age 로 매번 계산한다. 옮길 때는 옮겨 갈 회차 기준.
+  const birthYearMax = maxBirthYearForMinAge(target?.minAge ?? minAge);
   const birthYearOptions = Array.from({ length: 70 }, (_, i) => birthYearMax - i).map((y) => ({
     value: String(y),
     label: `${y}년생`,
@@ -88,9 +110,19 @@ export function EditApplicationDialog({
         gender: a.gender || null,
         experienceRange: (a.experienceRange || null) as EditAttendeeInput["experienceRange"],
       }));
-      const response = await adminUpdateApplication(applicationId, sessionId, depositorName, notes.trim() || null, payload);
+      const response = await adminUpdateApplication(
+        applicationId,
+        sessionId,
+        depositorName,
+        notes.trim() || null,
+        payload,
+        targetId || null
+      );
       if ("error" in response) {
         setError(response.error);
+      } else if (response.moved) {
+        // 옮긴 결과(확정/대기 · 금액)를 보여 준 뒤 닫는다 — 이 회차 목록에서는 빠진다.
+        setMoved(response.moved);
       } else {
         onSaved();
         onClose();
@@ -100,6 +132,39 @@ export function EditApplicationDialog({
     } finally {
       setIsLoading(false);
     }
+  }
+
+  if (moved) {
+    const statusLabel = (s: string) => (s === "confirmed" ? "확정" : s === "waiting" ? "대기" : s);
+    const won = (n: number | null) => (n == null ? "-" : `${n.toLocaleString("ko-KR")}원`);
+    const amountChanged = moved.oldAmount !== moved.newAmount;
+    return (
+      <ConfirmDialog
+        open={open}
+        title="회차를 옮겼어요"
+        message={`${moved.toLabel} 회차로 옮겼습니다. 손님에게 문자는 보내지 않았어요.`}
+        cancelLabel="닫기"
+        confirmLabel="확인"
+        onCancel={() => router.refresh()}
+        onConfirm={() => router.refresh()}
+      >
+        <ul className="mt-4 flex flex-col gap-1.5 text-body-sm">
+          <li>
+            상태: {statusLabel(moved.oldStatus)}
+            {moved.oldStatus !== moved.newStatus && (
+              <span className="font-semibold text-amber-400"> → {statusLabel(moved.newStatus)}</span>
+            )}
+          </li>
+          <li>
+            금액: {won(moved.oldAmount)}
+            {amountChanged && <span className="font-semibold text-amber-400"> → {won(moved.newAmount)}</span>}
+          </li>
+          {amountChanged && moved.paymentStatus === "confirmed" && (
+            <li className="text-amber-400">이미 입금 확인된 신청이에요. 차액은 따로 처리해주세요.</li>
+          )}
+        </ul>
+      </ConfirmDialog>
+    );
   }
 
   return (
@@ -116,6 +181,36 @@ export function EditApplicationDialog({
       confirmDisabled={isLoading}
     >
       <div className="mt-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="edit-session" className="text-body-sm font-semibold text-foreground">
+            회차
+          </label>
+          <select
+            id="edit-session"
+            value={targetId}
+            onChange={(e) => setTargetId(e.target.value)}
+            disabled={!targets}
+            className={attendeeInputClassName}
+          >
+            <option value="">지금 회차 그대로</option>
+            {targets?.map((t) => (
+              <option key={t.id} value={t.id} disabled={t.remaining < attendees.length}>
+                {formatSessionDateTime(t.startAt)}
+                {t.mode ? ` · ${t.mode}` : ""} · 남은 자리 {t.remaining}
+              </option>
+            ))}
+          </select>
+          {targets && targets.length === 0 && (
+            <p className="text-micro text-muted">옮길 수 있는 다가오는 회차가 없어요.</p>
+          )}
+          {target && (
+            <p className="text-micro text-amber-400">
+              옮기면 금액과 확정/대기를 새 회차 기준으로 다시 계산해요(얼리버드는 처음 신청한 때 기준). 문자는
+              보내지 않아요.
+            </p>
+          )}
+        </div>
+
         <div className="flex flex-col gap-1.5">
           <label className="text-body-sm font-semibold text-foreground">입금자명</label>
           <input

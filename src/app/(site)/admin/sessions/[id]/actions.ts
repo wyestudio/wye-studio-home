@@ -880,23 +880,103 @@ export type EditAttendeeInput = {
 // SECURITY DEFINER 함수 admin_update_application()을 통해서만 수정한다.
 // 출생년도/성별을 바꿔도 확정/대기 판정은 재계산하지 않는다(v12부터의
 // 방침과 동일 — 자동 승격 없음).
+export type MoveTarget = {
+  id: string;
+  startAt: string;
+  /** 파티모드 · 노말모드 */
+  mode: string | null;
+  minAge: number;
+  remaining: number;
+};
+
+/**
+ * 신청을 옮길 수 있는 회차 — 같은 묶음(파티 ↔ 노말)의 다가오는 열린 회차.
+ * 최종 판정(정원 · 연령 · 재참여 · 닉네임)은 admin_move_application() 이 한다.
+ */
+export async function listMoveTargets(sessionId: string): Promise<MoveTarget[]> {
+  const cookieStore = await cookies();
+  await requireAdminAuth(cookieStore.get("admin_auth")?.value);
+  const adminClient = createAdminClient();
+
+  const { data: cur } = await adminClient.from("sessions").select("theme_id").eq("id", sessionId).maybeSingle();
+  if (!cur?.theme_id) return [];
+  const { data: theme } = await adminClient
+    .from("themes")
+    .select("variant_group")
+    .eq("id", cur.theme_id)
+    .maybeSingle();
+  let themeIds = [cur.theme_id as string];
+  if (theme?.variant_group) {
+    const { data: siblings } = await adminClient.from("themes").select("id").eq("variant_group", theme.variant_group);
+    themeIds = (siblings ?? []).map((t) => t.id as string);
+  }
+
+  const { data: sessions } = await adminClient
+    .from("session_view")
+    .select("id, start_at, theme_mode, min_age, capacity_max")
+    .in("theme_id", themeIds)
+    .eq("status", "open")
+    .gt("start_at", new Date().toISOString())
+    .neq("id", sessionId)
+    .order("start_at");
+  if (!sessions?.length) return [];
+
+  const ids = sessions.map((s) => s.id as string);
+  const { data: apps } = await adminClient
+    .from("applications")
+    .select("id")
+    .in("session_id", ids)
+    .in("status", ["confirmed", "waiting"]);
+  const activeIds = new Set((apps ?? []).map((a) => a.id as string));
+  const { data: atts } = await adminClient
+    .from("admin_attendee_view")
+    .select("application_id, session_id")
+    .in("session_id", ids);
+  const taken = new Map<string, number>();
+  for (const a of atts ?? []) {
+    if (!activeIds.has(a.application_id as string)) continue;
+    taken.set(a.session_id as string, (taken.get(a.session_id as string) ?? 0) + 1);
+  }
+
+  return sessions.map((s) => ({
+    id: s.id as string,
+    startAt: s.start_at as string,
+    mode: (s.theme_mode as string | null) ?? null,
+    minAge: (s.min_age as number | null) ?? 16,
+    remaining: Math.max(0, ((s.capacity_max as number | null) ?? 0) - (taken.get(s.id as string) ?? 0)),
+  }));
+}
+
+export type MoveResult = {
+  toLabel: string;
+  oldStatus: string;
+  newStatus: string;
+  oldAmount: number | null;
+  newAmount: number;
+  paymentStatus: string;
+};
+
 export async function adminUpdateApplication(
   applicationId: string,
   sessionId: string,
   depositorName: string,
   notes: string | null,
-  attendees: EditAttendeeInput[]
-): Promise<{ error: string } | { success: true }> {
+  attendees: EditAttendeeInput[],
+  /** 회차를 옮길 때만. 정보 수정과 이동은 한 트랜잭션으로 묶인다. */
+  targetSessionId: string | null = null
+): Promise<{ error: string } | { success: true; moved: MoveResult | null }> {
   const cookieStore = await cookies();
   const adminCookie = cookieStore.get("admin_auth")?.value;
   await requireAdminAuth(adminCookie);
 
   const adminClient = createAdminClient();
+  const moving = targetSessionId != null && targetSessionId !== sessionId;
 
+  // 옮길 때는 옮겨 갈 회차 기준(연령 · 노말 여부)으로 본다.
   const { data: session, error: sessError } = await adminClient
     .from("sessions")
     .select("*")
-    .eq("id", sessionId)
+    .eq("id", moving ? targetSessionId : sessionId)
     .single();
 
   if (sessError || !session) {
@@ -955,7 +1035,7 @@ export async function adminUpdateApplication(
     return { error: "그룹 안에서 전화번호가 중복돼요. 참여자별로 다른 전화번호를 입력해주세요." };
   }
 
-  const { error } = await adminClient.rpc("admin_update_application", {
+  const args = {
     p_application_id: applicationId,
     p_depositor_name: trimmedDepositorName,
     p_notes: attendees.length >= 2 ? notes : null,
@@ -968,22 +1048,76 @@ export async function adminUpdateApplication(
       gender: a.gender,
       experience_range: a.experienceRange,
     })),
-  });
+  };
 
+  if (!moving) {
+    const { error } = await adminClient.rpc("admin_update_application", args);
+    if (error) {
+      return { error: error.message };
+    }
+
+    console.log(`[admin] 신청 정보 수정됨: ${applicationId}, 안내 문자 발송 안 함`);
+
+    await writeAuditLog({
+      action: "application.updated",
+      targetType: "application",
+      targetId: applicationId,
+      summary: "신청·참여자 정보 수정 (문자 없음)",
+      detail: { session_id: sessionId, attendee_count: attendees.length },
+    });
+
+    revalidateSession(sessionId);
+    return { success: true, moved: null };
+  }
+
+  // 회차 이동 — 금액 · 확정/대기를 옮긴 회차 기준으로 다시 정한다(admin_move_application). 문자는 보내지 않는다.
+  const { data, error } = await adminClient.rpc("admin_update_and_move_application", {
+    ...args,
+    p_session_id: targetSessionId,
+  });
   if (error) {
     return { error: error.message };
   }
+  const r = data as {
+    old_status: string;
+    new_status: string;
+    old_amount_krw: number | null;
+    new_amount_krw: number;
+    payment_status: string;
+  };
+  const fromLabel = formatSessionDateTime(
+    ((await adminClient.from("sessions").select("start_at").eq("id", sessionId).single()).data?.start_at as string) ?? ""
+  );
+  const toLabel = formatSessionDateTime(session.start_at as string);
 
-  console.log(`[admin] 신청 정보 수정됨: ${applicationId}, 안내 문자 발송 안 함`);
+  console.log(`[admin] 신청 회차 이동: ${applicationId}, ${fromLabel} → ${toLabel}, 안내 문자 발송 안 함`);
 
   await writeAuditLog({
     action: "application.updated",
     targetType: "application",
     targetId: applicationId,
-    summary: "신청·참여자 정보 수정 (문자 없음)",
-    detail: { session_id: sessionId, attendee_count: attendees.length },
+    summary: `회차 변경 ${fromLabel} → ${toLabel} (문자 없음)`,
+    detail: {
+      from_session_id: sessionId,
+      to_session_id: targetSessionId,
+      old_status: r.old_status,
+      new_status: r.new_status,
+      old_amount_krw: r.old_amount_krw,
+      new_amount_krw: r.new_amount_krw,
+    },
   });
 
   revalidateSession(sessionId);
-  return { success: true };
+  revalidateSession(targetSessionId);
+  return {
+    success: true,
+    moved: {
+      toLabel,
+      oldStatus: r.old_status,
+      newStatus: r.new_status,
+      oldAmount: r.old_amount_krw,
+      newAmount: r.new_amount_krw,
+      paymentStatus: r.payment_status,
+    },
+  };
 }
