@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useCopyProtectionExemption } from "@/components/layout/CopyProtection";
 import { Chevron } from "@/components/ui/Chevron";
 import { GROUP_EVENT, pushGa4Event } from "@/lib/analytics";
 import { readAttribution } from "@/lib/attribution";
@@ -81,6 +82,8 @@ type Done = {
   date: string;
   time: string;
   contact: string;
+  /** 연락 수단을 카카오톡으로 고른 경우 채널 대화방에 붙여 넣을 신청 요약. 그 밖에는 null. */
+  kakaoMessage: string | null;
   /** 회사 결재용 견적서(PDF)에 들어갈 값. 이 화면에만 있고 어디에도 저장하지 않는다. */
   pdf: QuoteDocInput;
 };
@@ -462,6 +465,17 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
         time,
         // '전화(010-…)로' — 번호 뒤에 조사를 바로 붙이면 '으로/로' 가 어색해진다.
         contact: `${contactMethodLabel(contactMethod ?? "")}(${contact.trim()})`,
+        kakaoMessage:
+          contactMethod === "kakao"
+            ? [
+                "안녕하세요, 단체 견적 신청했어요.",
+                `담당자: ${organizerName.trim()}`,
+                ...(groupName.trim() ? [`모임 이름: ${groupName.trim()}`] : []),
+                `일정: ${dateLabel(date)} ${time}`,
+                `인원: ${headcount}명`,
+                `예상 금액: ${quote.total != null ? won(quote.total) : "상담 후 안내"}`,
+              ].join("\n")
+            : null,
         pdf: {
           id: json.id ?? "",
           quote,
@@ -1990,6 +2004,58 @@ function PrivacyNotice({ className = "" }: { className?: string }) {
 
 /* ───────────────────────── 완료 ───────────────────────── */
 
+const KAKAO_CHAT_URL = "http://pf.kakao.com/_EGNBX/chat";
+
+/*
+  카카오톡 채널로 신청 내용 보내기(2026-10-28 대표님).
+  카카오 채널 채팅 링크·SDK 에는 보낼 문구를 미리 채우는 기능이 없다(Kakao.Channel.chat 은
+  channelPublicId 만 받는다). 그래서 누르는 순간 요약을 복사하고 대화방을 연다 — 손님은
+  붙여 넣고 보내기만 하면 되고, 대화가 손님 쪽에서 시작돼 채널에서 바로 답할 수 있다.
+  ⚠️ 대화방은 <a> 로 연다. 복사를 기다린 뒤 window.open 하면 아이폰이 팝업으로 막는다.
+*/
+function KakaoSendBox({ message }: { message: string }) {
+  // ⚠️ 사이트 전체에 복사 금지가 걸려 있다. 클립보드가 막힌 기기에서는 아래 글을 직접
+  //    길게 눌러 복사해야 하므로 이 화면에서만 해제한다.
+  useCopyProtectionExemption();
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard
+      ?.writeText(message)
+      .then(() => setCopied(true))
+      .catch(() => {});
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-panel-border bg-panel px-5 py-4">
+      <div>
+        <p className="text-body font-semibold">카카오톡 채널로 신청 내용 보내기</p>
+        <p className="mt-1 text-body-sm text-muted">
+          버튼을 누르면 아래 내용이 복사되고 대화방이 열려요. 채팅창에 붙여 넣고 보내 주세요.
+        </p>
+      </div>
+      <pre className="whitespace-pre-wrap rounded-lg border border-line-subtle bg-fill-subtle px-4 py-3 font-sans text-body-sm select-text">
+        {message}
+      </pre>
+      <a
+        href={KAKAO_CHAT_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={copy}
+        className="flex min-h-[48px] items-center justify-center rounded-lg px-5 text-body font-semibold"
+        style={{ backgroundColor: "#FEE500", color: "#191919" }}
+      >
+        복사하고 카카오톡 열기
+      </a>
+      {copied && (
+        <p className="text-center text-body-sm text-muted" role="status">
+          복사됐어요. 대화방에 붙여 넣고 보내 주세요.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function QuoteDone({ done }: { done: Done }) {
   return (
     <div className="flex flex-col gap-6 py-6">
@@ -2022,7 +2088,9 @@ function QuoteDone({ done }: { done: Done }) {
       <ol className="flex flex-col gap-3">
         {[
           "우주이스케이프가 견적 신청을 확인해요",
-          `일정과 최종 견적을 ${done.contact}로 안내해 드려요`,
+          done.kakaoMessage
+            ? "아래 버튼으로 신청 내용을 보내 주시면, 그 대화방에서 일정과 최종 견적을 안내해 드려요"
+            : `일정과 최종 견적을 ${done.contact}로 안내해 드려요`,
           "예약금(30%) 입금이 확인되면 예약이 확정돼요",
         ].map((t, i) => (
           <li key={t} className="flex items-start gap-3">
@@ -2036,6 +2104,8 @@ function QuoteDone({ done }: { done: Done }) {
           </li>
         ))}
       </ol>
+
+      {done.kakaoMessage && <KakaoSendBox message={done.kakaoMessage} />}
 
       <dl className="rounded-xl border border-panel-border bg-panel px-5 py-4 text-body-sm">
         {[
