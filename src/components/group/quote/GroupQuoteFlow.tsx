@@ -721,23 +721,28 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
         </div>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-28 rounded-xl border border-panel-border bg-panel p-5">
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-h3 font-extrabold">신청할 견적</h2>
-              <button
-                type="button"
-                onClick={() => window.history.back()}
-                className="-my-3 inline-flex h-11 items-center text-body-sm text-muted underline underline-offset-4 hover:text-foreground"
-              >
-                견적 수정
-              </button>
+          <div className="sticky top-28 flex flex-col gap-4">
+            <div className="rounded-xl border border-panel-border bg-panel p-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-h3 font-extrabold">신청할 견적</h2>
+                <button
+                  type="button"
+                  onClick={() => window.history.back()}
+                  className="-my-3 inline-flex h-11 items-center text-body-sm text-muted underline underline-offset-4 hover:text-foreground"
+                >
+                  견적 수정
+                </button>
+              </div>
+              <p className="mt-2 text-body-sm">
+                {headcount}명 · {date ? dateLabel(date) : "-"} {time ?? ""} · 총 {durationLabel(totalMinutes)}
+              </p>
+              <QuoteTotals quote={shownQuote} />
             </div>
-            <p className="mt-2 text-body-sm">
-              {headcount}명 · {date ? dateLabel(date) : "-"} {time ?? ""} · 총 {durationLabel(totalMinutes)}
-            </p>
-            <QuoteTotals quote={shownQuote} />
             {date && time && quote.total != null && validHeadcount && (
-              <PreQuotePdf input={quoteDocInput(date, time)} className="mt-5 border-t border-line-subtle pt-5" />
+              <PreQuotePdf
+                input={quoteDocInput(date, time)}
+                className="rounded-xl border border-panel-border bg-panel p-5"
+              />
             )}
           </div>
         </aside>
