@@ -2,7 +2,7 @@ import Image from "next/image";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
-import { CalloutChecklist } from "@/components/contents/CalloutChecklist";
+import { CalloutFold } from "@/components/contents/CalloutFold";
 import { FaqCards } from "@/components/contents/FaqCards";
 import { SeasonArt, type SeasonArtName } from "@/components/season/SeasonArt";
 import {
@@ -439,11 +439,10 @@ export function ThemeBlockView({
       )}
 
       {block.type === "callout" && (
-        // 하나씩 눌러 확인하는 체크리스트(CalloutChecklist 주석). 번호 자리는 시즌 스킨 때
+        // 제목만 보이고 눌러서 펼친다(CalloutFold 주석). 번호 자리는 시즌 스킨 때
         // 유령 · 박쥐 · 호박으로 바뀐다(season.css) — 그래서 서버에서 그려 넘긴다.
-        <CalloutChecklist
+        <CalloutFold
           items={block.items}
-          accent={accent}
           badges={block.items.map((_, i) => (
             <span
               key={i}
