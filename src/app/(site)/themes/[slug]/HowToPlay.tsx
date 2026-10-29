@@ -23,7 +23,7 @@ import { Chevron } from "@/components/ui/Chevron";
   ⚠️ 마지막 단계는 '순위' 가 아니라 '플레이 결과' 다 — 처음 보는 사람들 앞에서 순위가 까발려지는
      것처럼 보이면 내향적인 손님이 부담스러워한다(대표님). 왕관 · 등수 표시를 넣지 않는다.
   ⚠️ 문구는 진행 순서 블록(어드민 timetable · timebar)과 같은 이야기를 한다. 진행이 바뀌면 둘 다 고친다.
-  ⚠️ 그림은 전부 이 파일의 SVG 다. 사람 하나 = 7×8 칸 도트(PERSON).
+  ⚠️ 그림은 전부 이 파일의 SVG 다. 사람 하나 = 9×11 칸 도트(PERSON).
 */
 
 export type HowToPlayMode = "party" | "normal";
@@ -394,24 +394,26 @@ const WALL = "#4b3f73";
 const GOLD = "#fbcf4a";
 
 /*
-  사람 한 명 — 머리가 몸보다 큰 2등신. 글자 하나가 한 칸이다.
-  K 테두리 · S 피부 · E 눈 · B 볼터치 · C 팀 색(앞머리 · 옷) · D 옷 그늘 · "." 빈칸.
-  ⚠️ 머리를 몸보다 **넓게** 둔다. 처음엔 머리가 좁고 몸이 넓어 물약병처럼 보였고, 팔다리를 그린
-     사실적인 모양은 징그럽다고 했다(2026-10-29 대표님). 큰 얼굴 + 볼터치 + 작은 몸이 귀엽다.
-     팀 색을 앞머리에도 칠한다 — 몸만 칠하면 너무 작아서 팀이 구분되지 않는다.
+  사람 한 명 — 귀 달린 모자를 쓴 꼬마(어드벤처 타임 핀 비율, 2026-10-29 대표님 참고 그림).
+  머리(모자 + 얼굴)가 몸과 거의 같은 크기이고, 몸은 머리와 같은 폭으로 반듯하게 떨어진다.
+  K 테두리 · C 팀 색 모자 · S 피부 · E 눈 · M 입 · D 팀 색 옷(그늘) · L 바지 · "." 빈칸.
+  ⚠️ 거쳐 온 모양: 머리 좁고 몸 넓은 것(물약병) → 팔다리 사실적(징그러움) → 머리만 큰 것(로봇).
 */
 const PERSON = [
-  ".KKKKK.",
-  "KCCCCCK",
-  "KSESESK",
-  "KBSSSBK",
-  ".KKKKK.",
-  ".KCCCK.",
-  ".KDDDK.",
-  "..K.K..",
+  "KK.....KK",
+  "KCKKKKKCK",
+  "KCCCCCCCK",
+  "KCSSSSSCK",
+  "KCSESESCK",
+  "KCSSMSSCK",
+  ".KDDDDDK.",
+  "KSDDDDDSK",
+  ".KLLLLLK.",
+  ".KLKKKLK.",
+  ".KK...KK.",
 ];
 
-/** 사람 하나. (x, y) 는 왼쪽 위. 7×8 칸. */
+/** 사람 하나. (x, y) 는 왼쪽 위. 9×11 칸. */
 function Person({
   x,
   y,
@@ -423,7 +425,7 @@ function Person({
   color: string;
   shade: string;
 }) {
-  const fill: Record<string, string> = { K: INK, S: SKIN, E: INK, B: "#f4a3b4", C: color, D: shade };
+  const fill: Record<string, string> = { K: INK, C: color, S: SKIN, E: INK, M: INK, D: shade, L: "#3d3560" };
   return (
     <g transform={`translate(${x} ${y})`}>
       {PERSON.flatMap((row, r) =>
@@ -439,9 +441,10 @@ function Person({
 function Team({ cx, cy, t, bob = false }: { cx: number; cy: number; t: (typeof TEAMS)[number]; bob?: boolean }) {
   return (
     <g className={bob ? "how-bob" : undefined}>
-      <Person x={cx - 11} y={cy - 4} color={t.color} shade={t.shade} />
-      <Person x={cx - 3.5} y={cy - 7} color={t.color} shade={t.shade} />
-      <Person x={cx + 4} y={cy - 4} color={t.color} shade={t.shade} />
+      <Person x={cx - 12} y={cy - 5} color={t.color} shade={t.shade} />
+      <Person x={cx + 3} y={cy - 5} color={t.color} shade={t.shade} />
+      {/* 가운데 사람은 한 칸 위 · 맨 앞에 — 셋이 살짝 겹쳐 무리로 보이게 */}
+      <Person x={cx - 4.5} y={cy - 8} color={t.color} shade={t.shade} />
     </g>
   );
 }
