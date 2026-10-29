@@ -98,6 +98,46 @@ function Fold({ id, title, children }: { id?: string; title: string; children: R
 }
 
 /*
+  자주 묻는 질문 한 칸 — 아래 「신청 전에 확인해주세요」(선으로 나눈 목록)와 똑같으면 심심해서
+  칸마다 띄운 카드에 Q · A 표시를 붙였다(2026-10-29 대표님). 열리면 테두리에 강조색이 든다.
+*/
+function FaqItem({ q, a }: { q: string; a: string[] }) {
+  return (
+    <details
+      className="group/faq rounded-xl border border-line-subtle bg-fill-subtle transition-colors open:border-[color:var(--faq-accent)]"
+      style={{ "--faq-accent": `${GROUP_ACCENT}88` } as React.CSSProperties}
+    >
+      <summary className="flex min-h-[56px] cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-label font-extrabold"
+          style={{ backgroundColor: `${GROUP_ACCENT}26`, color: GROUP_ACCENT }}
+        >
+          Q
+        </span>
+        <span className="flex-1 text-body font-semibold">{q}</span>
+        <span
+          aria-hidden
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-fill text-muted transition-transform group-open/faq:rotate-45"
+        >
+          +
+        </span>
+      </summary>
+      <div className="flex gap-3 px-4 pb-5">
+        <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center text-label font-extrabold text-muted">
+          A
+        </span>
+        <div className="flex flex-1 flex-col gap-2 text-body leading-relaxed text-muted">
+          {a.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+/*
   단체 기본 구성 — 글로 풀지 않고 '무엇을 기본으로 주는지' 만 한눈에(2026-10-26 대표님).
   칸마다 한 줄로 끝나게 짧게 쓴다(두 줄이 섞이면 지저분하다). 진행 스태프는 큰 차별점이
   아니라 맨 끝에 둔다. 그림은 **여러 색이 든 도트 아이콘**이다 — 바-ㅇ탈출 캐릭터처럼.
@@ -299,15 +339,9 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
 
       <Block id="faq" sectionKey="faq" navLabel="자주 묻는 질문" className="flex flex-col gap-2">
         <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" align="left" eyebrowColor={GROUP_ACCENT} />
-        <div className="mt-2 border-t border-line-subtle">
+        <div className="mt-2 flex flex-col gap-2.5">
           {FAQ.map((f) => (
-            <Fold key={f.q} title={f.q}>
-              <div className="flex flex-col gap-2">
-                {f.a.map((p) => (
-                  <p key={p}>{p}</p>
-                ))}
-              </div>
-            </Fold>
+            <FaqItem key={f.q} q={f.q} a={f.a} />
           ))}
         </div>
       </Block>
