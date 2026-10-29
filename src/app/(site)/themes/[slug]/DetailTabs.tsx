@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { scrollToScreen, stickyEdge } from "./screenScroll";
 
 /**
@@ -29,8 +29,8 @@ const REVIEWS = "sec-reviews";
 export function DetailTabs({ accent }: { accent: string }) {
   const [active, setActive] = useState("booking");
   const [hasReviews, setHasReviews] = useState(false);
-  // 모드를 바꾸면 주소만 바뀌고 이 탭은 그대로 남는다 — 그때 후기 블록 유무를 다시 본다.
-  const pathname = usePathname();
+  // 모드를 바꾸면 주소(경로 또는 ?mode=)만 바뀌고 이 탭은 그대로 남는다 — 그때 후기 블록 유무를 다시 본다.
+  const route = `${usePathname()}?${useSearchParams().toString()}`;
 
   useEffect(() => {
     let frame = 0;
@@ -58,7 +58,7 @@ export function DetailTabs({ accent }: { accent: string }) {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [pathname]);
+  }, [route]);
 
   const tabs = hasReviews ? TABS : TABS.filter((t) => t.id !== REVIEWS);
 

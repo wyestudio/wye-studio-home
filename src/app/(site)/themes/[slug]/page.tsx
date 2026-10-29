@@ -41,6 +41,8 @@ import { GROUP_ENTRY, hasGroupBooking } from "@/lib/groupBooking";
 import { PrivateRoomPanel } from "@/components/group/PrivateRoomPanel";
 import { SessionPicker, type CalendarMode, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
+import { HowToPlay } from "./HowToPlay";
+
 import { SectionNav } from "./SectionNav";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
 import { CategoryLabel } from "./CategoryLabel";
@@ -65,6 +67,8 @@ export const dynamic = "force-dynamic";
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
 const DEFAULT_ACCENT = "#3dffb0";
+/** 「이렇게 플레이해요」 를 보여줄 테마(모드). 큰 방에서 여러 팀이 겨루는 방식만. */
+const HOW_TO_PLAY_SLUGS = new Set(["baotalchul"]);
 
 export async function generateMetadata({
   params,
@@ -540,6 +544,30 @@ export default async function ThemeDetailPage({
             className="block text-body-sm leading-relaxed text-foreground"
           />
         </div>
+      )}
+
+      {/*
+        ── 플레이 방식 ── 파티모드만. "어떻게 진행되냐" 는 문의가 방식(큰 방 하나 · 여러 팀 · 점수 대결)을
+        몰라서 나온다 — 회차를 고르기 전에 그림으로 먼저 보여준다(2026-10-29 대표님 시안).
+        노말모드는 우리 팀만 들어가는 방식이라 이 그림이 맞지 않는다.
+      */}
+      {HOW_TO_PLAY_SLUGS.has(theme.slug) && (
+        <section
+          id="how-to-play"
+          data-screen
+          data-nav-label="플레이 방식"
+          data-section-key="how-to-play"
+          className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}
+        >
+          <SectionHeading
+            eyebrow="HOW TO PLAY"
+            title="이렇게 플레이해요"
+            className="mb-6 sm:mb-10"
+            eyebrowColor={seasonAccent}
+            size="lg"
+          />
+          <HowToPlay accent={seasonAccent} />
+        </section>
       )}
 
       {/* ── 날짜 선택 ── '신청하기' 로 스크롤해 오면 헤더 밑에 붙는다(SCREEN_SCROLL_MARGIN). */}
