@@ -37,7 +37,7 @@ const TEAMS = [
 type Pos = [number, number];
 
 /** 지금 단계에서 지도가 보여줄 장면. */
-type Scene = "start" | "search" | "pad" | "buzzer" | "rank" | "market";
+type Scene = "icebreak" | "start" | "search" | "pad" | "buzzer" | "rank" | "market";
 
 type Step = {
   title: string;
@@ -46,6 +46,8 @@ type Step = {
   /** 팀마다 서 있는 자리(묶음 가운데). 모드의 teams 순서와 같다. */
   at: Pos[];
   score: number[];
+  /** 위 진행 막대(phases)의 몇 번째 칸에 속하는가. */
+  phase?: number;
 };
 
 /** 팀 테이블 자리 — 단계 대부분에서 팀이 돌아오는 곳. */
@@ -68,6 +70,13 @@ const MODES: Record<
     teams: number[];
     /** 지도에서 각 팀의 테이블. */
     tables: Pos[];
+    /**
+     * 지도 위 진행 막대. 칸 폭은 weight 비율이다 — **분을 적지 않는다**(2026-10-29 대표님).
+     * 실제로는 아이스브레이킹 20분 · 방탈출+미니게임 120분 · 코인마켓 20분에 안내 등 20분이 더
+     * 있는데, 분을 적으면 "코인마켓에 20분이나?" 같은 반응이 나와서 비율로만 보인다.
+     * 노말모드는 블록 위에 시간 막대(timebar)가 따로 있어 두지 않는다.
+     */
+    phases?: { title: string; weight: number }[];
     steps: Step[];
   }
 > = {
@@ -79,13 +88,31 @@ const MODES: Record<
     ],
     teams: [0, 1, 2],
     tables: TABLE,
+    phases: [
+      { title: "아이스브레이킹 뇌풀기", weight: 20 },
+      { title: "방탈출 + 돌발 미니게임", weight: 120 },
+      { title: "코인마켓", weight: 20 },
+    ],
     steps: [
       {
+        title: "아이스브레이킹 뇌풀기",
+        desc: "가벼운 게임으로 어색함을 풀고 머리를 예열해요.",
+        scene: "icebreak",
+        at: [
+          [64, 100],
+          [100, 104],
+          [136, 100],
+        ],
+        score: [0, 0, 0],
+        phase: 0,
+      },
+      {
         title: "팀 나누기",
-        desc: "모두 한 방에 모여 여러 팀으로 나눠요. 팀 이름도 같이 정해요.",
+        desc: "여러 팀으로 나눠 자리에 앉아요. 팀 이름도 같이 정해요.",
         scene: "start",
         at: TABLE,
         score: [0, 0, 0],
+        phase: 1,
       },
       {
         title: "단서 찾기",
@@ -97,6 +124,7 @@ const MODES: Record<
           [152, 40],
         ],
         score: [0, 0, 0],
+        phase: 1,
       },
       {
         title: "게임패드로 정답 입력",
@@ -104,6 +132,7 @@ const MODES: Record<
         scene: "pad",
         at: TABLE,
         score: [120, 100, 130],
+        phase: 1,
       },
       {
         title: "돌발 미니게임",
@@ -111,13 +140,23 @@ const MODES: Record<
         scene: "buzzer",
         at: TABLE,
         score: [120, 100, 160],
+        phase: 1,
       },
       {
         title: "결과 발표",
-        desc: "스크린에 플레이 결과가 떠요. 모은 포인트는 코인마켓에서 써요.",
+        desc: "스크린에 플레이 결과가 떠요.",
         scene: "rank",
         at: TABLE,
         score: [120, 100, 160],
+        phase: 1,
+      },
+      {
+        title: "코인마켓",
+        desc: "모은 포인트로 굿즈를 고르거나 뽑기에 도전해요.",
+        scene: "market",
+        at: TABLE,
+        score: [120, 100, 160],
+        phase: 2,
       },
     ],
   },
@@ -247,93 +286,104 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
         </div>
       </div>
 
-      {/* ── 2. 방 지도 + 단계 ── */}
-      <div
-        ref={ref}
-        className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] md:items-center md:gap-8"
-      >
-        <div className="overflow-hidden rounded-xl border border-line-subtle bg-fill-subtle">
-          <RoomMap mode={mode} step={cur} accent={accent} />
-          {/* 포인트판 — 단계가 넘어갈수록 오른다. 등수는 붙이지 않는다(위 주석). */}
-          <div className={`grid border-t border-line-subtle ${single ? "grid-cols-1" : "grid-cols-3"}`}>
-            {m.teams.map((ti, k) => {
-              const t = TEAMS[ti];
-              return (
-                <div key={t.key} className="flex items-center justify-center gap-2 py-2.5">
-                  <span
-                    className="flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-micro font-extrabold text-background"
-                    style={{ backgroundColor: t.color }}
+      {/* ── 2. 진행 막대 + 방 지도 + 단계 ── */}
+      <div className="flex flex-col gap-4">
+        {m.phases && (
+          <PhaseBar
+            phases={m.phases}
+            steps={STEPS}
+            step={step}
+            accent={accent}
+            onPick={(i) => go(STEPS.findIndex((x) => x.phase === i))}
+          />
+        )}
+        <div
+          ref={ref}
+          className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] md:items-center md:gap-8"
+        >
+          <div className="overflow-hidden rounded-xl border border-line-subtle bg-fill-subtle">
+            <RoomMap mode={mode} step={cur} accent={accent} />
+            {/* 포인트판 — 단계가 넘어갈수록 오른다. 등수는 붙이지 않는다(위 주석). */}
+            <div className={`grid border-t border-line-subtle ${single ? "grid-cols-1" : "grid-cols-3"}`}>
+              {m.teams.map((ti, k) => {
+                const t = TEAMS[ti];
+                return (
+                  <div key={t.key} className="flex items-center justify-center gap-2 py-2.5">
+                    <span
+                      className="flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-micro font-extrabold text-background"
+                      style={{ backgroundColor: t.color }}
+                    >
+                      {single ? "우리 팀" : t.key}
+                    </span>
+                    <span className="text-label font-semibold tabular-nums">
+                      {cur.score[k]}
+                      <span className="text-micro text-muted">P</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {/* 지금 단계 설명 — 한 줄이라 글 싫어하는 분도 읽는다. */}
+            <div className="flex items-start gap-3">
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-label font-extrabold text-background"
+                style={{ backgroundColor: accent }}
+              >
+                {step + 1}
+              </span>
+              <div className="min-h-[4.5rem] flex-1">
+                <p className="text-body font-semibold">{cur.title}</p>
+                <p className="mt-0.5 text-body-sm leading-relaxed text-muted break-keep">{cur.desc}</p>
+              </div>
+            </div>
+
+            {/* 단계 이동 */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => go(step - 1)}
+                aria-label="이전 단계"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-subtle text-muted hover:bg-fill"
+              >
+                <Chevron dir="left" />
+              </button>
+              <div className="flex flex-1 gap-1.5" role="tablist" aria-label="플레이 단계">
+                {STEPS.map((s, i) => (
+                  <button
+                    key={s.title}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === step}
+                    aria-label={`${i + 1}. ${s.title}`}
+                    onClick={() => go(i)}
+                    className="relative h-10 flex-1 overflow-hidden rounded-lg bg-fill"
                   >
-                    {single ? "우리 팀" : t.key}
-                  </span>
-                  <span className="text-label font-semibold tabular-nums">
-                    {cur.score[k]}
-                    <span className="text-micro text-muted">P</span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          {/* 지금 단계 설명 — 한 줄이라 글 싫어하는 분도 읽는다. */}
-          <div className="flex items-start gap-3">
-            <span
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-label font-extrabold text-background"
-              style={{ backgroundColor: accent }}
-            >
-              {step + 1}
-            </span>
-            <div className="min-h-[4.5rem] flex-1">
-              <p className="text-body font-semibold">{cur.title}</p>
-              <p className="mt-0.5 text-body-sm leading-relaxed text-muted break-keep">{cur.desc}</p>
+                    {/* 지금 단계는 강조색으로 채우고, 자동 넘김 중이면 차오르는 막대로 남은 시간을 보인다. */}
+                    <span
+                      key={`${step}-${auto && inView}`}
+                      className={`absolute inset-y-0 left-0 ${i === step && auto && inView ? "how-fill" : ""}`}
+                      style={{
+                        width: i < step || (i === step && !(auto && inView)) ? "100%" : i === step ? undefined : "0%",
+                        backgroundColor: `${accent}${i === step ? "66" : "2e"}`,
+                        animationDuration: `${AUTOPLAY_MS}ms`,
+                      }}
+                    />
+                    <span className="relative text-micro font-semibold">{i + 1}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => go(step + 1)}
+                aria-label="다음 단계"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-subtle text-muted hover:bg-fill"
+              >
+                <Chevron dir="right" />
+              </button>
             </div>
-          </div>
-
-          {/* 단계 이동 */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => go(step - 1)}
-              aria-label="이전 단계"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-subtle text-muted hover:bg-fill"
-            >
-              <Chevron dir="left" />
-            </button>
-            <div className="flex flex-1 gap-1.5" role="tablist" aria-label="플레이 단계">
-              {STEPS.map((s, i) => (
-                <button
-                  key={s.title}
-                  type="button"
-                  role="tab"
-                  aria-selected={i === step}
-                  aria-label={`${i + 1}. ${s.title}`}
-                  onClick={() => go(i)}
-                  className="relative h-10 flex-1 overflow-hidden rounded-lg bg-fill"
-                >
-                  {/* 지금 단계는 강조색으로 채우고, 자동 넘김 중이면 차오르는 막대로 남은 시간을 보인다. */}
-                  <span
-                    key={`${step}-${auto && inView}`}
-                    className={`absolute inset-y-0 left-0 ${i === step && auto && inView ? "how-fill" : ""}`}
-                    style={{
-                      width: i < step || (i === step && !(auto && inView)) ? "100%" : i === step ? undefined : "0%",
-                      backgroundColor: `${accent}${i === step ? "66" : "2e"}`,
-                      animationDuration: `${AUTOPLAY_MS}ms`,
-                    }}
-                  />
-                  <span className="relative text-micro font-semibold">{i + 1}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => go(step + 1)}
-              aria-label="다음 단계"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-subtle text-muted hover:bg-fill"
-            >
-              <Chevron dir="right" />
-            </button>
           </div>
         </div>
       </div>
@@ -350,6 +400,80 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
           .how-move { transition: none !important; }
         }
       `}</style>
+    </div>
+  );
+}
+
+/**
+ * 지도 위 진행 막대 — 상자 칸의 폭이 시간 비율이다(분은 적지 않는다). 지금 단계가 속한 칸이 강조색으로
+ * 차고, 칸 안의 점이 그 칸에서 몇 번째 단계인지 보인다. 칸이나 이름을 누르면 그 칸의 첫 단계로 간다.
+ * ⚠️ 이름은 칸 **아래**에 단다. 비율대로면 짧은 칸이 휴대폰에서 40px 남짓이라 이름이 안 들어가고,
+ *    최소 폭을 주면 비율이 무너져 '방탈출이 제일 길다' 가 안 보였다(2026-10-29).
+ *    첫 이름은 왼쪽, 끝 이름은 오른쪽, 가운데는 가운데 — 칸 위치와 대강 맞는다.
+ */
+function PhaseBar({
+  phases,
+  steps,
+  step,
+  accent,
+  onPick,
+}: {
+  phases: { title: string; weight: number }[];
+  steps: Step[];
+  step: number;
+  accent: string;
+  onPick: (i: number) => void;
+}) {
+  const curPhase = steps[step]?.phase;
+  const last = phases.length - 1;
+  return (
+    <div role="tablist" aria-label="진행 순서" className="flex flex-col gap-2">
+      <div className="flex gap-1.5">
+        {phases.map((ph, i) => {
+          const on = curPhase === i;
+          const mine = steps.map((x, k) => ({ x, k })).filter((o) => o.x.phase === i);
+          return (
+            <button
+              key={ph.title}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              aria-label={ph.title}
+              onClick={() => onPick(i)}
+              className="flex h-9 min-w-0 items-center justify-center gap-1 rounded-lg border border-line bg-fill-subtle transition-colors"
+              style={{
+                flexGrow: ph.weight,
+                flexBasis: 0,
+                ...(on ? { borderColor: accent, backgroundColor: `${accent}40` } : undefined),
+              }}
+            >
+              {/* 이 칸의 단계 점 — 지금 단계는 강조색 */}
+              {mine.map(({ k }) => (
+                <span
+                  key={k}
+                  aria-hidden
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: k === step ? accent : on ? `${accent}66` : "var(--color-line)" }}
+                />
+              ))}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex justify-between gap-3" aria-hidden>
+        {phases.map((ph, i) => (
+          <button
+            key={ph.title}
+            type="button"
+            tabIndex={-1}
+            onClick={() => onPick(i)}
+            className={`text-label font-semibold break-keep ${i === 0 ? "max-w-[6rem] text-left" : i === last ? "text-right" : "text-center"} ${curPhase === i ? "" : "text-muted"}`}
+            style={curPhase === i ? { color: accent } : undefined}
+          >
+            {ph.title}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -419,22 +543,14 @@ const PERSON = [
 const HAIR = "#8a5a32";
 
 /** 사람 하나. (x, y) 는 왼쪽 위. 9×11 칸. */
-function Person({
-  x,
-  y,
-  color,
-}: {
-  x: number;
-  y: number;
-  color: string;
-}) {
+function Person({ x, y, color }: { x: number; y: number; color: string }) {
   const fill: Record<string, string> = { K: INK, H: HAIR, S: SKIN, E: INK, B: "#f4a3b4", C: color, L: "#3d3560" };
   return (
     <g transform={`translate(${x} ${y})`}>
       {PERSON.flatMap((row, r) =>
         [...row].map((ch, c) =>
-          ch === "." ? null : <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={fill[ch]} />
-        )
+          ch === "." ? null : <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={fill[ch]} />,
+        ),
       )}
     </g>
   );
@@ -536,19 +652,12 @@ function OneRoom({ alone = false }: { alone?: boolean }) {
 }
 
 /** 방을 위에서 본 지도. viewBox 200×120. */
-function RoomMap({
-  mode,
-  step,
-  accent,
-}: {
-  mode: HowToPlayMode;
-  step: Step;
-  accent: string;
-}) {
+function RoomMap({ mode, step, accent }: { mode: HowToPlayMode; step: Step; accent: string }) {
   const m = MODES[mode];
   const { scene } = step;
   const searching = scene === "search";
   const buzzer = scene === "buzzer";
+  const icebreak = scene === "icebreak";
   // 버저를 먼저 누른 팀 — 이 단계에서 포인트가 오른 팀.
   const prev = m.steps[m.steps.indexOf(step) - 1];
   const buzzWinner = buzzer && prev ? step.score.findIndex((s, k) => s > prev.score[k]) : -1;
@@ -613,6 +722,17 @@ function RoomMap({
         );
       })}
 
+      {/* 아이스브레이킹 — 다 같이 모인 무리 위로 반짝이(아직 팀 깃발 없음) */}
+      {icebreak && (
+        <g className="how-blink" fill={GOLD}>
+          <rect x={80} y={74} width={2} height={2} />
+          <rect x={99} y={70} width={2} height={2} />
+          <rect x={118} y={74} width={2} height={2} />
+          <rect x={58} y={84} width={2} height={2} />
+          <rect x={140} y={84} width={2} height={2} />
+        </g>
+      )}
+
       {/* 팀 — 단계마다 자리로 미끄러져 간다 */}
       {m.teams.map((ti, k) => {
         const t = TEAMS[ti];
@@ -625,9 +745,9 @@ function RoomMap({
             style={{ transform: `translate(${x}px, ${y}px)`, transition: "transform 0.9s cubic-bezier(.5,0,.3,1)" }}
           >
             <g transform={`scale(${MAP_SCALE})`}>
-              <Team cx={0} cy={0} t={t} bob={searching || buzzer || scene === "market"} />
-              {/* 팀 깃발 — 노말모드는 한 팀이라 이름표가 필요 없다 */}
-              {!single && (
+              <Team cx={0} cy={0} t={t} bob={searching || buzzer || icebreak || scene === "market"} />
+              {/* 팀 깃발 — 노말모드는 한 팀이라, 아이스브레이킹은 아직 팀을 안 나눠서 없다 */}
+              {!single && !icebreak && (
                 <>
                   <rect x={-3} y={-17} width={7} height={7} fill={t.color} />
                   <text x={0.5} y={-11.6} textAnchor="middle" fontSize={6} fontWeight={800} fill={INK}>
@@ -664,17 +784,7 @@ function RoomMap({
 }
 
 /** 정면 스크린. 미니게임엔 문제가, 결과 단계엔 막대가 뜬다. */
-function Screen({
-  scene,
-  accent,
-  teams,
-  score,
-}: {
-  scene: Scene;
-  accent: string;
-  teams: number[];
-  score: number[];
-}) {
+function Screen({ scene, accent, teams, score }: { scene: Scene; accent: string; teams: number[]; score: number[] }) {
   const on = scene === "buzzer" || scene === "rank";
   const BARS = [50, 38, 28];
   return (

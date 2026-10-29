@@ -5,7 +5,6 @@ import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { CalloutFold } from "@/components/contents/CalloutFold";
 import { FaqCards } from "@/components/contents/FaqCards";
 import { HowToPlay, type HowToPlayMode } from "@/components/contents/HowToPlay";
-import { ScheduleStrip } from "@/components/contents/ScheduleStrip";
 import { SeasonArt, type SeasonArtName } from "@/components/season/SeasonArt";
 import {
   PriceTable,
@@ -131,8 +130,16 @@ export function ThemeBlocks({
       !(b.type === "venue" && !venue?.area_label)
   );
 
+  // 「이렇게 플레이해요」 가 붙는 진행 순서 블록은 제목도 그쪽으로 바꾼다 — 어드민 제목(진행 순서)보다
+  // 이 블록이 하는 일에 맞다(2026-10-29 대표님). 섹션 id · 목차 이름도 따라 바뀐다.
+  const shown = howToPlay
+    ? visible.map((b) =>
+        b.type === "timetable" ? ({ ...b, eyebrow: "HOW TO PLAY", title: "이렇게 플레이해요" } as ThemeBlock) : b
+      )
+    : visible;
+
   const groups: ThemeBlock[][] = [];
-  for (const b of visible) {
+  for (const b of shown) {
     const headless = !b.eyebrow?.trim() && !b.title?.trim();
     if (headless && groups.length > 0) groups[groups.length - 1].push(b);
     else groups.push([b]);
@@ -430,15 +437,11 @@ export function ThemeBlockView({
           </div>
         ))}
 
-      {/* 진행 순서 + 「이렇게 플레이해요」 — 흐름은 한 줄 막대로, 플레이 방식은 그림으로(ScheduleStrip 주석). */}
-      {block.type === "timetable" && howToPlay && (
-        <>
-          <ScheduleStrip items={block.items} accent={accent} />
-          <div className="mt-12 sm:mt-16">
-            <HowToPlay accent={accent} mode={howToPlay} />
-          </div>
-        </>
-      )}
+      {/*
+        진행 순서 자리를 「이렇게 플레이해요」 가 차지한다 — 흐름은 그 안의 비율 막대로, 플레이 방식은
+        그림으로(HowToPlay 의 phases). 어드민 진행 순서 항목은 이때 쓰지 않는다(2026-10-29 대표님).
+      */}
+      {block.type === "timetable" && howToPlay && <HowToPlay accent={accent} mode={howToPlay} />}
 
       {block.type === "timetable" && !howToPlay && (
         <div className="mx-auto flex w-full max-w-3xl flex-col">
