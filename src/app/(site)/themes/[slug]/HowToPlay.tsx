@@ -29,9 +29,9 @@ import { Chevron } from "@/components/ui/Chevron";
 export type HowToPlayMode = "party" | "normal";
 
 const TEAMS = [
-  { key: "A", color: "#f082f4", shade: "#c45fc9" },
-  { key: "B", color: "#fbcf4a", shade: "#d4930f" },
-  { key: "C", color: "#6cc5bd", shade: "#3f8f88" },
+  { key: "A", color: "#f082f4" },
+  { key: "B", color: "#fbcf4a" },
+  { key: "C", color: "#6cc5bd" },
 ] as const;
 
 type Pos = [number, number];
@@ -394,38 +394,42 @@ const WALL = "#4b3f73";
 const GOLD = "#fbcf4a";
 
 /*
-  사람 한 명 — 귀 달린 모자를 쓴 꼬마(어드벤처 타임 핀 비율, 2026-10-29 대표님 참고 그림).
-  머리(모자 + 얼굴)가 몸과 거의 같은 크기이고, 몸은 머리와 같은 폭으로 반듯하게 떨어진다.
-  K 테두리 · C 팀 색 모자 · S 피부 · E 눈 · M 입 · D 팀 색 옷(그늘) · L 바지 · "." 빈칸.
-  ⚠️ 거쳐 온 모양: 머리 좁고 몸 넓은 것(물약병) → 팔다리 사실적(징그러움) → 머리만 큰 것(로봇).
+  사람 한 명 — 핀(어드벤처 타임) 비율의 꼬마. 머리와 몸이 거의 같은 크기다(2026-10-29 대표님 참고 그림).
+  K 테두리 · H 머리카락 · S 피부 · E 눈 · B 볼터치 · C 팀 색 옷 · L 바지 · "." 빈칸.
+  ⚠️ 머리는 위아래 줄을 한 칸씩 좁혀 **둥글게** 깎는다. 네모난 얼굴은 로봇처럼 보였다.
+  ⚠️ 거쳐 온 모양: 머리 좁고 몸 넓음(물약병) → 팔다리 사실적(징그러움) → 머리만 큼(로봇)
+     → 귀 달린 모자(사람 같지 않음). 사람 머리카락 + 둥근 얼굴 + 볼터치로 정했다.
 */
 const PERSON = [
-  "KK.....KK",
-  "KCKKKKKCK",
-  "KCCCCCCCK",
-  "KCSSSSSCK",
-  "KCSESESCK",
-  "KCSSMSSCK",
-  ".KDDDDDK.",
-  "KSDDDDDSK",
+  "..KKKKK..",
+  ".KHHHHHK.",
+  "KHHHHHHHK",
+  "KHSSSSSHK",
+  "KSSESESSK",
+  "KSBSSSBSK",
+  ".KSSSSSK.",
+  ".KCCCCCK.",
+  "KSCCCCCSK",
   ".KLLLLLK.",
-  ".KLKKKLK.",
   ".KK...KK.",
 ];
+
+/** 머리카락 색 — 한 팀 안에서도 사람마다 다르게. 어두운 바닥에서 보이게 밝은 갈색 위주. */
+const HAIR = ["#6b4a2b", "#3b2a2a", "#a0662f"];
 
 /** 사람 하나. (x, y) 는 왼쪽 위. 9×11 칸. */
 function Person({
   x,
   y,
   color,
-  shade,
+  hair = HAIR[0],
 }: {
   x: number;
   y: number;
   color: string;
-  shade: string;
+  hair?: string;
 }) {
-  const fill: Record<string, string> = { K: INK, C: color, S: SKIN, E: INK, M: INK, D: shade, L: "#3d3560" };
+  const fill: Record<string, string> = { K: INK, H: hair, S: SKIN, E: INK, B: "#f4a3b4", C: color, L: "#3d3560" };
   return (
     <g transform={`translate(${x} ${y})`}>
       {PERSON.flatMap((row, r) =>
@@ -441,10 +445,10 @@ function Person({
 function Team({ cx, cy, t, bob = false }: { cx: number; cy: number; t: (typeof TEAMS)[number]; bob?: boolean }) {
   return (
     <g className={bob ? "how-bob" : undefined}>
-      <Person x={cx - 12} y={cy - 5} color={t.color} shade={t.shade} />
-      <Person x={cx + 3} y={cy - 5} color={t.color} shade={t.shade} />
+      <Person x={cx - 12} y={cy - 5} color={t.color} hair={HAIR[0]} />
+      <Person x={cx + 3} y={cy - 5} color={t.color} hair={HAIR[2]} />
       {/* 가운데 사람은 한 칸 위 · 맨 앞에 — 셋이 살짝 겹쳐 무리로 보이게 */}
-      <Person x={cx - 4.5} y={cy - 8} color={t.color} shade={t.shade} />
+      <Person x={cx - 4.5} y={cy - 8} color={t.color} hair={HAIR[1]} />
     </g>
   );
 }
