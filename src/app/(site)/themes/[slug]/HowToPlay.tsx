@@ -23,7 +23,7 @@ import { Chevron } from "@/components/ui/Chevron";
   ⚠️ 마지막 단계는 '순위' 가 아니라 '플레이 결과' 다 — 처음 보는 사람들 앞에서 순위가 까발려지는
      것처럼 보이면 내향적인 손님이 부담스러워한다(대표님). 왕관 · 등수 표시를 넣지 않는다.
   ⚠️ 문구는 진행 순서 블록(어드민 timetable · timebar)과 같은 이야기를 한다. 진행이 바뀌면 둘 다 고친다.
-  ⚠️ 그림은 전부 이 파일의 SVG 다. 사람 하나 = 7×8 칸 도트.
+  ⚠️ 그림은 전부 이 파일의 SVG 다. 사람 하나 = 7×11 칸 도트(PERSON).
 */
 
 export type HowToPlayMode = "party" | "normal";
@@ -132,7 +132,7 @@ const MODES: Record<
     steps: [
       {
         title: "우리 팀만 입장",
-        desc: "예약한 우리 팀만 방에 들어가요. 다른 팀은 없어요.",
+        desc: "예약한 우리 팀만 방에 들어가요.",
         scene: "start",
         at: [TABLE[1]],
         score: [0],
@@ -393,17 +393,50 @@ const FLOOR = "#2a2342";
 const WALL = "#4b3f73";
 const GOLD = "#fbcf4a";
 
-/** 사람 하나. (x, y) 는 왼쪽 위. 7×8 칸. */
-function Person({ x, y, color, shade }: { x: number; y: number; color: string; shade: string }) {
+/*
+  사람 한 명 — 머리카락 · 얼굴 · 팔 벌린 몸 · 다리. 글자 하나가 한 칸이다.
+  H 머리카락 · S 피부 · E 눈 · C 팀 색 옷 · D 옷 그늘 · L 바지 · "." 빈칸.
+  예전 7×8 은 머리와 몸이 한 덩어리라 물약병처럼 보였다(2026-10-29 대표님) — 팔과 다리를 떼어 그렸다.
+*/
+const PERSON = [
+  "..HHH..",
+  ".HHHHH.",
+  ".HSSSH.",
+  ".SESES.",
+  "..SSS..",
+  ".CCCCC.",
+  "CCCCCCC",
+  "S.CCC.S",
+  "..DDD..",
+  "..L.L..",
+  "..L.L..",
+];
+
+/** 머리카락 색 — 한 팀 안에서도 사람마다 다르게. */
+const HAIR = ["#3b2a2a", "#6b4a2b", "#252231"];
+
+/** 사람 하나. (x, y) 는 왼쪽 위. 7×11 칸. */
+function Person({
+  x,
+  y,
+  color,
+  shade,
+  hair = HAIR[0],
+}: {
+  x: number;
+  y: number;
+  color: string;
+  shade: string;
+  hair?: string;
+}) {
+  const fill: Record<string, string> = { H: hair, S: SKIN, E: INK, C: color, D: shade, L: "#3d3560" };
   return (
     <g transform={`translate(${x} ${y})`}>
-      <rect x={1} y={0} width={5} height={4} fill={INK} />
-      <rect x={2} y={1} width={3} height={3} fill={SKIN} />
-      <rect x={2} y={2} width={1} height={1} fill={INK} />
-      <rect x={4} y={2} width={1} height={1} fill={INK} />
-      <rect x={0} y={4} width={7} height={4} fill={INK} />
-      <rect x={1} y={4} width={5} height={3} fill={color} />
-      <rect x={1} y={6} width={5} height={1} fill={shade} />
+      {PERSON.flatMap((row, r) =>
+        [...row].map((ch, c) =>
+          ch === "." ? null : <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={fill[ch]} />
+        )
+      )}
     </g>
   );
 }
@@ -412,9 +445,9 @@ function Person({ x, y, color, shade }: { x: number; y: number; color: string; s
 function Team({ cx, cy, t, bob = false }: { cx: number; cy: number; t: (typeof TEAMS)[number]; bob?: boolean }) {
   return (
     <g className={bob ? "how-bob" : undefined}>
-      <Person x={cx - 11} y={cy - 4} color={t.color} shade={t.shade} />
-      <Person x={cx - 3.5} y={cy - 7} color={t.color} shade={t.shade} />
-      <Person x={cx + 4} y={cy - 4} color={t.color} shade={t.shade} />
+      <Person x={cx - 11} y={cy - 5} color={t.color} shade={t.shade} hair={HAIR[0]} />
+      <Person x={cx - 3.5} y={cy - 8} color={t.color} shade={t.shade} hair={HAIR[1]} />
+      <Person x={cx + 4} y={cy - 5} color={t.color} shade={t.shade} hair={HAIR[2]} />
     </g>
   );
 }
