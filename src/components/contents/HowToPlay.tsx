@@ -340,46 +340,62 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
               </div>
             </div>
 
-            {/* 단계 이동 */}
-            <div className="flex items-center gap-2">
+            {/*
+              단계 이동 — 숫자 칸 일곱 개는 좁고 딱딱해서(2026-10-29 대표님) 점으로 바꿨다. 지금 단계만
+              길쭉한 알약이 되고, 자동 넘김 중이면 그 안이 차오르며 남은 시간을 보인다.
+            */}
+            <div className="flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => go(step - 1)}
                 aria-label="이전 단계"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-subtle text-muted hover:bg-fill"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-fill text-muted transition-colors hover:bg-fill-strong"
               >
                 <Chevron dir="left" />
               </button>
-              <div className="flex flex-1 gap-1.5" role="tablist" aria-label="플레이 단계">
-                {STEPS.map((s, i) => (
-                  <button
-                    key={s.title}
-                    type="button"
-                    role="tab"
-                    aria-selected={i === step}
-                    aria-label={`${i + 1}. ${s.title}`}
-                    onClick={() => go(i)}
-                    className="relative h-10 flex-1 overflow-hidden rounded-lg bg-fill"
-                  >
-                    {/* 지금 단계는 강조색으로 채우고, 자동 넘김 중이면 차오르는 막대로 남은 시간을 보인다. */}
-                    <span
-                      key={`${step}-${auto && inView}`}
-                      className={`absolute inset-y-0 left-0 ${i === step && auto && inView ? "how-fill" : ""}`}
-                      style={{
-                        width: i < step || (i === step && !(auto && inView)) ? "100%" : i === step ? undefined : "0%",
-                        backgroundColor: `${accent}${i === step ? "66" : "2e"}`,
-                        animationDuration: `${AUTOPLAY_MS}ms`,
-                      }}
-                    />
-                    <span className="relative text-micro font-semibold">{i + 1}</span>
-                  </button>
-                ))}
+              <div className="flex items-center gap-1.5" role="tablist" aria-label="플레이 단계">
+                {STEPS.map((s, i) => {
+                  const on = i === step;
+                  return (
+                    <button
+                      key={s.title}
+                      type="button"
+                      role="tab"
+                      aria-selected={on}
+                      aria-label={`${i + 1}. ${s.title}`}
+                      onClick={() => go(i)}
+                      // 누르기 쉽게 버튼은 크게, 보이는 점은 작게.
+                      className="flex h-10 items-center justify-center px-0.5"
+                    >
+                      <span
+                        className="relative block h-2.5 overflow-hidden rounded-full transition-[width] duration-300"
+                        style={{
+                          width: on ? "1.75rem" : "0.625rem",
+                          backgroundColor: on ? `${accent}55` : i < step ? `${accent}aa` : "var(--color-fill-strong)",
+                        }}
+                      >
+                        {on && (
+                          <span
+                            key={`${step}-${auto && inView}`}
+                            className={`absolute inset-y-0 left-0 rounded-full ${auto && inView ? "how-fill" : ""}`}
+                            style={{
+                              width: auto && inView ? undefined : "100%",
+                              backgroundColor: accent,
+                              animationDuration: `${AUTOPLAY_MS}ms`,
+                            }}
+                          />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
               <button
                 type="button"
                 onClick={() => go(step + 1)}
                 aria-label="다음 단계"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line-subtle text-muted hover:bg-fill"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-background transition-opacity hover:opacity-90"
+                style={{ backgroundColor: accent }}
               >
                 <Chevron dir="right" />
               </button>
@@ -405,11 +421,11 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
 }
 
 /**
- * 지도 위 진행 막대 — 상자 칸의 폭이 시간 비율이다(분은 적지 않는다). 지금 단계가 속한 칸이 강조색으로
- * 차고, 칸 안의 점이 그 칸에서 몇 번째 단계인지 보인다. 칸이나 이름을 누르면 그 칸의 첫 단계로 간다.
- * ⚠️ 이름은 칸 **아래**에 단다. 비율대로면 짧은 칸이 휴대폰에서 40px 남짓이라 이름이 안 들어가고,
- *    최소 폭을 주면 비율이 무너져 '방탈출이 제일 길다' 가 안 보였다(2026-10-29).
- *    첫 이름은 왼쪽, 끝 이름은 오른쪽, 가운데는 가운데 — 칸 위치와 대강 맞는다.
+ * 지도 위 진행 막대 — 굵은 트랙 위를 꼬마 하나가 지금 단계 자리까지 걸어간다(2026-10-29 대표님).
+ * 트랙 칸 폭이 시간 비율이다(분은 적지 않는다). 지나온 길은 강조색으로 찬다.
+ * 칸 이름이나 칸을 누르면 그 칸의 첫 단계로 간다.
+ * ⚠️ 이름은 트랙 **아래**에 단다. 비율대로면 짧은 칸이 휴대폰에서 40px 남짓이라 이름이 안 들어가고,
+ *    최소 폭을 주면 비율이 무너져 '방탈출이 제일 길다' 가 안 보였다.
  */
 function PhaseBar({
   phases,
@@ -424,41 +440,58 @@ function PhaseBar({
   accent: string;
   onPick: (i: number) => void;
 }) {
-  const curPhase = steps[step]?.phase;
+  const curPhase = steps[step]?.phase ?? 0;
   const last = phases.length - 1;
+  const total = phases.reduce((a, p) => a + p.weight, 0);
+  const starts = phases.map((_, i) => phases.slice(0, i).reduce((a, p) => a + p.weight, 0) / total);
+  // 꼬마 자리 — 지금 칸 안에서 몇 번째 단계인지만큼 나아간다.
+  const inPhase = steps.map((x, k) => ({ x, k })).filter((o) => o.x.phase === curPhase);
+  const nth = inPhase.findIndex((o) => o.k === step);
+  const pos = (starts[curPhase] + ((nth + 0.5) / inPhase.length) * (phases[curPhase].weight / total)) * 100;
+
   return (
     <div role="tablist" aria-label="진행 순서" className="flex flex-col gap-2">
-      <div className="flex gap-1.5">
-        {phases.map((ph, i) => {
-          const on = curPhase === i;
-          const mine = steps.map((x, k) => ({ x, k })).filter((o) => o.x.phase === i);
-          return (
+      <div className="relative pt-7">
+        {/* 걸어가는 꼬마 — 지도 속 사람과 같은 그림 */}
+        <div
+          aria-hidden
+          className="how-move absolute top-0 -translate-x-1/2"
+          style={{ left: `${pos}%`, transition: "left 0.7s cubic-bezier(.5,0,.3,1)" }}
+        >
+          <svg viewBox="0 0 9 11" className="how-bob block h-6 w-auto" shapeRendering="crispEdges">
+            <Person x={0} y={0} color={accent} />
+          </svg>
+        </div>
+        {/* 트랙 */}
+        <div className="relative flex h-4 gap-1">
+          {phases.map((ph, i) => (
             <button
               key={ph.title}
               type="button"
               role="tab"
-              aria-selected={on}
+              aria-selected={curPhase === i}
               aria-label={ph.title}
               onClick={() => onPick(i)}
-              className="flex h-9 min-w-0 items-center justify-center gap-1 rounded-lg border border-line bg-fill-subtle transition-colors"
-              style={{
-                flexGrow: ph.weight,
-                flexBasis: 0,
-                ...(on ? { borderColor: accent, backgroundColor: `${accent}40` } : undefined),
-              }}
+              className="relative h-full min-w-0 overflow-hidden rounded-full bg-fill-strong"
+              style={{ flexGrow: ph.weight, flexBasis: 0 }}
             >
-              {/* 이 칸의 단계 점 — 지금 단계는 강조색 */}
-              {mine.map(({ k }) => (
-                <span
-                  key={k}
-                  aria-hidden
-                  className="h-1.5 w-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: k === step ? accent : on ? `${accent}66` : "var(--color-line)" }}
-                />
-              ))}
+              {/* 지나온 만큼 강조색 */}
+              <span
+                aria-hidden
+                className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700"
+                style={{
+                  backgroundColor: accent,
+                  width:
+                    i < curPhase
+                      ? "100%"
+                      : i > curPhase
+                        ? "0%"
+                        : `${((nth + 0.5) / inPhase.length) * 100}%`,
+                }}
+              />
             </button>
-          );
-        })}
+          ))}
+        </div>
       </div>
       <div className="flex justify-between gap-3" aria-hidden>
         {phases.map((ph, i) => (
