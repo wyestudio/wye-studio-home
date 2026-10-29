@@ -414,22 +414,20 @@ const PERSON = [
   ".KK...KK.",
 ];
 
-/** 머리카락 색 — 한 팀 안에서도 사람마다 다르게. 어두운 바닥에서 보이게 밝은 갈색 위주. */
-const HAIR = ["#6b4a2b", "#3b2a2a", "#a0662f"];
+/** 머리카락 색 — 전원 같은 갈색. 사람마다 다르게 했더니 검은 머리가 섞여 다 남자처럼 보였다(대표님). */
+const HAIR = "#8a5a32";
 
 /** 사람 하나. (x, y) 는 왼쪽 위. 9×11 칸. */
 function Person({
   x,
   y,
   color,
-  hair = HAIR[0],
 }: {
   x: number;
   y: number;
   color: string;
-  hair?: string;
 }) {
-  const fill: Record<string, string> = { K: INK, H: hair, S: SKIN, E: INK, B: "#f4a3b4", C: color, L: "#3d3560" };
+  const fill: Record<string, string> = { K: INK, H: HAIR, S: SKIN, E: INK, B: "#f4a3b4", C: color, L: "#3d3560" };
   return (
     <g transform={`translate(${x} ${y})`}>
       {PERSON.flatMap((row, r) =>
@@ -445,10 +443,10 @@ function Person({
 function Team({ cx, cy, t, bob = false }: { cx: number; cy: number; t: (typeof TEAMS)[number]; bob?: boolean }) {
   return (
     <g className={bob ? "how-bob" : undefined}>
-      <Person x={cx - 12} y={cy - 5} color={t.color} hair={HAIR[0]} />
-      <Person x={cx + 3} y={cy - 5} color={t.color} hair={HAIR[2]} />
+      <Person x={cx - 12} y={cy - 5} color={t.color} />
+      <Person x={cx + 3} y={cy - 5} color={t.color} />
       {/* 가운데 사람은 한 칸 위 · 맨 앞에 — 셋이 살짝 겹쳐 무리로 보이게 */}
-      <Person x={cx - 4.5} y={cy - 8} color={t.color} hair={HAIR[1]} />
+      <Person x={cx - 4.5} y={cy - 8} color={t.color} />
     </g>
   );
 }
