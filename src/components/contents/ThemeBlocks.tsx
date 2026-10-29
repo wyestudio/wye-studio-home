@@ -2,7 +2,8 @@ import Image from "next/image";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
-import { FlatFaqAccordion } from "@/components/ui/FlatFaqAccordion";
+import { CalloutChecklist } from "@/components/contents/CalloutChecklist";
+import { FaqCards } from "@/components/contents/FaqCards";
 import { SeasonArt, type SeasonArtName } from "@/components/season/SeasonArt";
 import {
   PriceTable,
@@ -438,40 +439,26 @@ export function ThemeBlockView({
       )}
 
       {block.type === "callout" && (
-        <div className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-          {block.items.map((p, i) => (
-            <div
+        // 하나씩 눌러 확인하는 체크리스트(CalloutChecklist 주석). 번호 자리는 시즌 스킨 때
+        // 유령 · 박쥐 · 호박으로 바뀐다(season.css) — 그래서 서버에서 그려 넘긴다.
+        <CalloutChecklist
+          items={block.items}
+          accent={accent}
+          badges={block.items.map((_, i) => (
+            <span
               key={i}
-              // season-card · season-callout-badge — 시즌 스킨 때 카드 테두리와 번호 모양을 바꾼다(season.css).
-              className="season-card flex gap-4 rounded-xl border border-panel-border bg-panel p-5 sm:gap-5 sm:p-6 lg:p-7"
+              className="season-callout-badge flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-semibold text-danger sm:h-9 sm:w-9"
             >
-              <span className="season-callout-badge flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-semibold text-danger sm:h-9 sm:w-9">
-                <span className="season-callout-num">{i + 1}</span>
-                <SeasonArt
-                  art={SEASON_CALLOUT_ART[i % SEASON_CALLOUT_ART.length]}
-                  className="season-callout-art"
-                />
-              </span>
-              <div className="flex flex-col gap-1 sm:gap-1.5">
-                <p className="font-semibold text-foreground text-h3">{p.title}</p>
-                {p.desc && (
-                  <p className="text-body text-muted">{p.desc}</p>
-                )}
-              </div>
-            </div>
+              <span className="season-callout-num">{i + 1}</span>
+              <SeasonArt art={SEASON_CALLOUT_ART[i % SEASON_CALLOUT_ART.length]} className="season-callout-art" />
+            </span>
           ))}
-        </div>
+        />
       )}
 
       {block.type === "faq" && (
-        // season-faq — 시즌 스킨 때 공지 페이지의 자주 묻는 질문과 같은 카드가 된다(season.css).
-        <div className="season-faq mx-auto w-full max-w-3xl">
-          <FlatFaqAccordion
-            items={block.items}
-            size="lg"
-            linkClassName={groupBooking ? GROUP_LINK_CLASS : undefined}
-          />
-        </div>
+        // Q · A 카드 — 단체 예약 페이지와 같은 모양(FaqCards 주석).
+        <FaqCards items={block.items} accent={accent} linkClassName={groupBooking ? GROUP_LINK_CLASS : undefined} />
       )}
 
       {block.type === "reviews" && (
