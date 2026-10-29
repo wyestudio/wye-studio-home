@@ -414,6 +414,21 @@ const PERSON = [
   ".KK...KK.",
 ];
 
+/** 긴 머리 — 머리카락이 얼굴 옆을 타고 어깨까지 내려온다. 짧은 머리만 있으면 다 남자로 보였다(대표님). */
+const PERSON_LONG = [
+  "..KKKKK..",
+  ".KHHHHHK.",
+  "KHHHHHHHK",
+  "KHSSSSSHK",
+  "KHSESESHK",
+  "KHBSSSBHK",
+  "KHHSSSHHK",
+  "KHCCCCCHK",
+  "KHCCCCCHK",
+  ".KLLLLLK.",
+  ".KK...KK.",
+];
+
 /** 머리카락 색 — 전원 같은 갈색. 사람마다 다르게 했더니 검은 머리가 섞여 다 남자처럼 보였다(대표님). */
 const HAIR = "#8a5a32";
 
@@ -422,15 +437,17 @@ function Person({
   x,
   y,
   color,
+  long = false,
 }: {
   x: number;
   y: number;
   color: string;
+  long?: boolean;
 }) {
   const fill: Record<string, string> = { K: INK, H: HAIR, S: SKIN, E: INK, B: "#f4a3b4", C: color, L: "#3d3560" };
   return (
     <g transform={`translate(${x} ${y})`}>
-      {PERSON.flatMap((row, r) =>
+      {(long ? PERSON_LONG : PERSON).flatMap((row, r) =>
         [...row].map((ch, c) =>
           ch === "." ? null : <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={fill[ch]} />
         )
@@ -441,12 +458,14 @@ function Person({
 
 /** 한 팀 세 명. (cx, cy) 가 묶음 가운데. */
 function Team({ cx, cy, t, bob = false }: { cx: number; cy: number; t: (typeof TEAMS)[number]; bob?: boolean }) {
+  // 긴 머리 · 짧은 머리를 섞는다. 팀마다 자리를 엇갈려 어느 팀이든 둘 다 있게.
+  const longMid = t.key === "B";
   return (
     <g className={bob ? "how-bob" : undefined}>
-      <Person x={cx - 12} y={cy - 5} color={t.color} />
-      <Person x={cx + 3} y={cy - 5} color={t.color} />
+      <Person x={cx - 12} y={cy - 5} color={t.color} long={!longMid} />
+      <Person x={cx + 3} y={cy - 5} color={t.color} long={longMid} />
       {/* 가운데 사람은 한 칸 위 · 맨 앞에 — 셋이 살짝 겹쳐 무리로 보이게 */}
-      <Person x={cx - 4.5} y={cy - 8} color={t.color} />
+      <Person x={cx - 4.5} y={cy - 8} color={t.color} long={longMid} />
     </g>
   );
 }
