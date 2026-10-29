@@ -9,9 +9,7 @@ import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
 const DEFAULT_ACCENT = "#3dffb0";
 
-export type HomeThemeCard = ThemeWithTiers & {
-  upcomingCount: number;
-};
+export type HomeThemeCard = ThemeWithTiers;
 
 function durationLabel(minutes: number): string {
   const h = Math.floor(minutes / 60);

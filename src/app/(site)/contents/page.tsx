@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ThemeShowcase, type ThemeCardData } from "@/components/contents/ThemeShowcase";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
-import { getListedThemes, getUpcomingOpenSummary } from "@/lib/themes";
+import { getListedThemes } from "@/lib/themes";
 
 // 캐시는 데이터 쪽에 있다(src/lib/themes.ts). 아래 주석은 page.tsx 와 같은 이유.
 export const dynamic = "force-dynamic";
@@ -19,14 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContentsPage() {
-  // 남은 회차 수 · 다음 회차만 필요하다 — 테마별 전체 회차 목록을 읽지 않는다(getUpcomingOpenSummary 주석).
-  const [themes, upcoming] = await Promise.all([getListedThemes(), getUpcomingOpenSummary()]);
-
-  const cards: ThemeCardData[] = themes.map((theme) => ({
-    ...theme,
-    upcomingCount: upcoming[theme.id]?.count ?? 0,
-    nextStartAt: upcoming[theme.id]?.nextStartAt ?? null,
-  }));
+  const cards: ThemeCardData[] = await getListedThemes();
 
   return (
     <>

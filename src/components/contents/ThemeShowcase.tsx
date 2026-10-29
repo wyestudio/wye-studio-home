@@ -2,12 +2,7 @@ import { ThemeCard } from "@/components/contents/ThemeCard";
 import { SeasonLabel } from "@/components/season/SeasonArt";
 import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
 
-export type ThemeCardData = ThemeWithTiers & {
-  /** 앞으로 남은 회차 수 */
-  upcomingCount: number;
-  /** 가장 가까운 회차 시작 시각 (없으면 null) */
-  nextStartAt: string | null;
-};
+export type ThemeCardData = ThemeWithTiers;
 
 /**
  * 테마 목록 — 포스터 카드.

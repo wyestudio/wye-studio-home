@@ -212,38 +212,6 @@ async function _getPublicSessionsForTheme(themeId: string): Promise<SessionView[
   return (data ?? []) as SessionView[];
 }
 
-/**
- * 테마별 "남은 회차 수 · 다음 회차 시각" — 홈 · 콘텐츠 목록 카드용(2026-10-29).
- *
- * 예전에는 테마마다 getPublicSessionsForTheme(지난 회차까지 전부 · 모든 칸)를 읽어 개수만
- * 셌다. 회차 이력이 쌓일수록 방문마다 큰 목록을 받아 푸느라 서버 CPU 를 썼다(wye-server-cost).
- * 지금은 한 번의 조회로 **열린 · 안 지난 · 공개된** 회차의 테마와 시각만 읽는다.
- * ⚠️ 조건은 upcomingOpenSessions 와 같다(status 'open' · start_at 이 지금 이후 · opens_at 이 지남).
- *    30초 캐시라 막 지난 회차가 최대 30초 더 세일 수 있다 — 카드 숫자라 괜찮다. 신청 판정은 isBookable 이 따로 한다.
- */
-export const getUpcomingOpenSummary = unstable_cache(_getUpcomingOpenSummary, ["upcoming-open-summary"], {
-  revalidate: 30,
-});
-
-async function _getUpcomingOpenSummary(): Promise<Record<string, { count: number; nextStartAt: string | null }>> {
-  const supabase = createPublicClient();
-  const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("session_view")
-    .select("theme_id, start_at")
-    .eq("status", "open")
-    .gte("start_at", now)
-    .lte("opens_at", now)
-    .order("start_at", { ascending: true });
-  if (error) throw error;
-  const out: Record<string, { count: number; nextStartAt: string | null }> = {};
-  for (const r of (data ?? []) as { theme_id: string; start_at: string }[]) {
-    const cur = (out[r.theme_id] ??= { count: 0, nextStartAt: r.start_at });
-    cur.count += 1;
-  }
-  return out;
-}
-
 /** 회차별 공개 집계를 한 번에 붙인다. 개별 실패는 카드 표시를 막지 않는다. */
 // 여기가 제일 비싸다 — 회차 수만큼 RPC 를 친다. 30초만 들고 있어도 효과가 크다.
 export const attachStats = unstable_cache(
@@ -295,21 +263,6 @@ export function remainingSeats(
  */
 export function isPastSession(startAt: string): boolean {
   return new Date(startAt).getTime() < Date.now();
-}
-
-/**
- * 아직 안 지난 'open' 회차들. 홈·컨텐츠 목록의 "남은 회차 N개" 와 "다음 회차"
- * 가 쓴다(집계는 묻지 않으므로 마감된 회차도 센다 — 예전부터 그랬다).
- *
- * ⚠️ status 만 보면 안 된다. 운영에서 지나간 회차의 status 를 'closed' 로
- *    내리지 않으므로, 끝난 회차가 '남은 회차' 로 세어지고 nextStartAt 이 과거
- *    날짜가 된다. 지난 회차를 목록에 남기기로 한 뒤 실제로 그렇게 됐다
- *    (2026-10-04: 지난 회차 13개 중 4개가 'open').
- */
-export function upcomingOpenSessions<T extends Pick<SessionView, "status" | "start_at">>(
-  sessions: T[]
-): T[] {
-  return sessions.filter((s) => s.status === "open" && !isPastSession(s.start_at));
 }
 
 /** 회차가 신청을 받을 수 있는 상태인가. */
