@@ -212,6 +212,38 @@ async function _getPublicSessionsForTheme(themeId: string): Promise<SessionView[
   return (data ?? []) as SessionView[];
 }
 
+/**
+ * 테마별 "남은 회차 수 · 다음 회차 시각" — 홈 · 콘텐츠 목록 카드용(2026-10-29).
+ *
+ * 예전에는 테마마다 getPublicSessionsForTheme(지난 회차까지 전부 · 모든 칸)를 읽어 개수만
+ * 셌다. 회차 이력이 쌓일수록 방문마다 큰 목록을 받아 푸느라 서버 CPU 를 썼다(wye-server-cost).
+ * 지금은 한 번의 조회로 **열린 · 안 지난 · 공개된** 회차의 테마와 시각만 읽는다.
+ * ⚠️ 조건은 upcomingOpenSessions 와 같다(status 'open' · start_at 이 지금 이후 · opens_at 이 지남).
+ *    30초 캐시라 막 지난 회차가 최대 30초 더 세일 수 있다 — 카드 숫자라 괜찮다. 신청 판정은 isBookable 이 따로 한다.
+ */
+export const getUpcomingOpenSummary = unstable_cache(_getUpcomingOpenSummary, ["upcoming-open-summary"], {
+  revalidate: 30,
+});
+
+async function _getUpcomingOpenSummary(): Promise<Record<string, { count: number; nextStartAt: string | null }>> {
+  const supabase = createPublicClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("session_view")
+    .select("theme_id, start_at")
+    .eq("status", "open")
+    .gte("start_at", now)
+    .lte("opens_at", now)
+    .order("start_at", { ascending: true });
+  if (error) throw error;
+  const out: Record<string, { count: number; nextStartAt: string | null }> = {};
+  for (const r of (data ?? []) as { theme_id: string; start_at: string }[]) {
+    const cur = (out[r.theme_id] ??= { count: 0, nextStartAt: r.start_at });
+    cur.count += 1;
+  }
+  return out;
+}
+
 /** 회차별 공개 집계를 한 번에 붙인다. 개별 실패는 카드 표시를 막지 않는다. */
 // 여기가 제일 비싸다 — 회차 수만큼 RPC 를 친다. 30초만 들고 있어도 효과가 크다.
 export const attachStats = unstable_cache(

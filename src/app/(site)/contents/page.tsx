@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ThemeShowcase, type ThemeCardData } from "@/components/contents/ThemeShowcase";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
-import { getListedThemes, getPublicSessionsForTheme, upcomingOpenSessions } from "@/lib/themes";
+import { getListedThemes, getUpcomingOpenSummary } from "@/lib/themes";
 
 // 캐시는 데이터 쪽에 있다(src/lib/themes.ts). 아래 주석은 page.tsx 와 같은 이유.
 export const dynamic = "force-dynamic";
@@ -19,22 +19,14 @@ export const metadata: Metadata = {
 };
 
 export default async function ContentsPage() {
-  const themes = await getListedThemes();
+  // 남은 회차 수 · 다음 회차만 필요하다 — 테마별 전체 회차 목록을 읽지 않는다(getUpcomingOpenSummary 주석).
+  const [themes, upcoming] = await Promise.all([getListedThemes(), getUpcomingOpenSummary()]);
 
-  // 테마마다 남은 회차 수를 붙인다. 테마 수가 적어(한 자릿수) 순회 비용이 무의미하다.
-  const cards: ThemeCardData[] = await Promise.all(
-    themes.map(async (theme) => {
-      // ⚠️ 목록에는 지난 회차도 들어 있다(테마 상세 달력의 이력용).
-      //    여기서 걸러야 "남은 회차" 가 부풀지 않는다.
-      const sessions = await getPublicSessionsForTheme(theme.id);
-      const open = upcomingOpenSessions(sessions);
-      return {
-        ...theme,
-        upcomingCount: open.length,
-        nextStartAt: open[0]?.start_at ?? null,
-      };
-    })
-  );
+  const cards: ThemeCardData[] = themes.map((theme) => ({
+    ...theme,
+    upcomingCount: upcoming[theme.id]?.count ?? 0,
+    nextStartAt: upcoming[theme.id]?.nextStartAt ?? null,
+  }));
 
   return (
     <>
