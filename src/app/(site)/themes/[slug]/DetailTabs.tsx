@@ -1,43 +1,66 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { scrollToScreen } from "./screenScroll";
+import { usePathname } from "next/navigation";
+import { scrollToScreen, stickyEdge } from "./screenScroll";
 
 /**
  * 모바일 전용 섹션 이동 탭.
  *
- * 모바일에서는 테마 소개 · 회차 선택 · 상세 설명이 한 화면에 같이 안 들어간다.
+ * 모바일에서는 회차 선택 · 상세 정보 · 후기가 한 화면에 같이 안 들어간다.
  * 네이버 예약처럼 상단에 탭을 두고 눌러서 오가게 한다.
+ * 테마 소개는 맨 위라 탭이 없어도 바로 보인다 — 그 자리를 후기에 내줬다(2026-10-29 대표님).
  *
  * ⚠️ 헤더 바로 아래에 붙어야 해서 헤더가 노출하는 --header-height 를 쓴다.
  *    숫자를 직접 박으면 헤더 높이가 바뀔 때마다 어긋난다.
+ * ⚠️ 후기(sec-reviews)는 상세 정보(#detail) **안에** 있는 블록이다(어드민 블록 순서에 따라 위치가
+ *    바뀐다). 그래서 지금 탭은 겹침 감시가 아니라 스크롤 위치로 고른다 — 후기 구간에서만 '후기',
+ *    그 위·아래 블록은 '상세 정보'. 후기 블록이 없는 테마·모드는 후기 탭을 뺀다.
  */
 const TABS = [
-  { id: "intro", label: "테마 소개" },
   { id: "booking", label: "회차 선택" },
   { id: "detail", label: "상세 정보" },
+  // id 는 ThemeBlocks 가 영문 라벨(REVIEWS)로 짓는 섹션 id 다.
+  { id: "sec-reviews", label: "후기" },
 ];
 
+const REVIEWS = "sec-reviews";
+
 export function DetailTabs({ accent }: { accent: string }) {
-  const [active, setActive] = useState("intro");
+  const [active, setActive] = useState("booking");
+  const [hasReviews, setHasReviews] = useState(false);
+  // 모드를 바꾸면 주소만 바뀌고 이 탭은 그대로 남는다 — 그때 후기 블록 유무를 다시 본다.
+  const pathname = usePathname();
 
   useEffect(() => {
-    const sections = TABS.map((t) => document.getElementById(t.id)).filter(
-      (el): el is HTMLElement => el !== null
-    );
-    if (sections.length === 0) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      setHasReviews(document.getElementById(REVIEWS) !== null);
+      // 기준선: 붙어 있는 헤더·탭 아래끝에서 화면 높이의 20% 더 내려간 곳.
+      const line = stickyEdge().bottom + window.innerHeight * 0.2;
+      const reviews = document.getElementById(REVIEWS)?.getBoundingClientRect();
+      if (reviews && reviews.top <= line && reviews.bottom > line) {
+        setActive(REVIEWS);
+        return;
+      }
+      const detail = document.getElementById("detail")?.getBoundingClientRect();
+      setActive(detail && detail.top <= line ? "detail" : "booking");
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    frame = requestAnimationFrame(update);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [pathname]);
 
-    // 화면 위쪽에 걸린 섹션을 현재 탭으로 본다.
-    const io = new IntersectionObserver(
-      (entries) => {
-        const shown = entries.filter((e) => e.isIntersecting);
-        if (shown.length > 0) setActive(shown[shown.length - 1].target.id);
-      },
-      { rootMargin: "-20% 0px -70% 0px" }
-    );
-    sections.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
+  const tabs = hasReviews ? TABS : TABS.filter((t) => t.id !== REVIEWS);
 
   return (
     /*
@@ -62,7 +85,7 @@ export function DetailTabs({ accent }: { accent: string }) {
                  sm:justify-center xl:hidden"
       aria-label="섹션 이동"
     >
-      {TABS.map((t) => {
+      {tabs.map((t) => {
         const on = active === t.id;
         return (
           <a

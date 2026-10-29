@@ -361,7 +361,7 @@ export default async function ThemeDetailPage({
 
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20">
-      {/* 모바일에서만 — 소개 / 회차 선택 / 상세 정보 사이를 오가는 탭 */}
+      {/* 모바일에서만 — 회차 선택 / 상세 정보 / 후기 사이를 오가는 탭 */}
       <DetailTabs accent={seasonAccent} />
 
       {/*
