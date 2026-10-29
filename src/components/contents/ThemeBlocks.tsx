@@ -312,7 +312,7 @@ export function ThemeBlockView({
       */}
       {block.type === "list" && block.variant === "included" && (
         <div
-          className="mx-auto w-full max-w-4xl overflow-hidden rounded-xl border border-panel-border bg-panel p-6 sm:p-10 lg:p-12"
+          className="mx-auto w-full max-w-4xl overflow-hidden rounded-xl border border-panel-border bg-panel p-5 sm:p-10 lg:p-12"
         >
           {block.headline && (
             <p className="text-h2 font-extrabold leading-snug text-foreground">
@@ -323,11 +323,15 @@ export function ThemeBlockView({
             <p className="mt-2 text-body leading-relaxed text-muted sm:mt-3">{block.subtitle}</p>
           )}
 
-          <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-8 sm:grid-cols-3 sm:gap-4">
+          {/*
+            모바일은 카드 대신 한 줄씩(이모지 왼쪽 · 글 오른쪽, 사이는 가는 선) — 카드 세 장을 세로로
+            쌓으니 이 블록만 900px 가 넘었다(2026-10-29). sm 부터는 예전처럼 세 칸 카드.
+          */}
+          <div className="mt-5 flex flex-col divide-y divide-line-subtle sm:mt-8 sm:grid sm:grid-cols-3 sm:gap-4 sm:divide-y-0">
             {block.items.map((item, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-panel-border bg-panel-raised p-5 sm:px-7 sm:py-8"
+                className="flex items-start gap-4 py-4 first:pt-0 last:pb-0 sm:block sm:rounded-xl sm:border sm:border-panel-border sm:bg-panel-raised sm:px-7 sm:py-8"
               >
                 {/* 이모지는 배경 없이 그대로 둔다 — 원형 바탕을 깔면 아이콘처럼
                     보이려다 색만 튀어서, 카드가 산만해진다. */}
@@ -335,18 +339,16 @@ export function ThemeBlockView({
                     높이를 고정해 세 카드의 제목이 한 줄에 맞게 한다. */}
                 {item.emoji && (
                   <span
-                    className="mb-3 flex items-center text-h1 leading-none sm:mb-5 sm:h-10"
+                    className="flex w-10 shrink-0 items-center justify-center text-h1 leading-none sm:mb-5 sm:h-10 sm:w-auto sm:justify-start"
                     aria-hidden
                   >
                     {item.emoji}
                   </span>
                 )}
-                <p className="font-semibold text-foreground text-h3">{item.title}</p>
-                {item.desc && (
-                  <p className="mt-1.5 text-body text-muted sm:mt-2">
-                    {item.desc}
-                  </p>
-                )}
+                <div className="min-w-0">
+                  <p className="font-semibold text-foreground text-h3">{item.title}</p>
+                  {item.desc && <p className="mt-1 text-body text-muted sm:mt-2">{item.desc}</p>}
+                </div>
               </div>
             ))}
           </div>
