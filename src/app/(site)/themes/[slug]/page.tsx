@@ -521,9 +521,9 @@ export default async function ThemeDetailPage({
            `baotalchul-normal` 이라 그대로 넣으면 노말모드에서만 사라진다.
       */}
       {hasGroupBooking(base.slug) && (
-        // 모바일은 바로 위 모드 창에 붙인다 — 첫 화면 아래 여백(pb-7)을 -mt-7 로 되돌린다(2026-10-29 대표님).
-        // sm 부터는 사이에 '신청하기' 버튼이 있어 원래 간격을 둔다.
-        <PrivateRoomPanel entry={GROUP_ENTRY.intro} className="-mt-7 sm:mt-6" />
+        // 모바일은 바로 위 모드 창과 12px 만 띄운다 — 첫 화면 아래 여백(pb-7, 28px)에서 -mt-4 만큼 당긴다
+        // (2026-10-29 대표님). sm 부터는 사이에 '신청하기' 버튼이 있어 원래 간격을 둔다.
+        <PrivateRoomPanel entry={GROUP_ENTRY.intro} className="-mt-4 sm:mt-6" />
       )}
 
       {/*

@@ -236,11 +236,12 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
         {/*
           ⚠️ 카드(테두리 · 바탕 상자)로 감싸지 않는다. 바로 위 모드 선택 창(파티/노말)과 똑같이 생긴
              두 칸이 되어, 한쪽만 강조돼 있으니 눌러서 고르는 버튼처럼 보였다(2026-10-29 대표님).
-             그림 두 장을 VS 로 잇고, 강조는 이름 글자색만 쓴다.
+             그림 두 장을 VS 로 잇는다. 오른쪽(지금 모드)은 상자 없이 강조한다 — 그림을 더 크게,
+             강조색 빛을 두르고, 이름을 한 단계 크게. 왼쪽은 조금 흐리게 눌러 둔다.
         */}
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 sm:gap-4">
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1.3fr)] items-end gap-2 sm:gap-4">
           <CompareItem {...m.compare[0]} />
-          <span className="mt-[18%] text-label font-extrabold text-muted">VS</span>
+          <span className="mb-[30%] text-label font-extrabold text-muted">VS</span>
           {/* 오른쪽이 지금 보고 있는 모드다. */}
           <CompareItem {...m.compare[1]} accent={accent} />
         </div>
@@ -365,9 +366,18 @@ function CompareItem({
   accent?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 text-center">
-      {art === "separate" ? <SeparateRooms /> : <OneRoom alone={art === "alone"} />}
-      <p className="text-label font-extrabold break-keep" style={accent ? { color: accent } : undefined}>
+    <div className={`flex flex-col items-center gap-2 text-center ${accent ? "" : "opacity-60"}`}>
+      <div
+        className="w-full"
+        // 상자 대신 그림 둘레에 강조색 빛 — 버튼처럼 보이지 않으면서 눈이 먼저 간다.
+        style={accent ? { filter: `drop-shadow(0 0 10px ${accent}80)` } : undefined}
+      >
+        {art === "separate" ? <SeparateRooms /> : <OneRoom alone={art === "alone"} />}
+      </div>
+      <p
+        className={`${accent ? "text-body" : "text-label"} font-extrabold break-keep`}
+        style={accent ? { color: accent } : undefined}
+      >
         {label}
       </p>
       <p className="-mt-1 text-body-sm leading-snug text-muted break-keep">{desc}</p>
