@@ -43,32 +43,31 @@ export type PickerSession = SessionView & {
   past: boolean;
 };
 
-const kstDate = (iso: string) =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date(iso));
+// 날짜 변환기는 한 번만 만들어 돌려 쓴다. 회차마다 새로 만들면 서버 렌더 한 번에 수백 개가 생겨
+// CPU 를 먹는다(2026-10-29 Vercel CPU 한도 초과 조사). 결과 문자열은 같다.
+const KST_DATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" });
+const KST_DAY_LABEL = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "long",
+  day: "numeric",
+  weekday: "short",
+});
+const KST_MONTH_DAY = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "long", day: "numeric" });
+const KST_TIME = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
-const kstDayLabel = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "long",
-    day: "numeric",
-    weekday: "short",
-  }).format(new Date(iso));
+const kstDate = (iso: string) => KST_DATE.format(new Date(iso));
+
+const kstDayLabel = (iso: string) => KST_DAY_LABEL.format(new Date(iso));
 
 /** "10월 25일" — 요일 없이. 신청 버튼은 요일 대신 모드 이름을 싣는다. */
-const kstMonthDay = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    month: "long",
-    day: "numeric",
-  }).format(new Date(iso));
+const kstMonthDay = (iso: string) => KST_MONTH_DAY.format(new Date(iso));
 
-const kstTime = (iso: string) =>
-  new Intl.DateTimeFormat("ko-KR", {
-    timeZone: "Asia/Seoul",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(iso));
+const kstTime = (iso: string) => KST_TIME.format(new Date(iso));
 
 /**
  * 테마 상세 안에서 날짜 → 시각을 고르는 UI.
@@ -361,7 +360,12 @@ export function SessionPicker({
     // ⚠️ 지금 주소(경로 + ?mode)를 그대로 두고 d 만 바꾼다. 예전에는 `/themes/${themeSlug}`
     //    로 갈아 끼웠는데, 노말모드의 themeSlug 는 'baotalchul-normal' 이라 날짜를 누르는
     //    순간 **파티 화면으로 넘어갔다**(2026-10-18 실측).
-    router.replace(`${window.location.pathname}?${next.toString()}`, { scroll: false });
+    // ⚠️ router.replace 를 쓰지 않는다. 주소의 ?d= 가 바뀌면 Next 가 서버에 이 페이지 전체를 다시
+    //    그려 달라고 요청한다 — 날짜 하나 누를 때마다 테마 상세 함수가 한 번씩 돌았다(force-dynamic).
+    //    화면은 이미 selectedDate 로 바뀌었고 주소는 새로고침 · 공유용이라, 브라우저 주소만 바꾼다.
+    //    Next 는 history.replaceState 를 가로채 useSearchParams 와 맞춰 두되 서버는 부르지 않는다.
+    //    (2026-10-29 Vercel CPU 무료 한도 초과로 사이트가 멈춘 뒤 찾음)
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}?${next.toString()}`);
     // 좁은 화면에서는 시간 목록이 달력 아래라 화면 밖에 있다. 눈에 보이게 옮겨준다.
     if (window.matchMedia("(max-width: 767px)").matches) {
       requestAnimationFrame(() =>

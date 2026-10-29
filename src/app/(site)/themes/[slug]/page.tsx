@@ -254,8 +254,9 @@ export default async function ThemeDetailPage({
     다른 모드는 같은 규칙(bookable · earlyBird)으로 날짜별 상태만 만든다.
     ⚠️ 회차·집계는 30초 캐시라(src/lib/themes.ts) 모드를 하나 더 읽어도 가볍다.
   */
-  const kstDay = (iso: string) =>
-    new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date(iso));
+  // 변환기 하나를 돌려 쓴다 — 회차마다 새로 만들면 렌더마다 수백 개가 생긴다(CPU).
+  const kstDayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" });
+  const kstDay = (iso: string) => kstDayFmt.format(new Date(iso));
   const calendarModes: CalendarMode[] | null =
     variants.length >= 2
       ? await Promise.all(

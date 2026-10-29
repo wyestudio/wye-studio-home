@@ -8,17 +8,21 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 // 런타임(Vercel은 기본 UTC)의 로컬 타임존으로 getHours() 등을 읽으면 배포
 // 환경에 따라 시각이 9시간 어긋난다(로컬 개발 환경이 KST라 여태 안 걸렸음) —
 // 그래서 Intl로 Asia/Seoul 기준 값을 명시적으로 뽑아써야 한다.
+// 변환기는 한 번만 만든다 — 호출마다 만들면 회차 목록을 그릴 때 CPU 를 꽤 먹는다(2026-10-29).
+const SEOUL_PARTS = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "numeric",
+  minute: "numeric",
+  hourCycle: "h23",
+});
+const SEOUL_YEAR = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", year: "numeric" });
+
 function seoulParts(iso: string) {
   const d = new Date(iso);
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric",
-    hourCycle: "h23",
-  }).formatToParts(d);
+  const parts = SEOUL_PARTS.formatToParts(d);
   const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
   const year = Number(map.year);
   const month = Number(map.month);
@@ -66,7 +70,7 @@ export function formatShortDate(startAt: string): string {
 // 세션 상세 페이지 히어로 카드용 "YYYY.M.D (요일) HH:mm" 형식(연도 포함, 점 구분).
 export function formatSessionDateDotted(startAt: string): string {
   const { month, day, weekday, hour, minute } = seoulParts(startAt);
-  const year = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", year: "numeric" }).format(new Date(startAt));
+  const year = SEOUL_YEAR.format(new Date(startAt));
   const hh = hour.toString().padStart(2, "0");
   const mm = minute.toString().padStart(2, "0");
   return `${year}.${month}.${day} (${weekday}) ${hh}:${mm}`;
@@ -75,7 +79,7 @@ export function formatSessionDateDotted(startAt: string): string {
 // 슬랙 알림 등에서 쓰는 "YYYY.M.D HH:mm" 형식(연도 포함, 요일 없음, 점 구분).
 export function formatDateTimeDotted(iso: string): string {
   const { month, day, hour, minute } = seoulParts(iso);
-  const year = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", year: "numeric" }).format(new Date(iso));
+  const year = SEOUL_YEAR.format(new Date(iso));
   const hh = hour.toString().padStart(2, "0");
   const mm = minute.toString().padStart(2, "0");
   return `${year}.${month}.${day} ${hh}:${mm}`;
