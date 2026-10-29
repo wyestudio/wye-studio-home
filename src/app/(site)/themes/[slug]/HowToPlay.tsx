@@ -395,16 +395,16 @@ const GOLD = "#fbcf4a";
 
 /*
   사람 한 명 — 핀(어드벤처 타임) 비율의 꼬마. 머리와 몸이 거의 같은 크기다(2026-10-29 대표님 참고 그림).
-  K 테두리 · H 머리카락 · S 피부 · E 눈 · B 볼터치 · C 팀 색 옷 · L 바지 · "." 빈칸.
+  K 테두리 · S 피부 · E 눈 · B 볼터치 · C 팀 색 옷 · L 바지 · "." 빈칸.
+  ⚠️ 머리카락 없는 민머리다. 머리 모양을 넣으면 짧은 머리만으론 다 남자로, 긴 머리를 섞으면
+     성별을 나눈 것처럼 보일까 봐 뺐다(대표님 시험안). 머리카락 있는 판은 커밋 e10edd1 에 있다.
   ⚠️ 머리는 위아래 줄을 한 칸씩 좁혀 **둥글게** 깎는다. 네모난 얼굴은 로봇처럼 보였다.
-  ⚠️ 거쳐 온 모양: 머리 좁고 몸 넓음(물약병) → 팔다리 사실적(징그러움) → 머리만 큼(로봇)
-     → 귀 달린 모자(사람 같지 않음). 사람 머리카락 + 둥근 얼굴 + 볼터치로 정했다.
 */
 const PERSON = [
   "..KKKKK..",
-  ".KHHHHHK.",
-  "KHHHHHHHK",
-  "KHSSSSSHK",
+  ".KSSSSSK.",
+  "KSSSSSSSK",
+  "KSSSSSSSK",
   "KSSESESSK",
   "KSBSSSBSK",
   ".KSSSSSK.",
@@ -414,40 +414,20 @@ const PERSON = [
   ".KK...KK.",
 ];
 
-/** 긴 머리 — 머리카락이 얼굴 옆을 타고 어깨까지 내려온다. 짧은 머리만 있으면 다 남자로 보였다(대표님). */
-const PERSON_LONG = [
-  "..KKKKK..",
-  ".KHHHHHK.",
-  "KHHHHHHHK",
-  "KHSSSSSHK",
-  "KHSESESHK",
-  "KHBSSSBHK",
-  "KHHSSSHHK",
-  "KHCCCCCHK",
-  "KHCCCCCHK",
-  ".KLLLLLK.",
-  ".KK...KK.",
-];
-
-/** 머리카락 색 — 전원 같은 갈색. 사람마다 다르게 했더니 검은 머리가 섞여 다 남자처럼 보였다(대표님). */
-const HAIR = "#8a5a32";
-
 /** 사람 하나. (x, y) 는 왼쪽 위. 9×11 칸. */
 function Person({
   x,
   y,
   color,
-  long = false,
 }: {
   x: number;
   y: number;
   color: string;
-  long?: boolean;
 }) {
-  const fill: Record<string, string> = { K: INK, H: HAIR, S: SKIN, E: INK, B: "#f4a3b4", C: color, L: "#3d3560" };
+  const fill: Record<string, string> = { K: INK, S: SKIN, E: INK, B: "#f4a3b4", C: color, L: "#3d3560" };
   return (
     <g transform={`translate(${x} ${y})`}>
-      {(long ? PERSON_LONG : PERSON).flatMap((row, r) =>
+      {PERSON.flatMap((row, r) =>
         [...row].map((ch, c) =>
           ch === "." ? null : <rect key={`${r}-${c}`} x={c} y={r} width={1} height={1} fill={fill[ch]} />
         )
@@ -458,14 +438,12 @@ function Person({
 
 /** 한 팀 세 명. (cx, cy) 가 묶음 가운데. */
 function Team({ cx, cy, t, bob = false }: { cx: number; cy: number; t: (typeof TEAMS)[number]; bob?: boolean }) {
-  // 긴 머리 · 짧은 머리를 섞는다. 팀마다 자리를 엇갈려 어느 팀이든 둘 다 있게.
-  const longMid = t.key === "B";
   return (
     <g className={bob ? "how-bob" : undefined}>
-      <Person x={cx - 12} y={cy - 5} color={t.color} long={!longMid} />
-      <Person x={cx + 3} y={cy - 5} color={t.color} long={longMid} />
+      <Person x={cx - 12} y={cy - 5} color={t.color} />
+      <Person x={cx + 3} y={cy - 5} color={t.color} />
       {/* 가운데 사람은 한 칸 위 · 맨 앞에 — 셋이 살짝 겹쳐 무리로 보이게 */}
-      <Person x={cx - 4.5} y={cy - 8} color={t.color} long={longMid} />
+      <Person x={cx - 4.5} y={cy - 8} color={t.color} />
     </g>
   );
 }
