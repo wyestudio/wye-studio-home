@@ -17,7 +17,11 @@ import { Chevron } from "@/components/ui/Chevron";
 
   ⚠️ 지도에 바(운영진 자리)는 그리지 않는다 — 스포일러가 될 수 있다(대표님).
      그리는 건 스크린 · 팀 테이블 · 단서 자리뿐이다.
-  ⚠️ 미니게임은 스크린에 뜬 문제를 보고 팀 태블릿의 버저를 누르는 방식이다(대표님).
+  ⚠️ 미니게임은 스크린에 뜬 문제를 보고 팀 게임패드의 버저를 누르는 방식이다(대표님). 설명문에는
+     방법까지 적지 않는다 — 문제 풀이 중 돌발로 나온다는 것과 포인트를 얻는다는 것만.
+  ⚠️ 기기 이름은 '게임패드' 다. 단체 페이지 FAQ 와 같은 말을 쓴다.
+  ⚠️ 마지막 단계는 '순위' 가 아니라 '플레이 결과' 다 — 처음 보는 사람들 앞에서 순위가 까발려지는
+     것처럼 보이면 내향적인 손님이 부담스러워한다(대표님). 왕관 · 등수 표시를 넣지 않는다.
   ⚠️ 문구는 진행 순서 블록(어드민 timetable · timebar)과 같은 이야기를 한다. 진행이 바뀌면 둘 다 고친다.
   ⚠️ 그림은 전부 이 파일의 SVG 다. 사람 하나 = 7×8 칸 도트.
 */
@@ -85,7 +89,7 @@ const MODES: Record<
       },
       {
         title: "단서 찾기",
-        desc: "방 곳곳에 숨은 단서를 팀끼리 찾아다녀요. 다른 팀도 같은 방에서 찾고 있어요.",
+        desc: "방 곳곳에 있는 단서를 팀끼리 찾아다녀요. 다른 팀도 같은 방에서 찾고 있어요.",
         scene: "search",
         at: [
           [28, 40],
@@ -95,22 +99,22 @@ const MODES: Record<
         score: [0, 0, 0],
       },
       {
-        title: "태블릿으로 정답 입력",
-        desc: "팀마다 받은 태블릿에 답을 넣으면 점수가 올라가요. 힌트를 쓰면 점수가 깎여요.",
+        title: "게임패드로 정답 입력",
+        desc: "팀마다 받은 게임패드에 답을 넣으면 포인트를 획득해요.",
         scene: "pad",
         at: TABLE,
         score: [120, 100, 130],
       },
       {
         title: "돌발 미니게임",
-        desc: "스크린에 문제가 뜨면 팀 태블릿의 버저를 먼저 눌러 맞혀요. 맞히면 보너스 점수!",
+        desc: "문제를 푸는 중간중간 돌발 미니게임이 등장해요. 맞히면 포인트를 획득해요.",
         scene: "buzzer",
         at: TABLE,
         score: [120, 100, 160],
       },
       {
-        title: "순위 발표",
-        desc: "점수를 합쳐 스크린에 팀 순위가 떠요. 모은 포인트는 코인마켓에서 써요.",
+        title: "결과 발표",
+        desc: "스크린에 플레이 결과가 떠요. 모은 포인트는 코인마켓에서 써요.",
         scene: "rank",
         at: TABLE,
         score: [120, 100, 160],
@@ -135,21 +139,21 @@ const MODES: Record<
       },
       {
         title: "단서 찾기",
-        desc: "방 곳곳에 숨은 단서를 우리 팀끼리 찾아요.",
+        desc: "방 곳곳에 있는 단서를 우리 팀끼리 찾아요.",
         scene: "search",
         at: [[30, 40]],
         score: [0],
       },
       {
-        title: "태블릿으로 정답 입력",
-        desc: "태블릿에 답을 넣으면 포인트가 쌓여요. 막히면 힌트도 받을 수 있어요.",
+        title: "게임패드로 정답 입력",
+        desc: "게임패드에 답을 넣으면 포인트를 획득해요. 힌트도 쓸 수 있어요.",
         scene: "pad",
         at: [TABLE[1]],
         score: [110],
       },
       {
         title: "이달의 랭킹 도전",
-        desc: "우리 팀 기록이 이달의 랭킹에 올라가요. 노힌트 기준, 인원별로 따로 겨뤄요.",
+        desc: "힌트 없이 풀면 우리 팀 기록이 이달의 랭킹에 올라가요. 인원별로 따로 겨뤄요.",
         scene: "rank",
         at: [TABLE[1]],
         score: [110],
@@ -216,11 +220,6 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
   }
 
   const cur = STEPS[Math.min(step, STEPS.length - 1)];
-  // 점수 순위(모드의 teams 안에서의 자리 번호).
-  const ranked = cur.score
-    .map((s, k) => ({ s, k }))
-    .sort((a, b) => b.s - a.s)
-    .map((r) => r.k);
   const single = m.teams.length === 1;
 
   return (
@@ -234,17 +233,16 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
             </span>
           ))}
         </p>
-        <div className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-2.5 sm:gap-4">
-          {m.compare.map((c, i) => (
-            <CompareCard
-              key={c.label}
-              label={c.label}
-              desc={c.desc}
-              art={c.art === "separate" ? <SeparateRooms /> : <OneRoom alone={c.art === "alone"} />}
-              // 오른쪽 칸이 지금 보고 있는 모드다.
-              accent={i === 1 ? accent : undefined}
-            />
-          ))}
+        {/*
+          ⚠️ 카드(테두리 · 바탕 상자)로 감싸지 않는다. 바로 위 모드 선택 창(파티/노말)과 똑같이 생긴
+             두 칸이 되어, 한쪽만 강조돼 있으니 눌러서 고르는 버튼처럼 보였다(2026-10-29 대표님).
+             그림 두 장을 VS 로 잇고, 강조는 이름 글자색만 쓴다.
+        */}
+        <div className="mx-auto grid w-full max-w-2xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-2 sm:gap-4">
+          <CompareItem {...m.compare[0]} />
+          <span className="mt-[18%] text-label font-extrabold text-muted">VS</span>
+          {/* 오른쪽이 지금 보고 있는 모드다. */}
+          <CompareItem {...m.compare[1]} accent={accent} />
         </div>
       </div>
 
@@ -254,12 +252,11 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
         className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] md:items-center md:gap-8"
       >
         <div className="overflow-hidden rounded-xl border border-line-subtle bg-fill-subtle">
-          <RoomMap mode={mode} step={cur} accent={accent} ranked={ranked} />
-          {/* 점수판 — 단계가 넘어갈수록 오른다. 파티모드는 마지막에 순위. */}
+          <RoomMap mode={mode} step={cur} accent={accent} />
+          {/* 포인트판 — 단계가 넘어갈수록 오른다. 등수는 붙이지 않는다(위 주석). */}
           <div className={`grid border-t border-line-subtle ${single ? "grid-cols-1" : "grid-cols-3"}`}>
             {m.teams.map((ti, k) => {
               const t = TEAMS[ti];
-              const rank = ranked.indexOf(k) + 1;
               return (
                 <div key={t.key} className="flex items-center justify-center gap-2 py-2.5">
                   <span
@@ -270,13 +267,8 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
                   </span>
                   <span className="text-label font-semibold tabular-nums">
                     {cur.score[k]}
-                    <span className="text-micro text-muted">점</span>
+                    <span className="text-micro text-muted">P</span>
                   </span>
-                  {!single && cur.scene === "rank" && (
-                    <span className="text-micro font-extrabold" style={{ color: rank === 1 ? accent : undefined }}>
-                      {rank}위
-                    </span>
-                  )}
                 </div>
               );
             })}
@@ -361,7 +353,7 @@ export function HowToPlay({ accent, mode }: { accent: string; mode: HowToPlayMod
   );
 }
 
-function CompareCard({
+function CompareItem({
   label,
   desc,
   art,
@@ -369,21 +361,16 @@ function CompareCard({
 }: {
   label: string;
   desc: string;
-  art: React.ReactNode;
+  art: "separate" | "together" | "alone";
   accent?: string;
 }) {
   return (
-    <div
-      className="flex flex-col overflow-hidden rounded-xl border border-line-subtle bg-fill-subtle"
-      style={accent ? { borderColor: `${accent}88` } : undefined}
-    >
-      <div className="px-3 pt-3 sm:px-4 sm:pt-4">{art}</div>
-      <div className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-        <p className="text-label font-extrabold break-keep" style={accent ? { color: accent } : undefined}>
-          {label}
-        </p>
-        <p className="text-body-sm leading-snug text-muted break-keep">{desc}</p>
-      </div>
+    <div className="flex flex-col items-center gap-2 text-center">
+      {art === "separate" ? <SeparateRooms /> : <OneRoom alone={art === "alone"} />}
+      <p className="text-label font-extrabold break-keep" style={accent ? { color: accent } : undefined}>
+        {label}
+      </p>
+      <p className="-mt-1 text-body-sm leading-snug text-muted break-keep">{desc}</p>
     </div>
   );
 }
@@ -510,18 +497,16 @@ function RoomMap({
   mode,
   step,
   accent,
-  ranked,
 }: {
   mode: HowToPlayMode;
   step: Step;
   accent: string;
-  ranked: number[];
 }) {
   const m = MODES[mode];
   const { scene } = step;
   const searching = scene === "search";
   const buzzer = scene === "buzzer";
-  // 버저를 먼저 누른 팀 — 이 단계에서 점수가 가장 많이 오른 팀.
+  // 버저를 먼저 누른 팀 — 이 단계에서 포인트가 오른 팀.
   const prev = m.steps[m.steps.indexOf(step) - 1];
   const buzzWinner = buzzer && prev ? step.score.findIndex((s, k) => s > prev.score[k]) : -1;
 
@@ -545,7 +530,7 @@ function RoomMap({
         ))}
       </g>
 
-      <Screen scene={scene} accent={accent} teams={m.teams} ranked={ranked} />
+      <Screen scene={scene} accent={accent} teams={m.teams} score={step.score} />
 
       {/* 단서 자리 — 단서 찾기 단계에서 반짝인다 */}
       {CLUES.map(([x, y], i) => (
@@ -564,7 +549,7 @@ function RoomMap({
         </g>
       ))}
 
-      {/* 팀 테이블과 태블릿 */}
+      {/* 팀 테이블과 게임패드 */}
       {m.tables.map(([x, y], k) => {
         const t = TEAMS[m.teams[k]];
         const lit = scene === "pad" || (buzzer && k === buzzWinner);
@@ -574,7 +559,7 @@ function RoomMap({
             <rect x={x - 18} y={y + 21} width={36} height={2} fill="#845835" />
             <rect x={x - 7} y={y + 13} width={14} height={8} fill={INK} />
             <rect x={x - 6} y={y + 14} width={12} height={6} fill={lit ? t.color : "#3d3560"} />
-            {/* 미니게임 — 태블릿 화면이 커다란 버저가 된다 */}
+            {/* 미니게임 — 게임패드 화면이 커다란 버저가 된다 */}
             {buzzer && (
               <g className={k === buzzWinner ? "how-blink" : undefined}>
                 <rect x={x - 3} y={y + 15} width={6} height={4} fill={k === buzzWinner ? "#e85d75" : "#6b6880"} />
@@ -607,7 +592,7 @@ function RoomMap({
                   </text>
                 </>
               )}
-              {/* 태블릿에 답을 넣는 순간의 +점수 */}
+              {/* 게임패드에 답을 넣는 순간의 +포인트 */}
               {scene === "pad" && (
                 <text x={9} y={-10} fontSize={6} fontWeight={800} fill={t.color} className="how-blink">
                   +
@@ -618,15 +603,6 @@ function RoomMap({
                 <text x={9} y={-10} fontSize={7} fontWeight={800} fill="#e85d75" className="how-blink">
                   !
                 </text>
-              )}
-              {/* 1위 왕관(파티모드) */}
-              {scene === "rank" && !single && ranked[0] === k && (
-                <g fill={GOLD}>
-                  <rect x={-4} y={-24} width={9} height={3} />
-                  <rect x={-4} y={-26} width={1} height={2} />
-                  <rect x={0} y={-27} width={1} height={3} />
-                  <rect x={4} y={-26} width={1} height={2} />
-                </g>
               )}
               {/* 코인마켓 — 머리 위로 동전이 튄다 */}
               {scene === "market" && (
@@ -644,17 +620,17 @@ function RoomMap({
   );
 }
 
-/** 정면 스크린. 미니게임엔 문제가, 순위 단계엔 막대가 뜬다. */
+/** 정면 스크린. 미니게임엔 문제가, 결과 단계엔 막대가 뜬다. */
 function Screen({
   scene,
   accent,
   teams,
-  ranked,
+  score,
 }: {
   scene: Scene;
   accent: string;
   teams: number[];
-  ranked: number[];
+  score: number[];
 }) {
   const on = scene === "buzzer" || scene === "rank";
   const BARS = [50, 38, 28];
@@ -671,14 +647,18 @@ function Screen({
       )}
       {scene === "rank" &&
         (teams.length > 1
-          ? ranked.map((k, r) => (
-              <g key={k}>
-                <rect x={70} y={8 + r * 4} width={6} height={3} fill={TEAMS[teams[k]].color} />
-                <rect x={78} y={8 + r * 4} width={BARS[r]} height={3} fill={TEAMS[teams[k]].color} opacity={0.75}>
-                  <animate attributeName="width" from="0" to={BARS[r]} dur="0.8s" fill="freeze" />
-                </rect>
-              </g>
-            ))
+          ? // 플레이 결과 — 팀 순서대로. 등수순으로 줄 세우지 않는다.
+            teams.map((ti, k) => {
+              const w = Math.round((score[k] / Math.max(...score, 1)) * 50);
+              return (
+                <g key={ti}>
+                  <rect x={70} y={8 + k * 4} width={6} height={3} fill={TEAMS[ti].color} />
+                  <rect x={78} y={8 + k * 4} width={w} height={3} fill={TEAMS[ti].color} opacity={0.75}>
+                    <animate attributeName="width" from="0" to={w} dur="0.8s" fill="freeze" />
+                  </rect>
+                </g>
+              );
+            })
           : // 노말모드 — 이달의 랭킹 속 우리 팀(다른 기록은 회색)
             BARS.map((w, r) => {
               const ours = r === 1;
