@@ -41,7 +41,7 @@ import { GROUP_ENTRY, hasGroupBooking } from "@/lib/groupBooking";
 import { PrivateRoomPanel } from "@/components/group/PrivateRoomPanel";
 import { SessionPicker, type CalendarMode, type PickerSession } from "./SessionPicker";
 import { DetailTabs } from "./DetailTabs";
-import { HowToPlay, type HowToPlayMode } from "./HowToPlay";
+import { type HowToPlayMode } from "@/components/contents/HowToPlay";
 
 import { SectionNav } from "./SectionNav";
 import { ScrollToBookingButton } from "./ScrollToBookingButton";
@@ -67,7 +67,10 @@ export const dynamic = "force-dynamic";
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
 const DEFAULT_ACCENT = "#3dffb0";
-/** 「이렇게 플레이해요」 를 보여줄 테마(모드)와 그 그림. 바-ㅇ탈출만 그려 뒀다. */
+/**
+ * 「이렇게 플레이해요」 를 보여줄 테마(모드)와 그 그림. 바-ㅇ탈출만 그려 뒀다.
+ * 상세 정보의 진행 순서(파티) · 진행 시간 막대(노말) 블록 아래에 붙는다(ThemeBlocks).
+ */
 const HOW_TO_PLAY: Record<string, HowToPlayMode> = { baotalchul: "party", "baotalchul-normal": "normal" };
 
 export async function generateMetadata({
@@ -548,30 +551,6 @@ export default async function ThemeDetailPage({
         </div>
       )}
 
-      {/*
-        ── 플레이 방식 ── "어떻게 진행되냐" 는 문의가 방식(큰 방 하나 · 여러 팀 · 점수 대결)을
-        몰라서 나온다 — 회차를 고르기 전에 그림으로 먼저 보여준다(2026-10-29 대표님 시안).
-        노말모드는 우리 팀만 예약하는 방식이라 그림이 따로 있다.
-      */}
-      {HOW_TO_PLAY[theme.slug] && (
-        <section
-          id="how-to-play"
-          data-screen
-          data-nav-label="플레이 방식"
-          data-section-key="how-to-play"
-          className={`${SCREEN_SECTION} ${SCREEN_SCROLL_MARGIN}`}
-        >
-          <SectionHeading
-            eyebrow="HOW TO PLAY"
-            title="이렇게 플레이해요"
-            className="mb-6 sm:mb-10"
-            eyebrowColor={seasonAccent}
-            size="lg"
-          />
-          <HowToPlay accent={seasonAccent} mode={HOW_TO_PLAY[theme.slug]} />
-        </section>
-      )}
-
       {/* ── 날짜 선택 ── '신청하기' 로 스크롤해 오면 헤더 밑에 붙는다(SCREEN_SCROLL_MARGIN). */}
       <section
         id="booking"
@@ -661,6 +640,7 @@ export default async function ThemeDetailPage({
           verb={verb}
           rankings={rankings}
           rankingMonth={rankingMonth}
+          howToPlay={HOW_TO_PLAY[theme.slug] ?? null}
           promo={
             promoUsable
               ? {

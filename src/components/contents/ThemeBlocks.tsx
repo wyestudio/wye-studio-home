@@ -4,6 +4,8 @@ import { RichText } from "@/components/ui/RichText";
 import { PlanetDot, type Planet } from "@/components/ui/PlanetDot";
 import { CalloutFold } from "@/components/contents/CalloutFold";
 import { FaqCards } from "@/components/contents/FaqCards";
+import { HowToPlay, type HowToPlayMode } from "@/components/contents/HowToPlay";
+import { ScheduleStrip } from "@/components/contents/ScheduleStrip";
 import { SeasonArt, type SeasonArtName } from "@/components/season/SeasonArt";
 import {
   PriceTable,
@@ -82,6 +84,7 @@ export function ThemeBlocks({
   verb = "신청",
   rankings = [],
   rankingMonth = "",
+  howToPlay = null,
 }: {
   /** '신청' | '예약'(노말모드). 가격표 아래 '최대 N인까지 …할 수 있어요' 에 쓴다. */
   verb?: string;
@@ -89,6 +92,11 @@ export function ThemeBlocks({
   rankings?: ThemeRanking[];
   /** 'YYYY-MM' — 랭킹 머리에 찍는 달. */
   rankingMonth?: string;
+  /**
+   * 「이렇게 플레이해요」 그림. 있으면 진행 순서(timetable) · 진행 시간 막대(timebar) 블록 아래에
+   * 붙는다 — 전체 흐름은 막대로, 플레이 방식은 그림으로 한 블록에서 보여준다(2026-10-29 대표님).
+   */
+  howToPlay?: HowToPlayMode | null;
   blocks: ThemeBlock[];
   accent: string;
   /**
@@ -176,6 +184,7 @@ export function ThemeBlocks({
                 verb={verb}
                 rankings={rankings}
                 rankingMonth={rankingMonth}
+                howToPlay={howToPlay}
               />
             </div>
           ))}
@@ -210,6 +219,7 @@ export function ThemeBlockView({
   verb = "신청",
   rankings = [],
   rankingMonth = "",
+  howToPlay = null,
 }: {
   /** '신청' | '예약'(노말모드). 가격표 아래 '최대 N인까지 …할 수 있어요' 에 쓴다. */
   verb?: string;
@@ -217,6 +227,8 @@ export function ThemeBlockView({
   rankings?: ThemeRanking[];
   /** 'YYYY-MM' — 랭킹 머리에 찍는 달. */
   rankingMonth?: string;
+  /** 「이렇게 플레이해요」 그림(ThemeBlocks 참고). 어드민 미리보기에서는 넘기지 않는다. */
+  howToPlay?: HowToPlayMode | null;
   block: ThemeBlock;
   accent: string;
   tiers?: ThemePriceTier[];
@@ -331,7 +343,7 @@ export function ThemeBlockView({
             {block.items.map((item, i) => (
               <div
                 key={i}
-                className="flex items-start gap-4 py-4 first:pt-0 last:pb-0 sm:block sm:rounded-xl sm:border sm:border-panel-border sm:bg-panel-raised sm:px-7 sm:py-8"
+                className="flex items-start gap-4 py-4 max-sm:first:pt-0 max-sm:last:pb-0 sm:block sm:rounded-xl sm:border sm:border-panel-border sm:bg-panel-raised sm:px-7 sm:py-8"
               >
                 {/* 이모지는 배경 없이 그대로 둔다 — 원형 바탕을 깔면 아이콘처럼
                     보이려다 색만 튀어서, 카드가 산만해진다. */}
@@ -418,7 +430,17 @@ export function ThemeBlockView({
           </div>
         ))}
 
-      {block.type === "timetable" && (
+      {/* 진행 순서 + 「이렇게 플레이해요」 — 흐름은 한 줄 막대로, 플레이 방식은 그림으로(ScheduleStrip 주석). */}
+      {block.type === "timetable" && howToPlay && (
+        <>
+          <ScheduleStrip items={block.items} accent={accent} />
+          <div className="mt-12 sm:mt-16">
+            <HowToPlay accent={accent} mode={howToPlay} />
+          </div>
+        </>
+      )}
+
+      {block.type === "timetable" && !howToPlay && (
         <div className="mx-auto flex w-full max-w-3xl flex-col">
           {block.items.map((t, i) => (
             <div key={i} className="flex gap-4 pb-6 last:pb-0 sm:gap-6 sm:pb-10">
@@ -467,6 +489,12 @@ export function ThemeBlockView({
       )}
 
       {block.type === "timebar" && <TimeBarBlock block={block} accent={accent} />}
+      {/* 노말모드는 진행 순서 대신 시간 막대가 있다 — 그 아래에 그림을 붙인다. */}
+      {block.type === "timebar" && howToPlay && (
+        <div className="mt-12 sm:mt-16">
+          <HowToPlay accent={accent} mode={howToPlay} />
+        </div>
+      )}
 
       {block.type === "ranking" && (
         <RankingBlock block={block} rankings={rankings} accent={accent} month={rankingMonth} />
