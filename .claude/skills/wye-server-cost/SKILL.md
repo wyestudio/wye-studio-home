@@ -1,6 +1,6 @@
 ---
 name: wye-server-cost
-description: Vercel 서버 사용량(Fluid Active CPU · 함수 호출)을 쓸데없이 늘리는 코드를 막는다. 공개 페이지(`force-dynamic` 이 붙은 page.tsx), 클라이언트에서 `router.replace` · `router.push` · `router.refresh` · `<Link>` 를 쓸 때, `src/app/api/cron/**`, `opengraph-image.tsx`, `src/proxy.ts`, 외부 스케줄러(cron-job.org · GitHub Actions)에서 부르는 API 를 만들거나 고칠 때 먼저 읽는다. 틀리면 무료 한도를 넘겨 사이트가 통째로 멈추거나 요금이 나간다.
+description: Vercel 서버 사용량(Fluid Active CPU · 함수 호출)을 쓸데없이 늘리는 코드를 막는다. 공개 페이지(`force-dynamic` 이 붙은 page.tsx), 클라이언트에서 `router.replace` · `router.push` · `router.refresh` · `<Link>` 를 쓸 때, `src/app/api/cron/**`, `opengraph-image.tsx`, `src/proxy.ts`, 외부 스케줄러(cron-job.org · GitHub Actions)에서 부르는 API 를 만들거나 고칠 때 먼저 읽는다. "Vercel 사용량 줄었는지 확인해줘" · "CPU 얼마나 썼어?" · "Hobby 로 내려도 돼?" 같은 요청도 이 문서의 「사용량 확인 요청을 받으면」 절차대로 한다. 틀리면 무료 한도를 넘겨 사이트가 통째로 멈추거나 요금이 나간다.
 ---
 
 서버가 한 번 더 돌 때마다 돈이다. 페이지가 단순해 보여도 **방문 × 클릭 수만큼** 곱해진다.
@@ -53,3 +53,25 @@ server action · router) 위 규칙이 그대로 적용된다.
 - 팀 한도: **Usage → Fluid Active CPU**. 운영 · 테스트 프로젝트가 **같은 팀 한도를 나눠 쓴다**
 - 큰 변경을 올렸으면 하루이틀 뒤 같은 화면에서 그 경로의 호출 수 · CPU 를 전과 비교한다
 - Spend Management 예산은 **$1 · Pause Off** 다(알림용). Pause 를 켜면 한도에서 사이트가 멈춘다
+
+## 사용량 확인 요청을 받으면
+
+목적: 다음 청구 기간(11/29) 전에 **Hobby 로 내려도 한 달 CPU 4시간 안에 들어오는지** 판단한다.
+대표님 결정으로 Pro 는 2026-10-29 ~ 11-29 한 달만 쓰고 Hobby 로 돌아간다.
+
+1. 사용자 브라우저(로그인되어 있음)로 연다. Vercel MCP 의 관측 API 는 이 팀에서 404 라 화면으로 읽는다
+   - 팀 CPU: https://vercel.com/wye1/~/usage — Fluid Active CPU, 프로젝트별 · 일별
+   - 경로별: https://vercel.com/wye1/wye-studio-home/observability/vercel-functions — 기간 7d
+2. **2026-10-29 운영 배포(`71e7b11` · `f67c865`) 전후로** 아래 기준값과 비교한다
+3. 판단 기준: 운영 + 테스트 합계가 **하루 7~8분 이하**면 한 달 4시간 안이다
+
+| 기준값 (배포 전, 2026-10-22~29 · GPT 조사) | 값 |
+|---|---|
+| 팀 CPU 하루 | 10월 후반 8~13분 (10/28 약 13분) |
+| 30일 합계 | 약 4시간 12분 (운영 3시간 51분 · 테스트 21분) |
+| `/themes/[slug]` 7일 | 호출 약 18,000 · CPU 29분 |
+| `/` 홈 7일 | 호출 약 3,000 · CPU 5분 |
+| `/api/cron/unpaid-alert` 7일 | 호출 715 · CPU 3분 |
+
+⚠️ 방문이 늘면 호출 수도 는다. **호출 1건당 CPU**(CPU ÷ 호출)도 같이 비교해야 코드 효과와 손님 증가를 가른다.
+⚠️ 결과(날짜 · 숫자 · 판단)는 `docs/` 에 한 줄 남기고, 기준값 표는 갱신하지 않는다 — 비교 기준이 사라진다.
