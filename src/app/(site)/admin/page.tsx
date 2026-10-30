@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
-  formatCapacityLine,
   formatHeadcountLine,
   countUnpaidConfirmed,
   computeSessionStats,
@@ -14,7 +13,7 @@ import {
   type DashboardGroup,
   type DashboardSession,
 } from "./DashboardSessions";
-import { BASE_MINUTES } from "@/lib/groupPricing";
+import { BASE_MINUTES, OPTION } from "@/lib/groupPricing";
 import { GROUP_BOOKING_THEME_SLUGS } from "@/lib/groupBooking";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +78,7 @@ export default async function AdminDashboard() {
     supabase.from("group_booking_closures").select("id, date, start_time, minutes, note, inquiry_id, session_id"),
     supabase
       .from("admin_group_booking_inquiries_view")
-      .select("id, organizer_name, group_name, headcount, status, preferred_date, preferred_time"),
+      .select("id, organizer_name, group_name, headcount, status, preferred_date, preferred_time, options"),
   ]);
   type ClosureRow = DashboardClosure & { inquiry_id: string | null; session_id: string | null };
   const closureList = (closureRows ?? []) as ClosureRow[];
@@ -98,6 +97,7 @@ export default async function AdminDashboard() {
       status: string;
       preferred_date: string | null;
       preferred_time: string;
+      options: { icebreaking?: boolean; after_party_hours?: number } | null;
     }[]
   ).map((g) => ({
     id: g.id,
@@ -106,12 +106,16 @@ export default async function AdminDashboard() {
     status: g.status,
     preferred_date: g.preferred_date,
     preferred_time: g.preferred_time,
+    // 희망 구간의 길이 — 견적 시간(프로그램 + 애프터파티). 레크리에이션을 뺐으면 30분 짧다.
+    minutes:
+      BASE_MINUTES -
+      (g.options?.icebreaking === false ? OPTION.icebreaking.minutes : 0) +
+      (g.options?.after_party_hours ?? 0) * 60,
     booking: g.status === "booked" ? (bookingByInquiry.get(g.id) ?? null) : null,
   }));
   const manualClosures: DashboardClosure[] = closureList
     .filter((c) => !c.inquiry_id && !c.session_id)
     .map(({ id, date, start_time, minutes, note }) => ({ id, date, start_time, minutes, note }));
-  const maxTeamsByTheme = new Map(themes.map((t) => [t.id, t.max_teams_per_session]));
   const apps = (appsRes.data ?? []) as {
     id: string;
     session_id: string;
@@ -182,7 +186,21 @@ export default async function AdminDashboard() {
   const statsBySessionId = computeSessionStats(apps, attendees);
   const unpaidBySession = countUnpaidConfirmed(apps, attendees);
 
+  // 노말모드 회차 카드용 — 예약 인원과 입금 상태. 노말은 한 팀만 받으니 '확정 · 대기' 대신 이게 맞다.
+  const bookedBySession = new Map<string, { people: number; unpaid: boolean; paid: boolean }>();
+  const peopleByApp = new Map<string, number>();
+  for (const a of attendees) peopleByApp.set(a.application_id, (peopleByApp.get(a.application_id) ?? 0) + 1);
+  for (const a of apps) {
+    if (a.status === "cancelled") continue;
+    const cur = bookedBySession.get(a.session_id) ?? { people: 0, unpaid: false, paid: false };
+    cur.people += peopleByApp.get(a.id) ?? 0;
+    if (a.payment_status === "confirmed") cur.paid = true;
+    else cur.unpaid = true;
+    bookedBySession.set(a.session_id, cur);
+  }
+
   const dashboardSessions: DashboardSession[] = sessions.map((s) => {
+    const booked = bookedBySession.get(s.id);
     const stats = statsBySessionId.get(s.id);
     return {
       id: s.id,
@@ -195,9 +213,10 @@ export default async function AdminDashboard() {
       // format_label(소개팅/그룹)이 그대로 쓰인다 — 배지 자리를 새로 만들지 않는다.
       theme_mode: s.theme_mode ?? null,
       format_label: s.format_label,
-      capacity_line: formatCapacityLine(s, s.theme_id ? (maxTeamsByTheme.get(s.theme_id) ?? null) : null),
       headcount_line: stats ? formatHeadcountLine(s, stats) : "확정 0명 · 대기 0명",
       confirmed: stats?.confirmed_count ?? 0,
+      booked_people: booked?.people ?? 0,
+      payment_label: !booked ? null : booked.unpaid ? "입금 확인 전" : "입금 확인",
       unpaid: unpaidBySession.get(s.id) ?? 0,
       public_path: s.public_path,
       // 칸(p42·p43)이 아직 없는 DB 에서 읽어도 깨지지 않게.

@@ -35,7 +35,8 @@ export function GroupBlockToggle({ sessionId, on }: { sessionId: string; on: boo
         disabled={pending}
         title={on ? "이 회차 시간에 단체 신청을 다시 받습니다" : "이 회차 시간과 겹치는 단체 신청을 막습니다"}
         className={`rounded-md border px-3 py-1.5 text-micro transition-colors disabled:opacity-50 ${
-          on ? "border-[#f082f4] bg-[#f082f4]/15 text-[#f082f4]" : "border-border text-muted hover:border-[#f082f4] hover:text-[#f082f4]"
+          // 막는 것은 빨강 — 달력의 '막음' 표시와 같은 색(2026-10-30 대표님).
+          on ? "border-[#ff6b6b] bg-[#ff6b6b]/15 text-[#ff6b6b]" : "border-border text-muted hover:border-[#ff6b6b] hover:text-[#ff6b6b]"
         }`}
       >
         {pending ? "처리중..." : on ? "단체 막는 중" : "단체 막기"}

@@ -24,10 +24,13 @@ export type DashboardSession = {
   format_label: string | null;
   /** 파티모드/노말모드. 모드가 없는 테마는 null. */
   theme_mode?: string | null;
-  capacity_line: string;
   headcount_line: string;
   /** 확정 인원(달력 칸의 짧은 표시용). */
   confirmed: number;
+  /** 예약 인원(취소 제외) — 노말모드 카드에 쓴다. */
+  booked_people: number;
+  /** 노말모드 예약의 입금 상태. 예약이 없으면 null. */
+  payment_label: string | null;
   unpaid: number;
   public_path: string | null;
   /** 고객 화면 시각 옆에 붙는 표시(예: 인기). 비우면 안 붙는다. */
@@ -45,6 +48,8 @@ export type DashboardGroup = {
   preferred_date: string | null;
   /** 'HH:MM' 이 아닐 수 있다(v1 코드값). */
   preferred_time: string;
+  /** 희망 구간의 길이(분) — 견적 시간. */
+  minutes: number;
   booking: { date: string; time: string; minutes: number } | null;
 };
 
@@ -74,7 +79,7 @@ const LEGEND: { kind: Kind; label: string }[] = [
   { kind: "party", label: "파티" },
   { kind: "normal", label: "노말" },
   { kind: "group", label: "단체 확정" },
-  { kind: "inquiry", label: "단체 문의" },
+  { kind: "inquiry", label: "단체 희망" },
   { kind: "block", label: "막음" },
 ];
 
@@ -165,7 +170,7 @@ export function DashboardSessions({
           date: g.preferred_date,
           time: t || "99:99",
           kind: "inquiry",
-          label: `${t ? `${t} ` : ""}문의 ${g.name}`,
+          label: `${t ? `${t} ` : ""}희망 ${g.name}`,
         });
       }
     }
@@ -345,14 +350,14 @@ export function DashboardSessions({
                   {g.booking
                     ? `${g.booking.time} ~ ${addMinutes(g.booking.time, g.booking.minutes)}`
                     : HHMM.test(g.preferred_time)
-                      ? `${g.preferred_time} 희망`
+                      ? `${g.preferred_time} ~ ${addMinutes(g.preferred_time, g.minutes)}`
                       : "시간 미정"}
                 </span>
                 <span
                   className="ml-2 rounded-md px-1.5 py-0.5 text-micro"
                   style={{ backgroundColor: `${COLOR.group}26`, color: COLOR.group }}
                 >
-                  {g.booking ? "단체 확정" : `단체 문의 · ${inquiryStatusLabel(g.status)}`}
+                  {g.booking ? "단체 확정" : `단체 희망 · ${inquiryStatusLabel(g.status)}`}
                 </span>
                 <span className="mt-1 block text-micro text-muted">
                   {g.name} · {g.headcount}명
@@ -366,7 +371,8 @@ export function DashboardSessions({
             <ClosureRow key={c.id} c={c} />
           ))}
 
-          <DayBlockForm date={selected} />
+          {/* 날짜를 바꾸면 새로 그린다 — 안 그러면 다른 날 막은 결과 문구가 남아 헷갈린다. */}
+          <DayBlockForm key={selected} date={selected} />
         </div>
       </div>
     </div>
@@ -382,11 +388,12 @@ function EventChip({ e }: { e: CalEvent }) {
       style={{
         backgroundColor: `${color}${e.kind === "inquiry" ? "14" : "26"}`,
         color,
-        ...(e.kind === "inquiry" ? { border: `1px dashed ${color}66` } : {}),
+        // 테두리는 outline 으로 — border 는 폭을 먹어 좁은 칸에서 시각이 잘린다.
+        ...(e.kind === "inquiry" ? { outline: `1px dashed ${color}66`, outlineOffset: "-1px" } : {}),
       }}
     >
       {/* 종일 막음만 글자로 — 나머지는 시각만 적는다(칸이 좁다). */}
-      {e.kind === "block" && e.time === "00:00" ? "종일" : e.time === "99:99" ? "문의" : e.time}
+      {e.kind === "block" && e.time === "00:00" ? "종일" : e.time === "99:99" ? "희망" : e.time}
     </span>
   );
 }
@@ -403,45 +410,50 @@ function SessionCard({
   nowMs: number;
 }) {
   const pending = s.opens_at != null && new Date(s.opens_at).getTime() > nowMs;
-  const color = COLOR[sessionKind(s) as "party" | "normal" | "other"];
+  const kind = sessionKind(s);
+  const color = COLOR[kind as "party" | "normal" | "other"];
+  // 상태는 시각 옆에 크게 — 오른쪽 끝에 두면 눈에 안 띈다(2026-10-30 대표님).
+  const state =
+    s.status === "cancelled"
+      ? { label: "비활성화", cls: "bg-red-500/15 text-red-400" }
+      : pending
+        ? { label: "공개 전", cls: "bg-amber-400/15 text-amber-400" }
+        : s.status === "open"
+          ? { label: "모집중", cls: "bg-glow/15 text-glow" }
+          : { label: "마감", cls: "bg-fill-strong text-muted" };
   return (
-    <div className="rounded-lg border border-border p-4" style={{ borderLeft: `3px solid ${color}` }}>
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold">
-            {kstTime(s.start_at)}
+    <div className="rounded-lg border border-border" style={{ borderLeft: `3px solid ${color}` }}>
+      {/* 카드 윗부분을 누르면 회차 상세(신청자)로 — 단체 카드와 같은 모양 */}
+      <Link href={`/sessions/${s.id}`} className="flex items-center gap-3 rounded-t-lg p-4 pb-3 hover:bg-fill-subtle">
+        <span className="min-w-0 flex-1">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-body font-semibold tabular-nums">{kstTime(s.start_at)}</span>
             {(s.theme_mode ?? s.format_label ?? s.theme_name) && (
-              <span className="ml-2 rounded-md bg-muted/20 px-1.5 py-0.5 text-micro font-normal text-muted">
+              <span className="rounded-md bg-muted/20 px-1.5 py-0.5 text-micro text-muted">
                 {s.theme_mode ?? s.format_label ?? s.theme_name}
               </span>
             )}
-          </p>
-          <p className="mt-1 text-micro text-muted">{s.capacity_line}</p>
-          <p className="mt-1 text-micro text-muted">{s.headcount_line}</p>
-          <p className="mt-1 text-micro text-muted">입금 확인 전 인원: {s.unpaid}명</p>
-          {pending && s.opens_at && (
-            <p className="mt-1 text-micro text-amber-400">공개 예정: {formatDateTimeFull(s.opens_at)}</p>
-          )}
-        </div>
-
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <span className="text-body-sm font-semibold">
-            {s.status === "cancelled" ? (
-              <span className="text-red-500">비활성화</span>
-            ) : pending ? (
-              <span className="text-amber-400">공개 전</span>
-            ) : (
-              <span className="text-glow">{s.status === "open" ? "모집중" : "마감"}</span>
-            )}
+            <span className={`rounded-md px-2 py-0.5 text-micro font-semibold ${state.cls}`}>{state.label}</span>
           </span>
-          {s.public_path && <CopyUrlButton url={`${siteUrl}${s.public_path}`} />}
-        </div>
-      </div>
+          {kind === "normal" ? (
+            // 노말은 한 팀만 받는다 — 확정 · 대기 대신 예약 인원과 입금 상태.
+            <span className="mt-1 block text-micro text-muted">
+              {s.booked_people > 0 ? `예약 ${s.booked_people}명 · ${s.payment_label}` : "예약 없음"}
+            </span>
+          ) : (
+            <>
+              <span className="mt-1 block text-micro text-muted">{s.headcount_line}</span>
+              <span className="mt-0.5 block text-micro text-muted">입금 확인 전 인원: {s.unpaid}명</span>
+            </>
+          )}
+          {pending && s.opens_at && (
+            <span className="mt-0.5 block text-micro text-amber-400">공개 예정: {formatDateTimeFull(s.opens_at)}</span>
+          )}
+        </span>
+        <Chevron className="h-4 w-4 shrink-0 text-muted" />
+      </Link>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Link href={`/sessions/${s.id}`} className="rounded-md border border-border px-3 py-1.5 text-micro hover:border-glow">
-          신청자 보기 →
-        </Link>
+      <div className="flex flex-wrap items-center gap-2 px-4 pb-4">
         <SessionStatusToggle
           sessionId={s.id}
           status={s.status}
@@ -451,6 +463,11 @@ function SessionCard({
         {/* 마감·비활성화된 회차는 고객 화면에서 '마감' 이 이기므로 태그가 안 보인다. */}
         <SessionBadgeToggle sessionId={s.id} badge={s.badge} />
         {s.group_block !== null && <GroupBlockToggle sessionId={s.id} on={s.group_block} />}
+        {s.public_path && (
+          <span className="ml-auto">
+            <CopyUrlButton url={`${siteUrl}${s.public_path}`} />
+          </span>
+        )}
       </div>
     </div>
   );
