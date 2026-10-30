@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { backLabel, safeBack } from "@/lib/adminBack";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateFull, formatDateTimeFull } from "@/lib/format";
@@ -34,8 +35,16 @@ const dateLabel = (ymd: string) => formatDateFull(`${ymd}T12:00:00+09:00`);
  * 크게 두고, 아래에 진행 상태 · 메모 · 확정 일시를 고치는 칸을 둔다.
  * ⚠️ 복호화된 연락처가 보인다 — 어드민 로그인을 거친 이 화면에서만.
  */
-export default async function AdminGroupBookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AdminGroupBookingDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  // 들어온 목록(조건 포함) · 대시보드 날짜로 돌아간다 — adminBack.ts
+  const back = safeBack((await searchParams).back, "/group-bookings");
   const supabase = createAdminClient();
 
   const [{ data, error }, { data: closure }] = await Promise.all([
@@ -107,8 +116,8 @@ export default async function AdminGroupBookingDetailPage({ params }: { params: 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-3xl">
-        <Link href="/group-bookings" className="mb-4 inline-block text-body-sm text-glow hover:underline">
-          ← 단체 예약 문의
+        <Link href={back} className="mb-4 inline-block text-body-sm text-glow hover:underline">
+          ← {backLabel(back)}
         </Link>
 
         {/* ── 머리 ── 확정이면 확정 일시를, 아니면 희망 일시를 크게 */}

@@ -12,6 +12,7 @@ import { Chevron } from "@/components/ui/Chevron";
 import { inquiryStatusLabel } from "@/lib/groupBooking";
 import { BASE_MINUTES, addMinutes } from "@/lib/groupPricing";
 import { addGroupClosure, removeGroupClosure } from "./group-bookings/actions";
+import { withBack } from "@/lib/adminBack";
 
 export type DashboardSession = {
   id: string;
@@ -128,6 +129,7 @@ export function DashboardSessions({
   closures,
   siteUrl,
   nowMs,
+  initialDate,
 }: {
   sessions: DashboardSession[];
   groups: DashboardGroup[];
@@ -135,10 +137,19 @@ export function DashboardSessions({
   siteUrl: string;
   /** 서버 렌더 시각 — 렌더 중 Date.now() 를 부르지 않는다. */
   nowMs: number;
+  /** 주소의 ?date= — 상세에 갔다 돌아왔을 때 보던 날짜를 다시 연다. 없으면 오늘. */
+  initialDate: string | null;
 }) {
   const today = kstYmd(new Date(nowMs).toISOString());
-  const [month, setMonth] = useState(today.slice(0, 7));
-  const [selected, setSelected] = useState(today);
+  const [month, setMonth] = useState((initialDate ?? today).slice(0, 7));
+  const [selected, setSelectedState] = useState(initialDate ?? today);
+  // 고른 날짜를 주소에 남긴다 — 상세에서 돌아오면 그 날짜가 다시 열린다(2026-10-30 대표님).
+  // ⚠️ router.replace 가 아니라 history.replaceState — 주소만 바꾸고 서버는 부르지 않는다(wye-server-cost).
+  const setSelected = (d: string) => {
+    setSelectedState(d);
+    window.history.replaceState(window.history.state, "", `${window.location.pathname}?date=${d}`);
+  };
+  const back = `/?date=${selected}`;
 
   const events = useMemo(() => {
     const list: CalEvent[] = [];
@@ -335,13 +346,13 @@ export function DashboardSessions({
 
         <div className="flex flex-col gap-3">
           {daySessions.map((s) => (
-            <SessionCard key={s.id} s={s} date={selected} siteUrl={siteUrl} nowMs={nowMs} />
+            <SessionCard key={s.id} s={s} date={selected} siteUrl={siteUrl} nowMs={nowMs} back={back} />
           ))}
 
           {dayGroups.map((g) => (
             <Link
               key={g.id}
-              href={`/group-bookings/${g.id}`}
+              href={withBack(`/group-bookings/${g.id}`, back)}
               className="flex items-center gap-3 rounded-lg border p-4 hover:bg-fill-subtle"
               style={{ borderColor: `${COLOR.group}${g.booking ? "99" : "40"}` }}
             >
@@ -403,11 +414,14 @@ function SessionCard({
   date,
   siteUrl,
   nowMs,
+  back,
 }: {
   s: DashboardSession;
   date: string;
   siteUrl: string;
   nowMs: number;
+  /** 상세의 「← 대시보드」 가 돌아올 주소(고른 날짜 포함). */
+  back: string;
 }) {
   const pending = s.opens_at != null && new Date(s.opens_at).getTime() > nowMs;
   const kind = sessionKind(s);
@@ -424,7 +438,7 @@ function SessionCard({
   return (
     <div className="rounded-lg border border-border" style={{ borderLeft: `3px solid ${color}` }}>
       {/* 카드 윗부분을 누르면 회차 상세(신청자)로 — 단체 카드와 같은 모양 */}
-      <Link href={`/sessions/${s.id}`} className="flex items-center gap-3 rounded-t-lg p-4 pb-3 hover:bg-fill-subtle">
+      <Link href={withBack(`/sessions/${s.id}`, back)} className="flex items-center gap-3 rounded-t-lg p-4 pb-3 hover:bg-fill-subtle">
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-body font-semibold tabular-nums">{kstTime(s.start_at)}</span>

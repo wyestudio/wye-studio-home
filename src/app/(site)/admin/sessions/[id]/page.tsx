@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { backLabel, safeBack } from "@/lib/adminBack";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull, formatKrw } from "@/lib/format";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
@@ -248,8 +249,13 @@ function AppSection({ title, count, children }: { title: string; count: number; 
   );
 }
 
-export default async function AdminSessionDetailPage(props: { params: PageProps }) {
+export default async function AdminSessionDetailPage(props: {
+  params: PageProps;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const params = await props.params;
+  // 들어온 목록(조건 포함)으로 돌아간다 — adminBack.ts
+  const back = safeBack((await props.searchParams).back, "/");
   const supabase = createAdminClient();
 
   const { data: session } = await supabase
@@ -363,8 +369,8 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-3xl">
-        <Link href="/" className="mb-4 inline-block text-body-sm text-glow hover:underline">
-          ← 대시보드
+        <Link href={back} className="mb-4 inline-block text-body-sm text-glow hover:underline">
+          ← {backLabel(back)}
         </Link>
 
         {/* ── 회차 머리 ── 언제 · 무엇 · 지금 상태를 한눈에, 버튼은 한 줄로 */}

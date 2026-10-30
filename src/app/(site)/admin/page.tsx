@@ -32,7 +32,10 @@ function getNowMs(): number {
  * 매주 운영에서 실제로 필요한 건 그것이기 때문이다.
  * 설계 근거: docs/08-architecture-screens-and-admin.md §3-3
  */
-export default async function AdminDashboard() {
+export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
+  // 달력에서 보던 날짜(?date=) — 상세에 갔다 돌아오면 그 날짜를 다시 연다.
+  const rawDate = (await searchParams).date;
+  const initialDate = typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : null;
   const supabase = createAdminClient();
 
   const [sessionsRes, themesRes, appsRes, attendeesRes, unmatchedRes] = await Promise.all([
@@ -290,6 +293,7 @@ export default async function AdminDashboard() {
             closures={manualClosures}
             siteUrl={SITE_URL}
             nowMs={nowMs}
+            initialDate={initialDate}
           />
         </section>
       </div>
