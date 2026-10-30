@@ -9,7 +9,13 @@ import {
   computeSessionStats,
   type SessionDisplayRow,
 } from "@/lib/sessionStatsFormat";
-import { DashboardSessions, type DashboardSession } from "./DashboardSessions";
+import {
+  DashboardSessions,
+  type DashboardClosure,
+  type DashboardGroup,
+  type DashboardSession,
+} from "./DashboardSessions";
+import { BASE_MINUTES } from "@/lib/groupPricing";
 import { GROUP_BOOKING_THEME_SLUGS } from "@/lib/groupBooking";
 
 export const dynamic = "force-dynamic";
@@ -69,8 +75,43 @@ export default async function AdminDashboard() {
   const themes = (themesRes.data ?? []) as { id: string; name: string; slug: string; max_teams_per_session: number | null }[];
   // 「단체 막기」 를 띄울 회차 — 단체 예약을 받는 테마(파티모드)의 것만. 이미 막아 둔 회차는 켜진 상태로.
   const groupThemeIds = new Set(themes.filter((t) => GROUP_BOOKING_THEME_SLUGS.includes(t.slug)).map((t) => t.id));
-  const { data: blockRows } = await supabase.from("group_booking_closures").select("session_id").not("session_id", "is", null);
-  const blockedSessions = new Set(((blockRows ?? []) as { session_id: string }[]).map((r) => r.session_id));
+  // 단체 일정 — 달력에 회차와 같이 놓는다. 막은 일정 표 하나에 세 갈래(직접 · 예약 확정 · 파티 회차)가 모인다.
+  const [{ data: closureRows }, { data: groupRows }] = await Promise.all([
+    supabase.from("group_booking_closures").select("id, date, start_time, minutes, note, inquiry_id, session_id"),
+    supabase
+      .from("admin_group_booking_inquiries_view")
+      .select("id, organizer_name, group_name, headcount, status, preferred_date, preferred_time"),
+  ]);
+  type ClosureRow = DashboardClosure & { inquiry_id: string | null; session_id: string | null };
+  const closureList = (closureRows ?? []) as ClosureRow[];
+  const blockedSessions = new Set(closureList.filter((c) => c.session_id).map((c) => c.session_id!));
+  const bookingByInquiry = new Map(
+    closureList
+      .filter((c) => c.inquiry_id && c.start_time)
+      .map((c) => [c.inquiry_id!, { date: c.date, time: c.start_time!, minutes: c.minutes ?? BASE_MINUTES }])
+  );
+  const dashboardGroups: DashboardGroup[] = (
+    (groupRows ?? []) as {
+      id: string;
+      organizer_name: string | null;
+      group_name: string | null;
+      headcount: number;
+      status: string;
+      preferred_date: string | null;
+      preferred_time: string;
+    }[]
+  ).map((g) => ({
+    id: g.id,
+    name: g.group_name ?? g.organizer_name ?? "이름 없음",
+    headcount: g.headcount,
+    status: g.status,
+    preferred_date: g.preferred_date,
+    preferred_time: g.preferred_time,
+    booking: g.status === "booked" ? (bookingByInquiry.get(g.id) ?? null) : null,
+  }));
+  const manualClosures: DashboardClosure[] = closureList
+    .filter((c) => !c.inquiry_id && !c.session_id)
+    .map(({ id, date, start_time, minutes, note }) => ({ id, date, start_time, minutes, note }));
   const maxTeamsByTheme = new Map(themes.map((t) => [t.id, t.max_teams_per_session]));
   const apps = (appsRes.data ?? []) as {
     id: string;
@@ -168,6 +209,7 @@ export default async function AdminDashboard() {
       format_label: s.format_label,
       capacity_line: formatCapacityLine(s, s.theme_id ? (maxTeamsByTheme.get(s.theme_id) ?? null) : null),
       headcount_line: stats ? formatHeadcountLine(s, stats) : "확정 0명 · 대기 0명",
+      confirmed: stats?.confirmed_count ?? 0,
       unpaid: unpaidBySession.get(s.id) ?? 0,
       public_path: s.public_path,
       // 칸(p42·p43)이 아직 없는 DB 에서 읽어도 깨지지 않게.
@@ -249,15 +291,16 @@ export default async function AdminDashboard() {
         {/* ── 회차 ── */}
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-body-sm font-semibold text-muted">회차</h2>
+            <h2 className="text-body-sm font-semibold text-muted">일정</h2>
             <Link href="/sessions" className="text-micro text-glow underline">
               회차 편성 →
             </Link>
           </div>
 
           <DashboardSessions
-            themes={themes}
             sessions={dashboardSessions}
+            groups={dashboardGroups}
+            closures={manualClosures}
             siteUrl={SITE_URL}
             nowMs={nowMs}
           />

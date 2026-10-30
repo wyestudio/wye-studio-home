@@ -74,7 +74,7 @@ export async function saveInquiryStatus(input: {
       if (!b) parts.push(`확정 일시(${closureLabel(linked.date, linked.start_time, linked.minutes)}) 마감을 풀었습니다.`);
     }
     if (b && !same) {
-      // 메모는 비운다 — 목록에서 신청 건 이름으로 보여 준다(ClosureManager).
+      // 메모는 비운다 — 대시보드 달력에서 신청 건 이름으로 보여 준다.
       const res = await insertClosure(supabase, b, null, input.id);
       parts.push(res);
     }

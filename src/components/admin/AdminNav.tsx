@@ -75,21 +75,22 @@ export function AdminNav({ current }: { current?: string }) {
       ⚠️ before 는 어긋난 몇 px 만 메운다. 크게 잡으면 스크롤 전에도 위쪽 사이트
          헤더를 덮어버린다(실제로 그랬다).
     */
+    // 휴대폰에서는 메뉴가 화면 절반을 덮어 위에 붙이지 않는다(2026-10-30). 줄이 넘치면 꺾는다.
     <nav
-      className="sticky top-[var(--header-height,0px)] z-30 -mx-6 -mt-6 mb-8 flex flex-wrap items-center
+      className="relative z-30 -mx-6 md:sticky md:top-[var(--header-height,0px)] -mt-6 mb-8 flex flex-wrap items-center
                  gap-x-6 gap-y-3 border-b border-border bg-background px-6 pb-4 pt-6
                  before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full
                  before:h-2 before:bg-background"
     >
       {GROUPS.map((group) => (
-        <div key={group.label} className="flex items-center gap-2">
+        <div key={group.label} className="flex min-w-0 items-center gap-2">
           <span className="text-micro uppercase tracking-wide text-muted">{group.label}</span>
-          <div className="flex gap-1">
+          <div className="flex min-w-0 flex-wrap gap-1">
             {group.items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`rounded-md px-2.5 py-1 text-body-sm transition-colors ${
+                className={`rounded-md px-2.5 py-1 text-body-sm whitespace-nowrap transition-colors ${
                   current === item.href
                     ? "bg-glow text-glow-foreground"
                     : "text-foreground hover:bg-muted/20"

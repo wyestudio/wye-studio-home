@@ -13,7 +13,6 @@ import {
 } from "@/lib/groupBooking";
 import { BASE_MINUTES, HHMM, OPTION, addMinutes, kstToday, won } from "@/lib/groupPricing";
 import { InquiryRow, type Booking } from "./InquiryRow";
-import { ClosureManager } from "./ClosureManager";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +91,8 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
   const rawTab = typeof params.tab === "string" ? params.tab : "all";
   const tab = TABS.some((t) => t.key === rawTab) ? rawTab : "all";
   const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 40);
+  // 대시보드 달력에서 눌러 들어온 한 건.
+  const onlyId = typeof params.id === "string" ? params.id : "";
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -109,23 +110,6 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
 
   const rows = (data as Inquiry[]) ?? [];
 
-  const { data: closureData } = await supabase
-    .from("group_booking_closures")
-    .select("id, date, start_time, minutes, note, inquiry_id, session_id")
-    .gte("date", kstToday())
-    .order("date")
-    .order("start_time", { nullsFirst: true });
-  const closures =
-    (closureData as {
-      id: string;
-      date: string;
-      start_time: string | null;
-      minutes: number | null;
-      note: string | null;
-      inquiry_id: string | null;
-      session_id: string | null;
-    }[]) ?? [];
-
   // 예약 확정으로 걸어 둔 마감(신청 건 하나에 하나). 지난 날짜도 신청 건 옆에 보여야 해서 따로 읽는다.
   const { data: bookingData } = await supabase
     .from("group_booking_closures")
@@ -142,7 +126,9 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
   // 검색 — 이름 · 모임 이름 · 연락처(숫자만 비교해 하이픈 유무와 상관없이). 건수가 적어 서버에서 거른다.
   const qLower = q.toLowerCase();
   const qDigits = q.replace(/\D/g, "");
-  const searched = q
+  const searched = onlyId
+    ? rows.filter((r) => r.id === onlyId)
+    : q
     ? rows.filter(
         (r) =>
           [r.organizer_name, r.group_name, r.contact].some((v) => v?.toLowerCase().includes(qLower)) ||
@@ -174,10 +160,21 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
           </Link>
         </p>
 
-        <ClosureManager
-          closures={closures}
-          inquiryNames={Object.fromEntries(rows.map((r) => [r.id, r.group_name ?? r.organizer_name ?? "이름 없음"]))}
-        />
+        <p className="mb-6 rounded-lg border border-border px-4 py-3 text-body-sm text-muted">
+          단체를 막아 둔 일정은{" "}
+          <Link href="/" className="font-semibold text-glow underline">
+            대시보드 일정 달력
+          </Link>
+          에서 봅니다. 예약 확정 건은 아래에서 확정 일시를 넣으면 자동으로 막힙니다.
+        </p>
+        {onlyId && (
+          <p className="mb-4 text-body-sm">
+            달력에서 고른 한 건만 보는 중 ·{" "}
+            <Link href="/group-bookings#list" className="text-glow underline">
+              전체 보기
+            </Link>
+          </p>
+        )}
 
         {/* 상태 탭 · 검색 */}
         <div id="list" className="mb-4 flex scroll-mt-4 flex-col gap-3 md:flex-row md:items-center md:justify-between">
