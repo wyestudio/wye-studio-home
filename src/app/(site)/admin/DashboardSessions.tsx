@@ -415,12 +415,12 @@ function SessionCard({
   // 상태는 시각 옆에 크게 — 오른쪽 끝에 두면 눈에 안 띈다(2026-10-30 대표님).
   const state =
     s.status === "cancelled"
-      ? { label: "비활성화", cls: "bg-red-500/15 text-red-400" }
+      ? { label: "비활성화", cls: "bg-red-500 text-white" }
       : pending
-        ? { label: "공개 전", cls: "bg-amber-400/15 text-amber-400" }
+        ? { label: "공개 전", cls: "bg-amber-400 text-black" }
         : s.status === "open"
-          ? { label: "모집중", cls: "bg-glow/15 text-glow" }
-          : { label: "마감", cls: "bg-fill-strong text-muted" };
+          ? { label: "모집중", cls: "bg-glow text-glow-foreground" }
+          : { label: "마감", cls: "bg-zinc-500 text-white" };
   return (
     <div className="rounded-lg border border-border" style={{ borderLeft: `3px solid ${color}` }}>
       {/* 카드 윗부분을 누르면 회차 상세(신청자)로 — 단체 카드와 같은 모양 */}
@@ -433,7 +433,8 @@ function SessionCard({
                 {s.theme_mode ?? s.format_label ?? s.theme_name}
               </span>
             )}
-            <span className={`rounded-md px-2 py-0.5 text-micro font-semibold ${state.cls}`}>{state.label}</span>
+            {/* 꽉 찬 색 — 옅은 배경은 카드 배경에 묻혀 눈에 안 띄었다(2026-10-30 대표님). */}
+            <span className={`rounded-md px-2.5 py-0.5 text-label font-semibold ${state.cls}`}>{state.label}</span>
           </span>
           {kind === "normal" ? (
             // 노말은 한 팀만 받는다 — 확정 · 대기 대신 예약 인원과 입금 상태.
