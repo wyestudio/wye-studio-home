@@ -74,9 +74,10 @@ const MODES: Record<
      * 지도 위 진행 막대. 칸 폭은 weight 비율이다 — **분을 적지 않는다**(2026-10-29 대표님).
      * 실제로는 아이스브레이킹 20분 · 방탈출+미니게임 120분 · 코인마켓 20분에 안내 등 20분이 더
      * 있는데, 분을 적으면 "코인마켓에 20분이나?" 같은 반응이 나와서 비율로만 보인다.
-     * 노말모드도 시간 막대(timebar) 블록 대신 이 막대를 쓴다(방탈출 90분 · 코인마켓 10분, 2026-10-30).
+     * 노말모드도 시간 막대(timebar) 블록 대신 이 막대를 쓰는데, 노말은 분을 보인다(minutes,
+     * 2026-10-30 대표님) — 우리 팀만 예약하는 시간이라 몇 분인지가 궁금한 정보다.
      */
-    phases?: { title: string; weight: number }[];
+    phases?: { title: string; weight: number; minutes?: number }[];
     steps: Step[];
   }
 > = {
@@ -169,8 +170,8 @@ const MODES: Record<
     teams: [0],
     tables: [TABLE[1]],
     phases: [
-      { title: "방탈출", weight: 90 },
-      { title: "코인마켓", weight: 10 },
+      { title: "방탈출", weight: 90, minutes: 90 },
+      { title: "코인마켓", weight: 10, minutes: 10 },
     ],
     steps: [
       {
@@ -443,7 +444,7 @@ function PhaseBar({
   accent,
   onPick,
 }: {
-  phases: { title: string; weight: number }[];
+  phases: { title: string; weight: number; minutes?: number }[];
   steps: Step[];
   step: number;
   accent: string;
@@ -479,7 +480,7 @@ function PhaseBar({
               type="button"
               role="tab"
               aria-selected={curPhase === i}
-              aria-label={ph.title}
+              aria-label={ph.minutes ? `${ph.title} ${ph.minutes}분` : ph.title}
               onClick={() => onPick(i)}
               className="relative h-full min-w-0 overflow-hidden rounded-full bg-fill-strong"
               style={{ flexGrow: ph.weight, flexBasis: 0 }}
@@ -513,6 +514,7 @@ function PhaseBar({
             style={curPhase === i ? { color: accent } : undefined}
           >
             {ph.title}
+            {ph.minutes ? <span className="ml-1 font-mono tabular-nums">{ph.minutes}분</span> : null}
           </button>
         ))}
       </div>
