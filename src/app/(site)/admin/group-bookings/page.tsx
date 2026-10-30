@@ -2,17 +2,10 @@ import Link from "next/link";
 import { Chevron } from "@/components/ui/Chevron";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull } from "@/lib/format";
-import {
-  INQUIRY_STATUSES,
-  contactMethodLabel,
-  inquiryStatusLabel,
-  groupKindLabel,
-  preferredTimeLabel,
-  repeatPlayerLabel,
-  teamStyleLabel,
-} from "@/lib/groupBooking";
-import { BASE_MINUTES, HHMM, OPTION, addMinutes, kstToday, won } from "@/lib/groupPricing";
+import { INQUIRY_STATUSES, contactMethodLabel, inquiryStatusLabel, preferredTimeLabel } from "@/lib/groupBooking";
+import { BASE_MINUTES, addMinutes } from "@/lib/groupPricing";
 import { InquiryRow, type Booking } from "./InquiryRow";
+import { ExtrasCell, OptionsCell, SourceCell, suggestedBooking, type Inquiry } from "./inquiryParts";
 
 export const dynamic = "force-dynamic";
 
@@ -25,39 +18,6 @@ export const dynamic = "force-dynamic";
  * 접수는 예약이 아니다. 상태(접수 → 연락 완료 → 견적 안내 → 예약 확정)로 어디까지
  * 응대했는지 적어 둬야 둘이 나눠 볼 때 겹치지 않는다.
  */
-type Inquiry = {
-  id: string;
-  created_at: string;
-  headcount: number;
-  contact_method: string;
-  contact: string;
-  preferred_date: string | null;
-  preferred_time: string;
-  group_kind: string | null;
-  note: string | null;
-  // v2(/group 단계형 견적, 2026-10-25) 부터 받는 칸. 그 전 접수분은 전부 null 이다.
-  organizer_name: string | null;
-  group_name: string | null;
-  group_kind_note: string | null;
-  options: {
-    icebreaking?: boolean;
-    character?: boolean;
-    after_party_hours?: number;
-    cleanup?: boolean;
-  } | null;
-  unit_price: number | null;
-  estimate_total: number | null;
-  team_style: string | null;
-  repeat_player: string | null;
-  occasion: string | null;
-  utm_source: string | null;
-  utm_medium: string | null;
-  utm_campaign: string | null;
-  referrer: string | null;
-  landing_path: string | null;
-  status: string;
-  admin_memo: string | null;
-};
 
 /**
  * 상태 탭. 진행 중 = 연락 완료 · 견적 안내 — 아직 결론이 안 난 건을 한데 본다.
@@ -222,77 +182,37 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
             휴대폰은 카드 한 장씩 — 표는 가로로 밀려서 정작 자주 쓰는 진행 상태 · 저장 칸이
             화면 밖에 있었다(2026-10-30 대표님).
           */}
-          {/* 카드는 한 줄 요약으로 접어 둔다 — 눌러서 펼친다. 다 펼쳐 두면 몇 건만 넘겨도 너무 길다. */}
+          {/* 카드는 한 줄 요약 — 누르면 그 건의 상세로 간다(회차 상세와 같은 방식). */}
           <ul className="flex flex-col gap-2 md:hidden">
             {pageRows.map((r) => (
               <li key={r.id}>
-                <details
-                  className={`group rounded-xl border border-border ${r.status === "new" ? "bg-brand-soft/30" : "bg-panel"}`}
+                <Link
+                  href={`/group-bookings/${r.id}`}
+                  className={`flex items-center gap-3 rounded-xl border border-border p-4 hover:bg-fill-subtle ${
+                    r.status === "new" ? "bg-brand-soft/30" : "bg-panel"
+                  }`}
                 >
-                  <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate">
-                        <span className="text-body font-semibold">{r.organizer_name ?? "이름 없음"}</span>
-                        {r.group_name && <span className="ml-2 text-body-sm text-muted">{r.group_name}</span>}
-                      </div>
-                      <div className="mt-0.5 text-body-sm text-muted tabular-nums">
-                        {r.headcount}명 ·{" "}
-                        {bookings.has(r.id)
-                          ? `확정 ${bookings.get(r.id)!.date.slice(5)} ${bookings.get(r.id)!.time}`
-                          : `${r.preferred_date?.slice(5) ?? "날짜 미정"} ${preferredTimeLabel(r.preferred_time)}`}
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate">
+                      <span className="text-body font-semibold">{r.organizer_name ?? "이름 없음"}</span>
+                      {r.group_name && <span className="ml-2 text-body-sm text-muted">{r.group_name}</span>}
                     </div>
-                    <span
-                      className={`shrink-0 rounded-md px-2 py-1 text-micro font-semibold ${
-                        r.status === "new" ? "bg-brand text-brand-foreground" : "bg-fill text-muted"
-                      }`}
-                    >
-                      {inquiryStatusLabel(r.status)}
-                    </span>
-                    <span aria-hidden className="shrink-0 text-muted transition-transform group-open:rotate-180">
-                      <Chevron dir="down" />
-                    </span>
-                  </summary>
-                  <div className="flex flex-col gap-3 border-t border-border px-4 pt-3 pb-4">
-                <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-body-sm">
-                  <dt className="text-muted">희망 일시</dt>
-                  <dd>
-                    {r.preferred_date ?? "날짜 미정"} {preferredTimeLabel(r.preferred_time)}
-                    {bookings.has(r.id) && (
-                      <div className="font-semibold text-glow">
-                        확정 {bookings.get(r.id)!.date} {bookings.get(r.id)!.time} ~{" "}
-                        {addMinutes(bookings.get(r.id)!.time, bookings.get(r.id)!.minutes)}
-                      </div>
-                    )}
-                  </dd>
-                  <dt className="text-muted">연락처</dt>
-                  <dd>
-                    <span className="text-muted">{contactMethodLabel(r.contact_method)}</span> <ContactLink r={r} />
-                  </dd>
-                  <dt className="text-muted">견적</dt>
-                  <dd className="text-micro">
-                    <OptionsCell r={r} />
-                  </dd>
-                  <dt className="text-muted">참고</dt>
-                  <dd className="text-micro">
-                    <ExtrasCell r={r} />
-                  </dd>
-                  <dt className="text-muted">유입</dt>
-                  <dd className="text-micro text-muted">
-                    <SourceCell r={r} />
-                  </dd>
-                  <dt className="text-muted">접수</dt>
-                  <dd className="text-micro text-muted">{formatDateTimeFull(r.created_at)}</dd>
-                </dl>
-                <InquiryRow
-                  id={r.id}
-                  status={r.status}
-                  memo={r.admin_memo ?? ""}
-                  booking={bookings.get(r.id) ?? null}
-                  suggested={suggestedBooking(r)}
-                />
+                    <div className="mt-0.5 text-body-sm text-muted tabular-nums">
+                      {r.headcount}명 ·{" "}
+                      {bookings.has(r.id)
+                        ? `확정 ${bookings.get(r.id)!.date.slice(5)} ${bookings.get(r.id)!.time}`
+                        : `${r.preferred_date?.slice(5) ?? "날짜 미정"} ${preferredTimeLabel(r.preferred_time)}`}
+                    </div>
                   </div>
-                </details>
+                  <span
+                    className={`shrink-0 rounded-md px-2 py-1 text-micro font-semibold ${
+                      r.status === "new" ? "bg-brand text-brand-foreground" : "bg-fill text-muted"
+                    }`}
+                  >
+                    {inquiryStatusLabel(r.status)}
+                  </span>
+                  <Chevron className="h-4 w-4 shrink-0 text-muted" />
+                </Link>
               </li>
             ))}
           </ul>
@@ -323,7 +243,9 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
                       {formatDateTimeFull(r.created_at)}
                     </td>
                     <td className={`${td} whitespace-nowrap`}>
-                      <span className="font-semibold">{r.organizer_name ?? <span className="text-muted">-</span>}</span>
+                      <Link href={`/group-bookings/${r.id}`} className="font-semibold text-glow hover:underline">
+                        {r.organizer_name ?? "이름 없음"}
+                      </Link>
                       {r.group_name && <div className="text-micro text-muted">{r.group_name}</div>}
                     </td>
                     <td className={`${td} whitespace-nowrap font-semibold`}>{r.headcount}명</td>
@@ -395,91 +317,5 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
         </p>
       </div>
     </div>
-  );
-}
-
-/**
- * 예약 확정 칸의 처음 값 — 희망 일시와 견적 시간(프로그램 + 애프터파티).
- * 희망 시간이 v1 코드값(t1530 · flexible 등)이면 시각은 비워 둔다.
- */
-function suggestedBooking(r: Inquiry): { date: string; time: string; minutes: number } {
-  const o = r.options ?? {};
-  return {
-    date: r.preferred_date ?? kstToday(),
-    time: HHMM.test(r.preferred_time) ? r.preferred_time : "",
-    minutes: BASE_MINUTES - (o.icebreaking === false ? OPTION.icebreaking.minutes : 0) + (o.after_party_hours ?? 0) * 60,
-  };
-}
-
-/** 유입 경로. 빈 칸이 곧 '직접 방문' 이다 — 그 말을 직접 적어 둔다. */
-function SourceCell({ r }: { r: Inquiry }) {
-  if (!r.utm_source && !r.referrer) return <>직접 방문</>;
-  return (
-    <>
-      {r.utm_source && (
-        <div>
-          {r.utm_source}
-          {r.utm_medium ? ` / ${r.utm_medium}` : ""}
-        </div>
-      )}
-      {r.utm_campaign && <div>{r.utm_campaign}</div>}
-      {r.referrer && <div className="break-all">{r.referrer}</div>}
-      {r.landing_path && <div className="break-all">{r.landing_path}</div>}
-    </>
-  );
-}
-
-/** 휴대폰에서 바로 걸 수 있게 — 전화 · 문자로 받은 번호만 링크로 만든다(카카오톡 ID 는 글자 그대로). */
-function ContactLink({ r }: { r: Inquiry }) {
-  const digits = r.contact.replace(/[^\d]/g, "");
-  if ((r.contact_method === "phone" || r.contact_method === "sms") && digits.length >= 9) {
-    return (
-      <a href={`${r.contact_method === "sms" ? "sms" : "tel"}:${digits}`} className="font-semibold text-glow underline">
-        {r.contact}
-      </a>
-    );
-  }
-  return <span className="break-all">{r.contact}</span>;
-}
-
-/** 견적 단계에서 고른 것. 금액은 접수 시점에 서버가 계산한 값이다(요금표가 바뀌어도 그대로). */
-function OptionsCell({ r }: { r: Inquiry }) {
-  if (!r.options) return <span className="text-muted">-</span>;
-  const o = r.options;
-  const picks = [
-    o.icebreaking === false ? "레크리에이션 뺌" : null,
-    o.character ? "캐릭터 꾸미기" : null,
-    o.after_party_hours ? `애프터파티 ${o.after_party_hours}시간` : null,
-    o.cleanup ? "뒷정리" : null,
-  ].filter(Boolean);
-  return (
-    <>
-      <div>{picks.length ? picks.join(" · ") : "기본 구성"}</div>
-      <div className="mt-1 text-body-sm font-semibold">
-        {r.estimate_total != null ? won(r.estimate_total) : "상담 후 안내"}
-      </div>
-      {r.unit_price != null && <div className="text-muted">1인 {won(r.unit_price)}</div>}
-    </>
-  );
-}
-
-function ExtrasCell({ r }: { r: Inquiry }) {
-  const rows: [string, string | null][] = [
-    ["모임", r.group_kind ? `${groupKindLabel(r.group_kind)}${r.group_kind_note ? ` (${r.group_kind_note})` : ""}` : null],
-    ["팀", r.team_style ? teamStyleLabel(r.team_style) : null],
-    ["재참여", r.repeat_player ? repeatPlayerLabel(r.repeat_player) : null],
-    ["기념일", r.occasion],
-  ];
-  const shown = rows.filter(([, v]) => v);
-  if (!shown.length && !r.note) return <span className="text-muted">-</span>;
-  return (
-    <>
-      {shown.map(([k, v]) => (
-        <div key={k}>
-          <span className="text-muted">{k}</span> {v}
-        </div>
-      ))}
-      {r.note && <div className="mt-1 whitespace-pre-line text-body-sm">{r.note}</div>}
-    </>
   );
 }

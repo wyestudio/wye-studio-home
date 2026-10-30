@@ -341,7 +341,7 @@ export function DashboardSessions({
           {dayGroups.map((g) => (
             <Link
               key={g.id}
-              href={`/group-bookings?id=${g.id}#list`}
+              href={`/group-bookings/${g.id}`}
               className="flex items-center gap-3 rounded-lg border p-4 hover:bg-fill-subtle"
               style={{ borderColor: `${COLOR.group}${g.booking ? "99" : "40"}` }}
             >
