@@ -10,6 +10,7 @@ import {
   type SessionDisplayRow,
 } from "@/lib/sessionStatsFormat";
 import { DashboardSessions, type DashboardSession } from "./DashboardSessions";
+import { GROUP_BOOKING_THEME_SLUGS } from "@/lib/groupBooking";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export default async function AdminDashboard() {
     // 표시값(테마명·정원·장소·링크)은 session_display 가 통일해준다.
     // sessions 를 직접 읽으면 신규 회차에서 옛 컬럼(정원 50명, 성별 정원)이 나온다.
     supabase.from("session_display").select("*").order("start_at", { ascending: false }),
-    supabase.from("themes").select("id, name, max_teams_per_session").order("sort_order").order("created_at"),
+    supabase.from("themes").select("id, name, slug, max_teams_per_session").order("sort_order").order("created_at"),
     supabase
       .from("admin_application_view")
       .select(
@@ -65,7 +66,11 @@ export default async function AdminDashboard() {
     status: string;
     opens_at: string | null;
   })[];
-  const themes = (themesRes.data ?? []) as { id: string; name: string; max_teams_per_session: number | null }[];
+  const themes = (themesRes.data ?? []) as { id: string; name: string; slug: string; max_teams_per_session: number | null }[];
+  // 「단체 막기」 를 띄울 회차 — 단체 예약을 받는 테마(파티모드)의 것만. 이미 막아 둔 회차는 켜진 상태로.
+  const groupThemeIds = new Set(themes.filter((t) => GROUP_BOOKING_THEME_SLUGS.includes(t.slug)).map((t) => t.id));
+  const { data: blockRows } = await supabase.from("group_booking_closures").select("session_id").not("session_id", "is", null);
+  const blockedSessions = new Set(((blockRows ?? []) as { session_id: string }[]).map((r) => r.session_id));
   const maxTeamsByTheme = new Map(themes.map((t) => [t.id, t.max_teams_per_session]));
   const apps = (appsRes.data ?? []) as {
     id: string;
@@ -167,6 +172,7 @@ export default async function AdminDashboard() {
       public_path: s.public_path,
       // 칸(p42·p43)이 아직 없는 DB 에서 읽어도 깨지지 않게.
       badge: (s as { badge?: string | null }).badge ?? null,
+      group_block: s.theme_id && groupThemeIds.has(s.theme_id) ? blockedSessions.has(s.id) : null,
     };
   });
 

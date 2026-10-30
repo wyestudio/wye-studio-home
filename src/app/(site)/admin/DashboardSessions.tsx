@@ -7,6 +7,7 @@ import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
 import { formatDateFull, formatDateTimeFull } from "@/lib/format";
 import { SessionStatusToggle } from "@/components/admin/SessionStatusToggle";
 import { SessionBadgeToggle } from "@/components/admin/SessionBadgeToggle";
+import { GroupBlockToggle } from "@/components/admin/GroupBlockToggle";
 
 const ACCENT = "#3dffb0";
 
@@ -27,6 +28,8 @@ export type DashboardSession = {
   public_path: string | null;
   /** 고객 화면 시각 옆에 붙는 표시(예: 인기). 비우면 안 붙는다. */
   badge: string | null;
+  /** 「단체 막기」 상태. 단체 예약을 받는 테마(파티모드)의 회차가 아니면 null — 버튼을 안 띄운다. */
+  group_block: boolean | null;
 };
 
 export type DashboardTheme = { id: string; name: string };
@@ -210,6 +213,7 @@ export function DashboardSessions({
                         />
                         {/* 마감·비활성화된 회차는 고객 화면에서 '마감' 이 이기므로 태그가 안 보인다. */}
                         <SessionBadgeToggle sessionId={s.id} badge={s.badge} />
+                        {s.group_block !== null && <GroupBlockToggle sessionId={s.id} on={s.group_block} />}
                       </div>
                     </div>
                   );

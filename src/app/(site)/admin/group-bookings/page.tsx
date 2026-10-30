@@ -111,7 +111,7 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
 
   const { data: closureData } = await supabase
     .from("group_booking_closures")
-    .select("id, date, start_time, minutes, note, inquiry_id")
+    .select("id, date, start_time, minutes, note, inquiry_id, session_id")
     .gte("date", kstToday())
     .order("date")
     .order("start_time", { nullsFirst: true });
@@ -123,6 +123,7 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
       minutes: number | null;
       note: string | null;
       inquiry_id: string | null;
+      session_id: string | null;
     }[]) ?? [];
 
   // 예약 확정으로 걸어 둔 마감(신청 건 하나에 하나). 지난 날짜도 신청 건 옆에 보여야 해서 따로 읽는다.

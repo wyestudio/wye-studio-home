@@ -12,6 +12,8 @@ type Closure = {
   note: string | null;
   /** 예약 확정한 견적 신청 건에서 걸린 마감이면 그 건의 id. */
   inquiry_id: string | null;
+  /** 파티모드 회차의 「단체 막기」 로 걸린 마감이면 그 회차 id. */
+  session_id: string | null;
 };
 
 const DAY = ["일", "월", "화", "수", "목", "금", "토"];
@@ -172,6 +174,9 @@ export function ClosureManager({
                   : "종일"}
               </span>
               <span className="min-w-0 flex-1 text-muted md:truncate">
+                {c.session_id && (
+                  <span className="mr-2 rounded-md bg-fill px-1.5 py-0.5 text-micro text-foreground">파티 회차</span>
+                )}
                 {c.inquiry_id && (
                   <span className="mr-2 rounded-md bg-fill px-1.5 py-0.5 text-micro text-foreground">
                     예약 확정 · {inquiryNames[c.inquiry_id] ?? "신청 건"}
