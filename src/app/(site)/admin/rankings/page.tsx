@@ -34,7 +34,7 @@ export default async function AdminRankingsPage({ searchParams }: PageProps<"/ad
   const error = themesRes.error ?? rowsRes.error;
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/rankings" />
 

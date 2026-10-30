@@ -76,9 +76,10 @@ export function AdminNav({ current }: { current?: string }) {
          헤더를 덮어버린다(실제로 그랬다).
     */
     // 휴대폰에서는 메뉴가 화면 절반을 덮어 위에 붙이지 않는다(2026-10-30). 줄이 넘치면 꺾는다.
+    // 바깥 여백(-mx)은 페이지 여백(휴대폰 p-4 · 컴퓨터 p-6)과 같아야 한다 — 크면 가로로 삐져나온다.
     <nav
-      className="relative z-30 -mx-6 md:sticky md:top-[var(--header-height,0px)] -mt-6 mb-8 flex flex-wrap items-center
-                 gap-x-6 gap-y-3 border-b border-border bg-background px-6 pb-4 pt-6
+      className="relative z-30 -mx-4 -mt-4 mb-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border
+                 bg-background px-4 pb-4 pt-4 md:sticky md:top-[var(--header-height,0px)] md:-mx-6 md:-mt-6 md:px-6 md:pt-6
                  before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full
                  before:h-2 before:bg-background"
     >

@@ -21,7 +21,7 @@ export default async function MarketingSmsPage() {
   const optouts = optoutsRes.status === "fulfilled" ? optoutsRes.value : [];
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/marketing-sms" />
 

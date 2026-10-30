@@ -25,7 +25,7 @@ export default async function AdminCouponsPage() {
   const error = campaignsRes.error ?? couponsRes.error;
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/coupons" />
 

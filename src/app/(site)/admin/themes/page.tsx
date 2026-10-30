@@ -18,7 +18,7 @@ export default async function AdminThemesPage() {
   const error = themesRes.error ?? tiersRes.error ?? venuesRes.error;
   if (error) {
     return (
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen bg-background p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
           <AdminNav current="/themes" />
           <div className="text-red-400">테마를 불러올 수 없습니다: {error.message}</div>
@@ -34,7 +34,7 @@ export default async function AdminThemesPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <AdminNav current="/themes" />
 
