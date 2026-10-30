@@ -76,7 +76,7 @@ export function InquiryRow({
         options={INQUIRY_STATUSES.map((s) => ({ value: s.code, label: s.label }))}
       />
       {booked && initialBooking && !editing && (
-        <div className="flex items-center gap-2 text-micro">
+        <div className="flex items-center gap-2 text-body-sm">
           <span className="min-w-0 flex-1 text-muted tabular-nums">
             {initialBooking.date.slice(5)} {initialBooking.time} ~ {addMinutes(initialBooking.time, initialBooking.minutes)}{" "}
             마감 중
@@ -91,7 +91,7 @@ export function InquiryRow({
         </div>
       )}
       {booked && editing && (
-        <div className="flex flex-col gap-1.5 rounded-lg border border-border p-2 text-micro">
+        <div className="flex flex-col gap-1.5 rounded-lg border border-border p-2 text-body-sm">
           <span className="flex justify-between gap-2 font-semibold">
             확정 일시
             {time && minutes > 0 && (
@@ -144,7 +144,7 @@ export function InquiryRow({
         </div>
       )}
       {!booked && initialBooking && (
-        <p className="text-micro text-muted">저장하면 확정 일시 마감({initialBooking.date} {initialBooking.time})이 풀려요.</p>
+        <p className="text-body-sm text-muted">저장하면 확정 일시 마감({initialBooking.date} {initialBooking.time})이 풀려요.</p>
       )}
       <textarea
         rows={2}
@@ -162,7 +162,7 @@ export function InquiryRow({
         >
           {pending ? "저장 중…" : "저장"}
         </button>
-        {message && <span className="text-micro text-muted">{message}</span>}
+        {message && <span className="text-body-sm text-muted">{message}</span>}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatDateTimeFull } from "@/lib/format";
+import { formatDateTimeFull, formatKrw } from "@/lib/format";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
 import { SessionStatusToggle } from "@/components/admin/SessionStatusToggle";
 import { SendReminderButton } from "./SendReminderButton";
@@ -45,6 +45,7 @@ type App = {
   refund_account_number: string | null;
   refund_account_holder: string | null;
   refund_completed_at: string | null;
+  amount_krw: number | null;
   is_internal: boolean;
 };
 
@@ -101,11 +102,35 @@ function AppCard({
 }) {
   const cancelled = app.status === "cancelled";
   const people = atts.length;
+  // 신청 건에 대한 것(인원 · 금액 · 입금자 …)과 사람에 대한 것(이름 · 성별 · 출생 · 전화)을
+  // 칸을 나눠 적는다 — 가운데점으로 이어 붙이면 어디까지가 누구 정보인지 안 보였다(2026-10-30 대표님).
+  const info: [string, React.ReactNode][] = [
+    ["인원", `${people}명`],
+    ["금액", app.amount_krw != null ? formatKrw(app.amount_krw) : "-"],
+    ["입금자", app.depositor_name || "-"],
+    ["신청", formatDateTimeFull(app.created_at)],
+  ];
+  if (showPromoted && app.promoted_from_waiting_at) {
+    info.push(["확정", `대기 → 확정 (${formatDateTimeFull(app.promoted_from_waiting_at)})`]);
+  }
+  if (cancelled && app.refund_bank_name) {
+    info.push([
+      "환불 계좌",
+      <>
+        <strong>{app.refund_bank_name}</strong> {app.refund_account_number} {app.refund_account_holder}
+        {app.refund_completed_at && (
+          <span className="text-muted"> (완료 {formatDateTimeFull(app.refund_completed_at)})</span>
+        )}
+      </>,
+    ]);
+  }
   return (
-    <li className="rounded-lg border border-border p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <ApplicationDetailDialog application={app} attendees={atts} />
-        <span className="text-micro text-muted">{people}명</span>
+    <li className="overflow-hidden rounded-xl border border-border">
+      {/* ── 신청 건 머리: 접수번호 · 상태 · 액션 ── */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-border bg-fill-subtle px-4 py-3">
+        <span className="text-body">
+          <ApplicationDetailDialog application={app} attendees={atts} />
+        </span>
         {app.status === "waiting" && <span className={`${tag} bg-amber-400 text-black`}>대기</span>}
         {!cancelled &&
           (app.payment_status === "confirmed" ? (
@@ -159,41 +184,55 @@ function AppCard({
         </span>
       </div>
 
-      {people > 0 ? (
-        <ul className="mt-3 flex flex-col gap-1.5 text-body-sm">
-          {atts.map((a) => (
-            <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <span className="font-semibold">
-                {a.is_representative && <span className="mr-1 text-micro font-normal text-muted">대표</span>}
-                {a.name}
-              </span>
-              <span className="text-micro text-muted">
-                {a.gender === "M" ? "남" : a.gender === "F" ? "여" : "-"} · {a.birth_year ?? "-"}
-              </span>
-              <a href={`tel:${a.phone.replace(/[^\d]/g, "")}`} className="text-micro text-muted underline tabular-nums">
-                {a.phone}
-              </a>
-              {/* 몇 번째 참여인가 — 운영자 전용(participationHistory.ts). 첫 참여면 안 붙인다. */}
-              {a.revisit && (
-                <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-micro text-amber-400">{a.revisit}</span>
-              )}
-            </li>
+      <div className="flex flex-col gap-4 p-4">
+        {/* ── 신청 정보 ── */}
+        <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-body-sm">
+          {info.map(([k, v]) => (
+            <div key={k} className="contents">
+              <dt className="text-muted">{k}</dt>
+              <dd className="min-w-0">{v}</dd>
+            </div>
           ))}
-        </ul>
-      ) : (
-        <p className="mt-3 text-micro text-muted">참여자 정보 없음</p>
-      )}
+        </dl>
 
-      {showPromoted && app.promoted_from_waiting_at && (
-        <p className="mt-2 text-micro text-glow">대기 → 확정 ({formatDateTimeFull(app.promoted_from_waiting_at)})</p>
-      )}
-      {cancelled && app.refund_bank_name && (
-        <p className="mt-2 text-micro text-muted">
-          환불 계좌 <strong className="text-foreground">{app.refund_bank_name}</strong> {app.refund_account_number}{" "}
-          {app.refund_account_holder}
-          {app.refund_completed_at && ` · 완료 ${formatDateTimeFull(app.refund_completed_at)}`}
-        </p>
-      )}
+        {/* ── 참여자 ── 사람마다 한 줄, 칸을 맞춘다 */}
+        <div>
+          <p className="mb-1.5 text-label font-semibold text-muted">참여자</p>
+          {people > 0 ? (
+            <ul className="divide-y divide-border rounded-lg border border-border">
+              {atts.map((a) => (
+                <li
+                  key={a.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 text-body-sm sm:grid-cols-[minmax(0,1fr)_3rem_3.5rem_auto]"
+                >
+                  <span className="min-w-0 font-semibold">
+                    {a.is_representative && (
+                      <span className="mr-1.5 rounded-md bg-fill px-1.5 py-0.5 text-micro font-normal text-muted">대표</span>
+                    )}
+                    {a.name}
+                    {/* 몇 번째 참여인가 — 운영자 전용(participationHistory.ts). 첫 참여면 안 붙인다. */}
+                    {a.revisit && (
+                      <span className="ml-1.5 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-micro font-normal text-amber-400">
+                        {a.revisit}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-muted">{a.gender === "M" ? "남" : a.gender === "F" ? "여" : "-"}</span>
+                  <span className="tabular-nums text-muted">{a.birth_year ?? "-"}</span>
+                  <a
+                    href={`tel:${a.phone.replace(/[^\d]/g, "")}`}
+                    className="col-span-3 tabular-nums text-glow underline sm:col-span-1"
+                  >
+                    {a.phone}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-body-sm text-muted">참여자 정보 없음</p>
+          )}
+        </div>
+      </div>
     </li>
   );
 }
@@ -266,8 +305,12 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
   // 우리 기기에서 넣은 신청에 '테스트' 배지를 단다. 정원·명단에는 그대로 포함된다.
   const internalIds = await getInternalApplicationIds((applications ?? []).map((a) => a.id as string));
+  // 금액은 admin_application_view 에 없어 표에서 따로 읽는다.
+  const { data: amountRows } = await supabase.from("applications").select("id, amount_krw").eq("session_id", params.id);
+  const amountById = new Map(((amountRows ?? []) as { id: string; amount_krw: number | null }[]).map((r) => [r.id, r.amount_krw]));
   const allApplications: App[] = (applications ?? []).map((a) => ({
-    ...(a as Omit<App, "is_internal">),
+    ...(a as Omit<App, "is_internal" | "amount_krw">),
+    amount_krw: amountById.get(a.id as string) ?? null,
     is_internal: internalIds.has(a.id as string),
   }));
 
@@ -342,7 +385,7 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
             )}
             <span className={`${tag} ${state.cls}`}>{state.label}</span>
           </div>
-          <p className="mt-2 text-body-sm text-muted">
+          <p className="mt-2 text-body text-muted">
             {isNormal
               ? confirmedApps.length > 0
                 ? `예약 ${bookedPeople}명 · ${unpaidConfirmedCount > 0 ? "입금 확인 전" : "입금 확인"}`

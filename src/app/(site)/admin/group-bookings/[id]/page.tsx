@@ -2,10 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateFull, formatDateTimeFull } from "@/lib/format";
-import { contactMethodLabel, inquiryStatusLabel, preferredTimeLabel } from "@/lib/groupBooking";
-import { BASE_MINUTES, HHMM, addMinutes } from "@/lib/groupPricing";
+import {
+  contactMethodLabel,
+  groupKindLabel,
+  inquiryStatusLabel,
+  preferredTimeLabel,
+  repeatPlayerLabel,
+  teamStyleLabel,
+} from "@/lib/groupBooking";
+import { BASE_MINUTES, HHMM, addMinutes, won } from "@/lib/groupPricing";
 import { InquiryRow } from "../InquiryRow";
-import { ContactLink, ExtrasCell, OptionsCell, SourceCell, suggestedBooking, type Inquiry } from "../inquiryParts";
+import { ContactLink, SourceCell, suggestedBooking, type Inquiry } from "../inquiryParts";
 
 export const dynamic = "force-dynamic";
 
@@ -50,17 +57,51 @@ export default async function AdminGroupBookingDetailPage({ params }: { params: 
   const suggested = suggestedBooking(r);
   const wishTime = HHMM.test(r.preferred_time) ? r.preferred_time : null;
 
-  const rows: [string, React.ReactNode][] = [
-    [
-      "연락처",
-      <>
-        <span className="text-muted">{contactMethodLabel(r.contact_method)}</span> <ContactLink r={r} />
-      </>,
-    ],
-    ["견적", <OptionsCell key="o" r={r} />],
-    ["모임", <ExtrasCell key="e" r={r} />],
-    ["유입", <SourceCell key="s" r={r} />],
-    ["접수", formatDateTimeFull(r.created_at)],
+  const o = r.options ?? {};
+  const picks = [
+    o.icebreaking === false ? "레크리에이션 뺌" : null,
+    o.character ? "캐릭터 꾸미기" : null,
+    o.after_party_hours ? `애프터파티 ${o.after_party_hours}시간` : null,
+    o.cleanup ? "뒷정리" : null,
+  ].filter(Boolean);
+
+  // 누구에게 연락하나 / 얼마 견적인가 / 어떤 모임인가 — 칸을 나눠 둔다(2026-10-30 대표님).
+  const blocks: { title: string; rows: [string, React.ReactNode][] }[] = [
+    {
+      title: "담당자 · 연락",
+      rows: [
+        ["담당자", r.organizer_name ?? "-"],
+        ["연락 수단", contactMethodLabel(r.contact_method)],
+        ["연락처", <ContactLink key="c" r={r} />],
+      ],
+    },
+    {
+      title: "견적",
+      rows: [
+        ["인원", `${r.headcount}명`],
+        ["구성", picks.length ? picks.join(", ") : "기본 구성"],
+        ["예상 금액", r.estimate_total != null ? won(r.estimate_total) : "상담 후 안내"],
+        ["1인", r.unit_price != null ? won(r.unit_price) : "-"],
+      ],
+    },
+    {
+      title: "모임 · 요청사항",
+      rows: [
+        ["모임 이름", r.group_name ?? "-"],
+        ["모임 성격", r.group_kind ? `${groupKindLabel(r.group_kind)}${r.group_kind_note ? ` (${r.group_kind_note})` : ""}` : "-"],
+        ["팀 구성", r.team_style ? teamStyleLabel(r.team_style) : "-"],
+        ["재참여", r.repeat_player ? repeatPlayerLabel(r.repeat_player) : "-"],
+        ["기념일", r.occasion ?? "-"],
+        ["요청사항", r.note ? <span className="whitespace-pre-line">{r.note}</span> : "-"],
+      ],
+    },
+    {
+      title: "접수",
+      rows: [
+        ["접수 시각", formatDateTimeFull(r.created_at)],
+        ["유입", <SourceCell key="s" r={r} />],
+      ],
+    },
   ];
 
   return (
@@ -102,17 +143,22 @@ export default async function AdminGroupBookingDetailPage({ params }: { params: 
           </div>
         </header>
 
-        {/* ── 신청 내용 ── */}
-        <section className="mb-6 rounded-xl border border-border p-4 md:p-5">
-          <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-3 text-body-sm">
-            {rows.map(([k, v]) => (
-              <div key={k} className="contents">
-                <dt className="text-muted">{k}</dt>
-                <dd className="min-w-0">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+        {/* ── 신청 내용 ── 묶음마다 카드 하나 */}
+        <div className="mb-6 grid gap-4 md:grid-cols-2">
+          {blocks.map((b) => (
+            <section key={b.title} className="rounded-xl border border-border p-4 md:p-5">
+              <h2 className="mb-3 text-label font-semibold text-muted">{b.title}</h2>
+              <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-body">
+                {b.rows.map(([k, v]) => (
+                  <div key={k} className="contents">
+                    <dt className="text-body-sm text-muted">{k}</dt>
+                    <dd className="min-w-0 break-words">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+        </div>
 
         {/* ── 응대 ── 상태 · 확정 일시 · 메모 */}
         <section className="rounded-xl border border-border p-4 md:p-5">
