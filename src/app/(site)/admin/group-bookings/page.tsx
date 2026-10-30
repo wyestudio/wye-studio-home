@@ -9,8 +9,8 @@ import {
   repeatPlayerLabel,
   teamStyleLabel,
 } from "@/lib/groupBooking";
-import { kstToday, won } from "@/lib/groupPricing";
-import { InquiryRow } from "./InquiryRow";
+import { BASE_MINUTES, HHMM, OPTION, addMinutes, kstToday, won } from "@/lib/groupPricing";
+import { InquiryRow, type Booking } from "./InquiryRow";
 import { ClosureManager } from "./ClosureManager";
 
 export const dynamic = "force-dynamic";
@@ -81,13 +81,30 @@ export default async function AdminGroupBookingsPage() {
 
   const { data: closureData } = await supabase
     .from("group_booking_closures")
-    .select("id, date, start_time, minutes, note")
+    .select("id, date, start_time, minutes, note, inquiry_id")
     .gte("date", kstToday())
     .order("date")
     .order("start_time", { nullsFirst: true });
   const closures =
-    (closureData as { id: string; date: string; start_time: string | null; minutes: number | null; note: string | null }[]) ??
-    [];
+    (closureData as {
+      id: string;
+      date: string;
+      start_time: string | null;
+      minutes: number | null;
+      note: string | null;
+      inquiry_id: string | null;
+    }[]) ?? [];
+
+  // 예약 확정으로 걸어 둔 마감(신청 건 하나에 하나). 지난 날짜도 신청 건 옆에 보여야 해서 따로 읽는다.
+  const { data: bookingData } = await supabase
+    .from("group_booking_closures")
+    .select("inquiry_id, date, start_time, minutes")
+    .not("inquiry_id", "is", null);
+  const bookings = new Map<string, Booking>(
+    ((bookingData as { inquiry_id: string; date: string; start_time: string | null; minutes: number | null }[]) ?? [])
+      .filter((b) => b.start_time)
+      .map((b) => [b.inquiry_id, { date: b.date, time: b.start_time!, minutes: b.minutes ?? BASE_MINUTES }])
+  );
   // 아직 아무도 손대지 않은 건수. 접수함은 "오늘 볼 게 몇 건인가" 가 먼저다.
   const pending = rows.filter((r) => r.status === "new").length;
 
@@ -106,7 +123,10 @@ export default async function AdminGroupBookingsPage() {
           </Link>
         </p>
 
-        <ClosureManager closures={closures} />
+        <ClosureManager
+          closures={closures}
+          inquiryNames={Object.fromEntries(rows.map((r) => [r.id, r.group_name ?? r.organizer_name ?? "이름 없음"]))}
+        />
 
         {rows.length === 0 ? (
           <p className="py-4 text-muted">아직 접수된 문의가 없습니다.</p>
@@ -148,6 +168,13 @@ export default async function AdminGroupBookingsPage() {
                       <span className="text-micro text-muted">
                         {preferredTimeLabel(r.preferred_time)}
                       </span>
+                      {bookings.has(r.id) && (
+                        <div className="mt-1 text-micro font-semibold text-glow">
+                          확정 {bookings.get(r.id)!.date}
+                          <br />
+                          {bookings.get(r.id)!.time} ~ {addMinutes(bookings.get(r.id)!.time, bookings.get(r.id)!.minutes)}
+                        </div>
+                      )}
                     </td>
                     <td className={`${td} whitespace-nowrap text-micro`}>
                       <OptionsCell r={r} />
@@ -181,7 +208,13 @@ export default async function AdminGroupBookingsPage() {
                       )}
                     </td>
                     <td className={td}>
-                      <InquiryRow id={r.id} status={r.status} memo={r.admin_memo ?? ""} />
+                      <InquiryRow
+                        id={r.id}
+                        status={r.status}
+                        memo={r.admin_memo ?? ""}
+                        booking={bookings.get(r.id) ?? null}
+                        suggested={suggestedBooking(r)}
+                      />
                     </td>
                   </tr>
                 ))}
@@ -196,6 +229,19 @@ export default async function AdminGroupBookingsPage() {
       </div>
     </div>
   );
+}
+
+/**
+ * 예약 확정 칸의 처음 값 — 희망 일시와 견적 시간(프로그램 + 애프터파티).
+ * 희망 시간이 v1 코드값(t1530 · flexible 등)이면 시각은 비워 둔다.
+ */
+function suggestedBooking(r: Inquiry): { date: string; time: string; minutes: number } {
+  const o = r.options ?? {};
+  return {
+    date: r.preferred_date ?? kstToday(),
+    time: HHMM.test(r.preferred_time) ? r.preferred_time : "",
+    minutes: BASE_MINUTES - (o.icebreaking === false ? OPTION.icebreaking.minutes : 0) + (o.after_party_hours ?? 0) * 60,
+  };
 }
 
 /** 견적 단계에서 고른 것. 금액은 접수 시점에 서버가 계산한 값이다(요금표가 바뀌어도 그대로). */

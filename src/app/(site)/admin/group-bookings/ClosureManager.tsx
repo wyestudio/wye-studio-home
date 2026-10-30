@@ -4,7 +4,15 @@ import { useState, useTransition } from "react";
 import { BASE_MINUTES, addMinutes, durationLabel } from "@/lib/groupPricing";
 import { addGroupClosure, removeGroupClosure } from "./actions";
 
-type Closure = { id: string; date: string; start_time: string | null; minutes: number | null; note: string | null };
+type Closure = {
+  id: string;
+  date: string;
+  start_time: string | null;
+  minutes: number | null;
+  note: string | null;
+  /** 예약 확정한 견적 신청 건에서 걸린 마감이면 그 건의 id. */
+  inquiry_id: string | null;
+};
 
 const DAY = ["일", "월", "화", "수", "목", "금", "토"];
 const dayOf = (d: string) => DAY[new Date(`${d}T00:00:00Z`).getUTCDay()];
@@ -19,7 +27,14 @@ const dayOf = (d: string) => DAY[new Date(`${d}T00:00:00Z`).getUTCDay()];
  *
  * 해제는 두 번 눌러야 된다 — 목록을 훑다 잘못 누르면 막아 둔 날이 바로 열린다.
  */
-export function ClosureManager({ closures }: { closures: Closure[] }) {
+export function ClosureManager({
+  closures,
+  inquiryNames,
+}: {
+  closures: Closure[];
+  /** 신청 건 id → 모임 이름(없으면 담당자). 예약 확정 마감 옆에 붙인다. */
+  inquiryNames: Record<string, string>;
+}) {
   const [date, setDate] = useState("");
   const [allDay, setAllDay] = useState(false);
   const [time, setTime] = useState("");
@@ -155,7 +170,14 @@ export function ClosureManager({ closures }: { closures: Closure[] }) {
                   ? `${c.start_time} ~ ${addMinutes(c.start_time, c.minutes ?? BASE_MINUTES)} (${durationLabel(c.minutes ?? BASE_MINUTES)})`
                   : "종일"}
               </span>
-              <span className="min-w-0 flex-1 truncate text-muted">{c.note ?? ""}</span>
+              <span className="min-w-0 flex-1 truncate text-muted">
+                {c.inquiry_id && (
+                  <span className="mr-2 rounded-md bg-fill px-1.5 py-0.5 text-micro text-foreground">
+                    예약 확정 · {inquiryNames[c.inquiry_id] ?? "신청 건"}
+                  </span>
+                )}
+                {c.note ?? ""}
+              </span>
               <button
                 type="button"
                 onClick={() => remove(c.id)}
