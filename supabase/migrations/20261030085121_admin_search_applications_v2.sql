@@ -7,7 +7,7 @@
 --   p_theme_id  테마(파티 · 노말 모드가 각각 테마다)
 --   p_date_from / p_date_to  회차 날짜(KST) 범위 — v1 의 p_from/p_to 는 신청 시각이었다
 --   p_time    회차 시작 시각(KST, 'HH:MM')
---   p_sort    created_desc(기본) · created_asc · session_asc · session_desc · name_asc
+--   p_sort    '<칸>_<asc|desc>' — 칸: created(기본 desc) · session · name · headcount · amount
 --   반환에 theme_mode(모드 이름) 를 더한다 — 두 모드의 테마명이 같아 목록에서 구분이 안 됐다.
 
 create or replace function public.admin_search_applications_v2(
@@ -104,10 +104,15 @@ begin
          c.n
   from filtered f, counted c
   order by
-    case when p_sort = 'created_asc'  then f.created_at end asc,
-    case when p_sort = 'session_asc'  then f.session_start_at end asc,
-    case when p_sort = 'session_desc' then f.session_start_at end desc,
-    case when p_sort = 'name_asc'     then f.representative_name end asc,
+    case when p_sort = 'created_asc'    then f.created_at end asc,
+    case when p_sort = 'session_asc'    then f.session_start_at end asc,
+    case when p_sort = 'session_desc'   then f.session_start_at end desc,
+    case when p_sort = 'name_asc'       then f.representative_name end asc nulls last,
+    case when p_sort = 'name_desc'      then f.representative_name end desc nulls last,
+    case when p_sort = 'headcount_asc'  then f.headcount end asc,
+    case when p_sort = 'headcount_desc' then f.headcount end desc,
+    case when p_sort = 'amount_asc'     then f.amount_krw end asc nulls last,
+    case when p_sort = 'amount_desc'    then f.amount_krw end desc nulls last,
     f.created_at desc
   limit greatest(1, least(p_limit, 200))
   offset greatest(0, p_offset);

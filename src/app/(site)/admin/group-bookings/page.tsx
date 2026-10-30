@@ -11,6 +11,8 @@ import {
 } from "@/lib/groupBooking";
 import { BASE_MINUTES, addMinutes } from "@/lib/groupPricing";
 import { InquiryRow, type Booking } from "./InquiryRow";
+import { withBack } from "@/lib/adminBack";
+import { SortLink, nextSort, type SortDir } from "@/components/admin/SortLink";
 import { ExtrasCell, OptionsCell, SourceCell, suggestedBooking, type Inquiry } from "./inquiryParts";
 
 export const dynamic = "force-dynamic";
@@ -38,17 +40,20 @@ const TABS = [
 ] as const;
 const PAGE_SIZE = 20;
 
-const SORTS = [
-  { value: "created_desc", label: "접수 최신순" },
-  { value: "created_asc", label: "접수 오래된순" },
-  { value: "date_asc", label: "희망 날짜 빠른순" },
-  { value: "date_desc", label: "희망 날짜 늦은순" },
-  { value: "name_asc", label: "이름순" },
-  { value: "headcount_desc", label: "인원 많은순" },
-];
+/**
+ * 표 머리를 눌러 정렬하는 칸과 처음 누를 때의 방향(2026-10-30 대표님).
+ * 날짜는 확정 건이면 확정 일시, 아니면 희망 일시로 본다.
+ */
+const SORT_KEYS: Record<string, { label: string; dir: SortDir }> = {
+  created: { label: "접수일시", dir: "desc" },
+  name: { label: "담당자 · 모임", dir: "asc" },
+  headcount: { label: "인원", dir: "desc" },
+  date: { label: "희망 일시", dir: "asc" },
+  amount: { label: "예상 금액", dir: "desc" },
+};
 
-/** 검색 조건 칸. 탭(tab) · 쪽(page)과 같이 주소에 담는다. */
-const FIELDS = ["name", "contact", "from", "to", "time", "min", "kind", "sort"] as const;
+/** 검색 조건 칸 + 정렬(sort · dir). 탭(tab) · 쪽(page)과 같이 주소에 담는다. */
+const FIELDS = ["name", "contact", "from", "to", "time", "min", "kind", "sort", "dir"] as const;
 type Cond = Record<(typeof FIELDS)[number] | "tab", string> & { page: number };
 
 /** 탭 · 조건 · 쪽을 바꾼 주소. 바꾸지 않은 값은 그대로 둔다. */
@@ -74,7 +79,8 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
   const c = Object.fromEntries(
     FIELDS.map((k) => [k, (typeof params[k] === "string" ? (params[k] as string) : "").trim().slice(0, 40)])
   ) as Record<(typeof FIELDS)[number], string>;
-  const sort = SORTS.some((x) => x.value === c.sort) ? c.sort : "created_desc";
+  const sortKey = c.sort in SORT_KEYS ? c.sort : "created";
+  const sortDir: SortDir = c.dir === "asc" || c.dir === "desc" ? c.dir : SORT_KEYS[sortKey].dir;
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -130,22 +136,32 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
     .filter((r) => !c.kind || r.group_kind === c.kind)
     .sort((a, b) => {
       const name = (r: Inquiry) => r.group_name ?? r.organizer_name ?? "";
-      switch (sort) {
-        case "created_asc":
-          return a.created_at.localeCompare(b.created_at);
-        case "date_asc":
-          return (whenOf(a).date || "9999").localeCompare(whenOf(b).date || "9999") || whenOf(a).time.localeCompare(whenOf(b).time);
-        case "date_desc":
-          return whenOf(b).date.localeCompare(whenOf(a).date) || whenOf(b).time.localeCompare(whenOf(a).time);
-        case "name_asc":
-          return name(a).localeCompare(name(b), "ko");
-        case "headcount_desc":
-          return b.headcount - a.headcount;
+      // 날짜 없는 건(옛 접수)은 방향과 상관없이 맨 뒤로.
+      const when = (r: Inquiry) => (whenOf(r).date ? `${whenOf(r).date} ${whenOf(r).time}` : null);
+      let d = 0;
+      switch (sortKey) {
+        case "name":
+          d = name(a).localeCompare(name(b), "ko");
+          break;
+        case "headcount":
+          d = a.headcount - b.headcount;
+          break;
+        case "amount":
+          d = (a.estimate_total ?? -1) - (b.estimate_total ?? -1);
+          break;
+        case "date": {
+          const wa = when(a);
+          const wb = when(b);
+          if (!wa || !wb) return wa ? -1 : wb ? 1 : 0;
+          d = wa.localeCompare(wb);
+          break;
+        }
         default:
-          return b.created_at.localeCompare(a.created_at);
+          d = a.created_at.localeCompare(b.created_at);
       }
+      return sortDir === "asc" ? d : -d;
     });
-  const applied = FIELDS.filter((k) => k !== "sort" && c[k]).length;
+  const applied = FIELDS.filter((k) => k !== "sort" && k !== "dir" && c[k]).length;
   const tabCounts = Object.fromEntries(
     TABS.map((t) => [t.key, searched.filter((r) => t.match(r.status)).length])
   ) as Record<string, number>;
@@ -154,7 +170,19 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
   const rawPage = Number(typeof params.page === "string" ? params.page : "1");
   const page = Math.min(pageCount, Math.max(1, Number.isInteger(rawPage) ? rawPage : 1));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const cur: Cond = { ...c, sort: sort === "created_desc" ? "" : sort, tab, page };
+  const isDefaultSort = sortKey === "created" && sortDir === "desc";
+  const cur: Cond = { ...c, sort: isDefaultSort ? "" : sortKey, dir: isDefaultSort ? "" : sortDir, tab, page };
+  // 머리 칸 하나 — 누르면 1쪽부터 그 칸으로 정렬
+  const sortProps = (key: string) => {
+    const n = nextSort({ key: sortKey, dir: sortDir }, key, SORT_KEYS[key].dir);
+    const def = n.key === "created" && n.dir === "desc";
+    return {
+      label: SORT_KEYS[key].label,
+      active: sortKey === key,
+      dir: sortDir,
+      href: listHref(cur, { sort: def ? "" : n.key, dir: def ? "" : n.dir, page: 1 }),
+    };
+  };
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
@@ -217,28 +245,20 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
                 ))}
               </select>
             </Labeled>
-            <Labeled label="정렬">
-              <select name="sort" defaultValue={sort} className={field}>
-                {SORTS.map((x) => (
-                  <option key={x.value} value={x.value}>
-                    {x.label}
-                  </option>
-                ))}
-              </select>
-            </Labeled>
-            <p className="col-span-2 self-center text-micro text-muted md:col-span-2">
-              날짜 · 시각은 확정 건이면 확정 일시, 아니면 희망 일시로 찾아요.
-            </p>
-            <div className="col-span-2 flex items-end gap-2">
-              <button type="submit" className="flex-1 rounded-lg bg-glow px-4 py-2.5 text-body font-semibold text-black md:flex-none">
-                검색
-              </button>
+            {/* 정렬은 표 머리로 고른다 — 검색해도 지금 정렬을 그대로 둔다 */}
+            {cur.sort && <input type="hidden" name="sort" value={cur.sort} />}
+            {cur.dir && <input type="hidden" name="dir" value={cur.dir} />}
+            <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4 md:col-span-4">
+              <p className="mr-auto text-micro text-muted">날짜 · 시각은 확정 건이면 확정 일시, 아니면 희망 일시로 찾아요.</p>
               <Link
                 href={tab === "all" ? "/group-bookings#list" : `/group-bookings?tab=${tab}#list`}
-                className="rounded-lg border border-border px-4 py-2.5 text-body text-muted"
+                className="rounded-lg border border-border px-5 py-2.5 text-body-sm font-semibold text-muted hover:text-foreground"
               >
                 초기화
               </Link>
+              <button type="submit" className="min-w-28 rounded-lg bg-glow px-6 py-2.5 text-body-sm font-semibold text-black">
+                검색
+              </button>
             </div>
           </form>
         </details>
@@ -271,12 +291,18 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
             휴대폰은 카드 한 장씩 — 표는 가로로 밀려서 정작 자주 쓰는 진행 상태 · 저장 칸이
             화면 밖에 있었다(2026-10-30 대표님).
           */}
+          {/* 휴대폰: 표 머리가 없어 정렬 칸을 한 줄로 둔다 */}
+          <div className="-mx-4 mb-2 flex gap-3 overflow-x-auto px-4 text-body-sm text-muted [scrollbar-width:none] md:hidden">
+            {Object.keys(SORT_KEYS).map((k) => (
+              <SortLink key={k} {...sortProps(k)} />
+            ))}
+          </div>
           {/* 카드는 한 줄 요약 — 누르면 그 건의 상세로 간다(회차 상세와 같은 방식). */}
           <ul className="flex flex-col gap-2 md:hidden">
             {pageRows.map((r) => (
               <li key={r.id}>
                 <Link
-                  href={`/group-bookings/${r.id}`}
+                  href={withBack(`/group-bookings/${r.id}`, listHref(cur, {}))}
                   className={`flex items-center gap-3 rounded-xl border border-border p-4 hover:bg-fill-subtle ${
                     r.status === "new" ? "bg-brand-soft/30" : "bg-panel"
                   }`}
@@ -309,11 +335,11 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  <th className={th}>접수일시</th>
-                  <th className={th}>담당자 · 모임</th>
-                  <th className={th}>인원</th>
-                  <th className={th}>희망 일시</th>
-                  <th className={th}>옵션 · 예상 금액</th>
+                  <th className={th}><SortLink {...sortProps("created")} /></th>
+                  <th className={th}><SortLink {...sortProps("name")} /></th>
+                  <th className={th}><SortLink {...sortProps("headcount")} /></th>
+                  <th className={th}><SortLink {...sortProps("date")} /></th>
+                  <th className={th}><SortLink {...sortProps("amount")} /></th>
                   <th className={th}>연락처</th>
                   <th className={th}>참고 · 요청사항</th>
                   <th className={th}>유입</th>
@@ -332,7 +358,7 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
                       {formatDateTimeFull(r.created_at)}
                     </td>
                     <td className={`${td} whitespace-nowrap`}>
-                      <Link href={`/group-bookings/${r.id}`} className="font-semibold text-glow hover:underline">
+                      <Link href={withBack(`/group-bookings/${r.id}`, listHref(cur, {}))} className="font-semibold text-glow hover:underline">
                         {r.organizer_name ?? "이름 없음"}
                       </Link>
                       {r.group_name && <div className="text-micro text-muted">{r.group_name}</div>}

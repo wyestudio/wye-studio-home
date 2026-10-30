@@ -4,6 +4,8 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { Chevron } from "@/components/ui/Chevron";
 import { formatKrw, formatDateTimeFull, formatDateFull } from "@/lib/format";
 import { getInternalApplicationIds } from "@/lib/internalTraffic";
+import { withBack } from "@/lib/adminBack";
+import { SortLink, nextSort, type SortDir } from "@/components/admin/SortLink";
 
 export const dynamic = "force-dynamic";
 
@@ -42,16 +44,17 @@ const PAYMENT_TAG: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "취소", cls: "bg-fill-strong text-muted" },
 };
 
-const SORTS = [
-  { value: "created_desc", label: "신청 최신순" },
-  { value: "created_asc", label: "신청 오래된순" },
-  { value: "session_asc", label: "회차 날짜 빠른순" },
-  { value: "session_desc", label: "회차 날짜 늦은순" },
-  { value: "name_asc", label: "이름순" },
-];
+/** 표 머리를 눌러 정렬하는 칸과 처음 누를 때의 방향. 이름 · 회차는 앞에서부터, 나머지는 큰 것부터. */
+const SORT_KEYS: Record<string, { label: string; dir: SortDir }> = {
+  name: { label: "신청자", dir: "asc" },
+  headcount: { label: "인원", dir: "desc" },
+  session: { label: "회차", dir: "asc" },
+  amount: { label: "금액", dir: "desc" },
+  created: { label: "신청일", dir: "desc" },
+};
 
 /** 검색 칸 — 주소(?name=&phone=…)에 담긴다. 새로고침 · 뒤로가기 · 링크 공유가 그대로 된다. */
-const FIELDS = ["q", "name", "phone", "theme", "status", "payment", "from", "to", "time", "sort", "session"] as const;
+const FIELDS = ["q", "name", "phone", "theme", "status", "payment", "from", "to", "time", "sort", "dir", "session"] as const;
 
 /** 전화번호 뒤 4자리만 노출한다. 목록에서 전체 번호를 흘릴 이유가 없다. */
 function maskPhone(phone: string | null): string {
@@ -77,7 +80,9 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
     return typeof v === "string" && v.trim() ? v.trim() : undefined;
   };
   const v = Object.fromEntries(FIELDS.map((k) => [k, get(k) ?? ""])) as Record<(typeof FIELDS)[number], string>;
-  const sort = SORTS.some((s) => s.value === v.sort) ? v.sort : "created_desc";
+  // 정렬은 표 머리로 고른다(?sort=칸&dir=asc|desc). 없으면 신청 최신순.
+  const sortKey = v.sort in SORT_KEYS ? v.sort : "created";
+  const sortDir: SortDir = v.dir === "asc" || v.dir === "desc" ? v.dir : SORT_KEYS[sortKey].dir;
   const page = Math.max(1, Number(get("page") ?? 1) || 1);
   const ymd = (s: string) => (/^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null);
 
@@ -95,7 +100,7 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
       p_date_from: ymd(v.from),
       p_date_to: ymd(v.to),
       p_time: /^\d{2}:\d{2}$/.test(v.time) ? v.time : null,
-      p_sort: sort,
+      p_sort: `${sortKey}_${sortDir}`,
       p_limit: PAGE_SIZE,
       p_offset: (page - 1) * PAGE_SIZE,
     }),
@@ -124,14 +129,26 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const themes = (themesRes.data ?? []) as { id: string; name: string; variant_label: string | null }[];
   const onlySession = sessionRes.data as { start_at: string; theme_name: string | null; theme_mode: string | null } | null;
-  const applied = FIELDS.filter((k) => k !== "sort" && v[k]).length;
+  const applied = FIELDS.filter((k) => k !== "sort" && k !== "dir" && v[k]).length;
 
-  const pageHref = (n: number) => {
+  const pageHref = (n: number, sort?: { key: string; dir: SortDir }) => {
     const next = new URLSearchParams();
-    for (const k of FIELDS) if (v[k]) next.set(k, v[k]);
+    for (const k of FIELDS) if (v[k] && k !== "sort" && k !== "dir") next.set(k, v[k]);
+    const srt = sort ?? { key: sortKey, dir: sortDir };
+    if (srt.key !== "created" || srt.dir !== "desc") {
+      next.set("sort", srt.key);
+      next.set("dir", srt.dir);
+    }
     if (n > 1) next.set("page", String(n));
     return `/applications?${next.toString()}`;
   };
+  // 머리 칸 하나 — 누르면 1쪽부터 그 칸으로 정렬
+  const sortProps = (key: string) => ({
+    label: SORT_KEYS[key].label,
+    active: sortKey === key,
+    dir: sortDir,
+    href: pageHref(1, nextSort({ key: sortKey, dir: sortDir }, key, SORT_KEYS[key].dir)),
+  });
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
@@ -196,22 +213,22 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
                 <option value="cancelled">취소</option>
               </select>
             </Labeled>
-            <Labeled label="정렬">
-              <select name="sort" defaultValue={sort} className={field}>
-                {SORTS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </Labeled>
-            <div className="col-span-2 flex items-end gap-2">
-              <button type="submit" className="flex-1 rounded-lg bg-glow px-4 py-2.5 text-body font-semibold text-black md:flex-none">
-                검색
-              </button>
-              <Link href="/applications" className="rounded-lg border border-border px-4 py-2.5 text-body text-muted">
+            {/* 정렬은 표 머리로 고른다 — 검색해도 지금 정렬을 그대로 둔다 */}
+            {v.sort && <input type="hidden" name="sort" value={v.sort} />}
+            {v.dir && <input type="hidden" name="dir" value={v.dir} />}
+            <div className="col-span-2 flex justify-end gap-2 border-t border-border pt-4 md:col-span-4">
+              <Link
+                href="/applications"
+                className="rounded-lg border border-border px-5 py-2.5 text-body-sm font-semibold text-muted hover:text-foreground"
+              >
                 초기화
               </Link>
+              <button
+                type="submit"
+                className="min-w-28 rounded-lg bg-glow px-6 py-2.5 text-body-sm font-semibold text-black"
+              >
+                검색
+              </button>
             </div>
           </form>
         </details>
@@ -235,12 +252,18 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
           </div>
         ) : (
           <>
+            {/* 휴대폰: 표 머리가 없어 정렬 칸을 한 줄로 둔다 */}
+            <div className="-mx-4 mb-2 flex gap-3 overflow-x-auto px-4 text-body-sm text-muted [scrollbar-width:none] md:hidden">
+              {Object.keys(SORT_KEYS).map((k) => (
+                <SortLink key={k} {...sortProps(k)} />
+              ))}
+            </div>
             {/* 휴대폰: 카드 — 누르면 그 회차 상세로 */}
             <ul className="flex flex-col gap-2 md:hidden">
               {rows.map((r) => (
                 <li key={r.id}>
                   <Link
-                    href={`/sessions/${r.session_id}`}
+                    href={withBack(`/sessions/${r.session_id}`, pageHref(page))}
                     className="flex items-center gap-3 rounded-xl border border-border p-4 hover:bg-fill-subtle"
                   >
                     <div className="min-w-0 flex-1">
@@ -275,12 +298,12 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
                 <thead className="border-b border-border text-left text-label text-muted">
                   <tr>
                     <th className="px-3 py-2.5">접수번호</th>
-                    <th className="px-3 py-2.5">신청자</th>
-                    <th className="px-3 py-2.5">인원</th>
-                    <th className="px-3 py-2.5">회차</th>
+                    <th className="px-3 py-2.5"><SortLink {...sortProps("name")} /></th>
+                    <th className="px-3 py-2.5"><SortLink {...sortProps("headcount")} /></th>
+                    <th className="px-3 py-2.5"><SortLink {...sortProps("session")} /></th>
                     <th className="px-3 py-2.5">상태</th>
-                    <th className="px-3 py-2.5 text-right">금액</th>
-                    <th className="px-3 py-2.5">신청일</th>
+                    <th className="px-3 py-2.5 text-right"><SortLink {...sortProps("amount")} /></th>
+                    <th className="px-3 py-2.5"><SortLink {...sortProps("created")} /></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -301,7 +324,7 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
                       </td>
                       <td className="px-3 py-3">{r.headcount}명</td>
                       <td className="px-3 py-3">
-                        <Link href={`/sessions/${r.session_id}`} className="text-glow hover:underline">
+                        <Link href={withBack(`/sessions/${r.session_id}`, pageHref(page))} className="text-glow hover:underline">
                           {formatDateTimeFull(r.session_start_at)}
                         </Link>
                         {(r.theme_mode ?? r.format_label) && (
