@@ -74,7 +74,7 @@ const MODES: Record<
      * 지도 위 진행 막대. 칸 폭은 weight 비율이다 — **분을 적지 않는다**(2026-10-29 대표님).
      * 실제로는 아이스브레이킹 20분 · 방탈출+미니게임 120분 · 코인마켓 20분에 안내 등 20분이 더
      * 있는데, 분을 적으면 "코인마켓에 20분이나?" 같은 반응이 나와서 비율로만 보인다.
-     * 노말모드는 블록 위에 시간 막대(timebar)가 따로 있어 두지 않는다.
+     * 노말모드도 시간 막대(timebar) 블록 대신 이 막대를 쓴다(방탈출 90분 · 코인마켓 10분, 2026-10-30).
      */
     phases?: { title: string; weight: number }[];
     steps: Step[];
@@ -168,6 +168,10 @@ const MODES: Record<
     ],
     teams: [0],
     tables: [TABLE[1]],
+    phases: [
+      { title: "방탈출", weight: 90 },
+      { title: "코인마켓", weight: 10 },
+    ],
     steps: [
       {
         title: "우리 팀만 입장",
@@ -175,6 +179,7 @@ const MODES: Record<
         scene: "start",
         at: [TABLE[1]],
         score: [0],
+        phase: 0,
       },
       {
         title: "단서 찾기",
@@ -182,6 +187,7 @@ const MODES: Record<
         scene: "search",
         at: [[30, 40]],
         score: [0],
+        phase: 0,
       },
       {
         title: "게임패드로 정답 입력",
@@ -189,6 +195,7 @@ const MODES: Record<
         scene: "pad",
         at: [TABLE[1]],
         score: [110],
+        phase: 0,
       },
       {
         title: "이달의 랭킹 도전",
@@ -196,6 +203,7 @@ const MODES: Record<
         scene: "rank",
         at: [TABLE[1]],
         score: [110],
+        phase: 0,
       },
       {
         title: "코인마켓",
@@ -203,6 +211,7 @@ const MODES: Record<
         scene: "market",
         at: [TABLE[1]],
         score: [110],
+        phase: 1,
       },
     ],
   },

@@ -132,9 +132,12 @@ export function ThemeBlocks({
 
   // 「이렇게 플레이해요」 가 붙는 진행 순서 블록은 제목도 그쪽으로 바꾼다 — 어드민 제목(진행 순서)보다
   // 이 블록이 하는 일에 맞다(2026-10-29 대표님). 섹션 id · 목차 이름도 따라 바뀐다.
+  // 노말모드의 시간 막대(timebar) 블록도 같다(2026-10-30).
   const shown = howToPlay
     ? visible.map((b) =>
-        b.type === "timetable" ? ({ ...b, eyebrow: "HOW TO PLAY", title: "이렇게 플레이해요" } as ThemeBlock) : b
+        b.type === "timetable" || b.type === "timebar"
+          ? ({ ...b, eyebrow: "HOW TO PLAY", title: "이렇게 플레이해요" } as ThemeBlock)
+          : b
       )
     : visible;
 
@@ -491,12 +494,20 @@ export function ThemeBlockView({
         <ReviewsBlock block={block} accent={accent} />
       )}
 
-      {block.type === "timebar" && <TimeBarBlock block={block} accent={accent} />}
-      {/* 노말모드는 진행 순서 대신 시간 막대가 있다 — 그 아래에 그림을 붙인다. */}
+      {block.type === "timebar" && !howToPlay && <TimeBarBlock block={block} accent={accent} />}
+      {/*
+        노말모드도 시간 막대 자리를 「이렇게 플레이해요」 가 차지한다 — 분 대신 그림 속 비율 막대로.
+        도착 안내 같은 메모(note)만 아래에 남긴다(2026-10-30).
+      */}
       {block.type === "timebar" && howToPlay && (
-        <div className="mt-12 sm:mt-16">
+        <>
           <HowToPlay accent={accent} mode={howToPlay} />
-        </div>
+          {block.note && (
+            <p className="mx-auto mt-6 w-full max-w-3xl rounded-lg border border-line bg-fill px-4 py-3 text-body">
+              {block.note}
+            </p>
+          )}
+        </>
       )}
 
       {block.type === "ranking" && (
