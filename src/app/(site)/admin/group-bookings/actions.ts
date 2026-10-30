@@ -5,7 +5,7 @@ import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard
 import { writeAuditLog } from "@/lib/auditLog";
 import { GROUP_BOOKING_THEME_SLUGS, isInquiryStatus, inquiryStatusLabel } from "@/lib/groupBooking";
 import { GROUP_CLOSURES_TAG } from "@/lib/groupClosures";
-import { BASE_MINUTES, HHMM, ISO_DATE } from "@/lib/groupPricing";
+import { BASE_MINUTES, HHMM, ISO_DATE, addMinutes } from "@/lib/groupPricing";
 import { kstToUtcIso } from "@/lib/scheduleRules";
 
 /**
@@ -53,10 +53,12 @@ export async function saveInquiryStatus(input: {
 }
 
 /**
- * 단체 견적 화면에서 고를 수 없게 날짜·회차를 막는다.
+ * 단체 견적 화면에서 고를 수 없게 날짜·시간 구간을 막는다.
  *
  * 단체 일정 데이터가 따로 없어서 견적은 '희망 일시' 로 받는다. 다른 단체가 입금해
  * 확정된 날처럼 이미 찬 일정만 여기서 막는다(2026-10-25 대표님). time 이 null 이면 종일.
+ * 아니면 time 부터 minutes 분 동안이다 — 회차(11:30 등)가 아니라 구간으로 받는다
+ * (2026-10-30 대표님, 평일 · 주말 모두 시간이 계속 조정된다). 그 구간과 겹치는 단체 시간은 못 고른다.
  * ⚠️ 막는 순간 고객 화면(캐시 60초 안)과 접수 함수 양쪽에 걸린다.
  *
  * 같은 장소에서 시간이 겹치는 일반 회차(파티 · 노말 모드)도 같이 닫는다(2026-10-26 대표님).
@@ -66,32 +68,39 @@ export async function saveInquiryStatus(input: {
 export async function addGroupClosure(input: {
   date: string;
   time: string | null;
+  /** time 부터 몇 분. time 이 null(종일)이면 무시한다. */
+  minutes: number | null;
   note: string;
 }): Promise<ActionResult> {
   try {
     const supabase = await requireAdmin();
     if (!ISO_DATE.test(input.date)) return { error: "날짜를 확인해주세요." };
     if (input.time !== null && !HHMM.test(input.time)) return { error: "시간을 확인해주세요." };
+    const minutes = input.time === null ? null : input.minutes;
+    if (minutes !== null && (!Number.isInteger(minutes) || minutes < 10 || minutes > 1440)) {
+      return { error: "소요 시간을 확인해주세요(10분 ~ 24시간)." };
+    }
+    if (input.time !== null && minutes === null) return { error: "소요 시간을 입력해주세요." };
 
     const { data, error } = await supabase
       .from("group_booking_closures")
-      .insert({ date: input.date, start_time: input.time, note: input.note.trim() || null })
+      .insert({ date: input.date, start_time: input.time, minutes, note: input.note.trim() || null })
       .select("id")
       .single();
     if (error) {
       // 같은 날짜·회차를 두 번 막으면 유니크 인덱스에 걸린다.
-      if (error.code === "23505") return { error: "이미 마감으로 표시된 일정입니다." };
+      if (error.code === "23505") return { error: "같은 날 같은 시작 시각으로 이미 막아 둔 일정이 있습니다." };
       return { error: error.message };
     }
 
-    const label = `${input.date} ${input.time ?? "종일"}`;
-    const sessions = await closeOverlappingSessions(supabase, input.date, input.time, label);
+    const label = closureLabel(input.date, input.time, minutes);
+    const sessions = await closeOverlappingSessions(supabase, input.date, input.time, minutes, label);
     await writeAuditLog({
       action: "group_booking.closure_added",
       targetType: "group_booking_closure",
       targetId: (data as { id: string }).id,
       summary: `단체 일정 마감 ${label}${sessions.closed.length ? ` — 겹치는 회차 ${sessions.closed.length}개 마감` : ""}`,
-      detail: { date: input.date, time: input.time, closedSessions: sessions.closed, keptSessions: sessions.kept },
+      detail: { date: input.date, time: input.time, minutes, closedSessions: sessions.closed, keptSessions: sessions.kept },
     });
 
     updateTag(GROUP_CLOSURES_TAG);
@@ -109,6 +118,12 @@ export async function addGroupClosure(input: {
 
 type AdminClient = Awaited<ReturnType<typeof requireAdmin>>;
 
+/** '2026-11-01 15:30~18:30' · '2026-11-01 종일'. 감사 기록과 회차 메모에 남는다. */
+function closureLabel(date: string, time: string | null, minutes: number | null): string {
+  if (time === null) return `${date} 종일`;
+  return `${date} ${time}~${addMinutes(time, minutes ?? BASE_MINUTES)}`;
+}
+
 /** 회차 한 줄 표시용 'HH:MM 테마이름' (KST). */
 function sessionLabel(startAt: string, themeName: string | null): string {
   const hm = new Intl.DateTimeFormat("ko-KR", {
@@ -121,7 +136,7 @@ function sessionLabel(startAt: string, themeName: string | null): string {
 }
 
 /**
- * 단체 시간(시작 ~ 기본 3시간, 종일이면 그날 전체)과 겹치는 같은 장소의 열린 회차를 닫는다.
+ * 막은 구간(시작 ~ 소요 시간, 종일이면 그날 전체)과 겹치는 같은 장소의 열린 회차를 닫는다.
  * 장소는 단체 예약 테마(바-ㅇ탈출)의 장소로 본다 — 파티 · 노말 모드가 같은 공간을 쓴다.
  * 신청자(취소 제외)가 있는 회차는 닫지 않고 kept 로 돌려준다.
  * ⚠️ 마감을 풀어도 여기서 닫은 회차는 다시 열지 않는다(그 사이 사정이 바뀌었을 수 있다).
@@ -130,11 +145,12 @@ async function closeOverlappingSessions(
   supabase: AdminClient,
   date: string,
   time: string | null,
+  minutes: number | null,
   label: string
 ): Promise<{ closed: string[]; kept: string[] }> {
   const from = kstToUtcIso(date, time ?? "00:00");
   const to = time
-    ? new Date(new Date(from).getTime() + BASE_MINUTES * 60_000).toISOString()
+    ? new Date(new Date(from).getTime() + (minutes ?? BASE_MINUTES) * 60_000).toISOString()
     : kstToUtcIso(date, "23:59");
 
   const { data: groupTheme } = await supabase
@@ -219,12 +235,12 @@ export async function removeGroupClosure(id: string): Promise<ActionResult> {
       .from("group_booking_closures")
       .delete()
       .eq("id", id)
-      .select("date, start_time")
+      .select("date, start_time, minutes")
       .single();
     if (error) return { error: error.message };
 
-    const row = data as { date: string; start_time: string | null };
-    const label = `${row.date} ${row.start_time ?? "종일"}`;
+    const row = data as { date: string; start_time: string | null; minutes: number | null };
+    const label = closureLabel(row.date, row.start_time, row.minutes);
     await writeAuditLog({
       action: "group_booking.closure_removed",
       targetType: "group_booking_closure",

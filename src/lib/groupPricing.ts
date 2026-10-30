@@ -282,6 +282,23 @@ export function overlapsBusy(busy: readonly BusySlot[], date: string, time: stri
   });
 }
 
+/**
+ * 운영자가 시간 구간으로 막은 일정(start ~ start+minutes)을 BusySlot 으로 바꾼다.
+ * 구간 마감은 예약이 있는 시간과 똑같이 '겹치면 못 받는다' 로 본다(2026-10-30 대표님).
+ * 종일 마감(time null)은 여기서 빼고 따로 본다. minutes 가 없으면(옛 행) 단체 기본 3시간.
+ */
+export function closureSlots(
+  closures: readonly { date: string; time: string | null; minutes: number | null }[]
+): BusySlot[] {
+  return closures.flatMap((c) => {
+    if (c.time == null) return [];
+    const end = (hhmmToMin(c.time) + (c.minutes ?? BASE_MINUTES)) % 1440;
+    return [{ date: c.date, start: c.time, end: `${pad(Math.floor(end / 60))}:${pad(end % 60)}` }];
+  });
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
 /** 분 → '3시간 30분'. 견적 카드와 타임테이블이 같이 쓴다. */
 export function durationLabel(min: number): string {
   const h = Math.floor(min / 60);

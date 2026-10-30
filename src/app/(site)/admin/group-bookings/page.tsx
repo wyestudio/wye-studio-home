@@ -81,12 +81,13 @@ export default async function AdminGroupBookingsPage() {
 
   const { data: closureData } = await supabase
     .from("group_booking_closures")
-    .select("id, date, start_time, note")
+    .select("id, date, start_time, minutes, note")
     .gte("date", kstToday())
     .order("date")
     .order("start_time", { nullsFirst: true });
   const closures =
-    (closureData as { id: string; date: string; start_time: string | null; note: string | null }[]) ?? [];
+    (closureData as { id: string; date: string; start_time: string | null; minutes: number | null; note: string | null }[]) ??
+    [];
   // 아직 아무도 손대지 않은 건수. 접수함은 "오늘 볼 게 몇 건인가" 가 먼저다.
   const pending = rows.filter((r) => r.status === "new").length;
 

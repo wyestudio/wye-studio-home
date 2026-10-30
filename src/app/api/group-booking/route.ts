@@ -22,6 +22,7 @@ import {
   isWeekend,
   normalizeOptions,
   overlapsBusy,
+  closureSlots,
   quoteFirstDate,
   type QuoteOptions,
 } from "@/lib/groupPricing";
@@ -122,11 +123,25 @@ export async function POST(request: NextRequest) {
     .from("public_group_busy_slots")
     .select("date, start_time, end_time")
     .eq("date", preferredDate);
-  const busy = ((busyRows ?? []) as { date: string; start_time: string; end_time: string }[]).map((r) => ({
-    date: r.date,
-    start: r.start_time,
-    end: r.end_time,
-  }));
+  // 운영자가 시간 구간으로 막은 마감도 같이 본다(종일 마감은 접수 함수가 거른다).
+  const { data: closureRows } = await supabase
+    .from("public_group_booking_closures")
+    .select("date, start_time, minutes")
+    .eq("date", preferredDate);
+  const busy = [
+    ...((busyRows ?? []) as { date: string; start_time: string; end_time: string }[]).map((r) => ({
+      date: r.date,
+      start: r.start_time,
+      end: r.end_time,
+    })),
+    ...closureSlots(
+      ((closureRows ?? []) as { date: string; start_time: string | null; minutes: number | null }[]).map((r) => ({
+        date: r.date,
+        time: r.start_time,
+        minutes: r.minutes,
+      }))
+    ),
+  ];
   if (overlapsBusy(busy, preferredDate, preferredTime, quote.minutes + options.afterPartyHours * 60)) {
     return bad("선택한 시간에 다른 예약이 있어요. 다른 날짜나 시간을 골라주세요.");
   }

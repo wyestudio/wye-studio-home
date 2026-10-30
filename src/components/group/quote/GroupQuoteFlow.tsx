@@ -74,7 +74,8 @@ const AGREE_ITEMS = [
   { key: "privacy", text: "신청 상담을 위한 개인정보 수집·이용에 동의합니다." },
 ] as const;
 type AgreeKey = (typeof AGREE_ITEMS)[number]["key"];
-type Closure = { date: string; time: string | null };
+/** 운영자가 막은 종일 마감. 시간 구간 마감은 busy 에 섞여 온다(group/page.tsx). */
+type Closure = { date: string };
 type Errors = Partial<Record<string, string>>;
 type Done = {
   quote: Quote;
@@ -129,7 +130,10 @@ function parseSaved(raw: string | null, firstDate: string): Saved {
 
 type Props = {
   closures: Closure[];
-  /** 같은 장소에서 신청자가 있는 노말모드 회차의 시간대. 겹치는 단체 시간은 마감으로 본다. 파티모드는 조정할 수 있어 막지 않는다. */
+  /**
+   * 겹치면 마감인 시간대 — 같은 장소에서 신청자가 있는 노말모드 회차(파티모드는 조정할 수 있어 막지 않는다)와
+   * 운영자가 시간 구간으로 막은 마감.
+   */
   busy: BusySlot[];
   firstDate: string;
   /** 첫 화면(서버에서 그린다). 데스크톱 왼쪽 맨 위, 모바일 맨 위. */
@@ -238,13 +242,12 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
   // 그 시간에 단체를 하면 걸리는 길이 — 프로그램 + (그 회차에서 가능하면) 애프터파티.
   const slotMinutes = (d: string, t: string) =>
     quote.minutes + (canAfterParty(d, t) ? options.afterPartyHours * 60 : 0);
-  // 운영자가 막아 둔 일정이거나, 신청자가 있는 노말모드 회차와 겹치면 마감이다.
+  // 종일 마감이거나, 막아 둔 구간 · 신청자가 있는 노말모드 회차와 겹치면 마감이다.
   const closedSlot = (d: string, t: string | null) =>
-    closures.some((c) => c.date === d && (c.time == null || c.time === t)) ||
-    (t != null && overlapsBusy(busy, d, t, slotMinutes(d, t)));
+    closures.some((c) => c.date === d) || (t != null && overlapsBusy(busy, d, t, slotMinutes(d, t)));
   // 주말은 세 회차가 다 막히면 그날이 마감이다. 평일은 시간을 자유롭게 고르므로 종일 마감만 본다.
   const dayClosed = (d: string) =>
-    closures.some((c) => c.date === d && c.time == null) ||
+    closures.some((c) => c.date === d) ||
     (isWeekend(d) && WEEKEND_TIMES.every((t) => closedSlot(d, t)));
 
   // ── 새로고침에도 견적 선택값 유지 ──
@@ -1510,7 +1513,7 @@ function WeekdayTimePicker({
       )}
       {busyToday.length > 0 && (
         <p className="text-body-sm text-muted">
-          이날 예약이 있는 시간: {busyToday.map((b) => `${b.start}~${b.end}`).join(", ")}
+          이날 받을 수 없는 시간: {busyToday.map((b) => `${b.start}~${b.end}`).join(", ")}
         </p>
       )}
     </>

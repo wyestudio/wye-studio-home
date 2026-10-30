@@ -1,17 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Select } from "@/components/ui/Select";
+import { BASE_MINUTES, addMinutes, durationLabel } from "@/lib/groupPricing";
 import { addGroupClosure, removeGroupClosure } from "./actions";
 
-type Closure = { id: string; date: string; start_time: string | null; note: string | null };
-
-const TIME_OPTIONS = [
-  { value: "", label: "종일" },
-  { value: "11:30", label: "11:30 회차" },
-  { value: "15:30", label: "15:30 회차" },
-  { value: "19:30", label: "19:30 회차" },
-];
+type Closure = { id: string; date: string; start_time: string | null; minutes: number | null; note: string | null };
 
 const DAY = ["일", "월", "화", "수", "목", "금", "토"];
 const dayOf = (d: string) => DAY[new Date(`${d}T00:00:00Z`).getUTCDay()];
@@ -20,13 +13,18 @@ const dayOf = (d: string) => DAY[new Date(`${d}T00:00:00Z`).getUTCDay()];
  * 단체 일정 마감 표시.
  *
  * 견적 화면(/group)의 달력·회차에 '마감' 으로 뜨고, 그 일정으로는 접수가 안 된다.
- * 평일은 시간을 자유롭게 받으므로 **종일**로만 막을 수 있다. 회차(11:30 등)는 주말용이다.
+ * 종일, 또는 **시작 시각 + 소요 시간** 구간으로 막는다 — 그 구간과 겹치는 단체 시간은 못 고른다.
+ * 고정 회차(11:30 · 15:30 · 19:30)로만 고르던 것을 구간으로 바꿨다(2026-10-30 대표님,
+ * 평일 · 주말 모두 시간이 계속 조정된다).
  *
  * 해제는 두 번 눌러야 된다 — 목록을 훑다 잘못 누르면 막아 둔 날이 바로 열린다.
  */
 export function ClosureManager({ closures }: { closures: Closure[] }) {
   const [date, setDate] = useState("");
+  const [allDay, setAllDay] = useState(false);
   const [time, setTime] = useState("");
+  const [hours, setHours] = useState(String(BASE_MINUTES / 60));
+  const [mins, setMins] = useState("0");
   const [note, setNote] = useState("");
   const [message, setMessage] = useState("");
   const [armed, setArmed] = useState<string | null>(null);
@@ -34,12 +32,17 @@ export function ClosureManager({ closures }: { closures: Closure[] }) {
 
   function add() {
     if (!date) return setMessage("날짜를 고르세요.");
+    if (!allDay && !time) return setMessage("시작 시각을 넣으세요. 하루를 다 막으려면 종일을 고르세요.");
+    if (!allDay && !minutes) return setMessage("소요 시간을 넣으세요.");
     startTransition(async () => {
-      const res = await addGroupClosure({ date, time: time || null, note });
+      const res = await addGroupClosure({ date, time: allDay ? null : time, minutes: allDay ? null : minutes, note });
       setMessage("error" in res ? res.error : (res.message ?? "저장했습니다."));
       if (!("error" in res)) setNote("");
     });
   }
+
+  // 소요 시간(분). 비었거나 0 이면 null.
+  const minutes = (Number(hours) || 0) * 60 + (Number(mins) || 0) || null;
 
   function remove(id: string) {
     if (armed !== id) return setArmed(id);
@@ -54,9 +57,9 @@ export function ClosureManager({ closures }: { closures: Closure[] }) {
     <section className="mb-10 rounded-xl border border-border bg-panel p-5">
       <h2 className="text-h3 font-semibold">일정 마감 표시</h2>
       <p className="mt-1 text-body-sm text-muted">
-        견적 화면에서 고를 수 없게 막습니다. 평일은 종일로만 막을 수 있어요(평일은 시간을 자유롭게 받습니다).
+        시작 시각부터 소요 시간만큼 막습니다. 이 구간과 조금이라도 겹치는 단체 시간은 견적 화면에서 고를 수 없어요.
         <br />
-        같은 시간대(시작부터 3시간)에 겹치는 바-ㅇ탈출 회차도 같이 닫힙니다. 신청자가 있는 회차는 닫지 않고 알려 드려요.
+        겹치는 바-ㅇ탈출 회차(파티 · 노말)도 같이 닫힙니다. 신청자가 있는 회차는 닫지 않고 알려 드려요.
       </p>
 
       <div className="mt-4 flex flex-wrap items-end gap-2">
@@ -70,10 +73,54 @@ export function ClosureManager({ closures }: { closures: Closure[] }) {
             style={{ colorScheme: "dark" }}
           />
         </label>
-        <div className="flex w-36 flex-col gap-1 text-body-sm">
-          회차
-          <Select value={time} onChange={setTime} options={TIME_OPTIONS} />
+        <label className="flex items-center gap-2 self-center pt-5 text-body-sm">
+          <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
+          종일
+        </label>
+        <label className={`flex flex-col gap-1 text-body-sm ${allDay ? "opacity-40" : ""}`}>
+          시작 시각
+          <input
+            type="time"
+            value={time}
+            disabled={allDay}
+            onChange={(e) => setTime(e.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-body-sm"
+            style={{ colorScheme: "dark" }}
+          />
+        </label>
+        <div className={`flex flex-col gap-1 text-body-sm ${allDay ? "opacity-40" : ""}`}>
+          소요 시간
+          <div className="flex items-center gap-1">
+            <input
+              type="number"
+              min={0}
+              max={24}
+              value={hours}
+              disabled={allDay}
+              onChange={(e) => setHours(e.target.value)}
+              aria-label="시간"
+              className="w-16 rounded-lg border border-border bg-background px-3 py-2 text-body-sm tabular-nums"
+            />
+            시간
+            <input
+              type="number"
+              min={0}
+              max={59}
+              step={10}
+              value={mins}
+              disabled={allDay}
+              onChange={(e) => setMins(e.target.value)}
+              aria-label="분"
+              className="ml-1 w-16 rounded-lg border border-border bg-background px-3 py-2 text-body-sm tabular-nums"
+            />
+            분
+          </div>
         </div>
+        {!allDay && time && minutes ? (
+          <span className="self-center pt-5 text-body-sm text-muted tabular-nums">
+            {time} ~ {addMinutes(time, minutes)}
+          </span>
+        ) : null}
         <label className="flex min-w-[200px] flex-1 flex-col gap-1 text-body-sm">
           메모 (고객에게 안 보임)
           <input
@@ -103,7 +150,11 @@ export function ClosureManager({ closures }: { closures: Closure[] }) {
               <span className="w-36 font-semibold">
                 {c.date} ({dayOf(c.date)})
               </span>
-              <span className="w-20">{c.start_time ?? "종일"}</span>
+              <span className="w-48 tabular-nums">
+                {c.start_time
+                  ? `${c.start_time} ~ ${addMinutes(c.start_time, c.minutes ?? BASE_MINUTES)} (${durationLabel(c.minutes ?? BASE_MINUTES)})`
+                  : "종일"}
+              </span>
               <span className="min-w-0 flex-1 truncate text-muted">{c.note ?? ""}</span>
               <button
                 type="button"
