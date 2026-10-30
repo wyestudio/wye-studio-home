@@ -2,7 +2,13 @@ import Link from "next/link";
 import { Chevron } from "@/components/ui/Chevron";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull } from "@/lib/format";
-import { INQUIRY_STATUSES, contactMethodLabel, inquiryStatusLabel, preferredTimeLabel } from "@/lib/groupBooking";
+import {
+  GROUP_KINDS,
+  INQUIRY_STATUSES,
+  contactMethodLabel,
+  inquiryStatusLabel,
+  preferredTimeLabel,
+} from "@/lib/groupBooking";
 import { BASE_MINUTES, addMinutes } from "@/lib/groupPricing";
 import { InquiryRow, type Booking } from "./InquiryRow";
 import { ExtrasCell, OptionsCell, SourceCell, suggestedBooking, type Inquiry } from "./inquiryParts";
@@ -21,7 +27,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * 상태 탭. 진행 중 = 연락 완료 · 견적 안내 — 아직 결론이 안 난 건을 한데 본다.
- * 탭 · 검색 · 쪽은 주소(?tab=&q=&page=)에 담는다 — 새로고침하거나 링크를 넘겨도 같은 목록이 보인다.
+ * 탭 · 검색 조건 · 정렬 · 쪽은 주소에 담는다 — 새로고침하거나 링크를 넘겨도 같은 목록이 보인다.
  */
 const TABS = [
   { key: "all", label: "전체", match: () => true },
@@ -32,16 +38,31 @@ const TABS = [
 ] as const;
 const PAGE_SIZE = 20;
 
-/** 탭 · 검색 · 쪽을 바꾼 주소. 바꾸지 않은 값은 그대로 둔다. */
-function listHref(cur: { tab: string; q: string; page: number }, next: Partial<{ tab: string; q: string; page: number }>) {
+const SORTS = [
+  { value: "created_desc", label: "접수 최신순" },
+  { value: "created_asc", label: "접수 오래된순" },
+  { value: "date_asc", label: "희망 날짜 빠른순" },
+  { value: "date_desc", label: "희망 날짜 늦은순" },
+  { value: "name_asc", label: "이름순" },
+  { value: "headcount_desc", label: "인원 많은순" },
+];
+
+/** 검색 조건 칸. 탭(tab) · 쪽(page)과 같이 주소에 담는다. */
+const FIELDS = ["name", "contact", "from", "to", "time", "min", "kind", "sort"] as const;
+type Cond = Record<(typeof FIELDS)[number] | "tab", string> & { page: number };
+
+/** 탭 · 조건 · 쪽을 바꾼 주소. 바꾸지 않은 값은 그대로 둔다. */
+function listHref(cur: Cond, next: Partial<Cond>) {
   const v = { ...cur, ...next };
   const sp = new URLSearchParams();
   if (v.tab !== "all") sp.set("tab", v.tab);
-  if (v.q) sp.set("q", v.q);
+  for (const k of FIELDS) if (v[k]) sp.set(k, v[k]);
   if (v.page > 1) sp.set("page", String(v.page));
   const qs = sp.toString();
   return `/group-bookings${qs ? `?${qs}` : ""}#list`;
 }
+
+const field = "w-full rounded-lg border border-border bg-background px-3 py-2 text-input";
 
 const th = "px-3 py-3 text-left text-body-sm font-semibold";
 const td = "px-3 py-3 align-top text-body-sm";
@@ -50,9 +71,10 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
   const params = await searchParams;
   const rawTab = typeof params.tab === "string" ? params.tab : "all";
   const tab = TABS.some((t) => t.key === rawTab) ? rawTab : "all";
-  const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 40);
-  // 대시보드 달력에서 눌러 들어온 한 건.
-  const onlyId = typeof params.id === "string" ? params.id : "";
+  const c = Object.fromEntries(
+    FIELDS.map((k) => [k, (typeof params[k] === "string" ? (params[k] as string) : "").trim().slice(0, 40)])
+  ) as Record<(typeof FIELDS)[number], string>;
+  const sort = SORTS.some((x) => x.value === c.sort) ? c.sort : "created_desc";
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -83,18 +105,47 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
   // 아직 아무도 손대지 않은 건수. 접수함은 "오늘 볼 게 몇 건인가" 가 먼저다.
   const pending = rows.filter((r) => r.status === "new").length;
 
-  // 검색 — 이름 · 모임 이름 · 연락처(숫자만 비교해 하이픈 유무와 상관없이). 건수가 적어 서버에서 거른다.
-  const qLower = q.toLowerCase();
-  const qDigits = q.replace(/\D/g, "");
-  const searched = onlyId
-    ? rows.filter((r) => r.id === onlyId)
-    : q
-    ? rows.filter(
-        (r) =>
-          [r.organizer_name, r.group_name, r.contact].some((v) => v?.toLowerCase().includes(qLower)) ||
-          (qDigits.length >= 3 && r.contact.replace(/\D/g, "").includes(qDigits))
-      )
-    : rows;
+  // 검색 조건 — 건수가 적어(수백 건) 서버에서 한 번에 읽고 여기서 거른다.
+  const nameQ = c.name.toLowerCase();
+  const contactQ = c.contact.toLowerCase();
+  const contactDigits = c.contact.replace(/\D/g, "");
+  const minPeople = Number(c.min) || 0;
+  // 날짜 · 시각은 확정이면 확정 일시, 아니면 희망 일시로 본다.
+  const whenOf = (r: Inquiry) =>
+    bookings.has(r.id)
+      ? { date: bookings.get(r.id)!.date, time: bookings.get(r.id)!.time }
+      : { date: r.preferred_date ?? "", time: r.preferred_time };
+  const searched = rows
+    .filter((r) => !nameQ || [r.organizer_name, r.group_name].some((x) => x?.toLowerCase().includes(nameQ)))
+    .filter(
+      (r) =>
+        !contactQ ||
+        r.contact.toLowerCase().includes(contactQ) ||
+        (contactDigits.length >= 3 && r.contact.replace(/\D/g, "").includes(contactDigits))
+    )
+    .filter((r) => !c.from || whenOf(r).date >= c.from)
+    .filter((r) => !c.to || (whenOf(r).date !== "" && whenOf(r).date <= c.to))
+    .filter((r) => !c.time || whenOf(r).time === c.time)
+    .filter((r) => r.headcount >= minPeople)
+    .filter((r) => !c.kind || r.group_kind === c.kind)
+    .sort((a, b) => {
+      const name = (r: Inquiry) => r.group_name ?? r.organizer_name ?? "";
+      switch (sort) {
+        case "created_asc":
+          return a.created_at.localeCompare(b.created_at);
+        case "date_asc":
+          return (whenOf(a).date || "9999").localeCompare(whenOf(b).date || "9999") || whenOf(a).time.localeCompare(whenOf(b).time);
+        case "date_desc":
+          return whenOf(b).date.localeCompare(whenOf(a).date) || whenOf(b).time.localeCompare(whenOf(a).time);
+        case "name_asc":
+          return name(a).localeCompare(name(b), "ko");
+        case "headcount_desc":
+          return b.headcount - a.headcount;
+        default:
+          return b.created_at.localeCompare(a.created_at);
+      }
+    });
+  const applied = FIELDS.filter((k) => k !== "sort" && c[k]).length;
   const tabCounts = Object.fromEntries(
     TABS.map((t) => [t.key, searched.filter((r) => t.match(r.status)).length])
   ) as Record<string, number>;
@@ -103,7 +154,7 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
   const rawPage = Number(typeof params.page === "string" ? params.page : "1");
   const page = Math.min(pageCount, Math.max(1, Number.isInteger(rawPage) ? rawPage : 1));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-  const cur = { tab, q, page };
+  const cur: Cond = { ...c, sort: sort === "created_desc" ? "" : sort, tab, page };
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
@@ -127,52 +178,90 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
           </Link>
           에서 봅니다. 예약 확정 건은 아래에서 확정 일시를 넣으면 자동으로 막힙니다.
         </p>
-        {onlyId && (
-          <p className="mb-4 text-body-sm">
-            달력에서 고른 한 건만 보는 중 ·{" "}
-            <Link href="/group-bookings#list" className="text-glow underline">
-              전체 보기
-            </Link>
-          </p>
-        )}
-
-        {/* 상태 탭 · 검색 */}
-        <div id="list" className="mb-4 flex scroll-mt-4 flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0" aria-label="상태">
-            {TABS.map((t) => (
-              <Link
-                key={t.key}
-                href={listHref(cur, { tab: t.key, page: 1 })}
-                aria-current={tab === t.key ? "page" : undefined}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-body-sm font-semibold whitespace-nowrap ${
-                  tab === t.key ? "bg-glow text-glow-foreground" : "border border-border text-muted hover:text-foreground"
-                }`}
-              >
-                {t.label} <span className="tabular-nums opacity-70">{tabCounts[t.key]}</span>
-              </Link>
-            ))}
-          </nav>
-          <form action="/group-bookings#list" className="flex gap-2">
-            {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
-            <input
-              name="q"
-              defaultValue={q}
-              placeholder="이름 · 모임 · 연락처"
-              className="min-w-0 flex-1 rounded-lg border border-border bg-panel px-3 py-2 text-input md:w-60"
-            />
-            <button type="submit" className="shrink-0 rounded-lg border border-border px-3 py-2 text-body-sm font-semibold">
-              검색
-            </button>
-            {q && (
-              <Link
-                href={listHref(cur, { q: "", page: 1 })}
-                className="shrink-0 self-center text-body-sm text-muted underline"
-              >
-                지우기
-              </Link>
+        {/* ── 검색 조건 ── 조건을 넣고 「검색」 을 눌러야 조회한다. 걸려 있으면 펼쳐 둔다 */}
+        <details open={applied > 0 || undefined} className="group mb-4 rounded-xl border border-border">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-body font-semibold [&::-webkit-details-marker]:hidden">
+            검색 조건
+            {applied > 0 && (
+              <span className="rounded-md bg-glow px-2 py-0.5 text-micro font-semibold text-black">{applied}개 적용</span>
             )}
+            <Chevron dir="down" className="ml-auto h-4 w-4 text-muted transition-transform group-open:rotate-180" />
+          </summary>
+          <form action="/group-bookings#list" className="grid grid-cols-2 gap-3 border-t border-border p-4 md:grid-cols-4">
+            {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
+            <Labeled label="이름 (담당자 · 모임)">
+              <input name="name" defaultValue={c.name} placeholder="예: 김하나" className={field} />
+            </Labeled>
+            <Labeled label="연락처">
+              <input name="contact" defaultValue={c.contact} placeholder="번호 · 카카오 ID · 메일" className={field} />
+            </Labeled>
+            <Labeled label="날짜 (부터)">
+              <input type="date" name="from" defaultValue={c.from} className={field} style={{ colorScheme: "dark" }} />
+            </Labeled>
+            <Labeled label="날짜 (까지)">
+              <input type="date" name="to" defaultValue={c.to} className={field} style={{ colorScheme: "dark" }} />
+            </Labeled>
+            <Labeled label="시각">
+              <input type="time" name="time" defaultValue={c.time} className={field} style={{ colorScheme: "dark" }} />
+            </Labeled>
+            <Labeled label="인원 (이상)">
+              <input type="number" name="min" min={1} defaultValue={c.min} placeholder="예: 10" className={field} />
+            </Labeled>
+            <Labeled label="모임 성격">
+              <select name="kind" defaultValue={c.kind} className={field}>
+                <option value="">전체</option>
+                {GROUP_KINDS.map((k) => (
+                  <option key={k.code} value={k.code}>
+                    {k.label}
+                  </option>
+                ))}
+              </select>
+            </Labeled>
+            <Labeled label="정렬">
+              <select name="sort" defaultValue={sort} className={field}>
+                {SORTS.map((x) => (
+                  <option key={x.value} value={x.value}>
+                    {x.label}
+                  </option>
+                ))}
+              </select>
+            </Labeled>
+            <p className="col-span-2 self-center text-micro text-muted md:col-span-2">
+              날짜 · 시각은 확정 건이면 확정 일시, 아니면 희망 일시로 찾아요.
+            </p>
+            <div className="col-span-2 flex items-end gap-2">
+              <button type="submit" className="flex-1 rounded-lg bg-glow px-4 py-2.5 text-body font-semibold text-black md:flex-none">
+                검색
+              </button>
+              <Link
+                href={tab === "all" ? "/group-bookings#list" : `/group-bookings?tab=${tab}#list`}
+                className="rounded-lg border border-border px-4 py-2.5 text-body text-muted"
+              >
+                초기화
+              </Link>
+            </div>
           </form>
-        </div>
+        </details>
+
+        {/* 상태 탭 — 조건은 그대로 두고 상태만 바꾼다 */}
+        <nav
+          id="list"
+          className="-mx-4 mb-4 flex scroll-mt-4 gap-1 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0"
+          aria-label="상태"
+        >
+          {TABS.map((t) => (
+            <Link
+              key={t.key}
+              href={listHref(cur, { tab: t.key, page: 1 })}
+              aria-current={tab === t.key ? "page" : undefined}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-body-sm font-semibold whitespace-nowrap ${
+                tab === t.key ? "bg-glow text-glow-foreground" : "border border-border text-muted hover:text-foreground"
+              }`}
+            >
+              {t.label} <span className="tabular-nums opacity-70">{tabCounts[t.key]}</span>
+            </Link>
+          ))}
+        </nav>
 
         {pageRows.length === 0 ? (
           <p className="py-4 text-muted">{rows.length === 0 ? "아직 접수된 문의가 없습니다." : "조건에 맞는 문의가 없습니다."}</p>
@@ -317,5 +406,14 @@ export default async function AdminGroupBookingsPage({ searchParams }: PageProps
         </p>
       </div>
     </div>
+  );
+}
+
+function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex min-w-0 flex-col gap-1 text-body-sm text-muted">
+      {label}
+      {children}
+    </label>
   );
 }
