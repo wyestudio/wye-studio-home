@@ -503,9 +503,12 @@ export function ThemeBlockView({
         <>
           <HowToPlay accent={accent} mode={howToPlay} />
           {block.note && (
-            <p className="mx-auto mt-6 w-full max-w-3xl rounded-lg border border-line bg-fill px-4 py-3 text-body">
-              {block.note}
-            </p>
+            // 폭은 그림(HowToPlay 의 max-w-4xl)과 맞춘다 — 혼자 좁으면 튄다(2026-10-30 대표님).
+            // RichText 라 어드민에서 **굵게** 를 쓸 수 있다.
+            <RichText
+              text={block.note}
+              className="mx-auto mt-6 block w-full max-w-4xl rounded-lg border border-line bg-fill px-4 py-3 text-body"
+            />
           )}
         </>
       )}
