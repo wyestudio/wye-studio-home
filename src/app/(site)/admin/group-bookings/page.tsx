@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Chevron } from "@/components/ui/Chevron";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull } from "@/lib/format";
 import {
   INQUIRY_STATUSES,
   contactMethodLabel,
+  inquiryStatusLabel,
   groupKindLabel,
   preferredTimeLabel,
   repeatPlayerLabel,
@@ -58,10 +60,38 @@ type Inquiry = {
   admin_memo: string | null;
 };
 
+/**
+ * 상태 탭. 진행 중 = 연락 완료 · 견적 안내 — 아직 결론이 안 난 건을 한데 본다.
+ * 탭 · 검색 · 쪽은 주소(?tab=&q=&page=)에 담는다 — 새로고침하거나 링크를 넘겨도 같은 목록이 보인다.
+ */
+const TABS = [
+  { key: "all", label: "전체", match: () => true },
+  { key: "new", label: "미응대", match: (s: string) => s === "new" },
+  { key: "ongoing", label: "진행 중", match: (s: string) => s === "contacted" || s === "quoted" },
+  { key: "booked", label: "확정", match: (s: string) => s === "booked" },
+  { key: "dropped", label: "종료", match: (s: string) => s === "dropped" },
+] as const;
+const PAGE_SIZE = 20;
+
+/** 탭 · 검색 · 쪽을 바꾼 주소. 바꾸지 않은 값은 그대로 둔다. */
+function listHref(cur: { tab: string; q: string; page: number }, next: Partial<{ tab: string; q: string; page: number }>) {
+  const v = { ...cur, ...next };
+  const sp = new URLSearchParams();
+  if (v.tab !== "all") sp.set("tab", v.tab);
+  if (v.q) sp.set("q", v.q);
+  if (v.page > 1) sp.set("page", String(v.page));
+  const qs = sp.toString();
+  return `/group-bookings${qs ? `?${qs}` : ""}#list`;
+}
+
 const th = "px-3 py-3 text-left text-body-sm font-semibold";
 const td = "px-3 py-3 align-top text-body-sm";
 
-export default async function AdminGroupBookingsPage() {
+export default async function AdminGroupBookingsPage({ searchParams }: PageProps<"/admin/group-bookings">) {
+  const params = await searchParams;
+  const rawTab = typeof params.tab === "string" ? params.tab : "all";
+  const tab = TABS.some((t) => t.key === rawTab) ? rawTab : "all";
+  const q = (typeof params.q === "string" ? params.q : "").trim().slice(0, 40);
   const supabase = createAdminClient();
 
   const { data, error } = await supabase
@@ -108,6 +138,26 @@ export default async function AdminGroupBookingsPage() {
   // 아직 아무도 손대지 않은 건수. 접수함은 "오늘 볼 게 몇 건인가" 가 먼저다.
   const pending = rows.filter((r) => r.status === "new").length;
 
+  // 검색 — 이름 · 모임 이름 · 연락처(숫자만 비교해 하이픈 유무와 상관없이). 건수가 적어 서버에서 거른다.
+  const qLower = q.toLowerCase();
+  const qDigits = q.replace(/\D/g, "");
+  const searched = q
+    ? rows.filter(
+        (r) =>
+          [r.organizer_name, r.group_name, r.contact].some((v) => v?.toLowerCase().includes(qLower)) ||
+          (qDigits.length >= 3 && r.contact.replace(/\D/g, "").includes(qDigits))
+      )
+    : rows;
+  const tabCounts = Object.fromEntries(
+    TABS.map((t) => [t.key, searched.filter((r) => t.match(r.status)).length])
+  ) as Record<string, number>;
+  const filtered = searched.filter((r) => TABS.find((t) => t.key === tab)!.match(r.status));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const rawPage = Number(typeof params.page === "string" ? params.page : "1");
+  const page = Math.min(pageCount, Math.max(1, Number.isInteger(rawPage) ? rawPage : 1));
+  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const cur = { tab, q, page };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
@@ -128,29 +178,84 @@ export default async function AdminGroupBookingsPage() {
           inquiryNames={Object.fromEntries(rows.map((r) => [r.id, r.group_name ?? r.organizer_name ?? "이름 없음"]))}
         />
 
-        {rows.length === 0 ? (
-          <p className="py-4 text-muted">아직 접수된 문의가 없습니다.</p>
+        {/* 상태 탭 · 검색 */}
+        <div id="list" className="mb-4 flex scroll-mt-4 flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0" aria-label="상태">
+            {TABS.map((t) => (
+              <Link
+                key={t.key}
+                href={listHref(cur, { tab: t.key, page: 1 })}
+                aria-current={tab === t.key ? "page" : undefined}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-body-sm font-semibold whitespace-nowrap ${
+                  tab === t.key ? "bg-glow text-glow-foreground" : "border border-border text-muted hover:text-foreground"
+                }`}
+              >
+                {t.label} <span className="tabular-nums opacity-70">{tabCounts[t.key]}</span>
+              </Link>
+            ))}
+          </nav>
+          <form action="/group-bookings#list" className="flex gap-2">
+            {tab !== "all" && <input type="hidden" name="tab" value={tab} />}
+            <input
+              name="q"
+              defaultValue={q}
+              placeholder="이름 · 모임 · 연락처"
+              className="min-w-0 flex-1 rounded-lg border border-border bg-panel px-3 py-2 text-input md:w-60"
+            />
+            <button type="submit" className="shrink-0 rounded-lg border border-border px-3 py-2 text-body-sm font-semibold">
+              검색
+            </button>
+            {q && (
+              <Link
+                href={listHref(cur, { q: "", page: 1 })}
+                className="shrink-0 self-center text-body-sm text-muted underline"
+              >
+                지우기
+              </Link>
+            )}
+          </form>
+        </div>
+
+        {pageRows.length === 0 ? (
+          <p className="py-4 text-muted">{rows.length === 0 ? "아직 접수된 문의가 없습니다." : "조건에 맞는 문의가 없습니다."}</p>
         ) : (
           <>
           {/*
             휴대폰은 카드 한 장씩 — 표는 가로로 밀려서 정작 자주 쓰는 진행 상태 · 저장 칸이
             화면 밖에 있었다(2026-10-30 대표님).
           */}
-          <ul className="flex flex-col gap-3 md:hidden">
-            {rows.map((r) => (
-              <li
-                key={r.id}
-                className={`flex flex-col gap-3 rounded-xl border border-border p-4 ${
-                  r.status === "new" ? "bg-brand-soft/30" : "bg-panel"
-                }`}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="text-body font-semibold">{r.organizer_name ?? "이름 없음"}</span>
-                    {r.group_name && <span className="ml-2 text-body-sm text-muted">{r.group_name}</span>}
-                  </div>
-                  <span className="shrink-0 text-body font-semibold">{r.headcount}명</span>
-                </div>
+          {/* 카드는 한 줄 요약으로 접어 둔다 — 눌러서 펼친다. 다 펼쳐 두면 몇 건만 넘겨도 너무 길다. */}
+          <ul className="flex flex-col gap-2 md:hidden">
+            {pageRows.map((r) => (
+              <li key={r.id}>
+                <details
+                  className={`group rounded-xl border border-border ${r.status === "new" ? "bg-brand-soft/30" : "bg-panel"}`}
+                >
+                  <summary className="flex cursor-pointer list-none items-center gap-3 p-4 [&::-webkit-details-marker]:hidden">
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate">
+                        <span className="text-body font-semibold">{r.organizer_name ?? "이름 없음"}</span>
+                        {r.group_name && <span className="ml-2 text-body-sm text-muted">{r.group_name}</span>}
+                      </div>
+                      <div className="mt-0.5 text-body-sm text-muted tabular-nums">
+                        {r.headcount}명 ·{" "}
+                        {bookings.has(r.id)
+                          ? `확정 ${bookings.get(r.id)!.date.slice(5)} ${bookings.get(r.id)!.time}`
+                          : `${r.preferred_date?.slice(5) ?? "날짜 미정"} ${preferredTimeLabel(r.preferred_time)}`}
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-md px-2 py-1 text-micro font-semibold ${
+                        r.status === "new" ? "bg-brand text-brand-foreground" : "bg-fill text-muted"
+                      }`}
+                    >
+                      {inquiryStatusLabel(r.status)}
+                    </span>
+                    <span aria-hidden className="shrink-0 text-muted transition-transform group-open:rotate-180">
+                      <Chevron dir="down" />
+                    </span>
+                  </summary>
+                  <div className="flex flex-col gap-3 border-t border-border px-4 pt-3 pb-4">
                 <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-body-sm">
                   <dt className="text-muted">희망 일시</dt>
                   <dd>
@@ -188,6 +293,8 @@ export default async function AdminGroupBookingsPage() {
                   booking={bookings.get(r.id) ?? null}
                   suggested={suggestedBooking(r)}
                 />
+                  </div>
+                </details>
               </li>
             ))}
           </ul>
@@ -207,7 +314,7 @@ export default async function AdminGroupBookingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {pageRows.map((r) => (
                   <tr
                     key={r.id}
                     className={`border-b border-border/50 ${
@@ -266,6 +373,22 @@ export default async function AdminGroupBookingsPage() {
               </tbody>
             </table>
           </div>
+          {pageCount > 1 && (
+            <nav className="mt-6 flex items-center justify-center gap-1" aria-label="쪽">
+              {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
+                <Link
+                  key={n}
+                  href={listHref(cur, { page: n })}
+                  aria-current={n === page ? "page" : undefined}
+                  className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-body-sm tabular-nums ${
+                    n === page ? "bg-glow font-semibold text-glow-foreground" : "border border-border text-muted"
+                  }`}
+                >
+                  {n}
+                </Link>
+              ))}
+            </nav>
+          )}
           </>
         )}
 
