@@ -43,6 +43,8 @@ export function InquiryRow({
   const [mins, setMins] = useState(String(start.minutes % 60));
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
+  // 이미 확정해 둔 건은 한 줄로 접어 둔다 — 칸을 늘 펼쳐 두면 한 건이 너무 길어진다(2026-10-30 대표님).
+  const [editing, setEditing] = useState(!initialBooking);
 
   const booked = status === "booked";
   const minutes = (Number(hours) || 0) * 60 + (Number(mins) || 0);
@@ -60,6 +62,7 @@ export function InquiryRow({
         booking: booked ? { date, time: time || null, minutes: minutes || null } : null,
       });
       setMessage("error" in res ? res.error : (res.message ?? "저장했습니다."));
+      if (!("error" in res)) setEditing(false);
     });
   }
 
@@ -72,10 +75,30 @@ export function InquiryRow({
         onChange={setStatus}
         options={INQUIRY_STATUSES.map((s) => ({ value: s.code, label: s.label }))}
       />
-      {booked && (
+      {booked && initialBooking && !editing && (
+        <div className="flex items-center gap-2 text-micro">
+          <span className="min-w-0 flex-1 text-muted tabular-nums">
+            {initialBooking.date.slice(5)} {initialBooking.time} ~ {addMinutes(initialBooking.time, initialBooking.minutes)}{" "}
+            마감 중
+          </span>
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="shrink-0 rounded-md border border-border px-2 py-1 text-muted hover:text-foreground"
+          >
+            고치기
+          </button>
+        </div>
+      )}
+      {booked && editing && (
         <div className="flex flex-col gap-1.5 rounded-lg border border-border p-2 text-micro">
-          <span className="font-semibold">
-            확정 일시 <span className="font-normal text-muted">— 이 구간을 마감으로 막아요</span>
+          <span className="flex justify-between gap-2 font-semibold">
+            확정 일시
+            {time && minutes > 0 && (
+              <span className="font-normal text-muted tabular-nums">
+                {time} ~ {addMinutes(time, minutes)} 마감
+              </span>
+            )}
           </span>
           <div className="flex flex-wrap items-center gap-1">
             <input
@@ -117,11 +140,6 @@ export function InquiryRow({
               className={`${field} ml-1 w-14`}
             />
             분
-            {time && minutes > 0 && (
-              <span className="ml-auto text-muted tabular-nums">
-                {time} ~ {addMinutes(time, minutes)}
-              </span>
-            )}
           </div>
         </div>
       )}
