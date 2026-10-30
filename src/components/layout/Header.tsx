@@ -6,11 +6,18 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { RandomLetterSwap } from "@/components/ui/RandomLetterSwap";
 import { SeasonArt } from "@/components/season/SeasonArt";
+import { ADMIN_MENU, ADMIN_QUICK, isAdminMenuActive } from "@/components/admin/adminMenu";
+import { LogoutButton } from "@/components/admin/LogoutButton";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인/계정 네비게이션은
 // 제거함. 로그인 시스템 자체는 삭제하지 않고 보존 — 자세한 배경은 CLAUDE.md
 // "설계 변경 이력" 참고.
-export function Header() {
+/**
+ * @param admin 어드민 호스트(admin.*)에서 그릴 때 — 고객 메뉴(소개 · 테마 · 신청조회 · 공지) 대신
+ *   어드민 메뉴를 단다. 고객 메뉴가 그대로 있으면 운영자가 자꾸 그걸 눌렀다(2026-10-30 대표님).
+ *   판단은 레이아웃이 호스트로 한다 — 어드민 주소는 rewrite 라 경로만으로는 모른다.
+ */
+export function Header({ admin = false }: { admin?: boolean }) {
   const headerRef = useRef<HTMLElement>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -183,7 +190,23 @@ export function Header() {
             </span>
           </Link>
         </div>
-        {/* 데스크톱 네비게이션 */}
+        {admin ? (
+          // 어드민: 자주 쓰는 운영 메뉴만. 나머지는 페이지 위 메뉴 줄(AdminNav)에 있다.
+          <nav className="flex flex-wrap items-center gap-x-1 gap-y-1">
+            <span className="mr-2 rounded-md bg-amber-400 px-2 py-0.5 text-micro font-semibold text-black">어드민</span>
+            {ADMIN_QUICK.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`rounded-md px-3 py-1.5 text-body font-semibold transition-colors ${
+                  isAdminMenuActive(pathname, item.href) ? "bg-glow text-glow-foreground" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        ) : (
         <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-h3 font-semibold text-muted">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -198,6 +221,7 @@ export function Header() {
             );
           })}
         </nav>
+        )}
       </div>
 
       {/* 모바일 헤더 */}
@@ -220,6 +244,7 @@ export function Header() {
                 우주이스케이프
               </span>
             </Link>
+            {admin && <span className="rounded-md bg-amber-400 px-2 py-0.5 text-micro font-semibold text-black">어드민</span>}
             </div>
           {/* 모바일 햄버거 버튼 */}
           <button
@@ -238,8 +263,38 @@ export function Header() {
           </button>
         </div>
 
-        {/* 모바일 드롭다운 메뉴 */}
-        {isMenuOpen && (
+        {/* 모바일 드롭다운 메뉴 — 어드민은 어드민 메뉴 전체를 묶음별로 */}
+        {isMenuOpen && admin && (
+          <div className="max-h-[75vh] overflow-y-auto border-t border-border bg-background">
+            <nav className="mx-auto flex max-w-5xl flex-col gap-4 px-5 py-4">
+              {ADMIN_MENU.map((group) => (
+                <div key={group.label}>
+                  <p className="mb-1.5 text-micro text-muted">{group.label}</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {group.items.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={`rounded-lg px-3 py-2 text-body-sm font-semibold ${
+                          isAdminMenuActive(pathname, item.href)
+                            ? "bg-glow text-glow-foreground"
+                            : "border border-border text-foreground"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-end border-t border-border pt-3">
+                <LogoutButton />
+              </div>
+            </nav>
+          </div>
+        )}
+        {isMenuOpen && !admin && (
           <div className="border-t border-border bg-background">
             <div className="mx-auto max-w-5xl px-5 py-3">
               <nav className="flex flex-wrap justify-end gap-x-3 gap-y-1 text-body font-semibold text-muted">

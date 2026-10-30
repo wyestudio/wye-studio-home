@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoutButton } from "@/components/admin/LogoutButton";
+import { ADMIN_MENU } from "@/components/admin/adminMenu";
 
 /**
  * 어드민 공통 네비게이션.
@@ -11,56 +12,6 @@ import { LogoutButton } from "@/components/admin/LogoutButton";
  * ⚠️ admin 서브도메인(admin.wouldyouescape.com)에서는 proxy.ts 가
  *    "/xxx" → "/admin/xxx" 로 rewrite 하므로, 링크는 /admin 접두사 없이 쓴다.
  */
-const GROUPS: { label: string; items: { href: string; label: string }[] }[] = [
-  {
-    label: "운영",
-    items: [
-      { href: "/", label: "대시보드" },
-      { href: "/applications", label: "신청" },
-      { href: "/group-bookings", label: "단체 예약 문의" },
-      { href: "/sessions", label: "회차" },
-    ],
-  },
-  {
-    label: "상품",
-    items: [
-      { href: "/themes", label: "테마" },
-      { href: "/venues", label: "장소" },
-    ],
-  },
-  {
-    label: "마케팅",
-    items: [
-      { href: "/promotions", label: "프로모션" },
-      { href: "/sponsorships", label: "협찬 신청" },
-      { href: "/review-paybacks", label: "후기 페이백" },
-      { href: "/coupons", label: "쿠폰" },
-      { href: "/marketing-sms", label: "광고 문자" },
-      { href: "/settlement", label: "잼핏 정산" },
-      { href: "/utm", label: "유입경로 링크" },
-      { href: "/analytics", label: "분석" },
-    ],
-  },
-  {
-    label: "콘텐츠",
-    items: [
-      { href: "/content", label: "공지·FAQ" },
-      { href: "/reviews", label: "후기" },
-      { href: "/popups", label: "접속 팝업" },
-      { href: "/season", label: "시즌 스킨" },
-      { href: "/rankings", label: "랭킹" },
-    ],
-  },
-  {
-    label: "설정",
-    items: [
-      { href: "/sms-templates", label: "문자 템플릿" },
-      { href: "/slack-templates", label: "슬랙 템플릿" },
-      { href: "/audit", label: "감사로그" },
-    ],
-  },
-];
-
 export function AdminNav({ current }: { current?: string }) {
   return (
     /*
@@ -75,15 +26,15 @@ export function AdminNav({ current }: { current?: string }) {
       ⚠️ before 는 어긋난 몇 px 만 메운다. 크게 잡으면 스크롤 전에도 위쪽 사이트
          헤더를 덮어버린다(실제로 그랬다).
     */
-    // 휴대폰에서는 메뉴가 화면 절반을 덮어 위에 붙이지 않는다(2026-10-30). 줄이 넘치면 꺾는다.
+    // 휴대폰에서는 이 줄을 숨긴다 — 사이트 머리의 햄버거가 같은 어드민 메뉴를 연다(2026-10-30).
     // 바깥 여백(-mx)은 페이지 여백(휴대폰 p-4 · 컴퓨터 p-6)과 같아야 한다 — 크면 가로로 삐져나온다.
     <nav
-      className="relative z-30 -mx-4 -mt-4 mb-8 flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-border
-                 bg-background px-4 pb-4 pt-4 md:sticky md:top-[var(--header-height,0px)] md:-mx-6 md:-mt-6 md:px-6 md:pt-6
+      className="relative z-30 -mx-4 -mt-4 mb-8 hidden flex-wrap items-center gap-x-6 gap-y-3 border-b border-border
+                 bg-background px-4 pb-4 pt-4 md:sticky md:top-[var(--header-height,0px)] md:flex md:-mx-6 md:-mt-6 md:px-6 md:pt-6
                  before:pointer-events-none before:absolute before:inset-x-0 before:bottom-full
                  before:h-2 before:bg-background"
     >
-      {GROUPS.map((group) => (
+      {ADMIN_MENU.map((group) => (
         <div key={group.label} className="flex min-w-0 items-center gap-2">
           <span className="text-micro uppercase tracking-wide text-muted">{group.label}</span>
           <div className="flex min-w-0 flex-wrap gap-1">

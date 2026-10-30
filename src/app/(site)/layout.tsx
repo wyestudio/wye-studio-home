@@ -156,8 +156,17 @@ async function currentSkin(): Promise<SiteSkin | null> {
   }
 }
 
+/** 어드민 호스트(admin.*)인가 — 머리에 고객 메뉴 대신 어드민 메뉴를 단다. */
+async function onAdminHost(): Promise<boolean> {
+  try {
+    return isAdminHost((await headers()).get("host") || "");
+  } catch {
+    return false;
+  }
+}
+
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [track, skin] = await Promise.all([shouldTrack(), currentSkin()]);
+  const [track, skin, admin] = await Promise.all([shouldTrack(), currentSkin(), onAdminHost()]);
   return (
     <html
       lang="ko"
@@ -207,7 +216,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
               {skin && <SeasonBackdrop />}
               <MascotCursor />
               <TestEnvBanner />
-              <Header />
+              <Header admin={admin} />
               <main className="flex-1">{children}</main>
               <Footer />
             </MascotSelectionProvider>
