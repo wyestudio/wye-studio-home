@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatDateTimeFull } from "@/lib/format";
 import { AdminNav } from "@/components/admin/AdminNav";
 import {
   formatCapacityLine,
@@ -125,7 +124,6 @@ export default async function AdminDashboard() {
   }[];
   const attendees = (attendeesRes.data ?? []) as { application_id: string; gender: string | null }[];
 
-  const headcountOf = (appId: string) => attendees.filter((a) => a.application_id === appId).length;
 
   // ⚠️ 렌더 중 Date.now() 를 직접 부르면 react-hooks/purity 위반이다.
   //    이 페이지는 force-dynamic 이라 요청마다 새로 계산되며,
@@ -158,7 +156,6 @@ export default async function AdminDashboard() {
   const unpaidOverdue = unpaidConfirmed.filter(
     (a) => nowMs - new Date(a.created_at).getTime() > UNPAID_DEADLINE_MS
   );
-  const waiting = apps.filter((a) => a.status === "waiting" && isActive(a));
 
   // ⚠️ 환불 대기만 규칙이 다르다 — 환불 의무는 회차가 끝나도 사라지지 않는다.
   //    그래서 "고객이 환불 계좌를 준 건"(refund_bank_name)은 지난 회차라도 계속 센다.
@@ -179,15 +176,6 @@ export default async function AdminDashboard() {
       (a.refund_bank_name || (a.paid_at && isActive(a)))
   );
   const unmatchedDeposits = unmatchedRes.count ?? 0;
-
-  // ── 이번 주 ───────────────────────────────────────────────
-  const weekAgo = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const recentApps = apps.filter((a) => a.created_at >= weekAgo);
-  const recentPeople = recentApps.reduce((sum, a) => sum + headcountOf(a.id), 0);
-
-  const upcoming = sessions
-    .filter((s) => new Date(s.start_at).getTime() > nowMs && s.status !== "cancelled")
-    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
 
   // ⚠️ 회차마다 RPC 를 부르지 않는다. 롤링 오픈으로 회차가 수백 개라
   //    한 번 여는 데 RPC 가 수백 번 나가게 된다. 이미 읽어온 데이터로 계산한다.
@@ -234,13 +222,11 @@ export default async function AdminDashboard() {
       tone: "red" as const,
     },
     { label: "환불 대기", count: refundPending.length, href: "/applications?status=cancelled", tone: "amber" as const },
-    { label: "대기자", count: waiting.length, href: "/applications?status=waiting", tone: "blue" as const },
   ];
 
   const toneClass = {
     red: "text-red-400",
     amber: "text-amber-400",
-    blue: "text-sky-400",
   };
 
   return (
@@ -251,9 +237,9 @@ export default async function AdminDashboard() {
         <h1 className="mb-6 text-h2 font-semibold">대시보드</h1>
 
         {/* ── 처리 대기 ── */}
-        <section className="mb-6">
+        <section className="mb-8">
           <h2 className="mb-2 text-body-sm font-semibold text-muted">처리 대기</h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {todo.map((t) => (
               <Link
                 key={t.label}
@@ -268,24 +254,6 @@ export default async function AdminDashboard() {
               </Link>
             ))}
           </div>
-        </section>
-
-        {/* ── 이번 주 ── */}
-        <section className="mb-8 rounded-lg border border-border p-4">
-          <h2 className="mb-2 text-body-sm font-semibold text-muted">최근 7일</h2>
-          <p className="text-body-sm">
-            신청 <strong>{recentApps.length}건</strong> · 참여 인원 <strong>{recentPeople}명</strong>
-          </p>
-          {upcoming.length > 0 ? (
-            <p className="mt-2 text-body-sm text-muted">
-              다가오는 회차: <strong className="text-foreground">{formatDateTimeFull(upcoming[0].start_at)}</strong>
-              {upcoming.length > 1 && ` 외 ${upcoming.length - 1}건`}
-            </p>
-          ) : (
-            <p className="mt-2 text-body-sm text-amber-400">
-              예정된 회차가 없습니다. <Link href="/sessions" className="underline">회차 열기</Link>
-            </p>
-          )}
         </section>
 
         {/* ── 회차 ── */}
@@ -305,10 +273,6 @@ export default async function AdminDashboard() {
             nowMs={nowMs}
           />
         </section>
-
-        <p className="mt-8 text-center text-micro text-muted">
-          매출·정산, 고객 관리, 공지·FAQ 편집은 준비 중입니다.
-        </p>
       </div>
     </div>
   );

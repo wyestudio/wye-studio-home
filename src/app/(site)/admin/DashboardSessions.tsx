@@ -67,8 +67,8 @@ const COLOR = {
 
 type Kind = "party" | "normal" | "other" | "group" | "inquiry" | "block";
 
-/** 달력 칸 하나에 놓이는 것. */
-type CalEvent = { key: string; date: string; time: string; kind: Kind; label: string; href: string | null };
+/** 달력 칸 하나에 놓이는 것. 칸 안에서는 누를 수 없다 — 날짜만 고른다(2026-10-30 대표님, 잘못 눌러 넘어가는 게 거슬린다). */
+type CalEvent = { key: string; date: string; time: string; kind: Kind; label: string };
 
 const LEGEND: { kind: Kind; label: string }[] = [
   { kind: "party", label: "파티" },
@@ -107,9 +107,9 @@ function sessionKind(s: DashboardSession): Kind {
 /**
  * 대시보드 일정 달력 — 회차(파티 · 노말) · 단체 신청 · 막아 둔 일정을 한 달에 다 본다(2026-10-30 대표님).
  *
- * 칸의 꼬리표를 누르면 그 회차의 신청자 · 그 단체 신청 건으로 간다. 날짜를 누르면 아래에 그날
- * 목록이 펼쳐지고, 회차 버튼(마감 · 인기 · 단체 막기)과 「이날 단체 막기」 가 거기 있다.
- * 휴대폰은 칸이 좁아 꼬리표 대신 색 점만 찍는다.
+ * 칸에서는 날짜만 고른다. 그날 목록(컴퓨터는 오른쪽, 휴대폰은 아래)에서 회차 버튼(마감 · 인기 ·
+ * 단체 막기) · 단체 신청 건 · 「이날 단체 막기」 를 다룬다. 칸에는 시각만 색으로 찍는다 —
+ * 휴대폰은 그마저 좁아 색 점만.
  *
  * 마감 규칙 — 막는 길은 셋이고 모두 group_booking_closures 한 표에 모인다.
  *   단체 예약 확정 → 그 구간의 단체 · 회차를 막는다(단체 예약 문의에서 확정 일시를 넣을 때)
@@ -147,11 +147,9 @@ export function DashboardSessions({
         time: kstTime(s.start_at),
         kind,
         label: `${kstTime(s.start_at)} ${mode} ${s.confirmed}명`,
-        href: `/sessions/${s.id}`,
       });
     }
     for (const g of groups) {
-      const href = `/group-bookings?id=${g.id}#list`;
       if (g.booking) {
         list.push({
           key: `g-${g.id}`,
@@ -159,7 +157,6 @@ export function DashboardSessions({
           time: g.booking.time,
           kind: "group",
           label: `${g.booking.time} 단체 ${g.name}`,
-          href,
         });
       } else if (OPEN_INQUIRY.has(g.status) && g.preferred_date) {
         const t = HHMM.test(g.preferred_time) ? g.preferred_time : "";
@@ -169,7 +166,6 @@ export function DashboardSessions({
           time: t || "99:99",
           kind: "inquiry",
           label: `${t ? `${t} ` : ""}문의 ${g.name}`,
-          href,
         });
       }
     }
@@ -180,7 +176,6 @@ export function DashboardSessions({
         time: c.start_time ?? "00:00",
         kind: "block",
         label: c.start_time ? `${c.start_time} 막음` : "종일 막음",
-        href: null,
       });
     }
     const byDate = new Map<string, CalEvent[]>();
@@ -209,7 +204,8 @@ export function DashboardSessions({
   const dayClosures = closures.filter((c) => c.date === selected);
 
   return (
-    <div className="flex flex-col gap-5">
+    // 컴퓨터는 달력 왼쪽 · 그날 목록 오른쪽 — 달력이 화면 폭을 다 쓰면 너무 크다(2026-10-30 대표님).
+    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
       {/* ── 달 ── */}
       <div className="rounded-xl border border-border p-3 md:p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
@@ -270,7 +266,7 @@ export function DashboardSessions({
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setSelected(d)}
                 aria-label={`${kstDateLabel(d)} ${evs.length}건`}
                 aria-pressed={isSel}
-                className={`flex min-h-14 cursor-pointer flex-col gap-1 p-1 text-left md:min-h-24 md:p-1.5 ${
+                className={`flex min-h-14 cursor-pointer flex-col gap-1 p-1 text-left md:min-h-20 md:p-1.5 ${
                   isSel ? "bg-fill-strong" : "bg-background hover:bg-fill-subtle"
                 } ${inMonth ? "" : "[&>*]:opacity-40"}`}
               >
@@ -297,7 +293,7 @@ export function DashboardSessions({
                     />
                   ))}
                 </span>
-                {/* 컴퓨터: 꼬리표 */}
+                {/* 컴퓨터: 시각만 색으로 */}
                 <span className="hidden flex-col gap-0.5 md:flex">
                   {evs.slice(0, 3).map((e) => (
                     <EventChip key={e.key} e={e} />
@@ -379,20 +375,18 @@ export function DashboardSessions({
 
 function EventChip({ e }: { e: CalEvent }) {
   const color = kindColor(e.kind);
-  const style = {
-    backgroundColor: `${color}${e.kind === "inquiry" ? "14" : "26"}`,
-    color,
-    ...(e.kind === "inquiry" ? { border: `1px dashed ${color}66` } : {}),
-  };
-  const cls = "block truncate rounded px-1 text-micro leading-5";
-  // 꼬리표를 누르면 바로 그 건으로 — 칸(날짜 고르기)까지 눌리지 않게 막는다.
-  return e.href ? (
-    <Link href={e.href} onClick={(ev) => ev.stopPropagation()} className={`${cls} hover:brightness-125`} style={style}>
-      {e.label}
-    </Link>
-  ) : (
-    <span className={cls} style={style}>
-      {e.label}
+  return (
+    <span
+      title={e.label}
+      className="block truncate rounded px-1 text-micro leading-5 tabular-nums"
+      style={{
+        backgroundColor: `${color}${e.kind === "inquiry" ? "14" : "26"}`,
+        color,
+        ...(e.kind === "inquiry" ? { border: `1px dashed ${color}66` } : {}),
+      }}
+    >
+      {/* 종일 막음만 글자로 — 나머지는 시각만 적는다(칸이 좁다). */}
+      {e.kind === "block" && e.time === "00:00" ? "종일" : e.time === "99:99" ? "문의" : e.time}
     </span>
   );
 }
