@@ -419,7 +419,7 @@ function SessionCard({
       : pending
         ? { label: "공개 전", cls: "bg-amber-400 text-black" }
         : s.status === "open"
-          ? { label: "모집중", cls: "bg-glow text-glow-foreground" }
+          ? { label: "모집중", cls: "bg-glow text-black" }
           : { label: "마감", cls: "bg-zinc-500 text-white" };
   return (
     <div className="rounded-lg border border-border" style={{ borderLeft: `3px solid ${color}` }}>
@@ -434,7 +434,7 @@ function SessionCard({
               </span>
             )}
             {/* 꽉 찬 색 — 옅은 배경은 카드 배경에 묻혀 눈에 안 띄었다(2026-10-30 대표님). */}
-            <span className={`rounded-md px-2.5 py-0.5 text-label font-semibold ${state.cls}`}>{state.label}</span>
+            <span className={`rounded-md px-2 py-0.5 text-micro font-semibold ${state.cls}`}>{state.label}</span>
           </span>
           {kind === "normal" ? (
             // 노말은 한 팀만 받는다 — 확정 · 대기 대신 예약 인원과 입금 상태.
