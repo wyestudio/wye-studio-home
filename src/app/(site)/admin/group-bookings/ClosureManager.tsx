@@ -69,7 +69,7 @@ export function ClosureManager({
   }
 
   return (
-    <section className="mb-10 rounded-xl border border-border bg-panel p-5">
+    <section className="mb-10 rounded-xl border border-border bg-panel p-4 md:p-5">
       <h2 className="text-h3 font-semibold">일정 마감 표시</h2>
       <p className="mt-1 text-body-sm text-muted">
         시작 시각부터 소요 시간만큼 막습니다. 이 구간과 조금이라도 겹치는 단체 시간은 견적 화면에서 고를 수 없어요.
@@ -77,14 +77,14 @@ export function ClosureManager({
         겹치는 바-ㅇ탈출 회차(파티 · 노말)도 같이 닫힙니다. 신청자가 있는 회차는 닫지 않고 알려 드려요.
       </p>
 
-      <div className="mt-4 flex flex-wrap items-end gap-2">
+      <div className="mt-4 flex flex-wrap items-end gap-x-2 gap-y-3">
         <label className="flex flex-col gap-1 text-body-sm">
           날짜
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-body-sm"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-input"
             style={{ colorScheme: "dark" }}
           />
         </label>
@@ -99,7 +99,7 @@ export function ClosureManager({
             value={time}
             disabled={allDay}
             onChange={(e) => setTime(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-body-sm"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-input"
             style={{ colorScheme: "dark" }}
           />
         </label>
@@ -114,7 +114,7 @@ export function ClosureManager({
               disabled={allDay}
               onChange={(e) => setHours(e.target.value)}
               aria-label="시간"
-              className="w-16 rounded-lg border border-border bg-background px-3 py-2 text-body-sm tabular-nums"
+              className="w-16 rounded-lg border border-border bg-background px-3 py-2 text-input tabular-nums"
             />
             시간
             <input
@@ -126,7 +126,7 @@ export function ClosureManager({
               disabled={allDay}
               onChange={(e) => setMins(e.target.value)}
               aria-label="분"
-              className="ml-1 w-16 rounded-lg border border-border bg-background px-3 py-2 text-body-sm tabular-nums"
+              className="ml-1 w-16 rounded-lg border border-border bg-background px-3 py-2 text-input tabular-nums"
             />
             분
           </div>
@@ -142,7 +142,7 @@ export function ClosureManager({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="예: OO회사 확정"
-            className="rounded-lg border border-border bg-background px-3 py-2 text-body-sm"
+            className="rounded-lg border border-border bg-background px-3 py-2 text-input"
           />
         </label>
         <button
@@ -161,16 +161,17 @@ export function ClosureManager({
       ) : (
         <ul className="mt-4 flex flex-col divide-y divide-border/50">
           {closures.map((c) => (
-            <li key={c.id} className="flex items-center gap-3 py-2 text-body-sm">
+            // 휴대폰에서는 두 줄로 꺾인다 — 날짜 · 구간이 윗줄, 메모와 해제 버튼이 아랫줄.
+            <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-body-sm">
               <span className="w-36 font-semibold">
                 {c.date} ({dayOf(c.date)})
               </span>
-              <span className="w-48 tabular-nums">
+              <span className="tabular-nums md:w-48">
                 {c.start_time
                   ? `${c.start_time} ~ ${addMinutes(c.start_time, c.minutes ?? BASE_MINUTES)} (${durationLabel(c.minutes ?? BASE_MINUTES)})`
                   : "종일"}
               </span>
-              <span className="min-w-0 flex-1 truncate text-muted">
+              <span className="min-w-0 flex-1 text-muted md:truncate">
                 {c.inquiry_id && (
                   <span className="mr-2 rounded-md bg-fill px-1.5 py-0.5 text-micro text-foreground">
                     예약 확정 · {inquiryNames[c.inquiry_id] ?? "신청 건"}
@@ -183,7 +184,7 @@ export function ClosureManager({
                 onClick={() => remove(c.id)}
                 onBlur={() => setArmed(null)}
                 disabled={pending}
-                className={`rounded-lg border px-3 py-1 text-micro ${
+                className={`ml-auto rounded-lg border px-3 py-1.5 text-micro ${
                   armed === c.id ? "border-danger text-danger" : "border-border text-muted hover:text-foreground"
                 }`}
               >

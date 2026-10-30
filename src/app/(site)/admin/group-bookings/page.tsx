@@ -109,7 +109,7 @@ export default async function AdminGroupBookingsPage() {
   const pending = rows.filter((r) => r.status === "new").length;
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
         <Link href="/" className="mb-4 inline-block text-glow hover:underline">
           ← 돌아가기
@@ -131,7 +131,67 @@ export default async function AdminGroupBookingsPage() {
         {rows.length === 0 ? (
           <p className="py-4 text-muted">아직 접수된 문의가 없습니다.</p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/*
+            휴대폰은 카드 한 장씩 — 표는 가로로 밀려서 정작 자주 쓰는 진행 상태 · 저장 칸이
+            화면 밖에 있었다(2026-10-30 대표님).
+          */}
+          <ul className="flex flex-col gap-3 md:hidden">
+            {rows.map((r) => (
+              <li
+                key={r.id}
+                className={`flex flex-col gap-3 rounded-xl border border-border p-4 ${
+                  r.status === "new" ? "bg-brand-soft/30" : "bg-panel"
+                }`}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-body font-semibold">{r.organizer_name ?? "이름 없음"}</span>
+                    {r.group_name && <span className="ml-2 text-body-sm text-muted">{r.group_name}</span>}
+                  </div>
+                  <span className="shrink-0 text-body font-semibold">{r.headcount}명</span>
+                </div>
+                <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-body-sm">
+                  <dt className="text-muted">희망 일시</dt>
+                  <dd>
+                    {r.preferred_date ?? "날짜 미정"} {preferredTimeLabel(r.preferred_time)}
+                    {bookings.has(r.id) && (
+                      <div className="font-semibold text-glow">
+                        확정 {bookings.get(r.id)!.date} {bookings.get(r.id)!.time} ~{" "}
+                        {addMinutes(bookings.get(r.id)!.time, bookings.get(r.id)!.minutes)}
+                      </div>
+                    )}
+                  </dd>
+                  <dt className="text-muted">연락처</dt>
+                  <dd>
+                    <span className="text-muted">{contactMethodLabel(r.contact_method)}</span> <ContactLink r={r} />
+                  </dd>
+                  <dt className="text-muted">견적</dt>
+                  <dd className="text-micro">
+                    <OptionsCell r={r} />
+                  </dd>
+                  <dt className="text-muted">참고</dt>
+                  <dd className="text-micro">
+                    <ExtrasCell r={r} />
+                  </dd>
+                  <dt className="text-muted">유입</dt>
+                  <dd className="text-micro text-muted">
+                    <SourceCell r={r} />
+                  </dd>
+                  <dt className="text-muted">접수</dt>
+                  <dd className="text-micro text-muted">{formatDateTimeFull(r.created_at)}</dd>
+                </dl>
+                <InquiryRow
+                  id={r.id}
+                  status={r.status}
+                  memo={r.admin_memo ?? ""}
+                  booking={bookings.get(r.id) ?? null}
+                  suggested={suggestedBooking(r)}
+                />
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
@@ -190,22 +250,7 @@ export default async function AdminGroupBookingsPage() {
                       <ExtrasCell r={r} />
                     </td>
                     <td className={`${td} max-w-[180px] text-micro text-muted`}>
-                      {/* 빈 칸이 곧 '직접 방문' 이다 — 그 말을 직접 적어 둔다. */}
-                      {r.utm_source || r.referrer ? (
-                        <>
-                          {r.utm_source && (
-                            <div>
-                              {r.utm_source}
-                              {r.utm_medium ? ` / ${r.utm_medium}` : ""}
-                            </div>
-                          )}
-                          {r.utm_campaign && <div>{r.utm_campaign}</div>}
-                          {r.referrer && <div className="break-all">{r.referrer}</div>}
-                          {r.landing_path && <div className="break-all">{r.landing_path}</div>}
-                        </>
-                      ) : (
-                        "직접 방문"
-                      )}
+                      <SourceCell r={r} />
                     </td>
                     <td className={td}>
                       <InquiryRow
@@ -221,6 +266,7 @@ export default async function AdminGroupBookingsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         <p className="mt-8 text-micro leading-relaxed text-muted">
@@ -242,6 +288,37 @@ function suggestedBooking(r: Inquiry): { date: string; time: string; minutes: nu
     time: HHMM.test(r.preferred_time) ? r.preferred_time : "",
     minutes: BASE_MINUTES - (o.icebreaking === false ? OPTION.icebreaking.minutes : 0) + (o.after_party_hours ?? 0) * 60,
   };
+}
+
+/** 유입 경로. 빈 칸이 곧 '직접 방문' 이다 — 그 말을 직접 적어 둔다. */
+function SourceCell({ r }: { r: Inquiry }) {
+  if (!r.utm_source && !r.referrer) return <>직접 방문</>;
+  return (
+    <>
+      {r.utm_source && (
+        <div>
+          {r.utm_source}
+          {r.utm_medium ? ` / ${r.utm_medium}` : ""}
+        </div>
+      )}
+      {r.utm_campaign && <div>{r.utm_campaign}</div>}
+      {r.referrer && <div className="break-all">{r.referrer}</div>}
+      {r.landing_path && <div className="break-all">{r.landing_path}</div>}
+    </>
+  );
+}
+
+/** 휴대폰에서 바로 걸 수 있게 — 전화 · 문자로 받은 번호만 링크로 만든다(카카오톡 ID 는 글자 그대로). */
+function ContactLink({ r }: { r: Inquiry }) {
+  const digits = r.contact.replace(/[^\d]/g, "");
+  if ((r.contact_method === "phone" || r.contact_method === "sms") && digits.length >= 9) {
+    return (
+      <a href={`${r.contact_method === "sms" ? "sms" : "tel"}:${digits}`} className="font-semibold text-glow underline">
+        {r.contact}
+      </a>
+    );
+  }
+  return <span className="break-all">{r.contact}</span>;
 }
 
 /** 견적 단계에서 고른 것. 금액은 접수 시점에 서버가 계산한 값이다(요금표가 바뀌어도 그대로). */

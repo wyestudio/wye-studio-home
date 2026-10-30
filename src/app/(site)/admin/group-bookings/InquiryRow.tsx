@@ -63,10 +63,10 @@ export function InquiryRow({
     });
   }
 
-  const field = "rounded-lg border border-border bg-panel px-2 py-1.5 text-body-sm tabular-nums";
+  const field = "rounded-lg border border-border bg-panel px-2 py-1.5 text-input tabular-nums";
 
   return (
-    <div className="flex min-w-[260px] flex-col gap-2">
+    <div className="flex flex-col gap-2 md:min-w-[260px]">
       <Select
         value={status}
         onChange={setStatus}
@@ -133,14 +133,14 @@ export function InquiryRow({
         value={memo}
         onChange={(e) => setMemo(e.target.value)}
         placeholder="응대 메모"
-        className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-body-sm outline-none focus:border-glow"
+        className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-input outline-none focus:border-glow"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={save}
           disabled={pending || !dirty}
-          className="rounded-lg bg-brand px-3 py-1.5 text-body-sm font-semibold text-brand-foreground disabled:opacity-40"
+          className="rounded-lg bg-brand px-4 py-2 text-body-sm font-semibold text-brand-foreground disabled:opacity-40"
         >
           {pending ? "저장 중…" : "저장"}
         </button>
