@@ -10,12 +10,9 @@ import { ApplicationActionMenu } from "./ApplicationActionMenu";
 import { RefundCompleteButton } from "./RefundCompleteButton";
 import { getInternalApplicationIds } from "@/lib/internalTraffic";
 import { getSessionStats } from "@/lib/sessions";
-import {
-  formatCapacityLine,
-  formatHeadcountLine,
-  countUnpaidConfirmed,
-  type SessionDisplayRow,
-} from "@/lib/sessionStatsFormat";
+import { formatHeadcountLine, countUnpaidConfirmed, type SessionDisplayRow } from "@/lib/sessionStatsFormat";
+import { Chevron } from "@/components/ui/Chevron";
+import type { ExperienceRange } from "@/lib/validation";
 import { isDatingTheme } from "@/lib/theme";
 import { getParticipationHistory, revisitLabel } from "@/lib/participationHistory";
 
@@ -23,153 +20,47 @@ export const dynamic = "force-dynamic";
 
 type PageProps = Promise<{ id: string }>;
 
-function CommonCells({ app, appAttendees }: { app: any; appAttendees: any[] }) {
-  return (
-    <>
-      <td className="py-3 px-4 text-body-sm">
-        <ApplicationDetailDialog application={app} attendees={appAttendees} />
-      </td>
-      <td className="py-3 px-4 text-body-sm">
-        {appAttendees.length > 0 ? (
-          <div className="space-y-1">
-            {appAttendees.map((att: any, idx: number) => (
-              <div key={idx} className="text-micro">
-                {att.is_representative && <span className="font-semibold">대표 </span>}
-                {att.name} [{att.phone}]
-                {/* 몇 번째 참여인가 — 운영자 전용(participationHistory.ts). 첫 참여면 안 붙인다. */}
-                {att.revisit && (
-                  <span className="ml-1.5 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-amber-400">
-                    {att.revisit}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <span className="text-muted">참여자 정보 없음</span>
-        )}
-      </td>
-      <td className="py-3 px-4 text-body-sm">
-        {appAttendees.length > 0 ? (
-          <div className="space-y-1">
-            {appAttendees.map((att: any, idx: number) => (
-              <div key={idx} className="text-micro">
-                {att.gender === "M" ? "남" : att.gender === "F" ? "여" : "-"}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <span className="text-muted">-</span>
-        )}
-      </td>
-      <td className="py-3 px-4 text-body-sm">
-        {appAttendees.length > 0 ? (
-          <div className="space-y-1">
-            {appAttendees.map((att: any, idx: number) => (
-              <div key={idx} className="text-micro">
-                {att.birth_year ?? "-"}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <span className="text-muted">-</span>
-        )}
-      </td>
-    </>
-  );
+/** 현재 시각(ms). 렌더 함수 밖으로 빼 purity 규칙을 지킨다(대시보드와 같다). */
+function getNowMs(): number {
+  return Date.now();
 }
 
-function StatusCell({ app }: { app: any }) {
-  return (
-    <td className="py-3 px-4 text-body-sm">
-      <span
-        className={
-          app.status === "confirmed"
-            ? "text-green-500 font-semibold"
-            : app.status === "cancelled"
-              ? "text-red-500 font-semibold"
-              : "text-yellow-500 font-semibold"
-        }
-      >
-        {app.status === "confirmed" ? "확정" : app.status === "cancelled" ? "취소" : "대기"}
-      </span>
-      {app.is_internal && (
-        <span
-          className="ml-1.5 rounded-md border border-amber-400/60 px-1 py-0.5 text-micro font-semibold text-amber-400"
-          title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
-        >
-          테스트
-        </span>
-      )}
-    </td>
-  );
-}
+/** admin_application_view 한 줄 — 이 화면이 읽는 칸만. */
+type App = {
+  id: string;
+  session_id: string;
+  status: string;
+  payment_status: string;
+  confirmation_code: string;
+  depositor_name: string;
+  consent_required: boolean;
+  consent_optional: boolean;
+  consent_photo: boolean;
+  consent_marketing: boolean;
+  notes: string | null;
+  created_at: string;
+  paid_at: string | null;
+  promoted_from_waiting_at: string | null;
+  refund_bank_name: string | null;
+  refund_account_number: string | null;
+  refund_account_holder: string | null;
+  refund_completed_at: string | null;
+  is_internal: boolean;
+};
 
-function PromotedCell({ app }: { app: any }) {
-  return (
-    <td className="py-3 px-4 text-body-sm">
-      {app.promoted_from_waiting_at ? (
-        <span className="text-glow font-semibold">
-          대기→확정 <span className="text-micro text-muted">({formatDateTimeFull(app.promoted_from_waiting_at)})</span>
-        </span>
-      ) : (
-        <span className="text-muted">즉시확정</span>
-      )}
-    </td>
-  );
-}
-
-function PaymentStatusCell({ app }: { app: any }) {
-  return (
-    <td className="py-3 px-4 text-body-sm">
-      <span
-        className={
-          app.payment_status === "confirmed"
-            ? "text-green-500 font-semibold"
-            : app.payment_status === "cancelled"
-              ? "text-red-500 font-semibold"
-              : "text-muted"
-        }
-      >
-        {app.payment_status === "confirmed" ? "입금 확인" : app.payment_status === "cancelled" ? "취소됨" : "대기중"}
-      </span>
-    </td>
-  );
-}
-
-function ActionCell({
-  app,
-  appAttendees,
-  session,
-}: {
-  app: any;
-  appAttendees: any[];
-  session: { id: string; session_type: string; min_age: number | null };
-}) {
-  return (
-    <td className="py-3 px-4 text-body-sm">
-      <ApplicationActionMenu
-        applicationId={app.id}
-        sessionId={session.id}
-        status={app.status}
-        paymentStatus={app.payment_status}
-        minAge={session.min_age ?? 16}
-        depositorName={app.depositor_name}
-        notes={app.notes}
-        attendees={appAttendees.map((a: any) => ({
-          id: a.id,
-          is_representative: a.is_representative,
-          name: a.name,
-          phone: a.phone,
-          birth_year: a.birth_year,
-          nickname: a.nickname,
-          gender: a.gender,
-          experience_range: a.experience_range,
-        }))}
-      />
-    </td>
-  );
-}
+/** admin_attendee_view 한 줄 + 몇 번째 참여인지. */
+type Att = {
+  id: string;
+  application_id: string;
+  is_representative: boolean;
+  name: string;
+  phone: string;
+  birth_year: number | null;
+  nickname: string | null;
+  gender: "M" | "F" | null;
+  experience_range: ExperienceRange | null;
+  revisit: string | null;
+};
 
 /**
  * 이 취소 건에 돌려줄 돈이 있는가.
@@ -184,17 +75,137 @@ function ActionCell({
  * 이걸 구분하지 않으면 입금 전 단순 취소까지 전부 "환불 미완료" 로 보여
  * 처리할 게 없는데도 처리 대기처럼 쌓인다.
  */
-function needsRefund(app: any): boolean {
+function needsRefund(app: App): boolean {
   return Boolean(app.paid_at) || Boolean(app.refund_bank_name);
 }
 
-function RefundActionCell({ app, sessionId }: { app: any; sessionId: string }) {
+const tag = "rounded-md px-2 py-0.5 text-micro font-semibold";
+
+/**
+ * 신청 한 건 — 카드 하나.
+ *
+ * 예전엔 표였는데 휴대폰에서 입금 상태 · 액션 칸이 화면 밖으로 밀렸다(2026-10-30 대표님).
+ * 카드 윗줄에 접수번호 · 상태 · 액션을 모으고, 참여자는 한 줄씩 적는다.
+ */
+function AppCard({
+  app,
+  atts,
+  session,
+  showPromoted,
+}: {
+  app: App;
+  atts: Att[];
+  session: { id: string; min_age: number | null };
+  /** 파티모드 확정 건 — 대기에서 올라온 건인지 보여 준다. */
+  showPromoted: boolean;
+}) {
+  const cancelled = app.status === "cancelled";
+  const people = atts.length;
   return (
-    <td className="py-3 px-4 text-body-sm">
-      {needsRefund(app) && !app.refund_completed_at && (
-        <RefundCompleteButton applicationId={app.id} sessionId={sessionId} />
+    <li className="rounded-lg border border-border p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <ApplicationDetailDialog application={app} attendees={atts} />
+        <span className="text-micro text-muted">{people}명</span>
+        {app.status === "waiting" && <span className={`${tag} bg-amber-400 text-black`}>대기</span>}
+        {!cancelled &&
+          (app.payment_status === "confirmed" ? (
+            <span className={`${tag} bg-green-500 text-black`}>입금 확인</span>
+          ) : (
+            <span className={`${tag} bg-amber-400 text-black`}>입금 전</span>
+          ))}
+        {cancelled &&
+          (app.refund_completed_at ? (
+            <span className={`${tag} bg-fill-strong text-muted`}>환불 완료</span>
+          ) : needsRefund(app) ? (
+            <span className={`${tag} bg-red-500 text-white`}>환불 필요</span>
+          ) : (
+            <span className={`${tag} bg-fill-strong text-muted`} title="입금 전 취소라 돌려줄 금액이 없습니다">
+              환불 없음
+            </span>
+          ))}
+        {app.is_internal && (
+          <span
+            className={`${tag} border border-amber-400/60 text-amber-400`}
+            title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
+          >
+            테스트
+          </span>
+        )}
+        <span className="ml-auto">
+          {cancelled ? (
+            needsRefund(app) &&
+            !app.refund_completed_at && <RefundCompleteButton applicationId={app.id} sessionId={session.id} />
+          ) : (
+            <ApplicationActionMenu
+              applicationId={app.id}
+              sessionId={session.id}
+              status={app.status}
+              paymentStatus={app.payment_status}
+              minAge={session.min_age ?? 16}
+              depositorName={app.depositor_name}
+              notes={app.notes}
+              attendees={atts.map((a) => ({
+                id: a.id,
+                is_representative: a.is_representative,
+                name: a.name,
+                phone: a.phone,
+                birth_year: a.birth_year,
+                nickname: a.nickname,
+                gender: a.gender,
+                experience_range: a.experience_range,
+              }))}
+            />
+          )}
+        </span>
+      </div>
+
+      {people > 0 ? (
+        <ul className="mt-3 flex flex-col gap-1.5 text-body-sm">
+          {atts.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="font-semibold">
+                {a.is_representative && <span className="mr-1 text-micro font-normal text-muted">대표</span>}
+                {a.name}
+              </span>
+              <span className="text-micro text-muted">
+                {a.gender === "M" ? "남" : a.gender === "F" ? "여" : "-"} · {a.birth_year ?? "-"}
+              </span>
+              <a href={`tel:${a.phone.replace(/[^\d]/g, "")}`} className="text-micro text-muted underline tabular-nums">
+                {a.phone}
+              </a>
+              {/* 몇 번째 참여인가 — 운영자 전용(participationHistory.ts). 첫 참여면 안 붙인다. */}
+              {a.revisit && (
+                <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-micro text-amber-400">{a.revisit}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-micro text-muted">참여자 정보 없음</p>
       )}
-    </td>
+
+      {showPromoted && app.promoted_from_waiting_at && (
+        <p className="mt-2 text-micro text-glow">대기 → 확정 ({formatDateTimeFull(app.promoted_from_waiting_at)})</p>
+      )}
+      {cancelled && app.refund_bank_name && (
+        <p className="mt-2 text-micro text-muted">
+          환불 계좌 <strong className="text-foreground">{app.refund_bank_name}</strong> {app.refund_account_number}{" "}
+          {app.refund_account_holder}
+          {app.refund_completed_at && ` · 완료 ${formatDateTimeFull(app.refund_completed_at)}`}
+        </p>
+      )}
+    </li>
+  );
+}
+
+function AppSection({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+  return (
+    <section className="mb-8">
+      <h2 className="mb-3 text-h3 font-semibold">
+        {title} <span className="text-muted">{count}</span>
+      </h2>
+      {children}
+    </section>
   );
 }
 
@@ -215,12 +226,6 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
     .select("*")
     .eq("id", params.id)
     .single();
-
-  // 노말모드처럼 회차당 팀 수가 정해진 테마는 인원 정원 대신 'N팀 예약제' 로 보여준다.
-  const { data: teamRule } = session?.theme_id
-    ? await supabase.from("themes").select("max_teams_per_session").eq("id", session.theme_id).single()
-    : { data: null };
-  const maxTeams: number | null = teamRule?.max_teams_per_session ?? null;
 
   const { data: applications, error: applicationsError } = await supabase
     .from("admin_application_view")
@@ -261,76 +266,91 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
 
   // 우리 기기에서 넣은 신청에 '테스트' 배지를 단다. 정원·명단에는 그대로 포함된다.
   const internalIds = await getInternalApplicationIds((applications ?? []).map((a) => a.id as string));
-  const allApplications = (applications ?? []).map((a) => ({ ...a, is_internal: internalIds.has(a.id as string) }));
+  const allApplications: App[] = (applications ?? []).map((a) => ({
+    ...(a as Omit<App, "is_internal">),
+    is_internal: internalIds.has(a.id as string),
+  }));
 
   // 참여자별 '몇 번째 참여인가'(노말은 재참여 무제한). 운영자 화면에서만 보인다.
   const history = await getParticipationHistory(allApplications.map((a) => a.id as string));
-  const attendeesWithVisit = (attendees ?? []).map((a) => ({
-    ...a,
+  const attendeesWithVisit: Att[] = (attendees ?? []).map((a) => ({
+    ...(a as Omit<Att, "revisit">),
     revisit: revisitLabel(history.get(a.id as string)),
   }));
+  const attsOf = (appId: string) => attendeesWithVisit.filter((a) => a.application_id === appId);
 
   // 입금 전 건이 위로 오도록 정렬 (동순위는 기존 created_at desc 순서 유지, Array#sort는 안정 정렬).
   const confirmedApps = allApplications
-    .filter((a: any) => a.status === "confirmed")
-    .sort((a: any, b: any) => (a.payment_status === "confirmed" ? 1 : 0) - (b.payment_status === "confirmed" ? 1 : 0));
+    .filter((a) => a.status === "confirmed")
+    .sort((a, b) => (a.payment_status === "confirmed" ? 1 : 0) - (b.payment_status === "confirmed" ? 1 : 0));
 
-  const waitingApps = allApplications.filter((a: any) => a.status === "waiting");
+  const waitingApps = allApplications.filter((a) => a.status === "waiting");
 
   // 환불 미완료 건이 위로 오도록 정렬.
   const cancelledApps = allApplications
-    .filter((a: any) => a.status === "cancelled")
+    .filter((a) => a.status === "cancelled")
     // 실제로 처리할 게 있는 건(입금했는데 환불 미완료)이 맨 위로 온다.
-    .sort((a: any, b: any) => {
-      const rank = (x: any) =>
+    .sort((a, b) => {
+      const rank = (x: App) =>
         needsRefund(x) && !x.refund_completed_at ? 0 : x.refund_completed_at ? 1 : 2;
       return rank(a) - rank(b);
     });
 
+  // 노말모드는 한 팀만 받는다 — 확정 · 대기 대신 예약 인원과 입금 상태로 본다(2026-10-30 대표님).
+  const isNormal = Boolean(display?.theme_mode?.includes("노말"));
+  const bookedPeople = confirmedApps.reduce((n, a) => n + attsOf(a.id).length, 0);
+  const refundTodo = cancelledApps.filter((a) => needsRefund(a) && !a.refund_completed_at).length;
+  const pendingOpen = session.opens_at && new Date(session.opens_at).getTime() > getNowMs();
+  const state =
+    session.status === "cancelled"
+      ? { label: "비활성화", cls: "bg-red-500 text-white" }
+      : pendingOpen
+        ? { label: "공개 전", cls: "bg-amber-400 text-black" }
+        : session.status === "open"
+          ? { label: "모집중", cls: "bg-glow text-black" }
+          : { label: "마감", cls: "bg-zinc-500 text-white" };
+  const cards = (apps: App[], showPromoted = false) => (
+    <ul className="flex flex-col gap-3">
+      {apps.map((app) => (
+        <AppCard key={app.id} app={app} atts={attsOf(app.id)} session={session} showPromoted={showPromoted} />
+      ))}
+    </ul>
+  );
+
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
-        <Link href="/" className="text-glow hover:underline mb-4 inline-block">
-          ← 돌아가기
+    <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="mx-auto max-w-3xl">
+        <Link href="/" className="mb-4 inline-block text-body-sm text-glow hover:underline">
+          ← 대시보드
         </Link>
 
-        <div className="mb-8 flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-h2 font-semibold mb-2">
-              {/*
-                ⚠️ 테마명·모드는 session_display 에서 읽는다. sessions 의 theme_name ·
-                   session_type · theme_mode 는 옛 회차 칸이라 새 구조 회차에서는 비어 있어,
-                   제목에 날짜만 남았다(2026-10-18).
-              */}
+        {/* ── 회차 머리 ── 언제 · 무엇 · 지금 상태를 한눈에, 버튼은 한 줄로 */}
+        <header className="mb-8 rounded-xl border border-border p-4 md:p-5">
+          <p className="text-h2 font-semibold tabular-nums">{formatDateTimeFull(session.start_at)}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {/*
+              ⚠️ 테마명·모드는 session_display 에서 읽는다. sessions 의 theme_name ·
+                 session_type · theme_mode 는 옛 회차 칸이라 새 구조 회차에서는 비어 있어,
+                 제목에 날짜만 남았다(2026-10-18).
+            */}
+            <span className="text-body font-semibold">
               {display?.theme_name ?? `${session.session_type ?? ""} ${session.theme_name ?? ""}`.trim()}
-              {/*
-                모드 배지. 테마명이 두 모드 모두 '바-ㅇ탈출' 이라, 이게 없으면
-                회차 상세만 보고는 파티인지 노말인지 알 수 없다.
-              */}
-              {display?.theme_mode && (
-                <span className="ml-2 rounded-md bg-muted/20 px-2 py-0.5 text-micro font-normal text-muted align-middle">
-                  {display.theme_mode}
-                </span>
-              )}
-            </h1>
-            <p className="text-muted">{formatDateTimeFull(session.start_at)}</p>
-            <p className="text-body-sm mt-1">
-              상태:{" "}
-              <span
-                className={
-                  session.status === "open"
-                    ? "text-glow"
-                    : session.status === "cancelled"
-                      ? "text-red-500 font-semibold"
-                      : "text-muted"
-                }
-              >
-                {session.status === "open" ? "모집중" : session.status === "cancelled" ? "비활성화(취소)" : "마감"}
-              </span>
-            </p>
+            </span>
+            {/* 테마명이 두 모드 모두 '바-ㅇ탈출' 이라, 모드 배지가 없으면 파티인지 노말인지 알 수 없다. */}
+            {display?.theme_mode && (
+              <span className="rounded-md bg-muted/20 px-2 py-0.5 text-micro text-muted">{display.theme_mode}</span>
+            )}
+            <span className={`${tag} ${state.cls}`}>{state.label}</span>
           </div>
+          <p className="mt-2 text-body-sm text-muted">
+            {isNormal
+              ? confirmedApps.length > 0
+                ? `예약 ${bookedPeople}명 · ${unpaidConfirmedCount > 0 ? "입금 확인 전" : "입금 확인"}`
+                : "예약 없음"
+              : `${display && stats ? formatHeadcountLine(display as SessionDisplayRow, stats) : ""} · 입금 확인 전 ${unpaidConfirmedCount}명`}
+          </p>
           {session.status !== "cancelled" && (
-            <div className="flex flex-col items-end gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <SessionStatusToggle
                 sessionId={session.id}
                 status={session.status}
@@ -343,169 +363,46 @@ export default async function AdminSessionDetailPage(props: { params: PageProps 
                 minAge={session.min_age ?? 16}
               />
               <SendReminderButton sessionId={session.id} />
-              <DeactivateSessionButton sessionId={session.id} />
             </div>
           )}
-        </div>
+        </header>
 
-        {stats && (
-          <div className="mb-8 rounded-lg border border-border p-4 space-y-1.5">
-            <p className="text-h3 font-semibold text-foreground">
-              {display ? formatCapacityLine(display as SessionDisplayRow, maxTeams) : "정원: -"}
+        <AppSection title={isNormal ? "예약" : "확정"} count={confirmedApps.length}>
+          {confirmedApps.length > 0 ? (
+            cards(confirmedApps, !isNormal)
+          ) : (
+            <p className="rounded-lg border border-border p-6 text-center text-body-sm text-muted">
+              {isNormal ? "아직 예약이 없습니다." : "확정된 신청이 없습니다."}
             </p>
-            <p className="text-h3 font-semibold text-foreground">
-              {display ? formatHeadcountLine(display as SessionDisplayRow, stats) : ""}
-            </p>
-            <p className="text-h3 font-semibold text-foreground">입금 확인 전 인원: {unpaidConfirmedCount}명</p>
-          </div>
+          )}
+        </AppSection>
+
+        {/* 대기는 거의 생기지 않는다 — 있을 때만 보인다(2026-10-30 대표님). */}
+        {waitingApps.length > 0 && (
+          <AppSection title="대기" count={waitingApps.length}>
+            {cards(waitingApps)}
+          </AppSection>
         )}
 
-        <p className="text-body-sm text-muted mb-2">💡 접수번호를 클릭하면 신청 상세 정보를 확인할 수 있습니다.</p>
+        {cancelledApps.length > 0 && (
+          // 취소는 접어 둔다. 환불할 건이 남아 있으면 펼쳐 둔다.
+          <details open={refundTodo > 0} className="group mb-8">
+            <summary className="mb-3 flex cursor-pointer list-none items-center gap-2 text-h3 font-semibold [&::-webkit-details-marker]:hidden">
+              취소 <span className="text-muted">{cancelledApps.length}</span>
+              {refundTodo > 0 && <span className={`${tag} bg-red-500 text-white`}>환불 필요 {refundTodo}</span>}
+              <Chevron dir="down" className="h-4 w-4 text-muted transition-transform group-open:rotate-180" />
+            </summary>
+            {cards(cancelledApps)}
+          </details>
+        )}
 
-        {/* 확정 목록 — 입금 전 건이 위로 오도록 정렬 */}
-        <div className="mb-10">
-          <h2 className="text-h3 font-semibold mb-3">확정 목록 ({confirmedApps.length})</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">접수번호</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">참여자</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">출생년도</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">신청 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">확정 경위</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">입금 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">액션</th>
-                </tr>
-              </thead>
-              <tbody>
-                {confirmedApps.length > 0 ? (
-                  confirmedApps.map((app: any) => {
-                    const appAttendees = attendeesWithVisit.filter((a: any) => a.application_id === app.id);
-                    return (
-                      <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
-                        <CommonCells app={app} appAttendees={appAttendees} />
-                        <StatusCell app={app} />
-                        <PromotedCell app={app} />
-                        <PaymentStatusCell app={app} />
-                        <ActionCell app={app} appAttendees={appAttendees} session={session} />
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={8} className="py-8 px-4 text-center text-muted">
-                      확정된 신청이 없습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {/* 되돌리기 어려운 버튼은 맨 아래로 — 자주 누르는 버튼 사이에 두면 잘못 누른다. */}
+        {session.status !== "cancelled" && (
+          <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
+            <p className="text-micro text-muted">최소 인원 미달 등으로 회차를 열지 않을 때</p>
+            <DeactivateSessionButton sessionId={session.id} />
           </div>
-        </div>
-
-        {/* 대기 목록 */}
-        <div className="mb-10">
-          <h2 className="text-h3 font-semibold mb-3">대기 목록 ({waitingApps.length})</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">접수번호</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">참여자</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">출생년도</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">신청 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">액션</th>
-                </tr>
-              </thead>
-              <tbody>
-                {waitingApps.length > 0 ? (
-                  waitingApps.map((app: any) => {
-                    const appAttendees = attendeesWithVisit.filter((a: any) => a.application_id === app.id);
-                    return (
-                      <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
-                        <CommonCells app={app} appAttendees={appAttendees} />
-                        <StatusCell app={app} />
-                        <ActionCell app={app} appAttendees={appAttendees} session={session} />
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={6} className="py-8 px-4 text-center text-muted">
-                      대기 중인 신청이 없습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 취소 목록 — 환불 미완료 건이 위로 오도록 정렬 */}
-        <div className="mb-10">
-          <h2 className="text-h3 font-semibold mb-3">취소 목록 ({cancelledApps.length})</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">접수번호</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">참여자</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">성별</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">출생년도</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">신청 상태</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">환불계좌</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">환불 여부</th>
-                  <th className="text-left py-3 px-4 font-semibold text-body-sm">액션</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cancelledApps.length > 0 ? (
-                  cancelledApps.map((app: any) => {
-                    const appAttendees = attendeesWithVisit.filter((a: any) => a.application_id === app.id);
-                    return (
-                      <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30">
-                        <CommonCells app={app} appAttendees={appAttendees} />
-                        <StatusCell app={app} />
-                        <td className="py-3 px-4 text-body-sm">
-                          {app.refund_bank_name && (
-                            <div className="text-micro space-y-0.5">
-                              <p><strong>{app.refund_bank_name}</strong></p>
-                              <p>{app.refund_account_number}</p>
-                              <p>{app.refund_account_holder}</p>
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-body-sm">
-                          {app.refund_completed_at ? (
-                            <span className="text-green-500 font-semibold">
-                              완료 <span className="text-micro text-muted">({formatDateTimeFull(app.refund_completed_at)})</span>
-                            </span>
-                          ) : needsRefund(app) ? (
-                            <span className="text-yellow-500 font-semibold">미완료</span>
-                          ) : (
-                            <span className="text-muted" title="입금 전 취소라 돌려줄 금액이 없습니다">
-                              환불 없음
-                            </span>
-                          )}
-                        </td>
-                        <RefundActionCell app={app} sessionId={session.id} />
-                      </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan={8} className="py-8 px-4 text-center text-muted">
-                      취소된 신청이 없습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
