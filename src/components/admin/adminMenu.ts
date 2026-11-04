@@ -12,6 +12,7 @@ export const ADMIN_MENU: { label: string; items: { href: string; label: string }
       { href: "/applications", label: "신청" },
       { href: "/group-bookings", label: "단체 예약 문의" },
       { href: "/sessions", label: "회차" },
+      { href: "/customers", label: "고객" },
     ],
   },
   {
