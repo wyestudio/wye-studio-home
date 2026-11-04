@@ -124,7 +124,7 @@ export default async function AdminVisitorDetailPage({
       e.kind === "page"
         ? pageLabel(e.name, themeNames)
         : e.kind === "click"
-          ? `「${e.name}」${typeof e.meta?.to === "string" ? ` → ${e.meta.to}` : ""}`
+          ? `「${e.name}」${typeof e.meta?.to === "string" ? ` → ${e.meta.to}` : ""}${typeof e.meta?.y === "number" ? ` · 화면 ${e.meta.y}% 지점` : ""}`
           : eventLabel(e.name, e.meta, sessionLabels);
     v.lines.push({ at: e.at, kind: e.kind, text });
   }

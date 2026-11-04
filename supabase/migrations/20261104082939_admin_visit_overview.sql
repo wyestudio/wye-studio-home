@@ -48,7 +48,8 @@ as $function$
     select visit_id,
            extract(epoch from max(at) - min(at)) as secs,
            count(*) filter (where kind = 'page') as pages,
-           count(*) filter (where kind <> 'page') as acts,
+           -- 화면을 떠난 기록(page_leave)은 '무엇을 했다' 가 아니다 — 세면 이탈률이 0 이 된다
+           count(*) filter (where kind <> 'page' and name <> 'page_leave') as acts,
            (array_agg(name order by at desc, id desc) filter (where kind = 'page'))[1] as last_page
     from ev
     group by visit_id
@@ -83,9 +84,18 @@ as $function$
       ) from step
     ),
     'pages', (
+      -- secs: 그 화면에 머문 시간의 중간값(방문마다 page_leave 를 더한 값)
       select coalesce(jsonb_agg(x order by x.visitors desc, x.views desc), '[]') from (
-        select name, count(distinct visitor_id) as visitors, count(*) as views
-        from ev where kind = 'page' group by name order by 2 desc, 3 desc limit 10
+        select p.name, p.visitors, p.views, d.secs from (
+          select name, count(distinct visitor_id) as visitors, count(*) as views
+          from ev where kind = 'page' group by name order by 2 desc, 3 desc limit 10
+        ) p
+        left join (
+          select path, round(percentile_cont(0.5) within group (order by s)) as secs from (
+            select visit_id, path, sum((meta ->> 'secs')::numeric) as s
+            from ev where kind = 'event' and name = 'page_leave' group by 1, 2
+          ) z group by path
+        ) d on d.path = p.name
       ) x
     ),
     'clicks', (

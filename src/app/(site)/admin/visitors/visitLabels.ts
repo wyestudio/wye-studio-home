@@ -1,3 +1,8 @@
+import { MASCOTS, type MascotId } from "@/lib/mascots";
+
+/** 마스코트 id → 이름("우쥬") */
+export const mascotName = (id: string) => MASCOTS[id as MascotId]?.name ?? id;
+
 /**
  * 방문 발자취 기록(visit_events)을 사람이 읽는 말로 — 어드민 「방문 발자취」 · 「고객」 이 같이 쓴다.
  * 이벤트 이름은 src/lib/analytics.ts 가 보내는 것 그대로다. 이름이 바뀌면 여기도 바꾼다.
@@ -81,6 +86,14 @@ export function eventLabel(name: string, meta: Meta, sessionLabels: Map<string, 
       return `단체 견적 제출 막힘 (${str(meta?.sectionLabel)})`;
     case "group_quote_submit":
       return "단체 견적 접수";
+    case "page_leave":
+      return `화면을 떠남 · ${str(meta?.secs)}초 머묾 · ${str(meta?.scroll)}%까지 내려봄`;
+    case "field_filled":
+      return `「${str(meta?.sectionLabel)}」 입력함`;
+    case "mascot_select":
+      return `마스코트 ${mascotName(str(meta?.sectionLabel))}(으)로 커서 바꿈`;
+    case "mascot_throw":
+      return `마스코트 ${mascotName(str(meta?.sectionLabel))} 끌어서 던짐`;
     default:
       return name;
   }
