@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { shareCard } from "@/lib/shareCard";
 import { LookupResult } from "@/components/lookup/LookupResult";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 
@@ -9,8 +10,7 @@ export const metadata: Metadata = {
   // 찾아 들어올 이유는 없는 화면들이다.
   // ⚠️ follow 는 살려둔다 — 크롤러가 여기 걸린 테마 링크는 계속 타고 가야 한다.
   robots: { index: false, follow: true },
-  openGraph: { title: "우주이스케이프 | 신청내역 조회결과" },
-  twitter: { title: "우주이스케이프 | 신청내역 조회결과" },
+  ...shareCard("신청내역 조회결과"),
 };
 
 export default function LookupResultPage() {

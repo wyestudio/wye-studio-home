@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { shareCard } from "@/lib/shareCard";
 import Image from "next/image";
 import Link from "next/link";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -49,12 +50,7 @@ export const metadata: Metadata = {
   description:
     "6~24명 단체 전용 예약. 우리 모임끼리만 단독으로 진행하는 3시간 팀 대항 파티형 방탈출. 인원·날짜·옵션을 고르면 예상 견적이 바로 나와요.",
   alternates: { canonical: `${SITE_URL}/group` },
-  openGraph: {
-    title: "단체 예약 | 우주이스케이프",
-    description:
-      "6~24명이면 우리 모임끼리만 단독 진행. 3시간 팀 대항 파티형 방탈출 단체 예약 안내.",
-    url: `${SITE_URL}/group`,
-  },
+  ...shareCard("단체 예약", `${SITE_URL}/group`),
 };
 
 /** 블록 한 겹. 집계용 표시를 빼먹지 않으려고 래퍼로 묶는다. */

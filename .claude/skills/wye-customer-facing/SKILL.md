@@ -181,6 +181,7 @@ print([c for c in '여기에 확인할 문구' if ord(c)>0x7f and ord(c) not in 
   ```
   ⚠️ `description` 에 줄바꿈이 들어가면 줄 단위인 `grep` 으로는 값이 안 잡힌다.
   값까지 봐야 하면 `python3` 으로 `re.S` 를 줘서 뽑는다
-- 검색용과 공유 카드용은 **달라도 된다**. 테마 상세는 `description`(검색)에서
-  아트웍 줄을 빼고, `og:description`(카카오톡 카드)은 적은 그대로 내보낸다
-  — `src/app/(site)/themes/[slug]/page.tsx`
+- 검색용과 공유 카드용은 **따로다**. `description`(검색)은 페이지마다 자기 내용으로,
+  공유 카드(그림·설명)는 모든 페이지 공통이고 제목만 페이지 이름이다
+- **페이지에서 `openGraph`·`twitter` 를 직접 적지 않고 `shareCard()` 를 펼친다**
+  (`src/lib/shareCard.ts`) ← 직접 적으면 레이아웃 값을 통째로 덮어 그림이 빠진다

@@ -20,6 +20,7 @@ import { getSiteSkin } from "@/lib/siteSeason";
 import type { SiteSkin } from "@/lib/season";
 import { SeasonProvider } from "@/components/season/SeasonContext";
 import { SeasonBackdrop } from "@/components/season/SeasonBackdrop";
+import { shareCard } from "@/lib/shareCard";
 
 // SUIT(가변 폰트, SIL OFL) — https://github.com/sun-typeface/SUIT
 const suit = localFont({
@@ -86,19 +87,8 @@ export const metadata: Metadata = {
     "우주이스케이프",
     "wouldyouescape",
   ],
-  openGraph: {
-    title: "우주이스케이프",
-    description: SITE_DESCRIPTION,
-    url: SITE_URL,
-    siteName: "우주이스케이프",
-    locale: "ko_KR",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "우주이스케이프",
-    description: SITE_DESCRIPTION,
-  },
+  // 공유 카드(그림·설명)는 모든 페이지가 같다 — src/lib/shareCard.ts
+  ...shareCard(undefined, SITE_URL),
   verification: {
     other: {
       "naver-site-verification": "66e18faedf271c624d7ed1edfca8b421c6b02dbf",

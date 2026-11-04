@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { shareCard } from "@/lib/shareCard";
 import { ThemeShowcase, type ThemeCardData } from "@/components/contents/ThemeShowcase";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
@@ -14,8 +15,7 @@ export const metadata: Metadata = {
   // 사업자등록번호가 사이트링크 설명으로 나갔다. 테마가 늘면 다시 켠다.
   // ⚠️ follow 는 살려둔다 — 여기 걸린 테마 링크는 크롤러가 계속 타고 가야 한다.
   robots: { index: false, follow: true },
-  openGraph: { title: "우주이스케이프 | 콘텐츠" },
-  twitter: { title: "우주이스케이프 | 콘텐츠" },
+  ...shareCard("콘텐츠"),
 };
 
 export default async function ContentsPage() {
