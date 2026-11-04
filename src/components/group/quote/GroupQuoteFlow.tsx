@@ -1539,6 +1539,7 @@ function OptionItem({
   price,
   control,
   muted = false,
+  badge,
   children,
 }: {
   title: string;
@@ -1546,13 +1547,25 @@ function OptionItem({
   price: string;
   control: React.ReactNode;
   muted?: boolean;
+  /** 제목 옆 표시(예: 추천) */
+  badge?: string;
   children?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-line bg-panel px-3.5 py-3">
       <div className="flex items-center gap-3">
         <div className={`min-w-0 flex-1 ${muted ? "opacity-60" : ""}`}>
-          <p className="text-body font-semibold">{title}</p>
+          <p className="flex items-center gap-1.5 text-body font-semibold">
+            {title}
+            {badge && (
+              <span
+                className="rounded-md px-1.5 py-0.5 text-micro font-semibold"
+                style={{ backgroundColor: GROUP_ACCENT, color: "#141414" }}
+              >
+                {badge}
+              </span>
+            )}
+          </p>
           <p className="text-body-sm text-muted">{desc}</p>
           {/* 고르면 얼마가 붙는지가 가장 먼저 보여야 한다. */}
           <p className="mt-0.5 text-body-sm font-semibold" style={{ color: GROUP_ACCENT }}>
@@ -1601,6 +1614,8 @@ function OptionsPicker({
         title="캐릭터 꾸미기"
         desc="우리만의 캐릭터로 플레이"
         price={`+${won(OPTION.character.price)}`}
+        // 미리 켜 두지 않고 눈에 띄게만 한다 — 돈이 드는 옵션의 사전선택은 다크패턴(ProgramBuilder 와 같음)
+        badge="추천"
         control={
           <Switch label="캐릭터 꾸미기 추가" checked={options.character} onChange={(v) => set({ character: v })} />
         }
