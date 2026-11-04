@@ -136,6 +136,7 @@ export function AttendeeFields({
               <button
                 type="button"
                 onClick={onNicknameCheck}
+                data-track="닉네임 중복확인"
                 disabled={nicknameCheckState === "checking"}
                 className="h-12 shrink-0 rounded-lg border border-line px-3 text-body-sm font-semibold disabled:opacity-50 sm:h-14 sm:px-4"
               >

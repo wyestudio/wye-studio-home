@@ -77,7 +77,11 @@ export default async function AdminCustomerDetailPage({
   const here = `/customers/${encodeURIComponent(decodeURIComponent(hash))}`;
 
   const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("admin_customer_detail", { p_phone_hash: decodeURIComponent(hash) });
+  const [{ data, error }, { data: visitorRows }] = await Promise.all([
+    supabase.rpc("admin_customer_detail", { p_phone_hash: decodeURIComponent(hash) }),
+    // 이 사람이 대표로 신청한 브라우저들의 방문 발자취(admin_customer_visitors)
+    supabase.rpc("admin_customer_visitors", { p_phone_hash: decodeURIComponent(hash) }),
+  ]);
   if (error) {
     return (
       <div className="p-6">
@@ -86,6 +90,14 @@ export default async function AdminCustomerDetailPage({
     );
   }
   const recs = (data ?? []) as Rec[];
+  // 같은 브라우저로 여러 번 신청했으면 한 줄로
+  const visitors = [
+    ...new Map(
+      ((visitorRows ?? []) as { visitor_id: string; events: number; first_at: string | null; last_at: string | null }[]).map(
+        (v) => [v.visitor_id, v],
+      ),
+    ).values(),
+  ];
   if (recs.length === 0) notFound();
 
   // 사람 정보는 가장 최근 신청에 적은 값으로
@@ -137,6 +149,34 @@ export default async function AdminCustomerDetailPage({
             ))}
           </dl>
         </header>
+
+        {/* ── 신청 전 발자취 ── 신청할 때 쓴 브라우저가 지나간 길(visitTrack.ts, 2026-11-04 부터) */}
+        <section className="mb-6 rounded-xl border border-border p-4 md:p-5">
+          <h2 className="mb-2 text-body font-semibold">방문 발자취</h2>
+          {visitors.length === 0 ? (
+            <p className="text-body-sm text-muted">
+              이어진 기록이 없습니다. 2026-11-04 이후 신청부터 신청한 브라우저의 발자취가 이어집니다.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {visitors.map((v) => (
+                <li key={v.visitor_id}>
+                  <Link
+                    href={withBack(`/visitors/${v.visitor_id}`, withBack(here, back))}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5 text-body-sm hover:bg-fill-subtle"
+                  >
+                    <span>
+                      브라우저 #{v.visitor_id.slice(0, 4)} · 기록 {v.events}건
+                    </span>
+                    <span className="tabular-nums text-muted">
+                      {v.first_at ? formatDateTimeFull(v.first_at) : "-"} 부터
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         {/* ── 신청 기록 ── 최근 회차부터 */}
         <h2 className="mb-3 text-body font-semibold">신청 기록 {recs.length}건</h2>

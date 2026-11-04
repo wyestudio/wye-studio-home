@@ -33,6 +33,7 @@ export const ADMIN_MENU: { label: string; items: { href: string; label: string }
       { href: "/settlement", label: "잼핏 정산" },
       { href: "/utm", label: "유입경로 링크" },
       { href: "/analytics", label: "분석" },
+      { href: "/visitors", label: "방문 발자취" },
     ],
   },
   {

@@ -1,3 +1,5 @@
+import { trackEvent } from "@/lib/visitTrack";
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
@@ -8,6 +10,8 @@ export function pushDataLayerEvent(
   event: string,
   params?: Record<string, unknown>
 ) {
+  // 방문 발자취에도 남긴다 — GTM 이 안 실리는 화면(테스트 사이트)에서도 남는다
+  trackEvent(event, params);
   if (typeof window === "undefined" || !window.dataLayer) return;
   window.dataLayer.push({ event, ...params });
 }

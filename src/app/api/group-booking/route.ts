@@ -3,6 +3,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sendGroupBookingInquirySlackAlert } from "@/lib/slack";
 import { sanitizeAttribution } from "@/lib/attribution";
+import { linkVisitor } from "@/lib/attributionServer";
 import {
   GROUP_HEADCOUNT_MIN,
   contactMethodLabel,
@@ -58,6 +59,8 @@ type Body = {
   agreeTerms?: boolean;
   agreePrivacy?: boolean;
   attribution?: unknown;
+  /** 방문 발자취 번호(visitTrack.ts) */
+  visitorId?: unknown;
 };
 
 const bad = (error: string) => NextResponse.json({ error }, { status: 400 });
@@ -175,6 +178,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) return bad(error.message);
+  if (typeof data === "string") await linkVisitor(body.visitorId, { groupInquiryId: data });
 
   after(async () => {
     try {

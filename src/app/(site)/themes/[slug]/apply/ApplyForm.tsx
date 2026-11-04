@@ -28,6 +28,7 @@ import {
   type AppliedCoupon,
 } from "./actions";
 import { readAttribution } from "@/lib/attribution";
+import { visitorId } from "@/lib/visitTrack";
 import { AttendeeFields, type NicknameCheckState } from "./AttendeeFields";
 import { SoloAttendeeRows } from "./SoloAttendeeRows";
 import {
@@ -660,6 +661,7 @@ export function ApplyForm({
         // 어디를 타고 들어와 신청까지 왔는지. 처음 도착한 순간에 잡아둔 값이다
         // (신청 시점 주소에는 utm 이 이미 없다). 실패해도 신청은 그대로 진행된다.
         attribution: readAttribution(),
+        visitorId: visitorId(),
       });
       if ("error" in res) {
         setError(res.error);
@@ -1030,6 +1032,7 @@ export function ApplyForm({
                   <button
                     type="button"
                     onClick={verifyCoupon}
+                    data-track="쿠폰 적용"
                     disabled={couponChecking || !couponCode || total === null}
                     className="shrink-0 self-stretch rounded-lg border border-line-strong px-4 py-2.5 text-body font-semibold disabled:opacity-40 sm:px-5"
                   >
@@ -1058,6 +1061,7 @@ export function ApplyForm({
                           <button
                             type="button"
                             onClick={() => removeCoupon(it.code)}
+                            data-track="쿠폰 빼기"
                             disabled={couponChecking}
                             className="rounded-md border border-line px-2 py-0.5 text-micro text-muted disabled:opacity-40"
                           >
@@ -1121,6 +1125,8 @@ export function ApplyForm({
           <button
             type="button"
             onClick={goNext}
+            // 방문 발자취에 남는 이름(가려진 영역이라 글자를 못 읽는다 — VisitTracker.tsx)
+            data-track={step === 2 ? "제출하기" : step === 1 ? "약관 다음" : "정보입력 다음"}
             disabled={busy}
             className="w-full rounded-lg px-6 py-4 text-h3 font-semibold transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 lg:py-[18px]"
             style={{ backgroundColor: accentColor, color: "#0a0a12" }}

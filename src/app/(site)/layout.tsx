@@ -11,6 +11,7 @@ import { MascotSelectionProvider } from "@/components/space/MascotSelectionConte
 import TestEnvBanner from "@/components/layout/TestEnvBanner";
 import { CopyProtectionProvider } from "@/components/layout/CopyProtection";
 import { AttributionTracker } from "@/components/AttributionTracker";
+import { VisitTracker } from "@/components/analytics/VisitTracker";
 import "../globals.css";
 import "../season.css";
 import { headers } from "next/headers";
@@ -231,6 +232,8 @@ if(document.cookie.split("; ").indexOf("wye_internal=internal")>=0){window.clari
         <Suspense fallback={null}>
           <AttributionTracker />
         </Suspense>
+        {/* 방문 발자취(visitTrack.ts) — 고객 화면만. 어드민에서 누른 것은 남기지 않는다 */}
+        {!admin && <VisitTracker />}
         <CopyProtectionProvider>
           <SeasonProvider skin={skin}>
             <MascotSelectionProvider>

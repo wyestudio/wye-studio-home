@@ -8,7 +8,7 @@ import { formatSessionDateTime } from "@/lib/format";
 import { isValidNickname } from "@/lib/validation";
 import { phoneDigits } from "@/lib/phone";
 import type { Attribution } from "@/lib/attribution";
-import { recordAttribution } from "@/lib/attributionServer";
+import { linkVisitor, recordAttribution } from "@/lib/attributionServer";
 import { isInternalDevice, markInternalApplication } from "@/lib/internalTraffic";
 import { getParticipationHistory, revisitLabel } from "@/lib/participationHistory";
 
@@ -77,6 +77,8 @@ export type ApplyInput = {
   consentMarketing: boolean;
   /** 유입경로. 첫 도착 때 잡아둔 값이며 없을 수 있다(직접 방문). */
   attribution?: Attribution | null;
+  /** 방문 발자취 번호(visitTrack.ts). 없을 수 있다. */
+  visitorId?: string | null;
 };
 
 export type ApplyResult =
@@ -254,6 +256,7 @@ export async function applyToSession(input: ApplyInput): Promise<ApplyResult> {
 
   // 유입경로를 신청 건에 붙인다. 근거와 주의사항은 attributionServer.ts 에 있다.
   await recordAttribution(r.id, input.attribution);
+  await linkVisitor(input.visitorId, { applicationId: r.id });
   // 우리 기기에서 넣은 신청이면 분석에서 빼도록 표시한다(internalTraffic.ts).
   await markInternalApplication(r.id, await isInternalDevice());
 

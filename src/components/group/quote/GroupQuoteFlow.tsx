@@ -6,6 +6,7 @@ import { useCopyProtectionExemption } from "@/components/layout/CopyProtection";
 import { Chevron } from "@/components/ui/Chevron";
 import { GROUP_EVENT, pushGa4Event } from "@/lib/analytics";
 import { readAttribution } from "@/lib/attribution";
+import { visitorId } from "@/lib/visitTrack";
 import { formatPhoneInput } from "@/lib/phone";
 import {
   AFTER_PARTY_INCLUDES,
@@ -453,6 +454,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
           agreeTerms: agrees.deposit && agrees.availability && agrees.terms,
           agreePrivacy: agrees.privacy,
           attribution: readAttribution(),
+          visitorId: visitorId(),
         }),
       });
       const json = (await res.json().catch(() => ({}))) as { error?: string; id?: string };
