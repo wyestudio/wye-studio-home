@@ -64,12 +64,12 @@ const GROUP_FUNNEL = [
 
 /** 화면 안에서 건너뛰는 목차 — 섹션 id 와 같다 */
 const JUMPS = [
-  { id: "summary", label: "요약" },
+  { id: "summary", label: "현황" },
   { id: "source", label: "유입" },
   { id: "funnel", label: "단계" },
-  { id: "exit", label: "나간 곳" },
+  { id: "exit", label: "이탈" },
   { id: "click", label: "클릭" },
-  { id: "people", label: "사람" },
+  { id: "people", label: "방문자" },
 ];
 
 const DAY_MS = 86400_000;
@@ -108,7 +108,7 @@ function duration(secs: number): string {
 }
 
 /**
- * 방문 분석 — "얼마나 왔나 → 어디서 왔나 → 어디까지 왔나 → 어디서 나갔나 → 무엇을 눌렀나" 를
+ * 방문 분석 — 방문 현황 → 유입 경로별 전환 → 신청 단계별 이탈 → 이탈 · 인기 페이지 → 클릭 순위 를
  * 위에서 아래로 한 화면에(2026-11-04 대표님). 설명을 늘리지 않고 배치로 읽히게 한다:
  * 숫자는 큰 칸, 비교는 막대, 볼 곳(가장 많이 빠지는 단계 · 기록과 실제가 어긋남)은 색으로.
  * 숫자는 우리가 직접 쌓는 방문 기록(visitTrack.ts → admin_visit_overview). 우리 기기는 뺀다.
@@ -215,7 +215,7 @@ export default async function AdminInsightsPage({
         </header>
 
         {/* ── 요약 ── */}
-        <Section id="summary" title="얼마나 왔나">
+        <Section id="summary" title="방문 현황">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Kpi
               label="방문자"
@@ -232,12 +232,12 @@ export default async function AdminInsightsPage({
               sub={`신청 완료 ${done}명 · 실제 신청 ${o.applied_db}건`}
               warn={o.applied_db !== done}
             />
-            <Kpi label="머문 시간" value={duration(eng.median_secs)} sub={`방문 한 번에 화면 ${eng.pages_per_visit}개`} />
+            <Kpi label="체류 시간" value={duration(eng.median_secs)} sub={`방문 한 번에 화면 ${eng.pages_per_visit}개`} />
             <Kpi
-              label="바로 나감"
+              label="이탈률"
               value={`${pct(eng.bounce, eng.visits)}`}
               unit="%"
-              sub={`방문 ${eng.visits}번 중 ${eng.bounce}번은 화면 하나만`}
+              sub={`방문 ${eng.visits}번 중 ${eng.bounce}번은 첫 화면에서 나감`}
             />
           </div>
           <Panel className="mt-3">
@@ -259,7 +259,7 @@ export default async function AdminInsightsPage({
         </Section>
 
         {/* ── 유입 ── 어디서 와서 얼마나 신청했나 */}
-        <Section id="source" title="어디서 와서 얼마나 신청했나" more={{ href: "/utm", label: "유입경로 링크" }}>
+        <Section id="source" title="유입 경로별 전환" more={{ href: "/utm", label: "유입경로 링크" }}>
           <Panel>
             {o.by_source.length === 0 ? (
               <Empty />
@@ -298,7 +298,7 @@ export default async function AdminInsightsPage({
         </Section>
 
         {/* ── 단계 ── 어디까지 왔나, 어디서 가장 많이 빠지나 */}
-        <Section id="funnel" title="어디까지 왔나" more={{ href: "/visitors?f=dropped", label: "신청하다 나간 사람" }}>
+        <Section id="funnel" title="신청 단계별 이탈" more={{ href: "/visitors?f=dropped", label: "신청 중 이탈한 사람" }}>
           <div className="grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <Panel>
               <div className="overflow-x-auto">
@@ -307,7 +307,7 @@ export default async function AdminInsightsPage({
                     <tr>
                       <th className="pb-2 pr-3 font-normal">방문자 {o.visitors}명 중</th>
                       <th className="w-2/5 pb-2 pr-3 font-normal" />
-                      <th className="whitespace-nowrap pb-2 pr-3 text-right font-normal">빠짐</th>
+                      <th className="whitespace-nowrap pb-2 pr-3 text-right font-normal">이탈</th>
                       {devices.map((d) => (
                         // 휴대폰 화면에서는 기기 칸을 숨겨 막대 자리를 남긴다
                         <th key={d} className="hidden whitespace-nowrap pb-2 pr-3 text-right font-normal last:pr-0 sm:table-cell">
@@ -350,12 +350,12 @@ export default async function AdminInsightsPage({
               </div>
               {(worst.lost > 0 || (o.funnel.sold_out ?? 0) > 0) && (
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-body-sm">
-                  {worst.lost > 0 && <span className="text-amber-400">가장 많이 빠지는 곳: {worst.label} 직전 {worst.lost}명</span>}
-                  {(o.funnel.sold_out ?? 0) > 0 && <span className="text-muted">마감 회차를 눌러 본 사람 {o.funnel.sold_out}명</span>}
+                  {worst.lost > 0 && <span className="text-amber-400">이탈이 가장 많은 단계: {worst.label} 직전 {worst.lost}명</span>}
+                  {(o.funnel.sold_out ?? 0) > 0 && <span className="text-muted">마감 회차 클릭 {o.funnel.sold_out}명</span>}
                 </div>
               )}
             </Panel>
-            <Panel title="단체 예약">
+            <Panel title="단체 견적 단계">
               <ol className="flex flex-col gap-3">
                 {GROUP_FUNNEL.map((f) => {
                   const n = o.funnel[f.key] ?? 0;
@@ -375,15 +375,15 @@ export default async function AdminInsightsPage({
         </Section>
 
         {/* ── 나간 곳 · 많이 본 화면 ── */}
-        <Section id="exit" title="어디서 나갔나">
+        <Section id="exit" title="이탈 · 인기 페이지">
           <div className="grid gap-3 md:grid-cols-2">
-            <Panel title="마지막으로 본 화면">
+            <Panel title="이탈 페이지">
               <Ranked
                 rows={o.exits.map((e) => ({ key: e.name, label: label(e.name), n: e.visits, extra: `${pct(e.visits, eng.visits)}%` }))}
                 unit="번"
               />
             </Panel>
-            <Panel title="많이 본 화면">
+            <Panel title="인기 페이지">
               <Ranked
                 rows={o.pages.map((p) => ({ key: p.name, label: label(p.name), n: p.visitors, extra: `${p.views}번` }))}
                 unit="명"
@@ -393,7 +393,7 @@ export default async function AdminInsightsPage({
         </Section>
 
         {/* ── 클릭 ── */}
-        <Section id="click" title="무엇을 눌렀나">
+        <Section id="click" title="클릭 순위">
           <Panel>
             {o.clicks.length === 0 ? (
               <Empty />
@@ -474,7 +474,7 @@ export default async function AdminInsightsPage({
             <li>방문자는 브라우저 기준입니다. 같은 사람이 휴대폰과 컴퓨터로 오면 2명입니다.</li>
             <li>우리 기기(/internal 에서 표시한 기기)는 뺐고, 자바스크립트를 실행하지 않는 로봇은 잡히지 않습니다. 그래서 GA4 와 조금 다릅니다.</li>
             <li>「실제 신청」은 신청 DB 에서 센 숫자입니다. 「신청 완료」와 크게 다르면 기록이 빠지고 있다는 뜻입니다.</li>
-            <li>머문 시간은 방문들의 가운데 값이고, 화면 하나만 열고 닫은 방문은 시간을 잴 수 없어 뺍니다.</li>
+            <li>체류 시간은 방문들의 가운데 값(중간값)이고, 첫 화면만 열고 닫은 방문은 시간을 잴 수 없어 뺍니다. 이탈률은 첫 화면에서 아무것도 하지 않고 나간 방문의 비율입니다.</li>
             <li>
               기록은 {o.since_first ? new Date(Date.parse(o.since_first) + KST_MS).toISOString().slice(0, 10) : "2026-11-04"} 부터
               쌓였고 90일 보관합니다. 그 전은 「GA4 상세」에서 봅니다.

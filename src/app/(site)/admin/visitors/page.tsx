@@ -39,8 +39,8 @@ const DAYS = [
 /** 구분 — admin_visitor_list 의 p_filter */
 const FILTERS = [
   { key: "all", label: "전체" },
-  { key: "picked", label: "회차까지 보고 나감" },
-  { key: "dropped", label: "신청하다 나감" },
+  { key: "picked", label: "회차 선택 후 이탈" },
+  { key: "dropped", label: "신청 중 이탈" },
   { key: "applied", label: "신청함" },
   { key: "group", label: "단체 견적" },
 ];
