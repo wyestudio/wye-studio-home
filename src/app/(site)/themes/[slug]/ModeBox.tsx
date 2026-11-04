@@ -92,6 +92,8 @@ export function ModeBox({
                 href={modeHref(baseSlug, variants, v)}
                 scroll={false}
                 aria-current={on ? "true" : undefined}
+                // 방문 발자취에 남는 이름. 글자를 그대로 읽으면 소개 문구까지 붙어 길고 지저분하다
+                data-track={`모드 전환 → ${v.variant_label ?? v.name} (상단 상자)`}
                 /*
                   고른 쪽은 테두리가 2px 로 굵어지고 아래에 3px 그림자가 깔린다 —
                   '눌려 있는 키' 처럼 보이게 하는 게 시안의 핵심이다.

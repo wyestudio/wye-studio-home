@@ -555,6 +555,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
           <button
             type="button"
             onClick={() => window.history.back()}
+            data-track="견적 수정"
             className="-my-3 inline-flex h-11 items-center gap-1 self-start text-body-sm text-muted hover:text-foreground"
           >
             <Chevron dir="left" className="h-3.5 w-3.5" />
@@ -585,6 +586,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
               </FieldLabel>
               <input
                 id="f-name"
+                data-track-field="담당자 이름"
                 value={organizerName}
                 maxLength={40}
                 autoComplete="name"
@@ -613,6 +615,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
               />
               {contactMethod && (
                 <input
+                  data-track-field="연락처"
                   value={contact}
                   maxLength={100}
                   aria-label={`${contactMethodLabel(contactMethod)} 연락처`}
@@ -635,6 +638,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
               </FieldLabel>
               <input
                 id="f-group"
+                data-track-field="모임 이름"
                 value={groupName}
                 maxLength={80}
                 autoComplete="organization"
@@ -672,6 +676,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
               <button
                 type="button"
                 onClick={() => setShowRules((v) => !v)}
+                data-track="이용 · 결제 · 취소 안내 보기"
                 aria-expanded={showRules}
                 className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border border-line px-4 text-left text-body-sm font-semibold hover:border-line-strong"
               >
@@ -693,6 +698,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
               <button
                 type="button"
                 onClick={() => setShowPrivacy((v) => !v)}
+                data-track="개인정보 수집 · 이용 내용 보기"
                 aria-expanded={showPrivacy}
                 className="flex min-h-[48px] w-full items-center justify-between gap-3 rounded-lg border border-line px-4 text-left text-body-sm font-semibold hover:border-line-strong"
               >
@@ -722,6 +728,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
           <button
             type="button"
             onClick={primary}
+            data-track="견적 신청하기"
             disabled={sending}
             className="hidden min-h-[52px] rounded-lg bg-[#f082f4] px-6 text-body font-semibold text-[#141414] transition hover:bg-[#f6a8f9] disabled:opacity-60 lg:block"
           >
@@ -737,6 +744,7 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
                 <button
                   type="button"
                   onClick={() => window.history.back()}
+                  data-track="견적 수정"
                   className="-my-3 inline-flex h-11 items-center text-body-sm text-muted underline underline-offset-4 hover:text-foreground"
                 >
                   견적 수정
@@ -1756,6 +1764,7 @@ function MobileBar({
           <button
             type="button"
             onClick={onClick}
+            data-track={label}
             disabled={disabled}
             className="min-h-[48px] shrink-0 rounded-lg bg-[#f082f4] px-5 text-body font-semibold text-[#141414] transition disabled:opacity-60"
           >
@@ -1813,6 +1822,7 @@ function MoreAboutUs(p: {
       <button
         type="button"
         onClick={() => p.setOpen(!p.open)}
+        data-track="모임 정보 더 적기"
         aria-expanded={p.open}
         className="flex min-h-[56px] w-full items-center justify-between gap-3 p-4 text-left sm:p-5"
       >
@@ -1835,6 +1845,7 @@ function MoreAboutUs(p: {
                 value={p.groupKindNote}
                 maxLength={80}
                 aria-label="기타 모임 성격"
+                data-track-field="기타 모임 성격"
                 placeholder="모임 성격을 간단히 알려주세요"
                 onChange={(e) => p.setGroupKindNote(e.target.value)}
                 className={`${field} mt-1`}
@@ -1882,6 +1893,7 @@ function MoreAboutUs(p: {
             </FieldLabel>
             <input
               id="f-occasion"
+              data-track-field="기념일"
               value={p.occasion}
               maxLength={200}
               placeholder="예: 동아리 창립 5주년, 팀원 생일"
@@ -1896,6 +1908,7 @@ function MoreAboutUs(p: {
             </FieldLabel>
             <textarea
               id="f-note"
+              data-track-field="요청사항"
               rows={4}
               value={p.note}
               maxLength={1500}
@@ -1976,6 +1989,7 @@ function AgreeList({
         <input
           ref={allRef}
           id="agree-all"
+          data-track="전체 동의"
           type="checkbox"
           checked={all}
           onChange={(e) => setAll(e.target.checked)}

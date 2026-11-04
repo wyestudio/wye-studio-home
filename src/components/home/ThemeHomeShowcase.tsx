@@ -365,6 +365,8 @@ function ThemeSlot({
   return (
     <Link
       href={`/themes/${theme.slug}`}
+      // 방문 발자취에 남는 이름 — 글자를 그대로 읽으면 난이도 · 시간까지 붙는다
+      data-track={`테마 카드 → ${theme.name}`}
       className="flex w-full items-center gap-6 sm:w-auto sm:gap-6"
     >
       {planet}

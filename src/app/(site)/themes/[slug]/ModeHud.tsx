@@ -138,6 +138,7 @@ export function ModeHud({
               // 지금 보고 있는 섹션으로 돌아간다(위 주석 참고).
               href={section ? `${modeHref(baseSlug, variants, v)}#${section}` : modeHref(baseSlug, variants, v)}
               aria-current={on ? "true" : undefined}
+              data-track={`모드 전환 → ${v.variant_label ?? v.name} (떠 있는 버튼)`}
               tabIndex={shown ? undefined : -1}
               className={`whitespace-nowrap rounded-md px-3 py-1.5 font-galmuri text-label transition-colors duration-150 ${
                 on ? "" : "text-muted hover:text-foreground"

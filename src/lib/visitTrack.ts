@@ -133,19 +133,70 @@ function push(e: Omit<Queued, "t">) {
   else if (!timer) timer = setTimeout(flush, FLUSH_MS);
 }
 
+/** 지금 화면에서 어디까지 내려왔나(%) — 화면 아래 끝 기준 */
+export function scrollPct(clientY?: number): number {
+  const doc = document.documentElement;
+  const h = Math.max(doc.scrollHeight, 1);
+  const y = clientY == null ? window.scrollY + window.innerHeight : window.scrollY + clientY;
+  return Math.min(100, Math.max(0, Math.round((y / h) * 100)));
+}
+
+/**
+ * 지금 보고 있는 화면 — 체류 시간(보이는 동안만)과 가장 깊이 내려온 곳.
+ * 화면을 떠날 때(다른 화면으로 · 탭을 숨김 · 닫음) page_leave 한 건으로 남긴다.
+ * 탭을 숨겼다 돌아오면 다음에 떠날 때 그 사이 시간만 한 건 더 남는다 — 어드민이 방문 안에서 더한다.
+ */
+let cur: { path: string; activeMs: number; segStart: number | null; maxScroll: number } | null = null;
+
+function leavePage() {
+  if (!cur) return;
+  if (cur.segStart != null) {
+    cur.activeMs += performance.now() - cur.segStart;
+    cur.segStart = null;
+  }
+  cur.maxScroll = Math.max(cur.maxScroll, scrollPct()); // 떠나는 순간의 위치도 센다
+  const secs = Math.round(cur.activeMs / 1000);
+  if (secs > 0) push({ kind: "event", name: "page_leave", path: cur.path, meta: { secs, scroll: cur.maxScroll } });
+  cur.activeMs = 0;
+}
+
 /** 고객 화면에서 한 번 켠다(VisitTracker). 화면을 떠날 때 남은 것을 보낸다. */
 export function initVisitTrack(): () => void {
   enabled = true;
+  // 다시 켜질 때(개발 모드의 effect 두 번 실행) 지금 화면의 시간을 이어서 잰다
+  if (cur && cur.segStart == null && document.visibilityState === "visible") cur.segStart = performance.now();
+  // 떠나는 기록(page_leave)을 먼저 쌓고 보낸다 — 순서가 바뀌면 마지막 화면의 체류 시간이 빠진다
   const onHide = () => {
-    if (document.visibilityState === "hidden") flush();
+    if (document.visibilityState === "hidden") {
+      leavePage();
+      flush();
+    } else if (cur) {
+      cur.segStart = performance.now();
+    }
+  };
+  const onPageHide = () => {
+    leavePage();
+    flush();
+  };
+  // 스크롤은 0.2초에 한 번만 잰다(passive) — 손님 화면 움직임에 끼어들지 않게.
+  // ⚠️ requestAnimationFrame 으로 미루지 않는다 — 탭이 뒤에 있으면 멈춰서 깊이를 못 잰다
+  let lastScroll = 0;
+  const onScroll = () => {
+    const now = performance.now();
+    if (now - lastScroll < 200) return;
+    lastScroll = now;
+    if (cur) cur.maxScroll = Math.max(cur.maxScroll, scrollPct());
   };
   document.addEventListener("visibilitychange", onHide);
-  window.addEventListener("pagehide", flush);
+  window.addEventListener("pagehide", onPageHide);
+  window.addEventListener("scroll", onScroll, { passive: true });
   return () => {
+    leavePage();
     flush();
     enabled = false;
     document.removeEventListener("visibilitychange", onHide);
-    window.removeEventListener("pagehide", flush);
+    window.removeEventListener("pagehide", onPageHide);
+    window.removeEventListener("scroll", onScroll);
   };
 }
 
@@ -176,12 +227,25 @@ function sourceMeta(): Record<string, string> {
 
 export function trackPage(path: string) {
   if (!enabled) return;
+  if (cur && cur.path === path) return; // 같은 화면을 다시 알린 것(개발 모드의 두 번 실행)
+  leavePage();
+  cur = {
+    path,
+    activeMs: 0,
+    segStart: document.visibilityState === "visible" ? performance.now() : null,
+    maxScroll: scrollPct(),
+  };
   const visit = currentVisit();
   push({ kind: "page", name: path, path, meta: visit?.isNew ? sourceMeta() : undefined });
 }
 
 export function trackClick(label: string, path: string, meta?: Record<string, unknown>) {
   push({ kind: "click", name: label, path, meta });
+}
+
+/** 입력칸을 채웠다 — 무엇을 적었는지는 남기지 않고 칸 이름만(data-track-field) */
+export function trackField(field: string) {
+  push({ kind: "event", name: "field_filled", path: window.location.pathname, meta: { sectionLabel: field.slice(0, 40) } });
 }
 
 /** 분석 이벤트(analytics.ts 의 pushDataLayerEvent)를 같이 남긴다. 안전한 값만 고른다. */

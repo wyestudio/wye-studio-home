@@ -7,6 +7,7 @@ import { useSiteSkin } from "@/components/season/SeasonContext";
 import { useMascotSelection } from "@/components/space/MascotSelectionContext";
 import { useHasHover } from "@/lib/useHasHover";
 import { clamp01 } from "@/lib/motion";
+import { trackEvent } from "@/lib/visitTrack";
 
 const MOBILE_SCALE = 0.7; // 모바일 마스코트 크기 축소 배율(기본값)
 const WALK_SPEED = 0.08; // 픽셀/ms, 목표를 향해 걷는 속도
@@ -619,6 +620,8 @@ export function MascotFreeRoam({
     const [yMin, yMax] = yRange(i, radius, height);
 
     if (dist > 6) {
+      // 방문 발자취 — 커서는 안 바뀌지만 "마스코트를 갖고 놀았다" 는 남긴다(휴대폰은 이것만 된다)
+      trackEvent("mascot_throw", { sectionLabel: MASCOT_ORDER[i] });
       // 던진 경우: 던진 방향의 먼 지점을 목표로 설정
       const throwAngle = Math.atan2(dragState.dragVelocity.y, dragState.dragVelocity.x);
       const speed = speedOf(i);

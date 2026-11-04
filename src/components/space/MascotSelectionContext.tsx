@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useSyncExternalStore, type ReactNode } from "react";
 import { DEFAULT_MASCOT_ID, isMascotId, type MascotId } from "@/lib/mascots";
+import { trackEvent } from "@/lib/visitTrack";
 
 const STORAGE_KEY = "wye-selected-mascot";
 const CHANGE_EVENT = "wye-mascot-selection-change";
@@ -38,6 +39,8 @@ export function MascotSelectionProvider({ children }: { children: ReactNode }) {
   const selectedMascot = useSyncExternalStore(subscribe, readStoredMascot, getServerSnapshot);
 
   function selectMascot(id: MascotId) {
+    // 방문 발자취 — 커서가 실제로 바뀌는 곳은 여기 하나다(끌기만 한 것은 세지 않는다)
+    trackEvent("mascot_select", { sectionLabel: id });
     window.localStorage.setItem(STORAGE_KEY, id);
     window.dispatchEvent(new Event(CHANGE_EVENT));
   }

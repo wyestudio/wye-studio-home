@@ -155,6 +155,8 @@ export function ChipGroup({
             aria-checked={on}
             disabled={o.disabled}
             onClick={() => onPick(o.code)}
+            // 방문 발자취에 남는 이름 — 단체 연락처 단계는 가려진 영역이라 글자를 못 읽는다
+            data-track={`${label}: ${o.label}`}
             className={`flex min-h-[44px] flex-col items-center justify-center rounded-lg px-4 py-1.5 text-body-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${
               on
                 ? "bg-[#f082f4] font-semibold text-[#141414]"
