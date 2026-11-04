@@ -109,7 +109,7 @@ export function buildQuoteDoc(input: QuoteDocInput, issuedYmd: string, mode: Quo
 
   const detail: QuoteDocRow[] = [
     {
-      name: `단체 팀빌딩 프로그램 운영 (${durationLabel(quote.minutes)})`,
+      name: `단체 팀빌딩 프로그램 운영 (1인, ${durationLabel(quote.minutes)})`,
       desc: "진행 인력 3명, 행사 공간 단독 대관, 다과, 기념품, 단체 사진 촬영 포함",
       qty: `${headcount}명`,
       unit: quote.unit,
@@ -142,16 +142,27 @@ export function buildQuoteDoc(input: QuoteDocInput, issuedYmd: string, mode: Quo
   // 품목 합이 견적 합계와 다르면 서류가 틀린 것이다 — 만들지 않는다.
   if (detail.reduce((s, r) => s + r.amount, 0) !== total) return null;
 
-  const hasOptions = detail.length > 1;
+  // 기본형도 1인 단가 × 인원으로 적는다 — 결재 서류는 "한 사람에 얼마" 를 먼저 본다(2026-11-04 대표님).
+  // 옵션 금액은 인원으로 나누면 원 단위가 떨어지지 않으므로 한 줄로 따로 둔다.
+  const optionsAmount = total - quote.unit * headcount;
   const basic: QuoteDocRow[] = [
     {
-      name: "단체 팀빌딩 프로그램 일체",
-      desc: hasOptions ? "진행 인력, 공간 대관, 선택 옵션 포함" : "진행 인력, 공간 대관 포함",
-      qty: "1",
-      unit: total,
-      amount: total,
+      name: "단체 팀빌딩 프로그램 (1인)",
+      desc: "진행 인력, 공간 대관 포함",
+      qty: `${headcount}명`,
+      unit: quote.unit,
+      amount: quote.unit * headcount,
     },
   ];
+  if (optionsAmount !== 0) {
+    basic.push({
+      name: "선택 옵션 일체",
+      desc: detail.slice(1).map((r) => r.name).join(", "),
+      qty: "1",
+      unit: optionsAmount,
+      amount: optionsAmount,
+    });
+  }
 
   return {
     number: `WYE-G-${issuedYmd.replace(/-/g, "")}-${input.id.slice(0, 4).toUpperCase()}`,
