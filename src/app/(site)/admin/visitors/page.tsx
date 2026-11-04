@@ -33,7 +33,7 @@ const DAYS = [
   { key: "1", label: "오늘" },
   { key: "7", label: "7일" },
   { key: "30", label: "30일" },
-  { key: "90", label: "90일" },
+  { key: "60", label: "60일" },
 ];
 
 /** 구분 — admin_visitor_list 의 p_filter */
@@ -57,7 +57,7 @@ function getNowMs(): number {
  *
  * 회원이 없어 신청 전에는 번호(방문자 #ab12)로만 보인다. 신청하면 그 사람 이름이 붙는다.
  * 줄을 누르면 그 브라우저가 지나간 길 전부(/visitors/[id]).
- * 기록은 src/lib/visitTrack.ts 가 쌓고, 90일이 지나면 지워진다.
+ * 기록은 src/lib/visitTrack.ts 가 쌓고, 60일이 지나면 지워진다(supabase/migrations/20261104112502_visit_events_60d.sql).
  */
 export default async function AdminVisitorsPage({ searchParams }: PageProps<"/admin/visitors">) {
   const sp = await searchParams;
@@ -141,7 +141,7 @@ export default async function AdminVisitorsPage({ searchParams }: PageProps<"/ad
             )}
           </div>
           <p className="mt-1 text-body-sm text-muted">
-            브라우저 하나를 한 사람으로 봅니다. 신청하기 전에는 번호로, 신청하면 이름으로 보입니다. 기록은 90일 보관합니다.
+            브라우저 하나를 한 사람으로 봅니다. 신청하기 전에는 번호로, 신청하면 이름으로 보입니다. 기록은 60일 보관합니다.
           </p>
         </header>
 

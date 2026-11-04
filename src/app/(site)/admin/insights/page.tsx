@@ -458,7 +458,7 @@ export default async function AdminInsightsPage({
             <li>체류 시간은 방문들의 가운데 값(중간값)이고, 첫 화면만 열고 닫은 방문은 시간을 잴 수 없어 뺍니다. 이탈률은 첫 화면에서 아무것도 하지 않고 나간 방문의 비율입니다.</li>
             <li>
               기록은 {o.since_first ? new Date(Date.parse(o.since_first) + KST_MS).toISOString().slice(0, 10) : "2026-11-04"} 부터
-              쌓였고 90일 보관합니다. 그 전은 「GA4 상세」에서 봅니다.
+              쌓였고 60일 보관합니다. 그 전은 「GA4 상세」에서 봅니다.
             </li>
           </ul>
         </details>
