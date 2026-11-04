@@ -199,7 +199,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       ) : null}
       {track && CLARITY_ID && /^[a-z0-9]+$/i.test(CLARITY_ID) ? (
         // 화면이 다 뜬 뒤 한가할 때 싣는다 — 첫 화면 속도에 끼어들지 않게
-        <Script id="clarity" strategy="lazyOnload">
+        // ⚠️ id 를 "clarity" 로 두지 않는다 — 브라우저가 그 요소를 window.clarity 로 노출해서
+        //    Clarity 가 자기 함수 대신 <script> 를 집어 "a[c] is not a function" 으로 멈춘다(2026-11-04 운영)
+        <Script id="ms-clarity-init" strategy="lazyOnload">
           {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
