@@ -1,6 +1,6 @@
 ---
 name: wye-marketing
-description: 유입 측정이 어긋나면 어느 홍보가 먹혔는지 알 수 없게 되는 작업. UTM 링크·짧은 주소·리다이렉트·GA4 집계를 건드릴 때 먼저 읽는다. src/lib/attribution.ts, src/lib/attributionServer.ts, src/lib/utmLinks.ts, src/lib/shortLinks.ts, src/lib/ga4.ts, src/lib/analytics.ts, src/app/(site)/admin/utm/, src/app/(site)/go/, next.config.ts 의 redirects(), GTM 컨테이너의 트리거·태그가 대상.
+description: 유입 측정이 어긋나면 어느 홍보가 먹혔는지 알 수 없게 되는 작업. UTM 링크·짧은 주소·리다이렉트·GA4 집계를 건드릴 때 먼저 읽는다. src/lib/attribution.ts, src/lib/attributionServer.ts, src/lib/utmLinks.ts, src/lib/shortLinks.ts, src/lib/ga4.ts, src/lib/analytics.ts, src/app/(site)/admin/utm/, src/app/(site)/go/, next.config.ts 의 redirects(), GTM 컨테이너의 트리거·태그, 자체 방문 기록(src/lib/visitTrack.ts, src/components/analytics/VisitTracker.tsx, track_events·admin_visit_overview·admin_page_report, 어드민 insights·visitors), (site)/layout.tsx 의 Clarity 가 대상.
 ---
 
 링크에 붙은 값이 한 글자만 틀려도 그 유입은 별개 채널로 집계되어 통계에서 사라진다.
@@ -12,6 +12,9 @@ description: 유입 측정이 어긋나면 어느 홍보가 먹혔는지 알 수
 - GTM 컨테이너(`GTM-K5MMSPTV`)의 트리거·태그
 - `src/app/(site)/admin/utm/`, `src/app/(site)/go/`, `src/app/(site)/open-event/`
 - `next.config.ts` 의 `redirects()`
+- `src/lib/visitTrack.ts`, `src/components/analytics/VisitTracker.tsx`, `data-track`·`data-track-field`·`data-clarity-mask` 속성
+- DB `track_events()`·`admin_visit_overview()`·`admin_page_report()`, `src/app/(site)/admin/insights/`·`visitors/`
+- `src/app/(site)/layout.tsx` 의 Clarity 스크립트
 
 ---
 
@@ -67,3 +70,18 @@ SNS 가 아닌 등재 채널이면 `referral` 이다 ← 분류가 예쁘게 나
 
 **외부 링크에는 `?utm_source=...` 를 붙여야 한다.** 안 붙이면 referrer 호스트로만
 잡히고, 그마저 없으면 '직접 방문' 이 된다.
+
+---
+
+## ⚠️ 방문 기록 · Clarity 를 건드릴 때
+
+- **이름 · 연락처 · 입력값을 기록에 넣지 않는다.** 입력 폼은 `data-clarity-mask` 로 가리고,
+  그 안 버튼에는 `data-track` 이름을 단다 ← 이름이 없으면 `(가려진 영역)` 으로만 남는다
+- **보관 기간 · 수집 항목을 바꾸면 `privacy/page.tsx` 제9조와 `track_events()` 의
+  `interval` 을 같이 고친다** ← 방침과 실제 파기가 갈린다
+- **기록은 브라우저에서 Supabase 로 바로 보낸다. 서버 액션 · API 를 거치게 바꾸지 않는다**
+  ← 방문 × 클릭 수만큼 Vercel 함수가 돈다 (`wye-server-cost`)
+- **새 이벤트 종류를 더하면 60일 보관량을 다시 어림한다** ← 무료 DB 500MB 를 같이 쓴다
+- **Clarity 스크립트 `id` 를 `clarity` 로 두지 않는다** ← `window.clarity` 를 가로채 멈춘다
+- **자동화 브라우저 탭은 `visibilityState` 가 hidden 이다.** 체류 · 스크롤 시험은 그 값을
+  덮어쓰고 하고, 측정 코드에 `requestAnimationFrame` 을 쓰지 않는다 ← 숨은 탭에서 멈춰 값이 틀린다
