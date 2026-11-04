@@ -547,7 +547,8 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
   // ── 연락처 화면 ── 왼쪽(모바일은 전체)이 신청서로 바뀌고, 오른쪽 카드는 읽기 전용 요약이 된다.
   if (step === 1) {
     return (
-      <div className="group-quote-flow lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12" onFocusCapture={markStart}>
+      // 연락처 · 담당자 이름이 화면 글자로 보이는 단계 — Clarity 녹화에서 가린다
+      <div className="group-quote-flow lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12" onFocusCapture={markStart} data-clarity-mask="true">
         <div className="flex min-w-0 flex-col gap-7">
           <button
             type="button"
@@ -2125,7 +2126,8 @@ function KakaoSendBox({ message }: { message: string }) {
 
 function QuoteDone({ done }: { done: Done }) {
   return (
-    <div className="flex flex-col gap-6 py-6">
+    // 카카오톡 문구에 연락처가 들어 있다 — Clarity 녹화에서 가린다
+    <div className="flex flex-col gap-6 py-6" data-clarity-mask="true">
       <div className="flex flex-col items-center gap-3 text-center">
         <svg
           width="56"

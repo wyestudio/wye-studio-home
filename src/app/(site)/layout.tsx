@@ -121,6 +121,19 @@ const organizationJsonLd = {
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
 
 /**
+ * Microsoft Clarity — 방문 녹화 · 열 지도(2026-11-04 대표님). 손님 브라우저에서만 돌고
+ * 서버(Vercel) · DB(Supabase) 사용량은 늘지 않는다. GTM 과 같이 운영 호스트에서만 싣는다.
+ *
+ * ⚠️ 입력칸은 Clarity 가 기본으로 가린다. 이름 · 전화번호가 **글자로** 보이는 화면은
+ *    data-clarity-mask 로 따로 가렸다(신청서 · 조회 결과 · 단체 연락처 단계 · 단체 접수 완료).
+ *    그런 화면을 새로 만들면 같이 붙인다.
+ * ⚠️ 이름 · 전화번호를 clarity("identify") 나 태그로 보내지 않는다.
+ * 우리 기기(/internal 에서 켠 wye_internal 쿠키)는 traffic_type=internal 태그로 표시해
+ * Clarity 필터에서 뺀다.
+ */
+const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
+
+/**
  * 어드민·테스트 서브도메인에서는 GTM 을 아예 싣지 않는다.
  *
  * ⚠️ 지금까지 운영자가 어드민을 쓰는 것도 전부 방문자로 집계되고 있었다
@@ -181,6 +194,16 @@ new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','${GTM_ID}');`}
+        </Script>
+      ) : null}
+      {track && CLARITY_ID && /^[a-z0-9]+$/i.test(CLARITY_ID) ? (
+        // 화면이 다 뜬 뒤 한가할 때 싣는다 — 첫 화면 속도에 끼어들지 않게
+        <Script id="clarity" strategy="lazyOnload">
+          {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+})(window,document,"clarity","script","${CLARITY_ID}");
+if(document.cookie.split("; ").indexOf("wye_internal=internal")>=0){window.clarity("set","traffic_type","internal");}`}
         </Script>
       ) : null}
       <body className="min-h-full flex flex-col">

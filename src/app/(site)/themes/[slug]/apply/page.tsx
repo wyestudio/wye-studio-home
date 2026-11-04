@@ -139,7 +139,8 @@ export default async function ApplyPage({
 
   return (
     // 폭·위 여백은 넓은 화면에서 키운다(테마 상세 비율). 하단 고정 버튼 폭도 ApplyForm 에서 같이 맞춘다.
-    <main className="mx-auto max-w-2xl px-5 pb-12 pt-8 sm:pt-12 lg:max-w-3xl">
+    // 이름 · 전화번호 · 입금자명이 화면 글자로도 보인다(확인 단계 · 완료) — Clarity 녹화에서 가린다
+    <main className="mx-auto max-w-2xl px-5 pb-12 pt-8 sm:pt-12 lg:max-w-3xl" data-clarity-mask="true">
       <ApplyForm
         themeId={theme.id}
         initialCouponCode={couponCode}

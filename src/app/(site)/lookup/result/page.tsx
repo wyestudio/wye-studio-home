@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function LookupResultPage() {
   return (
     // 결과 카드도 테마 상세 비율에 맞춰 넓힌다(640 → 큰 화면 768px).
-    <div className="mx-auto w-full max-w-[640px] px-5 py-10 sm:py-14 lg:max-w-3xl lg:py-16">
+    <div className="mx-auto w-full max-w-[640px] px-5 py-10 sm:py-14 lg:max-w-3xl lg:py-16" data-clarity-mask="true">
       <LookupResult />
       <KakaoChannelButton />
     </div>
