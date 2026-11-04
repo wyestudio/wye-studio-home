@@ -6,6 +6,8 @@
 -- 단계(funnel)는 "그 기간에 그 단계까지 간 사람 수" 다 — 순서를 강제하지 않는다.
 -- applied_db 는 우리 기록이 아니라 applications 표에서 센 실제 신청 수다. 기록의
 -- 'done'(신청 완료)과 나란히 놓아 기록이 제대로 잡히는지 보게 한다.
+-- by_source: 처음 유입별 전환 / by_device: 휴대폰 · 컴퓨터별 단계 / exits: 방문이 끝난 화면
+-- engagement: 머문 시간(중간값) · 방문당 화면 수 · 화면 하나만 보고 아무것도 안 한 방문 수
 --
 -- 되돌리기: drop function if exists public.admin_visit_overview(timestamptz, timestamptz);
 
@@ -35,9 +37,21 @@ as $function$
            bool_or(kind = 'page' and name = '/group') as group_page,
            bool_or(kind = 'event' and name = 'group_quote_start') as group_start,
            bool_or(kind = 'event' and name = 'group_quote_submit') as group_submit,
-           bool_or(kind = 'page' and meta ->> 'dev' = 'mobile') as mobile
+           bool_or(kind = 'page' and meta ->> 'dev' = 'mobile') as mobile,
+           bool_or(kind = 'page' and meta ->> 'dev' = 'desktop') as desktop,
+           (array_agg(meta ->> 'src' order by at) filter (where kind = 'page' and meta ? 'src'))[1] as src
     from ev
     group by visitor_id
+  ),
+  vis as (
+    -- 방문(30분 쉬면 새 방문) 하나하나 — 머문 시간 · 본 화면 수 · 나간 화면
+    select visit_id,
+           extract(epoch from max(at) - min(at)) as secs,
+           count(*) filter (where kind = 'page') as pages,
+           count(*) filter (where kind <> 'page') as acts,
+           (array_agg(name order by at desc, id desc) filter (where kind = 'page'))[1] as last_page
+    from ev
+    group by visit_id
   )
   select jsonb_build_object(
     'visitors', (select count(*) from who),
@@ -99,6 +113,47 @@ as $function$
       select coalesce(jsonb_object_agg(d, n), '{}') from (
         select to_char(at at time zone 'Asia/Seoul', 'YYYY-MM-DD') as d, count(distinct visitor_id) as n
         from ev group by 1
+      ) x
+    ),
+    'engagement', (
+      select jsonb_build_object(
+        -- 머문 시간은 기록이 둘 이상인 방문만 — 화면 하나 열고 닫은 방문은 시간을 잴 수 없다
+        'median_secs', coalesce(round(percentile_cont(0.5) within group (order by secs) filter (where pages + acts > 1)), 0),
+        'pages_per_visit', coalesce(round(avg(pages), 1), 0),
+        'bounce', count(*) filter (where pages <= 1 and acts = 0),
+        'visits', count(*)
+      ) from vis
+    ),
+    'exits', (
+      select coalesce(jsonb_agg(x order by x.visits desc), '[]') from (
+        select last_page as name, count(*) as visits from vis where last_page is not null
+        group by 1 order by 2 desc limit 8
+      ) x
+    ),
+    'by_source', (
+      select coalesce(jsonb_agg(x order by x.visitors desc), '[]') from (
+        select coalesce(src, '알 수 없음') as src, count(*) as visitors,
+               count(*) filter (where pick) as pick,
+               count(*) filter (where start) as start,
+               count(*) filter (where done) as done
+        from step group by 1 order by 2 desc limit 10
+      ) x
+    ),
+    'by_device', (
+      select jsonb_object_agg(dev, j) from (
+        select dev, jsonb_build_object(
+                 'visitors', count(*),
+                 'theme', count(*) filter (where theme),
+                 'pick', count(*) filter (where pick),
+                 'apply_click', count(*) filter (where apply_click),
+                 'start', count(*) filter (where start),
+                 'consent', count(*) filter (where consent),
+                 'submit_step', count(*) filter (where submit_step),
+                 'done', count(*) filter (where done)
+               ) as j
+        from (select *, case when mobile then 'mobile' when desktop then 'desktop' end as dev from step) d
+        where dev is not null
+        group by dev
       ) x
     ),
     'since_first', (select min(at) from visit_events)
