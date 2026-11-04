@@ -12,7 +12,6 @@ export const ADMIN_MENU: { label: string; items: { href: string; label: string }
       { href: "/applications", label: "신청" },
       { href: "/group-bookings", label: "단체 예약 문의" },
       { href: "/sessions", label: "회차" },
-      { href: "/customers", label: "고객" },
     ],
   },
   {
@@ -32,8 +31,16 @@ export const ADMIN_MENU: { label: string; items: { href: string; label: string }
       { href: "/marketing-sms", label: "광고 문자" },
       { href: "/settlement", label: "잼핏 정산" },
       { href: "/utm", label: "유입경로 링크" },
-      { href: "/analytics", label: "분석" },
+    ],
+  },
+  {
+    // 누가 와서 무엇을 했나 — 첫 화면은 「방문 분석」, 거기서 나머지로 넘어간다(2026-11-04 대표님)
+    label: "분석",
+    items: [
+      { href: "/insights", label: "방문 분석" },
       { href: "/visitors", label: "방문 발자취" },
+      { href: "/customers", label: "고객" },
+      { href: "/analytics", label: "GA4 상세" },
     ],
   },
   {

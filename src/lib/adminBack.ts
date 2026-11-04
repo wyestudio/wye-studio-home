@@ -26,6 +26,7 @@ export function backLabel(back: string): string {
   if (back.startsWith("/group-bookings")) return "단체 예약 문의";
   if (back.startsWith("/sessions")) return "회차";
   if (back.startsWith("/customers/")) return "고객";
+  if (back.startsWith("/insights")) return "방문 분석";
   if (back.startsWith("/visitors/")) return "방문자";
   if (back.startsWith("/visitors")) return "방문 발자취";
   if (back.startsWith("/customers")) return "고객 목록";

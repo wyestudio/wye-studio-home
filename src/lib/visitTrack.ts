@@ -117,8 +117,12 @@ function flush() {
   }).catch(() => {});
 }
 
+/** 기록하지 않는 화면 — 사이트 잠금(비밀번호) 화면과 우리 기기 표시 화면은 손님의 길이 아니다 */
+const SKIP_PATH = /^\/(site-gate|internal)(\/|-|$)/;
+
 function push(e: Omit<Queued, "t">) {
   if (!enabled) return;
+  if (SKIP_PATH.test(window.location.pathname)) return;
   const key = `${e.kind}|${e.name}|${e.path}`;
   const now = Date.now();
   for (const [k, t] of recent) if (now - t >= DEDUPE_MS) recent.delete(k);
@@ -162,6 +166,8 @@ function sourceMeta(): Record<string, string> {
       if (v) meta[k.replace("utm_", "")] = v.slice(0, 60);
     }
     if (ref) meta.ref = ref.slice(0, 60);
+    // 휴대폰 · 컴퓨터 — 어드민 「방문 분석」 의 기기 비율. 768px 은 사이트의 md 경계다
+    meta.dev = window.innerWidth < 768 ? "mobile" : "desktop";
   } catch {
     /* 못 읽으면 출처 없이 */
   }
