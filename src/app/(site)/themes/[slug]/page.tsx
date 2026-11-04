@@ -53,6 +53,7 @@ import { HalloweenEventSection } from "./HalloweenEventSection";
 import { HALLOWEEN_ACCENT } from "@/lib/season";
 import { PosterSeasonDecor, SeasonArt } from "@/components/season/SeasonArt";
 import { SectionViewTracker } from "./SectionViewTracker";
+import { shareCard } from "@/lib/shareCard";
 
 /*
   이 페이지는 동적으로 그린다. 대신 **데이터에 캐시가 걸려 있다**
@@ -84,15 +85,9 @@ export async function generateMetadata({
   //    한 번 감싸므로, 여기서 또 붙이면 "우주이스케이프 | 바-ㅇ탈출 | 우주이스케이프"
   //    가 된다(브라우저 탭·검색 결과 제목에 그대로 나갔다).
   const title = theme.name;
-  // 공유 카드 제목은 템플릿을 안 타므로 여기서 직접 브랜드를 붙인다.
-  const socialTitle = `${theme.name} | 우주이스케이프`;
   // 어드민의 '한 줄 소개'(tagline)가 먼저고, 없으면 시놉시스(description)로 떨어진다.
   const synopsis = theme.tagline?.trim() || theme.description?.trim() || "";
   const fallback = `${theme.name} — 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출`;
-
-  // 공유 카드(og)는 줄바꿈까지 적은 그대로 내보낸다 — 카카오톡 카드에서는
-  // 선택지 아트웍(`> [YES]  [NO]`)이 살아 있어야 한다.
-  const shareDescription = synopsis || fallback;
 
   // ⚠️ 검색 결과용은 따로 만든다(2026-09-19). '한 줄 소개'는 실제로는 시놉시스라
   //    "미남아, 소개팅 받아볼래?" 처럼 극중 대사로 시작한다. 그대로 내보내면
@@ -112,11 +107,9 @@ export async function generateMetadata({
     title,
     description: searchDescription,
     alternates: { canonical: `${SITE_URL}/themes/${theme.slug}` },
-    openGraph: {
-      title: socialTitle,
-      description: shareDescription,
-      url: `${SITE_URL}/themes/${theme.slug}`,
-    },
+    // 공유 카드는 그림·설명이 모든 페이지 공통이고 제목만 테마 이름이다(src/lib/shareCard.ts).
+    // 공유 카드 제목은 위 템플릿을 안 타므로 여기서 브랜드가 붙는다.
+    ...shareCard(theme.name, `${SITE_URL}/themes/${theme.slug}`),
     // 잠긴 테마·목록에서 뺀 테마는 색인하지 않는다. 사이트맵에서 빼는 것만으로는
     // 부족하다 — 어디선가 링크가 걸리면 크롤러가 그 길로 들어온다.
     ...(theme.is_locked || !theme.is_listed

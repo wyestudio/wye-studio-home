@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { shareCard } from "@/lib/shareCard";
 import { LookupForm } from "@/components/lookup/LookupForm";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 
@@ -10,8 +11,7 @@ export const metadata: Metadata = {
   //    결과 페이지(/lookup/result)는 robots.ts 에서 막는다 — 개인정보가 뜬다.
   description:
     "우주이스케이프 신청내역 조회. 접수번호와 신청자 전화번호로 신청한 회차와 상태를 확인하세요.",
-  openGraph: { title: "우주이스케이프 | 신청내역 조회" },
-  twitter: { title: "우주이스케이프 | 신청내역 조회" },
+  ...shareCard("신청내역 조회"),
 };
 
 export default function LookupPage() {

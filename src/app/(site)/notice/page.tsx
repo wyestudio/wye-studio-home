@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { shareCard } from "@/lib/shareCard";
 import { NoticeTabs } from "@/components/notice/NoticeTabs";
 import { getPublishedNotices, getVisibleFaqs } from "@/lib/content";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
@@ -10,8 +11,7 @@ export const metadata: Metadata = {
   //    지운 "로테이션 소개팅 … 베타 오픈" 이 그 뒤로도 검색에 계속 나갔다.
   description:
     "우주이스케이프 공지사항과 자주 묻는 질문. 참여 전 확인할 내용을 모았습니다.",
-  openGraph: { title: "우주이스케이프 | Notice" },
-  twitter: { title: "우주이스케이프 | Notice" },
+  ...shareCard("Notice"),
 };
 
 // 공지·FAQ 는 운영자가 어드민에서 바꾸므로 요청마다 새로 읽는다.
