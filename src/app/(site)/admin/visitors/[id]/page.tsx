@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull, formatSessionDateTime } from "@/lib/format";
 import { backLabel, safeBack, withBack } from "@/lib/adminBack";
-import { eventLabel, pageLabel, visitorTag } from "../visitLabels";
+import { CLARITY_URL, eventLabel, pageLabel, visitorTag } from "../visitLabels";
 
 export const dynamic = "force-dynamic";
 
@@ -167,9 +167,20 @@ export default async function AdminVisitorDetailPage({
               </Link>
             ))}
           </div>
-          <p className="mt-3 text-body-sm text-muted">
-            화면을 어떻게 움직였는지는 Microsoft Clarity 녹화에서 같은 시각으로 찾아볼 수 있습니다.
-          </p>
+          {/* 녹화는 Clarity 안에서만 볼 수 있다 — 이 사람의 번호를 태그(wye_vid)로 보내 두었으니 필터로 찾는다 */}
+          <div className="mt-3 rounded-lg bg-fill-subtle p-3 text-body-sm text-muted">
+            <p>
+              화면 녹화는 Clarity 의 <strong className="text-foreground">레코딩 → 필터 → 사용자 지정 태그</strong> 에서{" "}
+              <code className="text-foreground">wye_vid</code> 를 아래 번호로 고르면 이 사람 것만 나옵니다.
+              우리 기기는 녹화하지 않습니다.
+            </p>
+            <p className="mt-1 break-all font-mono text-foreground">{id}</p>
+            {CLARITY_URL && (
+              <a href={CLARITY_URL} target="_blank" rel="noreferrer" className="mt-2 inline-block font-semibold text-glow hover:underline">
+                Clarity 열기 ↗
+              </a>
+            )}
+          </div>
         </header>
 
         <ol className="flex flex-col gap-4">

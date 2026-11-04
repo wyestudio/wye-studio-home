@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Chevron } from "@/components/ui/Chevron";
 import { withBack } from "@/lib/adminBack";
-import { STAGE_LABEL, STAGE_TAG, ago, pageLabel, visitorTag } from "./visitLabels";
+import { CLARITY_URL, STAGE_LABEL, STAGE_TAG, ago, pageLabel, visitorTag } from "./visitLabels";
 
 export const dynamic = "force-dynamic";
 
@@ -127,7 +127,19 @@ export default async function AdminVisitorsPage({ searchParams }: PageProps<"/ad
         <AdminNav current="/visitors" />
 
         <header className="mb-5">
-          <h1 className="text-h2 font-semibold">방문 발자취</h1>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h1 className="text-h2 font-semibold">방문 발자취</h1>
+            {CLARITY_URL && (
+              <a
+                href={CLARITY_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-border px-3 py-1.5 text-body-sm font-semibold hover:bg-fill-subtle"
+              >
+                Clarity 녹화 · 열 지도 ↗
+              </a>
+            )}
+          </div>
           <p className="mt-1 text-body-sm text-muted">
             브라우저 하나를 한 사람으로 봅니다. 신청하기 전에는 번호로, 신청하면 이름으로 보입니다. 기록은 90일 보관합니다.
           </p>

@@ -98,3 +98,11 @@ export function ago(iso: string, nowMs: number): string {
 
 /** 방문자 짧은 이름 — 번호 앞 4자리 */
 export const visitorTag = (id: string) => `방문자 #${id.slice(0, 4)}`;
+
+/**
+ * Clarity 관리 화면 주소. 녹화 영상은 Clarity 밖으로 가져올 수 없어(공개 API 가 요약 숫자뿐) 링크로 넘긴다.
+ * 운영에만 번호가 있다 — 없으면 null(테스트 사이트).
+ */
+export const CLARITY_URL = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID
+  ? `https://clarity.microsoft.com/projects/view/${process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID}/dashboard`
+  : null;

@@ -129,8 +129,9 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
  *    data-clarity-mask 로 따로 가렸다(신청서 · 조회 결과 · 단체 연락처 단계 · 단체 접수 완료).
  *    그런 화면을 새로 만들면 같이 붙인다.
  * ⚠️ 이름 · 전화번호를 clarity("identify") 나 태그로 보내지 않는다.
- * 우리 기기(/internal 에서 켠 wye_internal 쿠키)는 traffic_type=internal 태그로 표시해
- * Clarity 필터에서 뺀다.
+ * 우리 기기(/internal 에서 켠 wye_internal 쿠키)에서는 **아예 싣지 않는다**(2026-11-04 대표님)
+ * — 녹화가 무거워질까 봐. 방문 발자취 번호는 wye_vid 태그로 보내 어드민 「방문 발자취」 에서
+ * 그 사람의 녹화를 Clarity 필터로 찾게 한다(번호는 무작위라 사람을 알아볼 수 없다).
  */
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
@@ -202,11 +203,13 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         // ⚠️ id 를 "clarity" 로 두지 않는다 — 브라우저가 그 요소를 window.clarity 로 노출해서
         //    Clarity 가 자기 함수 대신 <script> 를 집어 "a[c] is not a function" 으로 멈춘다(2026-11-04 운영)
         <Script id="ms-clarity-init" strategy="lazyOnload">
-          {`(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          {`if(document.cookie.split("; ").indexOf("wye_internal=internal")<0){
+(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
 })(window,document,"clarity","script","${CLARITY_ID}");
-if(document.cookie.split("; ").indexOf("wye_internal=internal")>=0){window.clarity("set","traffic_type","internal");}`}
+try{var v=localStorage.getItem("wye_vid");if(v){window.clarity("set","wye_vid",v);}}catch(e){}
+}`}
         </Script>
       ) : null}
       <body className="min-h-full flex flex-col">
