@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { motion, type Transition } from "motion/react";
 import { useIsTouchDevice } from "@/lib/useIsTouchDevice";
 
@@ -14,6 +14,8 @@ function shuffledIndices(length: number): number[] {
   }
   return indices;
 }
+
+const noopSubscribe = () => () => {};
 
 export function RandomLetterSwap({
   label,
@@ -34,6 +36,9 @@ export function RandomLetterSwap({
   // 왼쪽부터 순서대로 넘어가면 "물결"처럼 보여서 밋밋함 — 대신 글자마다 무작위
   // 순서로 애니메이션이 시작되게 해서 글리치처럼 흐트러지는 느낌을 준다.
   const order = useMemo(() => shuffledIndices(letters.length), [letters.length]);
+  // 서버 HTML 에는 글자 더미 대신 이름만 그린다 — 검색엔진 · AI 가 "테 테 테 마 마 마" 로 읽었다
+  // (2026-11-05). 브라우저에서 붙은 뒤에만 글자 애니메이션으로 바꾼다. 화면 모양은 같다.
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
 
   // 터치 기기에서 active가 false(실제 다른 메뉴로 네비게이션)로 바뀔 때만 이탈 애니메이션 실행
   useEffect(() => {
@@ -52,6 +57,14 @@ export function RandomLetterSwap({
     ⚠️ aria-hidden 을 바깥 span 에 걸면 안 된다 — sr-only 까지 같이 숨어서
        링크에 이름이 하나도 없는 상태가 된다.
   */
+  if (!hydrated) {
+    return (
+      <span className={className} style={{ display: "inline-flex" }}>
+        {label}
+      </span>
+    );
+  }
+
   return (
     <span
       className={className}
