@@ -44,7 +44,7 @@ export async function GET() {
     const prices = t.tiers.map((x) => x.unit_price_krw).filter((n) => n > 0);
     const facts = [
       t.genres.length ? t.genres.map((g) => `#${g}`).join(" ") : "",
-      t.difficulty ? `난이도 ${t.difficulty}/5` : "",
+      Number(t.difficulty) ? `난이도 ${Number(t.difficulty)}/5` : "", // DB 는 "4.0" 같은 글자로 준다
       t.duration_minutes ? durationLabel(t.duration_minutes) : "",
       prices.length ? `1인 ${won(Math.min(...prices))}부터` : "",
     ].filter(Boolean);
