@@ -72,7 +72,10 @@ export async function GET() {
 
   if (faqs.length) {
     lines.push("", "## 자주 묻는 질문");
-    for (const f of faqs) lines.push("", `### ${f.question.trim()}`, "", f.answer.trim());
+    // 답에 적은 [문구](/group) 링크는 사이트 안 주소다 — 밖에서 읽는 AI 가 따라가게 전체 주소로 바꾼다
+    for (const f of faqs) {
+      lines.push("", `### ${f.question.trim()}`, "", f.answer.trim().replace(/\]\(\//g, `](${BASE_URL}/`));
+    }
   }
 
   lines.push(
