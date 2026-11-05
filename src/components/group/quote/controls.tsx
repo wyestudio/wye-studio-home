@@ -229,3 +229,15 @@ export function CheckRow({
     </label>
   );
 }
+
+/**
+ * 「우주 Pick」 — 우리가 권하는 옵션 표시. 홀로그램처럼 색이 천천히 흐른다(globals.css 의 .pick-holo).
+ * "가장 많이 고른" 으로 읽히는 Best 류는 쓰지 않는다 — 사실과 다르면 표시광고법에 걸린다.
+ */
+export function PickBadge() {
+  return (
+    <span className="pick-holo rounded-md px-1.5 py-0.5 text-micro font-semibold whitespace-nowrap text-[#141414]">
+      우주 Pick
+    </span>
+  );
+}

@@ -977,6 +977,16 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 }
 .hud-pop { animation: hud-pop 0.35s ease-out; }
 .stage-in { animation: stage-in 0.3s ease-out; }
+/* 단체 옵션의 「우주 Pick」 — 분홍 · 보라 · 하늘색이 천천히 흐르는 홀로그램 */
+@keyframes pick-holo {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
+.pick-holo {
+  background-image: linear-gradient(110deg, #f082f4, #b9a3ff, #8ee8ff, #fde2ff, #f082f4);
+  background-size: 200% 100%;
+  animation: pick-holo 4s linear infinite;
+}
 @media (prefers-reduced-motion: reduce) {
-  .hud-pop, .stage-in { animation: none; }
+  .hud-pop, .stage-in, .pick-holo { animation: none; }
 }

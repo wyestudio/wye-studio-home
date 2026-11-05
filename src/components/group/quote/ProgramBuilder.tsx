@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { AFTER_PARTY_INCLUDES, GROUP_ACCENT } from "@/lib/groupBooking";
 import { AFTER_PARTY_WEEKEND_TIME, BASE_MINUTES, OPTION, durationLabel, won } from "@/lib/groupPricing";
-import { NumberStepper } from "./controls";
+import { NumberStepper, PickBadge } from "./controls";
 import { useQuoteContext } from "./quoteContext";
 
 /*
@@ -107,7 +107,7 @@ export function ProgramBuilder() {
           price={`+${won(OPTION.character.price)}`}
           // 무엇인지 몰라 안 고르는 사람이 많다(2026-11-04 대표님). 미리 켜 두지는 않는다 —
           // 돈이 드는 옵션의 사전선택은 전자상거래법 제21조의2 가 막는 다크패턴이다. 눈에 띄게만 한다.
-          badge="추천"
+          pick
           action={<ToggleBtn add={!o.character} label="캐릭터 꾸미기" onClick={() => set({ character: !o.character })} />}
         >
           {/* 바-ㅇ탈출 캐릭터 생성기(wye-studio-webapp lib/character.js)로 그린 예시 — 도트라 픽셀을 살린다. */}
@@ -210,7 +210,7 @@ function Stage({
   price,
   action,
   first = false,
-  badge,
+  pick = false,
   children,
 }: {
   at?: string;
@@ -220,11 +220,11 @@ function Stage({
   price?: string;
   action?: React.ReactNode;
   first?: boolean;
-  /** 제목 옆 표시(예: 추천). 이게 있으면 빼 둔 상태여도 흐리게 두지 않는다 — 눈에 띄어야 고른다 */
-  badge?: string;
+  /** 제목 옆 「우주 Pick」. 이게 있으면 빼 둔 상태여도 흐리게 두지 않는다 — 눈에 띄어야 고른다 */
+  pick?: boolean;
   children?: React.ReactNode;
 }) {
-  const dim = (kind === "off" && !badge) || kind === "locked";
+  const dim = (kind === "off" && !pick) || kind === "locked";
   return (
     <li className="flex gap-2">
       {/* 시각 · 점 · 선. 시각이 정해지지 않은 스테이지(2부 · 옵션)는 점만 찍는다. */}
@@ -256,7 +256,7 @@ function Stage({
         className={`stage-in min-w-0 flex-1 rounded-xl border px-4 py-3 ${
           kind === "on"
             ? "border-[#f082f4] bg-[#f082f4]/10"
-            : kind === "base" || badge
+            : kind === "base" || pick
               ? "border-panel-border bg-panel"
               : "border-dashed border-line"
         }`}
@@ -266,14 +266,7 @@ function Stage({
             <p className="flex items-center gap-1.5 text-body font-semibold">
               {kind === "locked" && <LockIcon />}
               {title}
-              {badge && (
-                <span
-                  className="rounded-md px-1.5 py-0.5 text-micro font-semibold"
-                  style={{ backgroundColor: GROUP_ACCENT, color: "#141414" }}
-                >
-                  {badge}
-                </span>
-              )}
+              {pick && <PickBadge />}
             </p>
             <p className="text-body-sm text-muted">{sub}</p>
             {price && (

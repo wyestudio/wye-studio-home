@@ -52,7 +52,7 @@ import { QuoteCalendar } from "./QuoteCalendar";
 import { QuoteContext, type QuoteCtx } from "./quoteContext";
 import { QuotePdfButtons } from "./QuotePdfButtons";
 import type { QuoteDocInput } from "./quoteDocument";
-import { CheckRow, ChipGroup, FieldError, FieldLabel, NumberStepper, Switch } from "./controls";
+import { CheckRow, ChipGroup, FieldError, FieldLabel, NumberStepper, PickBadge, Switch } from "./controls";
 
 /** 견적 선택값(개인정보 아님)만 새로고침에 살아남게 둔다. 연락처는 저장하지 않는다. */
 const STORE_KEY = "wye-group-quote-v2";
@@ -1539,7 +1539,7 @@ function OptionItem({
   price,
   control,
   muted = false,
-  badge,
+  pick = false,
   children,
 }: {
   title: string;
@@ -1547,8 +1547,8 @@ function OptionItem({
   price: string;
   control: React.ReactNode;
   muted?: boolean;
-  /** 제목 옆 표시(예: 추천) */
-  badge?: string;
+  /** 제목 옆 「우주 Pick」 */
+  pick?: boolean;
   children?: React.ReactNode;
 }) {
   return (
@@ -1557,14 +1557,7 @@ function OptionItem({
         <div className={`min-w-0 flex-1 ${muted ? "opacity-60" : ""}`}>
           <p className="flex items-center gap-1.5 text-body font-semibold">
             {title}
-            {badge && (
-              <span
-                className="rounded-md px-1.5 py-0.5 text-micro font-semibold"
-                style={{ backgroundColor: GROUP_ACCENT, color: "#141414" }}
-              >
-                {badge}
-              </span>
-            )}
+            {pick && <PickBadge />}
           </p>
           <p className="text-body-sm text-muted">{desc}</p>
           {/* 고르면 얼마가 붙는지가 가장 먼저 보여야 한다. */}
@@ -1615,7 +1608,7 @@ function OptionsPicker({
         desc="우리만의 캐릭터로 플레이"
         price={`+${won(OPTION.character.price)}`}
         // 미리 켜 두지 않고 눈에 띄게만 한다 — 돈이 드는 옵션의 사전선택은 다크패턴(ProgramBuilder 와 같음)
-        badge="추천"
+        pick
         control={
           <Switch label="캐릭터 꾸미기 추가" checked={options.character} onChange={(v) => set({ character: v })} />
         }
