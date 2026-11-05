@@ -9,7 +9,8 @@ import { SHARE_DESCRIPTION } from "@/lib/shareCard";
  *
  * 손으로 고칠 곳이 없게 만든다 — 테마 · FAQ 는 DB 에서, 단체 요금 · 옵션은 groupPricing.ts 에서
  * 읽는다. 어드민에서 테마 · FAQ 를 고치거나 요금표를 바꾸면 다음 갱신 때 저절로 따라간다.
- * ⚠️ 하루 한 번만 새로 만든다(revalidate) — 요청마다 서버가 돌면 사용량이 는다(wye-server-cost).
+ * ⚠️ 정적 파일로 내보내고, 누가 읽을 때 1분이 지났으면 그때 한 번 새로 만든다 — 요청마다 서버가
+ *    돌지 않는다(wye-server-cost). 1분은 getListedThemes 의 캐시 주기가 정한다(sitemap.xml 과 같음).
  * ⚠️ 잠긴 테마 · 숨긴 FAQ 는 싣지 않는다 — sitemap.ts 와 같은 기준.
  */
 export const revalidate = 86400;
