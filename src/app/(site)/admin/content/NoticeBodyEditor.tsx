@@ -4,12 +4,14 @@ import { useState } from "react";
 import { Mark, mergeAttributes } from "@tiptap/core";
 import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { TableKit } from "@tiptap/extension-table";
 import { NOTICE_COLORS, type NoticeColor, toNoticeHtml } from "@/lib/noticeBody";
 
 /**
  * 공지 본문 편집기 — 보이는 그대로 쓴다(2026-11-06 대표님).
  *
- * 버튼은 굵게 · 기울임 · 밑줄 · 색 · 점 목록 · 번호 목록 · 링크 · 소제목뿐이다.
+ * 버튼은 굵게 · 기울임 · 밑줄 · 취소선 · 색 · 점 목록 · 번호 목록 · 링크 · 소제목 · 구분선 · 표뿐이다.
+ * 표의 칸 합치기는 일부러 없다 — 휴대폰에서 깨지기 쉽다(저장할 때 colspan · rowspan 도 걸러진다).
  * 글씨체 · 글자 크기는 일부러 없다 — 공지끼리 모양을 맞추고, 휴대폰에서 글자가 깨지거나
  * 작아지지 않게 사이트 기본을 쓴다.
  * ⚠️ 버튼을 더하면 noticeSanitize.ts 의 허용 목록도 같이 늘린다 — 저장할 때 걸러져 사라진다.
@@ -39,10 +41,12 @@ const NO_MARKS = {
   bold: false,
   italic: false,
   underline: false,
+  strike: false,
   bullet: false,
   ordered: false,
   heading: false,
   link: false,
+  table: false,
   color: null as NoticeColor | null,
 };
 
@@ -87,11 +91,11 @@ export function NoticeBodyEditor({ value, onChange }: { value: string; onChange:
         code: false,
         codeBlock: false,
         blockquote: false,
-        horizontalRule: false,
-        strike: false,
         link: { openOnClick: false, autolink: true, protocols: ["http", "https"] },
       }),
       NoticeColorMark,
+      // 칸 너비 끌어서 바꾸기는 끈다 — 저장하면 너비가 걸러져 사라지고, 화면 폭은 휴대폰이 정한다
+      TableKit.configure({ table: { resizable: false } }),
     ],
     content: toNoticeHtml(value),
     // 서버 렌더 때 그리지 않는다 — 안 그러면 Next 에서 hydration 오류가 난다
@@ -114,10 +118,12 @@ export function NoticeBodyEditor({ value, onChange }: { value: string; onChange:
             bold: e.isActive("bold"),
             italic: e.isActive("italic"),
             underline: e.isActive("underline"),
+            strike: e.isActive("strike"),
             bullet: e.isActive("bulletList"),
             ordered: e.isActive("orderedList"),
             heading: e.isActive("heading", { level: 3 }),
             link: e.isActive("link"),
+            table: e.isActive("table"),
             color: (e.getAttributes("noticeColor").color as NoticeColor | null) ?? null,
           }
         : NO_MARKS,
@@ -168,6 +174,9 @@ export function NoticeBodyEditor({ value, onChange }: { value: string; onChange:
         <ToolButton label="밑줄" active={marks.underline} onClick={() => chain().toggleUnderline().run()}>
           <span className="underline">U</span>
         </ToolButton>
+        <ToolButton label="취소선" active={marks.strike} onClick={() => chain().toggleStrike().run()}>
+          <span className="line-through">S</span>
+        </ToolButton>
 
         <span className="mx-1 h-5 w-px bg-border" aria-hidden />
 
@@ -208,10 +217,48 @@ export function NoticeBodyEditor({ value, onChange }: { value: string; onChange:
 
         <span className="mx-1 h-5 w-px bg-border" aria-hidden />
 
+        <ToolButton label="구분선" onClick={() => chain().setHorizontalRule().run()}>
+          구분선
+        </ToolButton>
+        <ToolButton
+          label="표 넣기"
+          active={marks.table}
+          onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+        >
+          표
+        </ToolButton>
+
+        <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
         <ToolButton label="서식 지우기" onClick={() => chain().unsetAllMarks().clearNodes().run()}>
           서식 지우기
         </ToolButton>
       </div>
+
+      {/* 표 안에 커서가 있을 때만 */}
+      {marks.table && (
+        <div className="flex flex-wrap items-center gap-1 border-b border-border p-1.5">
+          <span className="px-1 text-micro text-muted">표</span>
+          <ToolButton label="아래에 줄 추가" onClick={() => chain().addRowAfter().run()}>
+            줄 추가
+          </ToolButton>
+          <ToolButton label="이 줄 삭제" onClick={() => chain().deleteRow().run()}>
+            줄 삭제
+          </ToolButton>
+          <ToolButton label="오른쪽에 칸 추가" onClick={() => chain().addColumnAfter().run()}>
+            칸 추가
+          </ToolButton>
+          <ToolButton label="이 칸 삭제" onClick={() => chain().deleteColumn().run()}>
+            칸 삭제
+          </ToolButton>
+          <ToolButton label="첫 줄을 제목 줄로" onClick={() => chain().toggleHeaderRow().run()}>
+            제목 줄 켜기/끄기
+          </ToolButton>
+          <ToolButton label="표 삭제" onClick={() => chain().deleteTable().run()}>
+            <span className="text-red-400">표 삭제</span>
+          </ToolButton>
+        </div>
+      )}
 
       {linkOpen && (
         <div className="space-y-1 border-b border-border p-2">

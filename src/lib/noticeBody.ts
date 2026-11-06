@@ -19,7 +19,7 @@ export type NoticeColor = (typeof NOTICE_COLORS)[number]["key"];
 
 /** 편집기가 만든 본문인가 — 첫 글자가 편집기가 쓰는 블록 태그다 */
 export function isHtmlBody(body: string): boolean {
-  return /^\s*<(p|h3|ul|ol)[\s>]/.test(body);
+  return /^\s*<(p|h3|ul|ol|table|hr)[\s>]/.test(body);
 }
 
 function escapeHtml(s: string) {
