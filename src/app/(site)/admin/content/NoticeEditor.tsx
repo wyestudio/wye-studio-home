@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveNotice, deleteNotice, type NoticeInput } from "./actions";
+import { NOTICE_CATEGORIES, NOTICE_GREETING, composeNoticeTitle, splitNoticeTitle } from "@/lib/noticeTitle";
 
 const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
@@ -31,19 +32,31 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
   const [form, setForm] = useState<NoticeInput>({
     id: notice?.id,
     title: notice?.title ?? "",
-    body: notice?.body ?? "",
+    body: notice?.body ?? `${NOTICE_GREETING}\n\n`,
     is_pinned: notice?.is_pinned ?? false,
     published_at: notice?.published_at ?? null,
     sort_order: notice?.sort_order ?? 0,
   });
+  const initial = splitNoticeTitle(notice?.title ?? "");
+  const [category, setCategory] = useState<string>(initial.category);
+  const [headline, setHeadline] = useState(initial.headline);
   const [published, setPublished] = useState(toLocal(notice?.published_at ?? null));
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit() {
+    if (!category) {
+      setError("분류를 골라주세요.");
+      return;
+    }
+    if (!headline.trim()) {
+      setError("제목을 입력해주세요.");
+      return;
+    }
     setBusy(true);
     setError(null);
-    const result = await saveNotice({ ...form, published_at: toIso(published) });
+    const title = composeNoticeTitle(category, headline);
+    const result = await saveNotice({ ...form, title, published_at: toIso(published) });
     setBusy(false);
     if ("error" in result) {
       setError(result.error);
@@ -68,12 +81,30 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
 
   return (
     <div className="space-y-3 rounded-lg border border-border p-4">
-      <input
-        className={field}
-        value={form.title}
-        onChange={(e) => setForm({ ...form, title: e.target.value })}
-        placeholder="제목"
-      />
+      <div className="flex gap-2">
+        <select
+          className="w-32 shrink-0 rounded-md border border-border bg-background px-3 py-2 text-body-sm"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          aria-label="분류"
+        >
+          <option value="">분류 선택</option>
+          {NOTICE_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        <input
+          className={`${field} min-w-0 flex-1`}
+          value={headline}
+          onChange={(e) => setHeadline(e.target.value)}
+          placeholder="핵심 내용 — 예: 11월 회차 오픈 일정 변경"
+        />
+      </div>
+      <p className="text-micro text-muted">
+        제목 미리보기: {category && headline.trim() ? composeNoticeTitle(category, headline) : "분류와 핵심 내용을 채워주세요"}
+      </p>
       <textarea
         className={`${field} min-h-32`}
         value={form.body}
@@ -109,6 +140,12 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
           />
         </label>
       </div>
+
+      <ul className="list-disc space-y-0.5 pl-4 text-micro text-muted">
+        <li>본문은 「{NOTICE_GREETING}」로 시작합니다.</li>
+        <li>안내는 ~합니다 / ~드립니다 체로 씁니다.</li>
+        <li>이모지는 이벤트 공지의 본문에만 조금 씁니다. 제목에는 쓰지 않습니다.</li>
+      </ul>
 
       <p className="text-micro text-muted">
         게시일을 비우면 공개되지 않습니다(초안). 미래 시각을 넣으면 그때부터 보입니다.
