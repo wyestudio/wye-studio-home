@@ -990,3 +990,24 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 @media (prefers-reduced-motion: reduce) {
   .hud-pop, .stage-in, .pick-holo { animation: none; }
 }
+
+/*
+  공지 본문 (2026-11-06) — 어드민 편집기(NoticeBodyEditor)와 공지 화면이 같이 쓴다.
+  글자 크기 · 글씨체는 감싸는 쪽이 정한다. 여기서는 문단 · 목록 · 강조 · 색만.
+  ⚠️ 색 이름을 더하면 noticeBody.ts 의 NOTICE_COLORS 에도 더한다(저장할 때 걸러진다).
+*/
+.notice-body p { margin: 0; min-height: 1lh; } /* 빈 문단 = 빈 줄 — 옛 평문 공지의 줄 간격과 같게 */
+.notice-body h3 { margin: 0.75em 0 0.25em; font-weight: 800; color: var(--foreground); }
+.notice-body h3:first-child { margin-top: 0; }
+.notice-body ul { list-style: disc; padding-left: 1.25em; }
+.notice-body ol { list-style: decimal; padding-left: 1.5em; }
+.notice-body li > p { min-height: 0; }
+.notice-body strong { font-weight: 600; color: var(--foreground); }
+.notice-body em { font-style: italic; }
+.notice-body u { text-decoration: underline; text-underline-offset: 2px; }
+.notice-body a { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.notice-body a:hover { color: var(--foreground); }
+.notice-body [data-color="white"] { color: var(--foreground); }
+.notice-body [data-color="blue"] { color: var(--glow); }
+.notice-body [data-color="orange"] { color: var(--wait); }
+.notice-body [data-color="red"] { color: var(--danger); }
