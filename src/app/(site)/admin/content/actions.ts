@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
 import { NOTICE_GREETING, isValidNoticeTitle } from "@/lib/noticeTitle";
+import { noticeBodyText, sanitizeNoticeBody } from "@/lib/noticeSanitize";
 
 /**
  * 공지·FAQ 편집.
@@ -35,12 +36,13 @@ export async function saveNotice(input: NoticeInput): Promise<ActionResult> {
   try {
     if (!isValidNoticeTitle(input.title)) return { error: "제목은 [분류] 핵심 내용 형식이어야 합니다." };
     // 새 공지는 인사말이 미리 들어가 있다 — 인사말만 남은 것은 빈 내용이다
-    if (!input.body.trim() || input.body.trim() === NOTICE_GREETING) return { error: "내용을 입력해주세요." };
+    const text = noticeBodyText(input.body);
+    if (!text || text === NOTICE_GREETING) return { error: "내용을 입력해주세요." };
 
     const supabase = await requireAdmin();
     const row = {
       title: input.title.trim(),
-      body: input.body.trim(),
+      body: sanitizeNoticeBody(input.body),
       is_pinned: input.is_pinned,
       published_at: input.published_at,
       sort_order: input.sort_order,

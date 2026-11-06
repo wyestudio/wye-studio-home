@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveNotice, deleteNotice, type NoticeInput } from "./actions";
+import { NoticeBodyEditor } from "./NoticeBodyEditor";
 import { NOTICE_CATEGORIES, NOTICE_GREETING, composeNoticeTitle, splitNoticeTitle } from "@/lib/noticeTitle";
 
 const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
@@ -32,7 +33,7 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
   const [form, setForm] = useState<NoticeInput>({
     id: notice?.id,
     title: notice?.title ?? "",
-    body: notice?.body ?? `${NOTICE_GREETING}\n\n`,
+    body: notice?.body ?? `<p>${NOTICE_GREETING}</p><p></p>`,
     is_pinned: notice?.is_pinned ?? false,
     published_at: notice?.published_at ?? null,
     sort_order: notice?.sort_order ?? 0,
@@ -105,12 +106,7 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
       <p className="text-micro text-muted">
         제목 미리보기: {category && headline.trim() ? composeNoticeTitle(category, headline) : "분류와 핵심 내용을 채워주세요"}
       </p>
-      <textarea
-        className={`${field} min-h-32`}
-        value={form.body}
-        onChange={(e) => setForm({ ...form, body: e.target.value })}
-        placeholder="내용 — 줄바꿈은 그대로 보이고, https:// 로 시작하는 주소는 자동으로 링크가 됩니다."
-      />
+      <NoticeBodyEditor value={form.body} onChange={(body) => setForm((f) => ({ ...f, body }))} />
 
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex items-center gap-2 text-body-sm">

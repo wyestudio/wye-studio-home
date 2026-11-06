@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
-import { RichText } from "@/components/ui/RichText";
 import { SeasonArt } from "@/components/season/SeasonArt";
 import type { Notice } from "@/lib/content";
 
@@ -100,9 +99,10 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
           </button>
         </div>
 
-        <RichText
-          text={notice.body}
-          className="block text-h3 leading-relaxed text-muted"
+        {/* 본문은 서버에서 허용한 태그만 남긴 HTML 이다(getPublishedNotices → noticeSanitize.ts) */}
+        <div
+          className="notice-body text-h3 leading-relaxed text-muted"
+          dangerouslySetInnerHTML={{ __html: notice.body }}
         />
 
         <button

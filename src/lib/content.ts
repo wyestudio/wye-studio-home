@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeNoticeBody } from "@/lib/noticeSanitize";
 
 /**
  * 공지·FAQ 조회.
@@ -13,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 export type Notice = {
   id: string;
   title: string;
+  /** 화면에 그대로 넣어도 되는 HTML — 옛 평문 본문도 여기서 HTML 로 바뀌어 나간다(noticeSanitize.ts) */
   body: string;
   is_pinned: boolean;
   published_at: string | null;
@@ -41,7 +43,7 @@ export async function getPublishedNotices(): Promise<Notice[]> {
     console.error("[content] 공지 조회 실패", error);
     return [];
   }
-  return (data ?? []) as Notice[];
+  return ((data ?? []) as Notice[]).map((n) => ({ ...n, body: sanitizeNoticeBody(n.body) }));
 }
 
 export async function getVisibleFaqs(): Promise<Faq[]> {
