@@ -1005,9 +1005,22 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .notice-body strong { font-weight: 600; color: var(--foreground); }
 .notice-body em { font-style: italic; }
 .notice-body u { text-decoration: underline; text-underline-offset: 2px; }
+.notice-body s { text-decoration: line-through; }
+.notice-body hr { border: 0; border-top: 1px solid var(--border); margin: 1em 0; }
+.notice-body hr.ProseMirror-selectednode { border-top-color: var(--glow); } /* 편집기에서 구분선을 골랐을 때 */
 .notice-body a { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .notice-body a:hover { color: var(--foreground); }
 .notice-body [data-color="white"] { color: var(--foreground); }
 .notice-body [data-color="blue"] { color: var(--glow); }
 .notice-body [data-color="orange"] { color: var(--wait); }
 .notice-body [data-color="red"] { color: var(--danger); }
+/* 표 — 휴대폰에서 화면보다 넓으면 페이지가 아니라 표만 옆으로 민다 */
+.notice-body table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 0.5em 0; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.notice-body .tableWrapper { max-width: 100%; overflow-x: auto; margin: 0.5em 0; scrollbar-width: thin; scrollbar-color: var(--border) transparent; } /* 편집기 안 */
+.notice-body .tableWrapper table { display: table; margin: 0; }
+/* 칸을 화면 폭에 맞춰 짜부라뜨리지 않는다 — 한 칸은 16글자쯤에서 줄을 바꾸고, 남는 폭은 표 안 가로 스크롤로 */
+.notice-body table > tbody { display: table; width: max-content; }
+.notice-body th, .notice-body td { border: 1px solid var(--border); padding: 0.375em 0.75em; vertical-align: top; min-width: 5em; max-width: 16em; word-break: keep-all; }
+.notice-body th { background: var(--fill); color: var(--foreground); font-weight: 600; text-align: left; }
+.notice-body td > p, .notice-body th > p { min-height: 0; }
+.notice-body .selectedCell { background: var(--fill-strong); } /* 편집기에서 여러 칸을 드래그로 골랐을 때 */
