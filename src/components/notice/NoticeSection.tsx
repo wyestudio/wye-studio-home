@@ -56,6 +56,9 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
                   <span className="shrink-0 text-body-sm text-muted">{kstDate(n.published_at)}</span>
                 )}
               </button>
+              {/* 본문을 숨긴 채 HTML 에 둔다 — 팝업에서만 그리면 검색엔진 · AI 가 본문을 못 읽는다(2026-11-07).
+                  눈에 보이는 본문은 아래 팝업이 같은 내용으로 그린다. */}
+              <div hidden dangerouslySetInnerHTML={{ __html: n.body }} />
             </li>
           ))}
         </ul>

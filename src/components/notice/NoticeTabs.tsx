@@ -57,10 +57,13 @@ export function NoticeTabs({ notices, faqs }: { notices: Notice[]; faqs: Faq[] }
         <SeasonArt art="sparkle" className="season-tab-spark" />
       </div>
 
-      {/* Content Area */}
-      <div role="tabpanel">
-        {selected === "notice" && <NoticeSection notices={notices} />}
-        {selected === "faq" && <FaqSection faqs={faqs} />}
+      {/* Content Area — 두 탭을 다 그리고 안 고른 쪽만 숨긴다(2026-11-07).
+          고른 탭만 그리면 「자주 묻는 질문」이 서버 HTML 에 아예 없어 검색엔진 · AI 가 못 읽는다. */}
+      <div role="tabpanel" hidden={selected !== "notice"}>
+        <NoticeSection notices={notices} />
+      </div>
+      <div role="tabpanel" hidden={selected !== "faq"}>
+        <FaqSection faqs={faqs} />
       </div>
     </div>
   );
