@@ -21,6 +21,11 @@ html:not([data-season="halloween"]) :is(.season-art, .season-only) {
   display: none !important;
 }
 
+/* 장식 글자는 HTML 이 아니라 여기서 그린다 — 검색엔진 · AI 는 CSS 가 만든 글자를 본문으로 읽지 않는다(SeasonArt.tsx) */
+.season-text::before {
+  content: attr(data-text);
+}
+
 .season-art {
   pointer-events: none;
   user-select: none;
