@@ -10,6 +10,7 @@ description: 운영 DB 와 배포. 마이그레이션 파일을 만들거나 적
 - `supabase/migrations/` 에 파일을 만들거나 고친다
 - 운영 DB 에 SQL 을 실행한다 (특히 `drop`, `alter ... drop`, 함수 교체)
 - `main` 브랜치에 push 한다 (= 운영 자동 배포)
+- 운영 반영 뒤 공개 페이지 내용이 바뀌었다 (검색엔진에 알리기 — 아래 「운영에 반영한 뒤」)
 
 ---
 
@@ -94,6 +95,17 @@ select 'themes', id, hero_image_path from themes where hero_image_path like '%ks
   **`/themes/[slug]` 가 500** 이 됐다(홈·컨텐츠·신청은 정상).
   운영 이력에 p29·p30·p31 기록이 없었던 것도 원인이다 — 손으로 실행한 것들이라
   `schema_migrations` 에 안 남아 있어서, "무엇이 빠졌는지"를 DB 에 물어볼 수 없었다.
+
+## 운영에 반영한 뒤 — 바뀐 공개 페이지를 검색엔진에 알린다
+
+**코드 배포나 DB 직접 수정으로 공개 페이지 내용이 바뀌었으면, 운영 반영이 끝난 뒤
+`node scripts/indexnow-ping.mjs <바뀐 주소…>` 를 실행한다.** 바뀐 주소만 넣는다
+← 어드민 저장만 자동으로 알리고(`src/lib/indexNow.ts`), 이 길은 아무도 안 알린다.
+안 바뀐 주소까지 보내면 엔진이 우리 알림을 덜 믿는다
+
+- 예: 단체 페이지 문구 → `/group` · 공지 FAQ 를 DB 로 복사 → `/notice` ·
+  테마 데이터 → `/` 와 그 테마 주소(노말모드는 `"/themes/<slug>?mode=normal"`)
+- 구글은 IndexNow 를 받지 않는다. 급하면 대표님께 Search Console 「URL 검사 → 색인 생성 요청」을 안내한다
 
 ## 마이그레이션 파일 이름 규칙 (충돌 방지)
 
