@@ -9,6 +9,7 @@ import {
   isBookable,
   isPastSession,
   getMonthlyRankings,
+  type ThemeDetail,
 } from "@/lib/themes";
 import { ThemeBlocks } from "@/components/contents/ThemeBlocks";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
@@ -74,17 +75,46 @@ const DEFAULT_ACCENT = "#3dffb0";
  */
 const HOW_TO_PLAY: Record<string, HowToPlayMode> = { baotalchul: "party", "baotalchul-normal": "normal" };
 
+/** ?mode= 로 고른 모드의 테마. 모르는 값이면 기본 모드 — 화면과 메타데이터가 같은 규칙을 쓴다 */
+function pickMode(base: ThemeDetail, variants: ThemeDetail[], modeParam: string | null): ThemeDetail {
+  return (
+    (modeParam
+      ? variants.find(
+          (v) =>
+            modeKey(base.slug, v.slug) === modeParam ||
+            v.slug === modeParam ||
+            v.id === modeParam
+        )
+      : null) ??
+    variants[0] ??
+    base
+  );
+}
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: PageProps<"/themes/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const theme = await getThemeBySlug(slug);
-  if (!theme) return { title: "테마를 찾을 수 없습니다" };
+  const base = await getThemeBySlug(slug);
+  if (!base) return { title: "테마를 찾을 수 없습니다" };
+
+  /*
+    모드마다 자기 주소를 대표 주소(canonical)로 알린다(2026-11-07).
+    전에는 노말모드(?mode=normal)도 파티모드 주소를 대표로 알려서, 검색엔진이 노말을 파티의
+    중복으로 보고 노말 전용 FAQ · 안내를 색인하지 않았다.
+  */
+  const sp = await searchParams;
+  const variants = base.variant_group ? await getThemeVariants(base.variant_group) : [];
+  const theme = pickMode(base, variants, typeof sp?.mode === "string" ? sp.mode : null);
+  const isDefaultMode = variants.length < 2 || theme.id === variants[0]?.id;
+  const url = `${SITE_URL}${variants.length >= 2 ? modeHref(base.slug, variants, theme) : `/themes/${theme.slug}`}`;
 
   // ⚠️ 브랜드는 붙이지 않는다. 루트 레이아웃이 "우주이스케이프 | %s" 템플릿으로
   //    한 번 감싸므로, 여기서 또 붙이면 "우주이스케이프 | 바-ㅇ탈출 | 우주이스케이프"
   //    가 된다(브라우저 탭·검색 결과 제목에 그대로 나갔다).
-  const title = theme.name;
+  // 기본 모드는 이름 그대로(이미 색인된 제목), 다른 모드는 모드 이름을 붙여 검색 결과에서 갈린다
+  const title = isDefaultMode || !theme.variant_label ? theme.name : `${theme.name} ${theme.variant_label}`;
   // 어드민의 '한 줄 소개'(tagline)가 먼저고, 없으면 시놉시스(description)로 떨어진다.
   const synopsis = theme.tagline?.trim() || theme.description?.trim() || "";
   const fallback = `${theme.name} — 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출`;
@@ -106,13 +136,14 @@ export async function generateMetadata({
   return {
     title,
     description: searchDescription,
-    alternates: { canonical: `${SITE_URL}/themes/${theme.slug}` },
+    alternates: { canonical: url },
     // 공유 카드는 그림·설명이 모든 페이지 공통이고 제목만 테마 이름이다(src/lib/shareCard.ts).
     // 공유 카드 제목은 위 템플릿을 안 타므로 여기서 브랜드가 붙는다.
-    ...shareCard(theme.name, `${SITE_URL}/themes/${theme.slug}`),
+    ...shareCard(title, url),
     // 잠긴 테마·목록에서 뺀 테마는 색인하지 않는다. 사이트맵에서 빼는 것만으로는
     // 부족하다 — 어디선가 링크가 걸리면 크롤러가 그 길로 들어온다.
-    ...(theme.is_locked || !theme.is_listed
+    // 목록 노출은 묶음 대표(base)로 본다 — 노말 행은 목록 카드에서 빠지려고 is_listed 가 꺼져 있다.
+    ...(theme.is_locked || !base.is_listed
       ? { robots: { index: false, follow: false } }
       : {}),
   };
@@ -163,17 +194,7 @@ export default async function ThemeDetailPage({
   }
 
   const modeParam = typeof sp?.mode === "string" ? sp.mode : null;
-  const theme =
-    (modeParam
-      ? variants.find(
-          (v) =>
-            modeKey(base.slug, v.slug) === modeParam ||
-            v.slug === modeParam ||
-            v.id === modeParam
-        )
-      : null) ??
-    variants[0] ??
-    base;
+  const theme = pickMode(base, variants, modeParam);
 
   // is_active 는 '신청 받기' 여부일 뿐이다. 꺼져 있어도 페이지는 보여준다.
   // 잠긴 테마는 신청도 받지 않는다 — 목록·홈에서 못 들어오게 막아둔 곳을

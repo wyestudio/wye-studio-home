@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { getListedThemes } from "@/lib/themes";
+import { getListedThemes, getThemeVariants } from "@/lib/themes";
+import { modeHref } from "@/app/(site)/themes/[slug]/ModeBox";
 
 const BASE_URL = "https://www.wouldyouescape.com";
 
@@ -34,6 +35,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.9,
       }))
   );
+
+  // 기본이 아닌 모드(바-ㅇ탈출 노말모드 = ?mode=normal)도 따로 싣는다(2026-11-07) — 내용(FAQ · 인원 ·
+  // 환불)이 달라 자기 주소를 대표로 알린다(themes/[slug]/page.tsx 의 canonical). 노말 행은 목록 카드에서
+  // 빠지려고 is_listed 가 꺼져 있어 위 목록에 안 잡힌다.
+  for (const t of themes.filter((t) => !t.is_locked && t.variant_group)) {
+    const variants = await getThemeVariants(t.variant_group!);
+    for (const v of variants.slice(1).filter((v) => !v.is_locked)) {
+      routes.push({
+        url: `${BASE_URL}${modeHref(t.slug, variants, v)}`,
+        lastModified: new Date(v.updated_at),
+        changeFrequency: "daily",
+        priority: 0.8,
+      });
+    }
+  }
 
   return routes;
 }
