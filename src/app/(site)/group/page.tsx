@@ -374,22 +374,13 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
               </li>
               <li>행사 7일 전 인원을 확정하고 잔금을 결제해요.</li>
             </ol>
+            {/* 결제 수단 — 예전에는 '결제는 계좌이체예요' 한 줄뿐이라 법인카드가 안 되는 줄 알았다(2026-11-07 대표님 문안) */}
             <p className="mt-2 text-body-sm">
-              행사 7일 이내 신청은 준비 가능 여부를 확인한 뒤 전액 결제로 확정돼요.
+              행사 당일 잔금을 법인카드로 결제하거나, 기존 예약금을 환불받고 전체 금액을 법인카드로 결제하실 수 있습니다.
+              <br />
+              계좌이체 결제분은 세금계산서 발행도 가능합니다.
             </p>
-          </Fold>
-          {/* 결제 수단 — 예전에는 '결제는 계좌이체예요' 한 줄뿐이라 법인카드가 안 되는 줄 알았다(2026-11-07 대표님 문안) */}
-          <Fold title="결제 · 세금계산서">
-            <ul className="flex list-disc flex-col gap-1.5 pl-5">
-              <li>
-                <strong className="text-foreground">예약금 30%는 계좌이체로 선입금</strong>해 주셔야 합니다.
-              </li>
-              <li>
-                행사 당일 <strong className="text-foreground">잔금을 법인카드로 결제</strong>하거나, 기존 예약금을
-                환불받고 <strong className="text-foreground">전체 금액을 법인카드로 결제</strong>하실 수 있습니다.
-              </li>
-              <li>계좌이체 결제분은 세금계산서 발행도 가능합니다.</li>
-            </ul>
+            <p className="mt-4 text-body-sm">※ 행사 7일 이내 신청은 준비 가능 여부를 확인한 뒤 전액 결제로 확정돼요.</p>
           </Fold>
           <Fold id="refund" title="취소 · 환불 규정">
             <dl>
