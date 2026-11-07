@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
-import { initVisitTrack, scrollPct, trackClick, trackField, trackPage } from "@/lib/visitTrack";
+import { initVisitTrack, pagePath, scrollPct, trackClick, trackField, trackPage } from "@/lib/visitTrack";
 
 /**
  * 방문 발자취 — 페이지 이동과 버튼 · 링크 클릭을 남긴다(src/lib/visitTrack.ts). 화면을 그리지 않는다.
@@ -48,7 +48,7 @@ export function VisitTracker() {
           /* 이상한 주소는 버린다 */
         }
       }
-      trackClick(label.slice(0, 60), window.location.pathname, Object.keys(meta).length ? meta : undefined);
+      trackClick(label.slice(0, 60), pagePath(), Object.keys(meta).length ? meta : undefined);
     };
     // 입력칸: 칸을 떠날 때 값이 있으면 "입력함" 만 남긴다(값은 보내지 않는다). 칸마다 화면당 한 번
     const filled = new Set<string>();
@@ -71,7 +71,8 @@ export function VisitTracker() {
   }, []);
 
   useEffect(() => {
-    trackPage(pathname);
+    // pathname 이 아니라 pagePath() — 테마 상세는 모드(?mode=)까지 붙는다(visitTrack.ts setPageMode)
+    trackPage(pagePath());
   }, [pathname]);
 
   return null;

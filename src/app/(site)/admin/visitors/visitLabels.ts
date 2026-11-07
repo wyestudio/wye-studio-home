@@ -34,8 +34,13 @@ export function pageLabel(path: string, themeNames: Map<string, string>): string
   if (path === "/") return "홈";
   const apply = path.match(/^\/themes\/([^/]+)\/apply$/);
   if (apply) return `신청서 · ${themeNames.get(apply[1]) ?? apply[1]}`;
-  const theme = path.match(/^\/themes\/([^/]+)$/);
-  if (theme) return `테마 상세 · ${themeNames.get(theme[1]) ?? theme[1]}`;
+  // 모드는 ?mode= 로 붙는다(2026-11-07부터) — /themes/baotalchul?mode=normal → baotalchul-normal 행의 이름.
+  // ⚠️ 그 전 기록의 /themes/baotalchul 은 파티 · 노말이 섞여 있다.
+  const theme = path.match(/^\/themes\/([^/?]+)(?:\?mode=([^&]+))?$/);
+  if (theme) {
+    const slug = theme[2] ? (themeNames.has(`${theme[1]}-${theme[2]}`) ? `${theme[1]}-${theme[2]}` : theme[2]) : theme[1];
+    return `테마 상세 · ${themeNames.get(slug) ?? slug}`;
+  }
   const fixed: Record<string, string> = {
     "/group": "단체 예약",
     "/lookup": "참여내역 조회",

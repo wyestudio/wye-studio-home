@@ -225,6 +225,18 @@ function sourceMeta(): Record<string, string> {
   return meta;
 }
 
+/**
+ * 기록에 쓸 지금 화면의 경로 — 보통은 pathname, 테마 상세는 모드(?mode=)까지 붙여 파티 · 노말을
+ * 따로 센다(2026-11-07 대표님). 주소창의 ?mode= 는 서버가 늘 정식 값으로 고쳐 두므로
+ * (themes/[slug]/page.tsx 의 redirect) 화면과 같다고 믿어도 된다.
+ */
+export function pagePath(): string {
+  const p = window.location.pathname;
+  if (!/^\/themes\/[^/]+$/.test(p)) return p;
+  const mode = new URLSearchParams(window.location.search).get("mode");
+  return mode ? `${p}?mode=${mode}` : p;
+}
+
 export function trackPage(path: string) {
   if (!enabled) return;
   if (cur && cur.path === path) return; // 같은 화면을 다시 알린 것(개발 모드의 두 번 실행)
@@ -245,7 +257,7 @@ export function trackClick(label: string, path: string, meta?: Record<string, un
 
 /** 입력칸을 채웠다 — 무엇을 적었는지는 남기지 않고 칸 이름만(data-track-field) */
 export function trackField(field: string) {
-  push({ kind: "event", name: "field_filled", path: window.location.pathname, meta: { sectionLabel: field.slice(0, 40) } });
+  push({ kind: "event", name: "field_filled", path: pagePath(), meta: { sectionLabel: field.slice(0, 40) } });
 }
 
 /** 분석 이벤트(analytics.ts 의 pushDataLayerEvent)를 같이 남긴다. 안전한 값만 고른다. */
@@ -257,5 +269,5 @@ export function trackEvent(event: string, params?: Record<string, unknown>) {
     const v = params?.[k];
     if (typeof v === "string" || typeof v === "number") meta[k] = typeof v === "string" ? v.slice(0, 80) : v;
   }
-  push({ kind: "event", name, path: window.location.pathname, meta: Object.keys(meta).length ? meta : undefined });
+  push({ kind: "event", name, path: pagePath(), meta: Object.keys(meta).length ? meta : undefined });
 }

@@ -54,6 +54,7 @@ import { HalloweenEventSection } from "./HalloweenEventSection";
 import { HALLOWEEN_ACCENT } from "@/lib/season";
 import { PosterSeasonDecor, SeasonArt } from "@/components/season/SeasonArt";
 import { SectionViewTracker } from "./SectionViewTracker";
+import { ModePageTracker } from "./ModePageTracker";
 import { shareCard } from "@/lib/shareCard";
 
 /*
@@ -195,6 +196,21 @@ export default async function ThemeDetailPage({
 
   const modeParam = typeof sp?.mode === "string" ? sp.mode : null;
   const theme = pickMode(base, variants, modeParam);
+
+  /*
+    ?mode= 가 정식 값이 아니면(모르는 값 · slug · id · 기본 모드에 붙은 ?mode) 정식 주소로 보낸다
+    (2026-11-07). 방문 기록이 주소창의 ?mode= 로 모드를 가르므로 주소와 화면이 늘 같아야 한다
+    (visitTrack.ts pagePath). 다른 값(?d= · utm_*)은 그대로 넘긴다 — 유입 경로가 끊기면 안 된다.
+  */
+  if (modeParam !== null && variants.length >= 2) {
+    const canonicalKey = theme.id === variants[0].id ? null : modeKey(base.slug, theme.slug);
+    if (modeParam !== canonicalKey) {
+      const q = new URLSearchParams();
+      for (const [k, v] of Object.entries(sp ?? {})) if (k !== "mode" && typeof v === "string") q.set(k, v);
+      if (canonicalKey) q.set("mode", canonicalKey);
+      redirect(`/themes/${base.slug}${q.size ? `?${q.toString()}` : ""}`);
+    }
+  }
 
   // is_active 는 '신청 받기' 여부일 뿐이다. 꺼져 있어도 페이지는 보여준다.
   // 잠긴 테마는 신청도 받지 않는다 — 목록·홈에서 못 들어오게 막아둔 곳을
@@ -696,6 +712,8 @@ export default async function ThemeDetailPage({
       <SectionNav accent={seasonAccent} />
       {/* 어느 블록까지 내려가고 멈추는지 기록한다(화면에 아무것도 그리지 않는다) */}
       <SectionViewTracker themeLabel={theme.name} />
+      {/* 방문 기록을 모드별로 — 파티는 /themes/baotalchul, 노말은 ?mode=normal */}
+      {variants.length >= 2 && <ModePageTracker mode={theme.id} />}
 
       {/* 화면 우하단 고정 버튼 (페이지당 하나) */}
       <KakaoChannelButton />
