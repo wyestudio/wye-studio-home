@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { ThemeBlockView } from "@/components/contents/ThemeBlocks";
 import { RichTextArea } from "../RichTextArea";
+import { GuideButton } from "../GuideButton";
+import { FAQ_GUIDE } from "@/lib/faqGuide";
 import {
   THEME_BLOCK_LABELS,
   type ThemeBlock,
@@ -615,13 +617,17 @@ function RowsEditor({
             />
           </div>
         ))}
-        <button
-          type="button"
-          onClick={() => onChange([...items, blank] as RowBlock["items"])}
-          className="rounded-md border border-dashed border-border px-3 py-1.5 text-micro text-muted"
-        >
-          + 항목 추가
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onChange([...items, blank] as RowBlock["items"])}
+            className="rounded-md border border-dashed border-border px-3 py-1.5 text-micro text-muted"
+          >
+            + 항목 추가
+          </button>
+          <span className="ml-auto" />
+          <GuideButton title="자주 묻는 질문 작성 규칙" sections={FAQ_GUIDE} />
+        </div>
       </div>
     );
   }

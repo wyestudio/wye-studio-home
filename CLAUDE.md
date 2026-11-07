@@ -66,7 +66,7 @@
 | `src/lib/settlement.ts`, `src/lib/coupon*.ts`, `src/lib/sms*.ts`, 어드민 쿠폰·정산 화면, `preview_coupons()`·`submit_application*()` | `wye-money` |
 | `supabase/migrations/`, 운영 DB 에 SQL 실행, `main` 브랜치 push(=운영 배포) | `wye-db-release` |
 | `src/lib/attribution*.ts`, `utmLinks.ts`, `shortLinks.ts`, `ga4.ts`, `visitTrack.ts`, `VisitTracker.tsx`, 어드민 유입경로 · 방문 분석 화면, `next.config.ts` 의 `redirects()`, `(site)/layout.tsx` 의 Clarity | `wye-marketing` |
-| `public/` 이미지, `theme-assets` 버킷, 공개 화면 문구, 공지 글(`notices`) 작성, 공개 페이지 추가·수정, `src/app/sitemap.ts`·`robots.ts`, `"use client"` 파일이 import 하는 모듈에 감출 값을 적을 때 | `wye-customer-facing` |
+| `public/` 이미지, `theme-assets` 버킷, 공개 화면 문구, 공지 글(`notices`) · 자주 묻는 질문 작성, 공개 페이지 추가·수정, `src/app/sitemap.ts`·`robots.ts`, `"use client"` 파일이 import 하는 모듈에 감출 값을 적을 때 | `wye-customer-facing` |
 | `scripts/slack-cleanup-alerts.mjs` 실행, 슬랙 알림·테스트 신청 흔적 삭제 | `wye-cleanup` |
 | 공개 `page.tsx`(`force-dynamic`), 클라이언트의 `router.replace`·`router.push`·`router.refresh`·`<Link>`, `src/app/api/cron/**`, `opengraph-image.tsx`, `src/proxy.ts` | `wye-server-cost` ← 서버가 쓸데없이 돌면 무료 한도를 넘겨 사이트가 멈춘다 |
 | 글자 크기·간격·투명도·굵기·둥글기·폭을 바꾼다. "좀 작게·넓혀줘·연하게" 요청, `className` 의 `text-`·`p-`·`gap-`·`rounded-`·`max-w-`, 대괄호 수치(`text-[13px]`) — **어드민 포함** | `wye-design-system` |
