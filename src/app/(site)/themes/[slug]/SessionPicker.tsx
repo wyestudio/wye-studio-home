@@ -69,6 +69,10 @@ const kstMonthDay = (iso: string) => KST_MONTH_DAY.format(new Date(iso));
 
 const kstTime = (iso: string) => KST_TIME.format(new Date(iso));
 
+const KST_WEEKDAY = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", weekday: "short" });
+/** '2026-11-28' → '토' */
+const kstWeekday = (d: string) => KST_WEEKDAY.format(new Date(`${d}T00:00:00+09:00`));
+
 /**
  * 테마 상세 안에서 날짜 → 시각을 고르는 UI.
  *
@@ -104,6 +108,8 @@ export type CalendarMode = {
   promoColor: string | null;
   promoLabel: string;
   days: Record<string, { hasOpen: boolean; hasEarlyBird: boolean }>;
+  /** 운영 요일 — 다가오는 회차가 한 요일에만 있을 때 그 요일('토')과 하루 회차 수. 아니면 null. */
+  schedule: { weekday: string; count: number } | null;
 };
 
 /** 마감 점. 모드와 상관없이 회색 하나다(2026-10-19 대표님). */
@@ -198,6 +204,7 @@ export function SessionPicker({
         const dots: string[] = [];
         let hasOpen = false;
         let selectedColor: string | undefined;
+        let otherColor: string | undefined;
         for (const m of calendarModes) {
           const day = m.days[d];
           if (!day) continue;
@@ -210,8 +217,10 @@ export function SessionPicker({
           if (!dots.includes(color)) dots.push(color);
           // 고른 칸은 지금 모드의 색으로 칠한다. 마감이면 회색 대신 모드색.
           if (m.id === activeModeId) selectedColor = day.hasOpen ? color : m.accent;
+          // 다른 모드만 있는 날을 고르면(그 자리에 '○○모드 보기' 안내가 뜬다) 그 모드 색으로
+          otherColor ??= m.accent;
         }
-        map.set(d, { hasOpen, dots, selectedColor });
+        map.set(d, { hasOpen, dots, selectedColor: selectedColor ?? otherColor });
       }
       return map;
     }
@@ -304,6 +313,7 @@ export function SessionPicker({
   }, []);
 
   const daySessions = byDate.get(selectedDate) ?? [];
+  const otherMode = selectedDate ? otherModeForDate(selectedDate) : null;
   const selected = daySessions.find((s) => s.id === selectedId) ?? null;
 
   if (sessions.length === 0 && dateStatus.size === 0) {
@@ -323,34 +333,31 @@ export function SessionPicker({
     : "날짜와 시간을 선택해주세요";
 
   /*
-    누른 날짜를 어느 모드로 볼지. 지금 모드에 그 날 회차가 있으면 그대로 둔다 — 단, 지금
-    모드는 전부 마감인데 다른 모드에 자리가 있으면 그쪽으로. 지금 모드에 없으면 그 날
-    회차가 있는 모드로(자리 있는 쪽 먼저).
+    지금 모드에 회차가 없는 날을 누르면, 그 날 회차가 있는 다른 모드(자리 있는 쪽 먼저).
+    ⚠️ 예전에는 누르는 즉시 그 모드로 넘어갔다. 파티 화면에서 일요일을 누르면 갑자기 노말모드가
+       되어 손님이 어리둥절했다(2026-11-07 대표님). 이제는 그 자리에 "일요일에는 노말모드로
+       진행됩니다" 안내와 넘어가는 버튼만 띄우고, 넘어가는 건 손님이 고른다.
   */
-  function modeForDate(d: string): CalendarMode | null {
-    if (!calendarModes || calendarModes.length < 2) return null;
-    const onDay = calendarModes.filter((m) => m.days[d]);
-    const current = onDay.find((m) => m.id === activeModeId);
-    const open = onDay.find((m) => m.days[d].hasOpen);
-    if (current && (current.days[d].hasOpen || !open)) return current;
-    return open ?? onDay[0] ?? null;
+  function otherModeForDate(d: string): CalendarMode | null {
+    if (!calendarModes || calendarModes.length < 2 || byDate.has(d)) return null;
+    const onDay = calendarModes.filter((m) => m.id !== activeModeId && m.days[d]);
+    return onDay.find((m) => m.days[d].hasOpen) ?? onDay[0] ?? null;
+  }
+
+  /** 다른 모드로 넘어간다. 가격표·안내까지 그 모드 것으로 바뀌어야 해서 주소째 옮긴다(서버 렌더 한 번). */
+  function goToMode(target: CalendarMode, d: string) {
+    try {
+      window.sessionStorage.setItem(KEEP_DATE_KEY, d);
+    } catch {
+      // 저장이 막힌 브라우저면 마감인 날만 가까운 날로 옮겨 열린다. 넘어가는 건 된다.
+    }
+    const url = new URL(target.href, window.location.origin);
+    url.searchParams.set("d", d);
+    // #booking — 넘어간 화면에서도 달력 자리에 내려앉는다.
+    router.push(`${url.pathname}${url.search}#booking`);
   }
 
   function selectDate(d: string) {
-    const target = modeForDate(d);
-    if (target && target.id !== activeModeId) {
-      // 다른 모드로 넘어간다. 가격표·안내까지 그 모드 것으로 바뀌어야 해서 주소째 옮긴다.
-      try {
-        window.sessionStorage.setItem(KEEP_DATE_KEY, d);
-      } catch {
-        // 저장이 막힌 브라우저면 마감인 날만 가까운 날로 옮겨 열린다. 넘어가는 건 된다.
-      }
-      const url = new URL(target.href, window.location.origin);
-      url.searchParams.set("d", d);
-      // #booking — 넘어간 화면에서도 달력 자리에 내려앉는다.
-      router.push(`${url.pathname}${url.search}#booking`);
-      return;
-    }
     setSelectedDate(d);
     setSelectedId(null);
     // 스스로 날짜를 골랐으면 '마감돼서 옮겼다' 안내는 더 보여주지 않는다.
@@ -446,7 +453,28 @@ export function SessionPicker({
           )}
         </p>
 
-        {daySessions.length === 0 ? (
+        {daySessions.length === 0 && otherMode ? (
+          <div className="flex flex-col items-start gap-3 rounded-lg border border-line bg-fill p-4">
+            <p className="text-body-sm text-foreground">
+              {otherMode.schedule?.weekday === kstWeekday(selectedDate)
+                ? `${otherMode.schedule.weekday}요일에는 `
+                : "이 날은 "}
+              <span className="font-semibold" style={{ color: otherMode.accent }}>
+                {otherMode.label}
+              </span>
+              로 진행됩니다.
+            </p>
+            <button
+              type="button"
+              onClick={() => goToMode(otherMode, selectedDate)}
+              data-track={`다른 모드 보기 → ${otherMode.label} (달력)`}
+              className="rounded-lg border-2 px-4 py-2 text-body-sm font-semibold"
+              style={{ borderColor: otherMode.accent, color: otherMode.accent }}
+            >
+              {otherMode.label} 보기
+            </button>
+          </div>
+        ) : daySessions.length === 0 ? (
           <p className="rounded-lg border border-line bg-fill p-4 text-body-sm text-muted">
             이 날짜에는 회차가 없습니다. 달력에서 점이 있는 날짜를 골라주세요.
           </p>
