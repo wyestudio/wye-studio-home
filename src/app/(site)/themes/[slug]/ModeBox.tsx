@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ThemeDetail } from "@/lib/themes";
 import { SeasonArt } from "@/components/season/SeasonArt";
+import type { CalendarMode } from "./SessionPicker";
 
 /**
  * 주소에 쓸 모드 키. `/themes/baotalchul?mode=normal` 처럼 짧게 둔다.
@@ -45,6 +46,7 @@ export function ModeBox({
   active,
   baseSlug,
   accent,
+  schedules = null,
   className = "",
 }: {
   variants: ThemeDetail[];
@@ -52,6 +54,12 @@ export function ModeBox({
   baseSlug: string;
   /** 고른 모드의 강조색. */
   accent: string;
+  /**
+   * 모드별 운영 요일(달력용으로 서버가 이미 만든 calendarModes 를 그대로 받는다 — DB 를 더 읽지 않는다).
+   * 파티는 토요일 · 노말은 일요일처럼 모드마다 여는 날이 달라, 버튼에 적어 두지 않으면 손님이
+   * 달력에서 날짜를 오가며 규칙을 알아내야 했다(2026-11-07 대표님).
+   */
+  schedules?: CalendarMode[] | null;
   /** 격자 안에서의 자리. 자리는 **부르는 쪽이** 정한다. */
   className?: string;
 }) {
@@ -120,6 +128,7 @@ export function ModeBox({
                   {v.variant_label ?? v.name}
                 </span>
                 <ModeTagline v={v} />
+                <ModeSchedule schedule={schedules?.find((m) => m.id === v.id)?.schedule ?? null} />
                 <span className="mt-3 block font-mono text-h2 font-extrabold leading-none tabular-nums">
                   {v.duration_minutes}
                   <span className="ml-0.5 text-label font-normal text-muted">분</span>
@@ -213,6 +222,16 @@ function ModeTagline({ v }: { v: ThemeDetail }) {
           <span className="hidden sm:inline">여러 팀과 경쟁하는 오픈룸 파티</span>
         </>
       )}
+    </span>
+  );
+}
+
+/** 운영 요일 한 줄 — '매주 토 (2회)'. 다가오는 회차가 한 요일에 모여 있을 때만 나온다. */
+function ModeSchedule({ schedule }: { schedule: CalendarMode["schedule"] }) {
+  if (!schedule) return null;
+  return (
+    <span className="mt-0.5 block text-label font-semibold text-foreground">
+      매주 {schedule.weekday} ({schedule.count}회)
     </span>
   );
 }

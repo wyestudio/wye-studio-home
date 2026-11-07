@@ -70,6 +70,44 @@ export const dynamic = "force-dynamic";
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
 const DEFAULT_ACCENT = "#3dffb0";
+
+// 모드 운영 요일 계산용. 렌더마다 새로 만들지 않는다(wye-server-cost).
+const KST_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" });
+const KST_WEEKDAY = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", weekday: "short" });
+
+/**
+ * 모드의 운영 요일 — 회차가 **한 요일에만** 있으면 그 요일과 하루 회차 수.
+ * 손으로 적어 두면 일정을 바꿨을 때 옛 안내가 남아서, 공개된 회차에서 매번 계산한다.
+ *
+ * 다가오는 회차를 먼저 본다. 회차는 차례로 열려서(opens_at) 다가오는 날이 하루뿐일 수 있는데
+ * (노말모드가 그랬다), 그때는 지난 4주까지 넓혀 본다. 다가오는 날을 먼저 보는 건 요일을 바꾼
+ * 직후 지난 일정이 섞여 안내가 사라지지 않게 하려는 것이다.
+ * 그래도 여러 요일이 섞여 있거나(연휴 특별 회차 등) 날이 하루뿐이면 null — 화면에서 뺀다.
+ */
+function weeklySchedule(starts: string[], now: Date): CalendarMode["schedule"] {
+  const future = starts.filter((iso) => new Date(iso) > now);
+  const recentFrom = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);
+  return (
+    scheduleOf(future) ?? scheduleOf(starts.filter((iso) => new Date(iso) >= recentFrom))
+  );
+}
+
+function scheduleOf(starts: string[]): CalendarMode["schedule"] {
+  const perDay = new Map<string, number>();
+  const weekdays = new Set<string>();
+  for (const iso of starts) {
+    const at = new Date(iso);
+    const day = KST_DAY.format(at);
+    perDay.set(day, (perDay.get(day) ?? 0) + 1);
+    weekdays.add(KST_WEEKDAY.format(at));
+  }
+  if (weekdays.size !== 1 || perDay.size < 2) return null;
+  // 하루 회차 수는 가장 흔한 값 — 한 날만 회차를 줄였다고 안내가 흔들리지 않게
+  const freq = new Map<number, number>();
+  for (const n of perDay.values()) freq.set(n, (freq.get(n) ?? 0) + 1);
+  const count = [...freq].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0];
+  return { weekday: [...weekdays][0], count };
+}
 /**
  * 「이렇게 플레이해요」 를 보여줄 테마(모드)와 그 그림. 바-ㅇ탈출만 그려 뒀다.
  * 상세 정보의 진행 순서(파티) · 진행 시간 막대(노말) 블록 아래에 붙는다(ThemeBlocks).
@@ -285,8 +323,7 @@ export default async function ThemeDetailPage({
     ⚠️ 회차·집계는 30초 캐시라(src/lib/themes.ts) 모드를 하나 더 읽어도 가볍다.
   */
   // 변환기 하나를 돌려 쓴다 — 회차마다 새로 만들면 렌더마다 수백 개가 생긴다(CPU).
-  const kstDayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" });
-  const kstDay = (iso: string) => kstDayFmt.format(new Date(iso));
+  const kstDay = (iso: string) => KST_DAY.format(new Date(iso));
   const calendarModes: CalendarMode[] | null =
     variants.length >= 2
       ? await Promise.all(
@@ -312,6 +349,7 @@ export default async function ThemeDetailPage({
                 hasEarlyBird: (prev?.hasEarlyBird ?? false) || s.earlyBird,
               };
             }
+            const schedule = weeklySchedule(list.map((s) => s.start_at), now);
             // 배너·가격표와 같은 규칙 — 지금 얼리버드로 신청할 수 있는 회차가 있을 때만 노랑.
             const usable = list.some((s) => s.earlyBird && s.bookable);
             return {
@@ -322,6 +360,7 @@ export default async function ThemeDetailPage({
               promoColor: usable ? activePromo!.promo.accent_color : null,
               promoLabel: activePromo?.promo.badge_label ?? "얼리버드",
               days,
+              schedule,
             };
           }),
         )
@@ -539,7 +578,13 @@ export default async function ThemeDetailPage({
             모드가 하나뿐인 테마에서는 ModeBox 가 null 이라 스펙이 그 자리를 메운다.
           */}
           <div className="flex min-w-0 flex-col gap-4">
-            <ModeBox variants={modeVariants} active={theme} baseSlug={base.slug} accent={seasonAccent} />
+            <ModeBox
+              variants={modeVariants}
+              active={theme}
+              baseSlug={base.slug}
+              accent={seasonAccent}
+              schedules={calendarModes}
+            />
             {!hasModes && specs}
           </div>
         </section>
