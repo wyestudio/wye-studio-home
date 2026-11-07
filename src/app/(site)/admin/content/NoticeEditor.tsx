@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveNotice, deleteNotice, type NoticeInput } from "./actions";
 import { NoticeBodyEditor } from "./NoticeBodyEditor";
+import { NoticeGuideButton } from "./NoticeGuideButton";
 import { NOTICE_CATEGORIES, NOTICE_GREETING, composeNoticeTitle, splitNoticeTitle } from "@/lib/noticeTitle";
 
 const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
@@ -137,11 +138,10 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
         </label>
       </div>
 
-      <ul className="list-disc space-y-0.5 pl-4 text-micro text-muted">
-        <li>본문은 「{NOTICE_GREETING}」로 시작합니다.</li>
-        <li>안내는 ~합니다 / ~드립니다 체로 씁니다.</li>
-        <li>이모지는 이벤트 공지의 본문에만 조금 씁니다. 제목에는 쓰지 않습니다.</li>
-      </ul>
+      <div className="flex items-center gap-2">
+        <p className="text-micro text-muted">제목 · 본문 형식은</p>
+        <NoticeGuideButton />
+      </div>
 
       <p className="text-micro text-muted">
         게시일을 비우면 공개되지 않습니다(초안). 미래 시각을 넣으면 그때부터 보입니다.

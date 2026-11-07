@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { NoticeEditor, type NoticeRow } from "./NoticeEditor";
 import { FaqEditor, type FaqRow } from "./FaqEditor";
+import { NoticeGuideButton } from "./NoticeGuideButton";
 import { formatDateFull } from "@/lib/format";
 
 // 날짜 형식은 어드민 전체가 같아야 한다 — formatDateFull 하나만 쓴다.
@@ -40,12 +41,14 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
       <div className="mb-4 flex items-center gap-2">
         {tabBtn("notice", "공지사항", notices.length)}
         {tabBtn("faq", "자주 묻는 질문", faqs.length)}
+        <span className="ml-auto" />
+        {tab === "notice" && <NoticeGuideButton />}
         <button
           onClick={() => {
             setAdding((v) => !v);
             setOpenId(null);
           }}
-          className="ml-auto rounded-md border border-border px-3 py-1.5 text-body-sm"
+          className="rounded-md border border-border px-3 py-1.5 text-body-sm"
         >
           {adding ? "취소" : tab === "notice" ? "+ 공지 추가" : "+ 질문 추가"}
         </button>
