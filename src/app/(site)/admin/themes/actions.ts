@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
+import { after } from "next/server";
+import { pingIndexNow } from "@/lib/indexNow";
+import { publicThemePaths } from "@/lib/publicThemePaths";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
 import { THEMES_TAG } from "@/lib/themes";
@@ -444,6 +447,8 @@ export async function saveTheme(input: ThemeInput): Promise<ActionResult> {
     //    updateTag 를 쓰라고 문서가 명시한다. 저장하고 새로고침했는데 옛 내용이
     //    보이면 운영자는 저장이 안 됐다고 생각한다.
     updateTag(THEMES_TAG);
+    // 홈은 테마 카드를 싣는다. 어느 모드를 고쳤는지 따지지 않고 공개 테마 주소를 다 알린다(몇 개뿐이다)
+    after(async () => pingIndexNow(["/", ...(await publicThemePaths()).map((t) => t.path)]));
     return { success: true as const };
   } catch (err) {
     return toActionError(err, "테마 저장 실패");
