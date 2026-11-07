@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { pingIndexNow } from "@/lib/indexNow";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
 import { NOTICE_GREETING, isValidNoticeTitle } from "@/lib/noticeTitle";
@@ -63,6 +65,7 @@ export async function saveNotice(input: NoticeInput): Promise<ActionResult> {
 
     revalidatePath("/admin/content");
     revalidatePath("/notice");
+    after(() => pingIndexNow(["/notice"]));
     return { success: true as const };
   } catch (err) {
     return toActionError(err, "공지 저장 실패");
@@ -84,6 +87,7 @@ export async function deleteNotice(id: string): Promise<ActionResult> {
 
     revalidatePath("/admin/content");
     revalidatePath("/notice");
+    after(() => pingIndexNow(["/notice"]));
     return { success: true as const };
   } catch (err) {
     return toActionError(err, "공지 삭제 실패");
@@ -119,6 +123,7 @@ export async function saveFaq(input: FaqInput): Promise<ActionResult> {
 
     revalidatePath("/admin/content");
     revalidatePath("/notice");
+    after(() => pingIndexNow(["/notice"]));
     return { success: true as const };
   } catch (err) {
     return toActionError(err, "FAQ 저장 실패");
@@ -140,6 +145,7 @@ export async function deleteFaq(id: string): Promise<ActionResult> {
 
     revalidatePath("/admin/content");
     revalidatePath("/notice");
+    after(() => pingIndexNow(["/notice"]));
     return { success: true as const };
   } catch (err) {
     return toActionError(err, "FAQ 삭제 실패");
