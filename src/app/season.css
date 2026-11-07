@@ -356,7 +356,7 @@ html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row)::after {
   background-image: linear-gradient(120deg, transparent 46%, rgb(255 200 130 / 0.35) 50%, transparent 54%);
 }
 
-html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row):has(> button[aria-expanded="true"]) {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row):is([open], :has(> button[aria-expanded="true"])) {
   border-color: rgb(255 178 90 / 0.6);
   box-shadow:
     inset 3px 0 #ffae45,
@@ -364,7 +364,7 @@ html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row):has(> button
     0 20px 45px rgb(0 0 0 / 0.4);
 }
 
-html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) > button > span:first-child::before {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) > :is(button, summary) > span:first-child::before {
   content: "";
   display: inline-block;
   width: 1.15em;
@@ -375,7 +375,7 @@ html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) > button > s
 }
 
 /* 펼침 표시(+) */
-html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) > button > span:last-child {
+html[data-season="halloween"] .season-faq :is(.hud-panel, .faq-row) > :is(button, summary) > span:last-child {
   color: #ffb14e;
 }
 

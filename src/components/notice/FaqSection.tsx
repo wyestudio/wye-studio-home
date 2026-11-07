@@ -21,11 +21,11 @@ export function FaqSection({ faqs }: { faqs: Faq[] }) {
       <h2 className={HEADING}>자주 묻는 질문</h2>
       {/*
         FaqAccordion(공용 ui)은 크기가 고정이라 여기서 안쪽 글자·여백만 키운다.
-        [&_button]·[&_p] 가 더 구체적인 선택자라 부품 안의 기본 크기 클래스를 이긴다.
+        [&_summary]·[&_p] 가 더 구체적인 선택자라 부품 안의 기본 크기 클래스를 이긴다.
       */}
       <FaqAccordion
         // season-faq — 시즌 스킨 때 카드 모양을 바꾼다(season.css).
-        className="season-faq sm:gap-4 [&_button]:text-h3 [&_p]:text-h3 sm:[&_button]:px-7 sm:[&_button]:py-6 sm:[&_p]:px-7 sm:[&_p]:pb-6"
+        className="season-faq sm:gap-4 [&_summary]:text-h3 [&_p]:text-h3 sm:[&_summary]:px-7 sm:[&_summary]:py-6 sm:[&_p]:px-7 sm:[&_p]:pb-6"
         items={faqs.map((f) => ({ q: f.question, a: <RichText text={f.answer} /> }))}
       />
     </section>
