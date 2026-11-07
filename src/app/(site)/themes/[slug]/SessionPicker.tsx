@@ -468,10 +468,19 @@ export function SessionPicker({
               type="button"
               onClick={() => goToMode(otherMode, selectedDate)}
               data-track={`다른 모드 보기 → ${otherMode.label} (달력)`}
-              className="rounded-lg border-2 px-4 py-2 text-body-sm font-semibold"
-              style={{ borderColor: otherMode.accent, color: otherMode.accent }}
+              // 화면 아래 떠 있는 모드 전환 버튼(ModeHud)의 '고른 칸' 모양 — 테두리 틀 안에 모드색으로 찬 칸
+              className="group/go rounded-lg border-2 bg-surface/90 p-1.5"
+              style={{ borderColor: otherMode.accent, boxShadow: `0 3px 0 ${otherMode.accent}59` }}
             >
-              {otherMode.label} 보기
+              <span
+                className="block whitespace-nowrap rounded-md px-3 py-1.5 font-galmuri text-label transition-opacity group-hover/go:opacity-90"
+                style={{ backgroundColor: otherMode.accent, color: "#0a0a12" }}
+              >
+                <span aria-hidden className="mr-1">
+                  ▶
+                </span>
+                {otherMode.label} 보기
+              </span>
             </button>
           </div>
         ) : daySessions.length === 0 ? (
