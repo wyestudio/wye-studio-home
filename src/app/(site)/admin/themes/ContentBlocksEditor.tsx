@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ThemeBlockView } from "@/components/contents/ThemeBlocks";
+import { RichTextArea } from "../RichTextArea";
 import {
   THEME_BLOCK_LABELS,
   type ThemeBlock,
@@ -582,6 +583,48 @@ function RowsEditor({
           ];
 
   const blank = Object.fromEntries(cols.map((c) => [c.key, c.numeric ? 0 : ""]));
+
+  // 자주 묻는 질문은 답변이 길어 한 줄 칸으로는 못 쓴다 — 질문 한 줄 + 여러 줄 답변(굵게 · 링크)으로 세로로 쌓는다
+  if (block.type === "faq") {
+    const set = (r: number, key: "q" | "a", v: string) =>
+      onChange(items.map((x, i) => (i === r ? { ...x, [key]: v } : x)) as RowBlock["items"]);
+    return (
+      <div className="space-y-3">
+        {items.map((row, r) => (
+          <div key={r} className="space-y-2 rounded-lg border border-border p-3">
+            <div className="flex items-center gap-2">
+              <span className="shrink-0 text-micro text-muted">Q{r + 1}</span>
+              <input
+                className={`${cell} min-w-0 flex-1`}
+                value={String(row.q ?? "")}
+                placeholder="질문"
+                onChange={(e) => set(r, "q", e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => onChange(items.filter((_, i) => i !== r) as RowBlock["items"])}
+                className="shrink-0 rounded-md border border-border px-2 py-1.5 text-micro text-muted"
+              >
+                ×
+              </button>
+            </div>
+            <RichTextArea
+              value={String(row.a ?? "")}
+              onChange={(v) => set(r, "a", v)}
+              placeholder="답변 — 줄바꿈은 그대로 보입니다."
+            />
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => onChange([...items, blank] as RowBlock["items"])}
+          className="rounded-md border border-dashed border-border px-3 py-1.5 text-micro text-muted"
+        >
+          + 항목 추가
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
