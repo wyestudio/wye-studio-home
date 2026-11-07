@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef } from "react";
-import { NOTICE_GUIDE } from "@/lib/noticeGuide";
+import { useId, useRef } from "react";
+import type { NoticeGuideSection } from "@/lib/noticeGuide";
 
-/** 공지 작성 규칙을 팝업으로 — 전문은 src/lib/noticeGuide.ts */
-export function NoticeGuideButton() {
+/** 작성 규칙을 팝업으로 — 전문은 src/lib/noticeGuide.ts(공지) · faqGuide.ts(자주 묻는 질문) */
+export function GuideButton({ title, sections }: { title: string; sections: NoticeGuideSection[] }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   return (
     <>
@@ -18,15 +19,15 @@ export function NoticeGuideButton() {
       </button>
       <dialog
         ref={ref}
-        aria-labelledby="notice-guide-title"
+        aria-labelledby={titleId}
         // 바깥(어두운 배경)을 누르면 닫는다
         onClick={(e) => e.target === e.currentTarget && ref.current?.close()}
         // 높이 · 배경은 사이트 팝업(SitePopup · NoticeSection)과 같게, 폭은 좁은 창에서 양옆 1rem 을 남긴다
         className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-2xl rounded-xl border border-border bg-background p-0 text-foreground backdrop:bg-black/70"
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-3">
-          <h2 id="notice-guide-title" className="text-h3 font-extrabold">
-            공지 작성 규칙
+          <h2 id={titleId} className="text-h3 font-extrabold">
+            {title}
           </h2>
           <button
             type="button"
@@ -37,7 +38,7 @@ export function NoticeGuideButton() {
           </button>
         </div>
         <div className="space-y-5 px-5 py-4">
-          {NOTICE_GUIDE.map((s) => (
+          {sections.map((s) => (
             <section key={s.title}>
               <h3 className="mb-1.5 text-body font-semibold">{s.title}</h3>
               <ul className="list-disc space-y-1 pl-5 text-body-sm text-muted">

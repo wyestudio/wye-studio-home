@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveNotice, deleteNotice, type NoticeInput } from "./actions";
 import { NoticeBodyEditor } from "./NoticeBodyEditor";
-import { NoticeGuideButton } from "./NoticeGuideButton";
+import { GuideButton } from "../GuideButton";
+import { NOTICE_GUIDE } from "@/lib/noticeGuide";
 import { NOTICE_CATEGORIES, NOTICE_GREETING, composeNoticeTitle, splitNoticeTitle } from "@/lib/noticeTitle";
 
 const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
@@ -140,7 +141,7 @@ export function NoticeEditor({ notice, onDone }: { notice?: NoticeRow; onDone?: 
 
       <div className="flex items-center gap-2">
         <p className="text-micro text-muted">제목 · 본문 형식은</p>
-        <NoticeGuideButton />
+        <GuideButton title="공지 작성 규칙" sections={NOTICE_GUIDE} />
       </div>
 
       <p className="text-micro text-muted">
