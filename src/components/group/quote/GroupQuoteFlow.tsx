@@ -2036,7 +2036,11 @@ function UsageRules({ className = "" }: { className?: string }) {
       <div className={block}>
         <p className="font-semibold text-foreground">예약 · 결제</p>
         <ul className="flex list-disc flex-col gap-1 pl-5">
-          <li>예약금은 최종 안내 금액의 30%이고, 예약금 입금순으로 확정돼요. 결제는 계좌이체예요.</li>
+          <li>예약금은 최종 안내 금액의 30%이고, 예약금 입금순으로 확정돼요.</li>
+          <li>
+            예약금 30%는 계좌이체로 선입금해 주셔야 합니다. 행사 당일 잔금을 법인카드로 결제하거나, 기존 예약금을
+            환불받고 전체 금액을 법인카드로 결제하실 수 있습니다. 계좌이체 결제분은 세금계산서 발행도 가능합니다.
+          </li>
           <li>행사 7일 전 인원을 확정하고 잔금을 결제해요. 행사 7일 이내 신청은 준비 가능 여부를 확인한 뒤 전액 결제로 확정돼요.</li>
           <li>확정 이후 인원이 줄어도 확정 인원 기준으로 정산해요(최소 {GROUP_HEADCOUNT_MIN}인).</li>
         </ul>
