@@ -4,6 +4,7 @@ import { ThemeShowcase, type ThemeCardData } from "@/components/contents/ThemeSh
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { SitePopupMount } from "@/components/promo/SitePopupMount";
 import { getListedThemes } from "@/lib/themes";
+import { attachOrbits } from "@/lib/homeOrbits";
 
 // 캐시는 데이터 쪽에 있다(src/lib/themes.ts). 아래 주석은 page.tsx 와 같은 이유.
 export const dynamic = "force-dynamic";
@@ -19,7 +20,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ContentsPage() {
-  const cards: ThemeCardData[] = await getListedThemes();
+  // 모드(파티 · 노말 · 단체) 줄 — 홈 행성 패널과 같은 데이터(5분 캐시)
+  const cards: ThemeCardData[] = await getListedThemes().then(attachOrbits);
 
   return (
     <>
