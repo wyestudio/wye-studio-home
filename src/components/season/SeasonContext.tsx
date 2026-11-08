@@ -19,3 +19,11 @@ export function SeasonProvider({ skin, children }: { skin: SiteSkin | null; chil
 export function useSiteSkin(): SiteSkin | null {
   return useContext(SeasonContext);
 }
+
+/**
+ * 시즌이 켜졌을 때만 HTML 에 싣는다. 글자를 담은 장식(포스터의 HALLOWEEN EDITION 태그)용.
+ * data-text 속성도 HTML 에 남아 원문을 읽는 도구 · AI 가 시즌 상품으로 읽었다(2026-11-09) — 꺼지면 아예 안 그린다.
+ */
+export function SeasonOnly({ children }: { children: ReactNode }) {
+  return useContext(SeasonContext) ? <>{children}</> : null;
+}

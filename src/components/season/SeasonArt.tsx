@@ -5,7 +5,8 @@
  * <html data-season="halloween"> 이 없으면 CSS 가 감춘다. 그래서 헤더처럼
  * 클라이언트 컴포넌트에서도 스킨 값을 내려받을 필요 없이 그냥 붙이면 된다.
  * ⚠️ 다만 장식 안에 **글자를 직접 넣지 않는다.** CSS 로 숨겨도 HTML 에는 남아, 시즌이 끝난 뒤에도
- *    검색엔진 · AI 가 읽는다. 글자는 <span className="season-text" data-text="…" /> 로 CSS 가 그리게 한다.
+ *    검색엔진 · AI 가 읽는다. 글자는 <span className="season-text" data-text="…" /> 로 CSS 가 그리게 하고,
+ *    그 속성도 남지 않게 <SeasonOnly> 로 감싸 시즌이 꺼지면 아예 그리지 않는다.
  *
  * ⚠️ 그림은 승인 시안 패키지의 SVG 를 그대로 쓴다(public/season/halloween/ → seasonArtSvgs.ts).
  *    모양을 고치지 않는다. 위치·크기·회전은 season.css 에 있다.
@@ -18,6 +19,7 @@
  * 섞일 여지가 없다. 그림이 0.1~0.6KB 라 페이지가 무거워지지 않는다.
  */
 import { SEASON_ART_SVGS } from "@/components/season/seasonArtSvgs";
+import { SeasonOnly } from "@/components/season/SeasonContext";
 
 export type SeasonArtName =
   | "witch-hat"
@@ -92,16 +94,21 @@ export function PosterSeasonDecor({ compact = false }: { compact?: boolean }) {
     <span aria-hidden className={`season-only season-poster-decor ${compact ? "season-poster-decor--compact" : ""}`}>
       <SeasonArt art="poster-web" className="season-poster-web" />
       <SeasonArt art="pumpkin" className="season-poster-pumpkin" />
-      <span className="season-poster-tag">
-        <SeasonArt art="sparkle" className="season-poster-tag-spark" />
-        {/*
+      <SeasonOnly>
+        <span className="season-poster-tag">
+          <SeasonArt art="sparkle" className="season-poster-tag-spark" />
+          {/*
           글자는 CSS 가 그린다(season.css 의 .season-text). 장식은 시즌이 꺼져도 HTML 에 남는데(CSS 로 숨김),
           글자를 그대로 두면 검색엔진 · AI 가 'HALLOWEEN EDITION' 을 테마 정보로 읽었다(2026-11-07).
           좁은 카드(모바일 2열)에서는 길어서 거미줄과 겹친다 — 거기서는 'HALLOWEEN' 만.
         */}
-        <span className="season-text" data-text="HALLOWEEN" />
-        <span className="season-text season-poster-tag-more" data-text="EDITION" />
-      </span>
+          <span className="season-text" data-text="HALLOWEEN" />
+          <span
+            className="season-text season-poster-tag-more"
+            data-text="EDITION"
+          />
+        </span>
+      </SeasonOnly>
     </span>
   );
 }

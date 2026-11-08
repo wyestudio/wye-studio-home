@@ -563,7 +563,8 @@ export default async function ThemeDetailPage({
                   시즌 장식 — 테마 목록 카드와 같은 것. 모바일에서 시놉시스 옆 7rem 포스터일
                   때는 태그가 안 들어가 작은 쪽(compact)을 쓴다.
                 */}
-                {themeLevel.hero_image_path && (
+                {/* 시즌이 꺼지면 아예 안 그린다 — 장식 글자가 페이지 데이터에 남아 AI 가 시즌 상품으로 읽었다 */}
+                {halloween && themeLevel.hero_image_path && (
                   <>
                     <span className={synopsis ? "sm:hidden" : ""}>
                       <PosterSeasonDecor compact />
