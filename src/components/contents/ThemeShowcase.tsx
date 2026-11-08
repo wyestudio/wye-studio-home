@@ -1,8 +1,9 @@
 import { ThemeCard } from "@/components/contents/ThemeCard";
 import { SeasonLabel } from "@/components/season/SeasonArt";
-import { themeTitleFontClass, type ThemeWithTiers } from "@/types/catalog";
+import { themeTitleFontClass } from "@/types/catalog";
+import type { HomeThemeCard } from "@/components/home/space/types";
 
-export type ThemeCardData = ThemeWithTiers;
+export type ThemeCardData = HomeThemeCard;
 
 /**
  * 테마 목록 — 포스터 카드.
@@ -53,6 +54,7 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
               posterPath={theme.hero_image_path}
               difficulty={theme.difficulty}
               durationMinutes={theme.duration_minutes}
+              modes={theme.orbits}
               titleFontClass={themeTitleFontClass(theme.title_font)}
               locked={theme.is_locked}
             />

@@ -5,10 +5,11 @@ import Link from "next/link";
 import { PosterImage } from "@/components/contents/PosterImage";
 import { hoursLabel } from "@/components/contents/ThemeSpecs";
 import { PosterSeasonDecor } from "@/components/season/SeasonArt";
+import type { HomeOrbit } from "@/components/home/space/types";
 
 /**
  * 잠긴 테마 위에 올리는 자물쇠.
- * 홈(ThemeHomeShowcase)의 자물쇠와 같은 모양·같은 크기 규칙을 쓴다 —
+ * 홈 행성계(space/spaceScene.ts · PlanetPanel.tsx)의 자물쇠와 같은 모양을 쓴다 —
  * 같은 "아직 못 여는 것" 인데 목록과 홈이 다르게 생기면 안 된다.
  *
  * ⚠️ 흔들기는 **이 요소**에만 건다. 가운데 맞춤(translate)을 하는 바깥 요소에
@@ -43,6 +44,8 @@ export type ThemeCardProps = {
   /** 테마마다 다른 제목 글꼴 클래스 */
   titleFontClass: string;
   locked: boolean;
+  /** 모드 줄(파티 · 노말 · 단체). 있으면 난이도 · 시간 줄 대신 나온다 — 모드마다 시간이 달라서 */
+  modes?: HomeOrbit[];
 };
 
 /*
@@ -67,6 +70,7 @@ export function ThemeCard({
   durationMinutes,
   titleFontClass,
   locked,
+  modes,
 }: ThemeCardProps) {
   // 잠긴 카드를 눌렀을 때 — 자물쇠가 제자리에서 한 번 튕긴다(홈과 같은 반응).
   const [knocked, setKnocked] = useState(false);
@@ -106,8 +110,29 @@ export function ThemeCard({
         <p className={`truncate text-h3 font-semibold text-white ${titleFontClass}`}>
           {name}
         </p>
-        {/* 0 은 '미정' 이라 감춘다 — "난이도 0 · 0분" 은 고장으로 읽힌다. */}
-        {(difficulty > 0 || durationMinutes > 0) && (
+        {/*
+          모드가 있으면 모드 줄 — 홈 행성 패널과 같은 내용(180분 팀 경쟁 …). 난이도 · 시간 한 줄은
+          한 모드(파티) 값이라 노말 · 단체를 고르는 손님에게 틀린 정보였다. 카드 전체가 링크라
+          줄마다 따로 링크를 걸지 않는다(링크 안에 링크를 못 넣는다).
+        */}
+        {!locked && modes && modes.length > 0 ? (
+          <ul className="mt-2 space-y-1">
+            {modes.map((m) => (
+              <li key={m.key} className="flex flex-wrap items-center gap-x-2 text-label">
+                <span className="flex items-center gap-1.5 font-semibold text-white">
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: m.color, boxShadow: `0 0 6px ${m.color}` }}
+                  />
+                  {m.label}
+                </span>
+                <span className="text-micro text-muted">{m.spec}</span>
+              </li>
+            ))}
+          </ul>
+        ) : /* 0 은 '미정' 이라 감춘다 — "난이도 0 · 0분" 은 고장으로 읽힌다. */
+        (difficulty > 0 || durationMinutes > 0) && (
           <p className="mt-1.5 text-label text-muted sm:mt-2">
             {[
               difficulty > 0 ? `🔒 난이도 ${difficulty}` : null,
