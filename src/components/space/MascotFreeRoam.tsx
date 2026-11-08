@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { MASCOT_ORDER, mascotsForSkin, type MascotId, type MascotMeta, type RoamStyle } from "@/lib/mascots";
+import { MASCOT_ORDER, mascotsForSkin, type MascotId, type MascotMeta, type RoamStyle, mascotGlow } from "@/lib/mascots";
 import { useSiteSkin } from "@/components/season/SeasonContext";
 import { useMascotSelection } from "@/components/space/MascotSelectionContext";
 import { useHasHover } from "@/lib/useHasHover";
@@ -673,7 +673,7 @@ export function MascotFreeRoam({
                 width={Math.round(meta.orbitWidth * scale)}
                 height={Math.round(meta.orbitHeight * scale)}
                 priority
-                className="drop-shadow-[0_0_30px_var(--glow)]"
+                style={{ filter: mascotGlow(meta.id, 30) }}
               />
             </div>
           );
@@ -742,7 +742,8 @@ export function MascotFreeRoam({
                     width={Math.round(meta.orbitWidth * scale)}
                     height={Math.round(meta.orbitHeight * scale)}
                     priority
-                    className="drop-shadow-[0_0_30px_var(--glow)] select-none"
+                    className="select-none"
+                    style={{ filter: mascotGlow(meta.id, 30) }}
                     draggable={false}
                   />
                 </span>

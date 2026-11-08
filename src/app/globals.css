@@ -24,24 +24,25 @@ html {
 }
 
 :root {
-  --background: #050619;
-  --background-deep: #070821;
-  --surface: #0b0e2d;
+  /* 거의 검은 우주색. 예전 푸른 남색(#050619)은 푸른끼가 강해서 바꿨다 */
+  --background: #04070d;
+  --background-deep: #060a12;
+  /* 판 · 테두리도 배경(#04070d)과 같은 결의 무채색. 예전 남색(#0b0e2d · #2a3166 …)은 검은 배경 위에서 푸르게 떴다 */
+  --surface: #0c1018;
   /*
     상세 페이지 블록에 쓰는 **불투명** 패널.
-    반투명으로 뒀더니 배경의 별이 글씨와 겹쳐 읽기 힘들었다. 그렇다고 기존
-    --surface(#0b0e2d)를 쓰면 파랑이 진해 화면이 무거워진다. 채도를 낮춘
-    차가운 슬레이트로, 유리 패널처럼 떠 보이되 글씨는 또렷하게.
+    반투명으로 뒀더니 배경의 별이 글씨와 겹쳐 읽기 힘들었다. 채도를 뺀
+    차가운 회색으로, 유리 패널처럼 떠 보이되 글씨는 또렷하게.
   */
-  --panel: #141827;
-  --panel-raised: #1b2133;
-  --panel-border: #2c3345;
-  --surface-glass-from: #151b4ae8;
-  --surface-glass-to: #0b0e2de8;
-  --glass-border: #778aff4f;
+  --panel: #12161e;
+  --panel-raised: #191e27;
+  --panel-border: #2a303a;
+  --surface-glass-from: #151a23e8;
+  --surface-glass-to: #0b0f17e8;
+  --glass-border: #9aa6b84f;
   --foreground: #eef1ff;
   --muted: #9aa3d9;
-  --border: #2a3166;
+  --border: #262c38;
   --brand: #667cff;
   --brand-soft: #1a2050;
   --brand-foreground: #050619;
@@ -288,7 +289,7 @@ html.custom-cursor-active label {
       rgba(255, 255, 255, 0.22) 84%,
       transparent 100%
     ),
-    linear-gradient(160deg, rgba(17, 22, 60, 0.4), rgba(8, 10, 32, 0.55));
+    linear-gradient(160deg, rgba(20, 24, 32, 0.4), rgba(8, 11, 17, 0.55));
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.4);
@@ -694,15 +695,6 @@ html[data-event-bubble-off] .event-bubble {
   .animate-lock-shake { animation: none; }
 }
 
-/* 'Planets to Escape' 가로 스크롤.
-   막대를 감춘다 — 잡아서 미는 방식이라 막대가 보이면 '목록' 처럼 읽힌다. */
-.planet-track {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  overscroll-behavior-x: contain;
-}
-.planet-track::-webkit-scrollbar { display: none; }
-
 /* 날짜 입력(어드민 필터)의 달력 아이콘.
    기본 아이콘이 검은색이라 어두운 배경에서 거의 안 보인다.
    invert 로 흰색으로 뒤집고, hover 시 밝기를 올려 눌리는 곳임을 알린다.
@@ -1024,3 +1016,64 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .notice-body th { background: var(--fill); color: var(--foreground); font-weight: 600; text-align: left; }
 .notice-body td > p, .notice-body th > p { min-height: 0; }
 .notice-body .selectedCell { background: var(--fill-strong); } /* 편집기에서 여러 칸을 드래그로 골랐을 때 */
+
+/* 히어로 「would you escape?」 해독 중인 글자(DecodeText) — 차가운 회색으로 한 톤 가라앉힌다.
+   --muted 는 푸른 기가 있어 파란 글자로 보였다 */
+.decode-text [data-scrambled] {
+  color: #8b919c;
+}
+
+/* 홈 Planets to Escape — 브리핑 패널의 모드 줄이 타자 치듯 왼쪽부터 찍힌다(PlanetPanel).
+   패널을 key 로 새로 붙일 때마다 다시 찍힌다. 지연은 줄마다 --i 로(위에서 아래로). */
+@keyframes briefing-type {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+.briefing-row {
+  animation: briefing-type 0.45s steps(12, end) both;
+  animation-delay: calc(var(--i, 0) * 160ms + 200ms);
+}
+
+/* 홈 행성 패널 — 홀로그램처럼 여닫힌다(PlanetPanel). 모양은 건드리지 않고 움직임만.
+
+   열림: 가운데 한 줄(가로로 먼저 펴짐) → 위아래로 펼쳐짐.
+   닫힘: 거꾸로 한 줄로 접혔다가 사라진다.
+   떠 있기: 바깥 .holo-float 가 천천히 오르내린다.
+   넓은 화면만 — 휴대폰 아래 패널은 넘길 때마다 바로 바뀐다(움직임 없음, PlanetPanel).
+   ⚠️ 밝기(filter: brightness)를 올리거나 펼친 뒤 한 번 깜빡이게 하지 않는다. 강조색 초록이 잠깐
+      하늘색으로 떴다가 돌아와 끊기는 버그처럼 보였다.
+   ⚠️ 여닫기(.holo-open/.holo-close)와 떠 있기(.holo-float)를 **다른 요소**에 건다. 한 요소에
+      transform 애니메이션 둘을 걸면 나중 것이 앞의 것을 덮어 한쪽이 사라진다.
+   ⚠️ 기울기(rotateY) · 빛 번짐 · 주사선을 얹었다가 지저분해서 뺐다(대표님). 다시 넣지 않는다. */
+@keyframes holo-open {
+  0%   { transform: scale(0.04, 0.012); opacity: 0; }
+  35%  { transform: scale(1, 0.012);    opacity: 1; }
+  100% { transform: scale(1, 1);        opacity: 1; }
+}
+@keyframes holo-close {
+  0%   { transform: scale(1, 1);     opacity: 1; }
+  55%  { transform: scale(1, 0.012); opacity: 1; }
+  100% { transform: scale(0, 0.012); opacity: 0; }
+}
+@keyframes holo-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+.holo-float {
+  animation: holo-float 6s ease-in-out infinite;
+}
+.holo-open {
+  transform-origin: 50% 50%;
+  animation: holo-open 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.holo-close {
+  transform-origin: 50% 50%;
+  animation: holo-close 0.26s ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .briefing-row { animation: none; }
+  .holo-float,
+  .holo-open,
+  .holo-close { animation: none; }
+}

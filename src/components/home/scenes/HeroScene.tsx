@@ -8,6 +8,8 @@ import { SceneShell } from "@/components/home/scroll-stage/SceneShell";
 import { MascotOrbit } from "@/components/space/MascotOrbit";
 import { MascotFreeRoam } from "@/components/space/MascotFreeRoam";
 import { HeroCtaButton } from "@/components/home/HeroCtaButton";
+import { HeroWarp } from "@/components/home/space/HeroWarp";
+import { DecodeText } from "@/components/home/DecodeText";
 import { SeasonArt } from "@/components/season/SeasonArt";
 import { useSiteSkin } from "@/components/season/SeasonContext";
 import { HALLOWEEN_ROAM } from "@/lib/mascots";
@@ -32,6 +34,41 @@ export function HeroScene({
   const contentWrapperRef = useRef<HTMLDivElement>(null);
   const [contentRadius, setContentRadius] = useState(0);
 
+  /*
+    마우스 시차 — 마우스 위치(-1~1)를 천천히 따라가며 겹마다 다른 폭으로 민다.
+    별(HeroWarp, 가장 멀다) 40px · 마스코트(MascotOrbit) 14px · 로고 · 문구 6px(가장 가깝게 고정된 판).
+    값은 ref 로만 오간다 — 상태로 두면 초당 60번 다시 그린다.
+  */
+  const pointer = useRef({ x: 0, y: 0 });
+  const contentLayerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (reduceMotion) return;
+    const target = { x: 0, y: 0 };
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return; // 손가락은 누를 때만 위치가 생겨 화면이 튄다
+      target.x = (e.clientX / window.innerWidth) * 2 - 1;
+      target.y = (e.clientY / window.innerHeight) * 2 - 1;
+    };
+    let raf = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const p = pointer.current;
+      const dx = target.x - p.x;
+      const dy = target.y - p.y;
+      if (Math.abs(dx) < 0.0005 && Math.abs(dy) < 0.0005) return;
+      p.x += dx * 0.06;
+      p.y += dy * 0.06;
+      const el = contentLayerRef.current;
+      if (el) el.style.transform = `translate3d(${p.x * 6}px, ${p.y * 6}px, 0)`;
+    };
+    window.addEventListener("pointermove", onMove, { passive: true });
+    raf = requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, [reduceMotion]);
+
   useEffect(() => {
     const wrapper = contentWrapperRef.current;
     if (!wrapper) return;
@@ -54,8 +91,10 @@ export function HeroScene({
 
   return (
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
+      {/* 입체 별 — 다가오다가 스크롤해 벗어날 때 빨라진다. 모션 줄이기에서는 사이트 배경 별만 둔다. */}
+      {!reduceMotion && <HeroWarp local={local} pointer={pointer} />}
       {reduceMotion || (!isMobile && !halloween) ? (
-        <MascotOrbit progress={mascotProgress} reduceMotion={reduceMotion} minRadius={contentRadius} />
+        <MascotOrbit progress={mascotProgress} reduceMotion={reduceMotion} minRadius={contentRadius} pointer={pointer} />
       ) : (
         <MascotFreeRoam
           // 모바일 ↔ 데스크톱으로 바뀌면 크기가 달라 처음부터 다시 배치한다.
@@ -67,7 +106,10 @@ export function HeroScene({
           roam={halloween ? HALLOWEEN_ROAM : undefined}
         />
       )}
-      <div className="pointer-events-none relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center justify-center">
+      <div
+        ref={contentLayerRef}
+        className="pointer-events-none relative z-10 mx-auto flex w-full max-w-6xl flex-col items-center justify-center"
+      >
         {/*
           시즌 스킨 — 오른쪽 위 박쥐(season.css). 꺼지면 감춰진다.
           ⚠️ contentWrapperRef **바깥**에 둔다. 안에 두면 궤도 반지름 계산이 장식 크기를 먹는다.
@@ -86,9 +128,17 @@ export function HeroScene({
             />
             <SeasonArt art="witch-hat" className="season-hat season-hat--hero" />
           </span>
-          <h1 className="text-[2rem] font-semibold tracking-tight text-foreground sm:text-[3rem]">
-            would you escape?
-          </h1>
+          {/*
+            행성 이름표(PLANET 01)와 같은 Geist Mono, 소문자 그대로. 고정폭이라 글자 사이가 원래 넓어
+            자간을 좁힌다. Orbitron · 대문자 · 두 줄 안과 나란히 비교해 대표님이 골랐다.
+            크기는 척도 맨 위(text-display, 3rem)보다 한 단계 크게 — Tailwind 눈금의 다음 칸(6xl, 3.75rem).
+            사이트의 첫 문장 하나뿐이라 척도 밖에 둔다. 360px 폭에서도 한 줄(2rem).
+          */}
+          {/* 커서가 지나가는 글자가 기호로 깜빡이다 돌아온다(해독). 처음 뜰 때는 왼쪽부터 풀린다 */}
+          <DecodeText
+            text="would you escape?"
+            className="whitespace-nowrap font-mono text-[2rem] font-semibold tracking-[-0.03em] text-foreground sm:text-[3rem] lg:text-[3.75rem]"
+          />
           <HeroCtaButton />
         </div>
 

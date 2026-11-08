@@ -18,6 +18,7 @@ export function SceneShell({
   isLast = false,
   className = "",
   variant = "fade",
+  zoom = true,
   children,
 }: {
   local: number;
@@ -27,6 +28,11 @@ export function SceneShell({
   isLast?: boolean;
   className?: string;
   variant?: "fade" | "rise";
+  /**
+   * rise 의 머무는 구간에서 살짝 확대할지. 홈 행성계(ThemeScene)는 끈다 — 장면 안의 원근 카메라가
+   * 같은 박자로 다가가므로, CSS 로 한 번 더 키우면 캔버스가 흐려지고 확대가 두 겹이 된다.
+   */
+  zoom?: boolean;
   children: ReactNode;
 }) {
   if (reduceMotion) {
@@ -54,7 +60,7 @@ export function SceneShell({
     const exitT = isLast ? 0 : clamp01((local - p4) / (1 - p4));
 
     visibility = enterT * (1 - exitT);
-    const scale = 1 + (HOLD_SCALE - 1) * zoomInT * (1 - zoomOutT);
+    const scale = zoom ? 1 + (HOLD_SCALE - 1) * zoomInT * (1 - zoomOutT) : 1;
     const translateY = ((1 - enterT) - exitT) * SLIDE_DISTANCE_PERCENT;
     // opacity는 쓰지 않음 — 페이드가 아니라 실제로 아래에서 밀려 올라오는/위로 빠져나가는 모습이 보여야 하므로.
     style = {

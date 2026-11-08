@@ -65,6 +65,15 @@ export const MASCOTS: Record<MascotId, MascotMeta> = {
 
 export const DEFAULT_MASCOT_ID: MascotId = "kape";
 
+/**
+ * 마스코트 둘레 빛무리 — 캐릭터마다 대표색(globals.css --mascot-*)으로.
+ * 예전에는 셋 다 같은 브랜드 파랑(--glow)이라 누가 누군지 빛으로는 구분이 안 됐다.
+ * 대표색을 그대로 쓰면 진해서 70% 로 눌러 둔다. blur = 번지는 폭(px).
+ */
+export function mascotGlow(id: MascotId, blur: number): string {
+  return `drop-shadow(0 0 ${blur}px color-mix(in srgb, var(--mascot-${id}) 70%, transparent))`;
+}
+
 export function isMascotId(value: string | null): value is MascotId {
   return value === "woodju" || value === "is" || value === "kape";
 }

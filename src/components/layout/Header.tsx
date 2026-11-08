@@ -152,8 +152,12 @@ export function Header({ admin = false }: { admin?: boolean }) {
     <header
       ref={headerRef}
       // site-header — 시즌 스킨(season.css)이 배경·아래 경계선을 단다. 홈은 투명 그대로.
+      // 배경은 **화면 폭 전체**에 옅게 + 흐림으로 깐다. 가운데 상자(max-w-5xl)에만 진한 배경을 두면
+      // 사이트 배경 그라데이션(StarfieldCanvas) 위에서 가운데만 검은 띠로 끊겨 보였다.
       data-home={isHome ? "" : undefined}
-      className="site-header sticky top-0 z-20 transition-transform duration-300 ease-out max-md:[html[data-header-hidden]_&]:-translate-y-full"
+      className={`site-header sticky top-0 z-20 transition-transform duration-300 ease-out max-md:[html[data-header-hidden]_&]:-translate-y-full ${
+        isHome ? "" : "bg-background/30 backdrop-blur-md"
+      }`}
     >
       {/* 데스크톱 헤더 */}
       {/*
@@ -170,7 +174,7 @@ export function Header({ admin = false }: { admin?: boolean }) {
            (var(--header-height) 를 그대로 쓰는 곳은 아래 useEffect 가 실측해 넣으므로
             따라온다 — 기본값만 JS 가 돌기 전 한 프레임에 쓰인다)
       */}
-      <div className={`hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-4 ${isHome ? "bg-transparent" : "bg-background/95 backdrop-blur-md"}`}>
+      <div className="hidden md:flex mx-auto max-w-5xl items-center justify-between gap-2 px-5 py-4">
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/" className="flex items-center gap-1.5">
             {/* 시즌 스킨이 켜지면 로고에 모자를 씌운다(season.css). 꺼지면 로고만. */}
@@ -225,7 +229,7 @@ export function Header({ admin = false }: { admin?: boolean }) {
       </div>
 
       {/* 모바일 헤더 */}
-      <div className="md:hidden bg-background">
+      <div className="md:hidden">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-5 py-4">
           <div className="flex shrink-0 items-center gap-2">
             <Link href="/" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-1.5">
