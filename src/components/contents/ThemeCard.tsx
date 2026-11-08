@@ -44,7 +44,7 @@ export type ThemeCardProps = {
   /** 테마마다 다른 제목 글꼴 클래스 */
   titleFontClass: string;
   locked: boolean;
-  /** 모드 줄(파티 · 노말 · 단체). 있으면 난이도 · 시간 줄 대신 나온다 — 모드마다 시간이 달라서 */
+  /** 모드(파티 · 노말 · 단체). 있으면 난이도 · 시간 줄 대신 이름만 나온다 — 모드마다 시간이 달라서 */
   modes?: HomeOrbit[];
 };
 
@@ -111,23 +111,21 @@ export function ThemeCard({
           {name}
         </p>
         {/*
-          모드가 있으면 모드 줄 — 홈 행성 패널과 같은 내용(180분 팀 경쟁 …). 난이도 · 시간 한 줄은
-          한 모드(파티) 값이라 노말 · 단체를 고르는 손님에게 틀린 정보였다. 카드 전체가 링크라
-          줄마다 따로 링크를 걸지 않는다(링크 안에 링크를 못 넣는다).
+          모드가 있으면 모드 이름만 — 홈 행성 패널처럼 설명(180분 팀 경쟁 …)까지 넣었더니 휴대폰 2열
+          카드에서 너무 길었다. 설명은 테마 상세의 모드 비교에 있다. 난이도 · 시간 한 줄은 한 모드(파티)
+          값이라 노말 · 단체를 고르는 손님에게 틀린 정보였다. 카드 전체가 링크라 줄마다 따로 링크를
+          걸지 않는다(링크 안에 링크를 못 넣는다).
         */}
         {!locked && modes && modes.length > 0 ? (
           <ul className="mt-2 space-y-1">
             {modes.map((m) => (
-              <li key={m.key} className="flex flex-wrap items-center gap-x-2 text-label">
-                <span className="flex items-center gap-1.5 font-semibold text-white">
-                  <span
-                    aria-hidden
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ background: m.color, boxShadow: `0 0 6px ${m.color}` }}
-                  />
-                  {m.label}
-                </span>
-                <span className="text-micro text-muted">{m.spec}</span>
+              <li key={m.key} className="flex items-center gap-1.5 text-label font-semibold text-white">
+                <span
+                  aria-hidden
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: m.color, boxShadow: `0 0 6px ${m.color}` }}
+                />
+                {m.label}
               </li>
             ))}
           </ul>
