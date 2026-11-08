@@ -21,6 +21,7 @@ import type { SiteSkin } from "@/lib/season";
 import { SeasonProvider } from "@/components/season/SeasonContext";
 import { SeasonBackdrop } from "@/components/season/SeasonBackdrop";
 import { shareCard } from "@/lib/shareCard";
+import { jsonLdHtml, siteJsonLd } from "@/lib/structuredData";
 
 // SUIT(가변 폰트, SIL OFL) — https://github.com/sun-typeface/SUIT
 const suit = localFont({
@@ -97,16 +98,6 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: "/icon.png", type: "image/png" }],
   },
-};
-
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "우주이스케이프",
-  alternateName: ["WYE", "Would You Escape"],
-  url: SITE_URL,
-  logo: `${SITE_URL}/logo-black.png`,
-  description: SITE_DESCRIPTION,
 };
 
 const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
@@ -213,12 +204,8 @@ try{var v=localStorage.getItem("wye_vid");if(v){window.clarity("set","wye_vid",v
             />
           </noscript>
         ) : null}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
-          }}
-        />
+        {/* 브랜드 · 웹사이트 — 모든 페이지 공통. 페이지별 구조화 데이터는 @id 로 이것을 가리킨다(structuredData.ts) */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdHtml(siteJsonLd())} />
         {/*
           유입경로(utm)를 첫 도착 순간에 한 번만 잡아 둔다. 화면을 그리지 않는다.
           ⚠️ useSearchParams 를 쓰므로 Suspense 가 필요하다. 없으면 빌드가

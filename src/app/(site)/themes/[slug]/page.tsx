@@ -56,6 +56,7 @@ import { PosterSeasonDecor, SeasonArt } from "@/components/season/SeasonArt";
 import { SectionViewTracker } from "./SectionViewTracker";
 import { ModePageTracker } from "./ModePageTracker";
 import { shareCard } from "@/lib/shareCard";
+import { jsonLdHtml, themeJsonLd } from "@/lib/structuredData";
 
 /*
   이 페이지는 동적으로 그린다. 대신 **데이터에 캐시가 걸려 있다**
@@ -130,6 +131,16 @@ function pickMode(base: ThemeDetail, variants: ThemeDetail[], modeParam: string 
   );
 }
 
+/** 이 화면의 대표 주소(canonical)와 제목 — 메타데이터와 구조화 데이터가 같이 쓴다 */
+function pageIdentity(base: ThemeDetail, variants: ThemeDetail[], theme: ThemeDetail) {
+  const isDefaultMode = variants.length < 2 || theme.id === variants[0]?.id;
+  return {
+    url: `${SITE_URL}${variants.length >= 2 ? modeHref(base.slug, variants, theme) : `/themes/${theme.slug}`}`,
+    // 기본 모드는 이름 그대로(이미 색인된 제목), 다른 모드는 모드 이름을 붙여 검색 결과에서 갈린다
+    title: isDefaultMode || !theme.variant_label ? theme.name : `${theme.name} ${theme.variant_label}`,
+  };
+}
+
 export async function generateMetadata({
   params,
   searchParams,
@@ -146,14 +157,11 @@ export async function generateMetadata({
   const sp = await searchParams;
   const variants = base.variant_group ? await getThemeVariants(base.variant_group) : [];
   const theme = pickMode(base, variants, typeof sp?.mode === "string" ? sp.mode : null);
-  const isDefaultMode = variants.length < 2 || theme.id === variants[0]?.id;
-  const url = `${SITE_URL}${variants.length >= 2 ? modeHref(base.slug, variants, theme) : `/themes/${theme.slug}`}`;
+  const { url, title } = pageIdentity(base, variants, theme);
 
   // ⚠️ 브랜드는 붙이지 않는다. 루트 레이아웃이 "우주이스케이프 | %s" 템플릿으로
   //    한 번 감싸므로, 여기서 또 붙이면 "우주이스케이프 | 바-ㅇ탈출 | 우주이스케이프"
   //    가 된다(브라우저 탭·검색 결과 제목에 그대로 나갔다).
-  // 기본 모드는 이름 그대로(이미 색인된 제목), 다른 모드는 모드 이름을 붙여 검색 결과에서 갈린다
-  const title = isDefaultMode || !theme.variant_label ? theme.name : `${theme.name} ${theme.variant_label}`;
   // 어드민의 '한 줄 소개'(tagline)가 먼저고, 없으면 시놉시스(description)로 떨어진다.
   const synopsis = theme.tagline?.trim() || theme.description?.trim() || "";
   const fallback = `${theme.name} — 여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출`;
@@ -436,8 +444,18 @@ export default async function ThemeDetailPage({
     />
   );
 
+  /*
+    구조화 데이터 — 테마 → 이용 방식(모드 · 단체). 주소 · 제목은 generateMetadata 와 같은 규칙.
+    잠긴 테마 · 목록에서 뺀 테마는 색인하지 않으니(robots noindex) 싣지 않는다.
+  */
+  const jsonLd =
+    theme.is_locked || !base.is_listed
+      ? null
+      : themeJsonLd({ base: variants[0] ?? base, variants, current: theme, ...pageIdentity(base, variants, theme) });
+
   return (
     <main className="mx-auto max-w-5xl px-5 pb-20">
+      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdHtml(jsonLd)} />}
       {/* 모바일에서만 — 회차 선택 / 상세 정보 / 후기 사이를 오가는 탭 */}
       <DetailTabs accent={seasonAccent} />
 
