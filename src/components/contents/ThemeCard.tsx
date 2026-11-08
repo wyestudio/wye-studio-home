@@ -44,7 +44,7 @@ export type ThemeCardProps = {
   /** 테마마다 다른 제목 글꼴 클래스 */
   titleFontClass: string;
   locked: boolean;
-  /** 모드(파티 · 노말 · 단체). 있으면 난이도 · 시간 줄 대신 이름만 나온다 — 모드마다 시간이 달라서 */
+  /** 모드(파티 · 노말 · 단체). 있으면 난이도 · 시간 줄 대신 나온다 — 모드마다 시간이 달라서 */
   modes?: HomeOrbit[];
 };
 
@@ -111,21 +111,30 @@ export function ThemeCard({
           {name}
         </p>
         {/*
-          모드가 있으면 모드 이름만 — 홈 행성 패널처럼 설명(180분 팀 경쟁 …)까지 넣었더니 휴대폰 2열
-          카드에서 너무 길었다. 설명은 테마 상세의 모드 비교에 있다. 난이도 · 시간 한 줄은 한 모드(파티)
+          모드 줄 — 넓은 화면(lg)은 한 줄에 하나씩 이름 + 설명(180분 팀 경쟁 …), 좁은 화면은 짧은 이름을
+          한 줄로(● 파티 ● 노말 ● 단체). 휴대폰 2열 카드에 세 줄 · 설명까지 넣으면 너무 길었다.
+          설명은 테마 상세의 모드 비교에도 있다. 난이도 · 시간 한 줄은 한 모드(파티)
           값이라 노말 · 단체를 고르는 손님에게 틀린 정보였다. 카드 전체가 링크라 줄마다 따로 링크를
           걸지 않는다(링크 안에 링크를 못 넣는다).
         */}
         {!locked && modes && modes.length > 0 ? (
-          <ul className="mt-2 space-y-1">
+          <ul className="mt-2 flex flex-wrap gap-x-2 gap-y-1 lg:block lg:space-y-1">
+            {/*
+              좁은 화면의 짧은 이름은 배지 역할이라 text-micro — text-label 이면 360px 폭(2열 카드 150px)에서
+              「● 단체」가 다음 줄로 꺾였다.
+            */}
             {modes.map((m) => (
-              <li key={m.key} className="flex items-center gap-1.5 text-label font-semibold text-white">
-                <span
-                  aria-hidden
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: m.color, boxShadow: `0 0 6px ${m.color}` }}
-                />
-                {m.label}
+              <li key={m.key} className="flex items-center gap-x-2 text-micro lg:text-label">
+                <span className="flex items-center gap-1 font-semibold text-white lg:gap-1.5">
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: m.color, boxShadow: `0 0 6px ${m.color}` }}
+                  />
+                  <span className="lg:hidden">{m.short}</span>
+                  <span className="hidden lg:inline">{m.label}</span>
+                </span>
+                <span className="hidden text-micro text-muted lg:inline">{m.spec}</span>
               </li>
             ))}
           </ul>

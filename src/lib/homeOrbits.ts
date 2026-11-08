@@ -28,6 +28,7 @@ function modeOrbit(baseSlug: string, variants: ThemeDetail[], v: ThemeDetail): H
   return {
     key: v.slug,
     label: v.variant_label ?? v.name,
+    short: (v.variant_label ?? v.name).replace(/모드$/, ""),
     href: modeHref(baseSlug, variants, v),
     color: v.accent_color || "#3dffb0",
     // 가운데점 없이 "180분 팀 경쟁" 처럼 — 0 은 '미정' 이라 시간을 뺀다
@@ -55,6 +56,7 @@ export async function attachOrbits(themes: ThemeWithTiers[]): Promise<HomeThemeC
         orbits.push({
           key: "group",
           label: "단체 대관",
+          short: "단체",
           href: "/group",
           color: GROUP_RENTAL_COLOR,
           // 단체 대관 기본 진행 시간은 견적 계산(groupPricing.ts)과 같은 값을 쓴다

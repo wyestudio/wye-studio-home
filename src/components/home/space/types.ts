@@ -4,6 +4,8 @@ import type { ThemeWithTiers } from "@/types/catalog";
 export type HomeOrbit = {
   key: string;
   label: string;
+  /** 좁은 자리용 짧은 이름 — 파티 · 노말 · 단체(테마 목록 휴대폰 카드) */
+  short: string;
   href: string;
   color: string;
   /** 시간과 진행 방식 한 줄. 예: 180분 팀 경쟁 */
