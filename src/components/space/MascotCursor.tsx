@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef } from "react";
-import { mascotsForSkin } from "@/lib/mascots";
+import { mascotsForSkin, mascotGlow } from "@/lib/mascots";
 import { useSiteSkin } from "@/components/season/SeasonContext";
 import { useMascotSelection } from "@/components/space/MascotSelectionContext";
 
@@ -90,7 +90,7 @@ export function MascotCursor() {
         alt=""
         width={mascot.cursorWidth}
         height={mascot.cursorHeight}
-        className="drop-shadow-[0_0_10px_var(--glow)]"
+        style={{ filter: mascotGlow(mascot.id, 10) }}
       />
     </div>
   );

@@ -68,6 +68,8 @@ export function InstagramScene({
   posts?: string[] | null;
   index?: number;
   total?: number;
+  // ScrollStage 가 읽어 이 장면의 스크롤 구간 폭을 정한다(이 컴포넌트는 직접 쓰지 않는다).
+  weight?: number;
   range?: { start: number; end: number; unitSpan?: number };
 }) {
   const { local, reduceMotion, isFirst, isLast } = useScene(index, total, range);

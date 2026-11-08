@@ -1,6 +1,8 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
+/**
+ * 행성 표면 — 로고 한 장을 감기는 텍스처로 펴고, 그걸 구면에 입혀 돌린다.
+ * 홈 Planets to Escape 의 3D 장면(src/components/home/space/)이 행성마다 쓴다.
+ * 브라우저 전용(canvas) — 서버 컴포넌트에서 부르지 않는다.
+ */
 
 /**
  * 자전하는 행성.
@@ -40,15 +42,15 @@ const FALLBACK_TRIM = 0.8;
 const SEAM_BAND = 0.06;
 
 /** 한 바퀴 도는 데 걸리는 시간(초). 자전은 눈에 거슬리지 않게 느려야 한다. */
-const PERIOD_SEC = 24;
+export const PERIOD_SEC = 24;
 
 /**
  * 가공한 표면 텍스처 크기. 원본(픽셀아트)보다 크게 잡아 부드럽게 늘려두면
  * 세로줄로 잘라 쓸 때 계단이 덜 보인다 — 커질수록 화질이 깨져 보이던 원인.
  * 가로는 360°, 세로는 극에서 극까지라 2:1 이 자연스럽다.
  */
-const TEX_W = 1024;
-const TEX_H = 512;
+export const TEX_W = 1024;
+export const TEX_H = 512;
 
 type Disc = { cx: number; cy: number; r: number };
 
@@ -167,7 +169,7 @@ function measureDisc(img: HTMLImageElement): Disc | null {
  * 가장자리에서 진하고 가운데서 투명한 알파로 겹치면 — 끝과 끝은 사본 값으로
  * 이어지고, 이음매 자리는 가중치가 0 이라 드러나지 않는다.
  */
-function buildTileableTexture(img: HTMLImageElement): HTMLCanvasElement | null {
+export function buildTileableTexture(img: HTMLImageElement): HTMLCanvasElement | null {
   const sw = img.naturalWidth;
   const sh = img.naturalHeight;
   if (!sw || !sh) return null;
@@ -235,173 +237,81 @@ function buildTileableTexture(img: HTMLImageElement): HTMLCanvasElement | null {
   return tex;
 }
 
-export function SpinningPlanet({
-  src,
-  alt = "",
-  className = "",
-}: {
-  src: string;
-  alt?: string;
-  className?: string;
-}) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    // 모션을 줄여 달라고 한 사용자에게는 돌리지 않는다. 정지 이미지가 그대로 남는다.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
+/** 행성 그림을 읽는다. 테두리를 재려면 CORS 가 필요하고, 막히면 지정 없이 한 번 더 받는다. */
+export function loadPlanetImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
     const img = new Image();
-    // 테두리 두께를 재려면 픽셀을 읽어야 하고, 그러려면 CORS 허용이 필요하다.
-    // 헤더가 없는 곳에서 올린 이미지는 로드 자체가 실패하므로, 그때는 지정
-    // 없이 한 번 더 시도한다 — 그림은 뜨고 테두리만 비율 상수로 물러난다.
     let retried = false;
     img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
     img.onerror = () => {
-      if (retried) return;
+      if (retried) return reject(new Error(`planet image: ${src}`));
       retried = true;
       img.removeAttribute("crossorigin");
       img.src = src;
     };
     img.src = src;
+  });
+}
 
-    let raf = 0;
-    let angle = 0;
-    let last = 0;
-    let paused = false;
-    let visible = true;
-    let tex: HTMLCanvasElement | null = null;
-    let res = 0;
+/**
+ * 감기는 텍스처를 구면에 입혀 한 장 그린다. 행성마다 하나씩 들고 매 프레임 부른다.
+ *
+ * 비용이 **가로 픽셀 수에 비례**한다(세로줄 하나씩 drawImage). 그래서 해상도를 32px 단위로
+ * 끊어 바꾼다 — 줌할 때마다 캔버스 크기를 바꾸면 그때마다 버퍼를 새로 잡는다.
+ */
+export class SphereRenderer {
+  readonly canvas = document.createElement("canvas");
+  private readonly ctx = this.canvas.getContext("2d")!;
+  private readonly warp = document.createElement("canvas");
+  private readonly wctx = this.warp.getContext("2d")!;
+  private res = 0;
 
-    // 중간 버퍼. 위도 압축을 넣기 전, '적도 기준'으로 펼친 상태를 먼저 그린다.
-    const warp = document.createElement("canvas");
-    const wctx = warp.getContext("2d");
-    if (!wctx) return;
+  private resize(want: number) {
+    const next = Math.max(64, Math.min(576, Math.ceil(want / 32) * 32));
+    if (next === this.res) return;
+    this.res = next;
+    for (const c of [this.canvas, this.warp]) {
+      c.width = next;
+      c.height = next;
+    }
+    for (const g of [this.ctx, this.wctx]) {
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = "high";
+    }
+  }
 
-    // 커서를 올리면 멈춘다 — "지령을 받는 동안 행성이 정지" 하는 연출.
-    // 판정 범위는 행성 자리(부모)까지다. 카드 전체에 걸면 옆의 빈 자리에
-    // 커서만 올려도 멈춰서 무엇을 가리키는지가 흐려진다.
-    const hoverTarget = canvas.parentElement;
-    const onEnter = () => { paused = true; };
-    const onLeave = () => { paused = false; };
-    hoverTarget?.addEventListener("pointerenter", onEnter);
-    hoverTarget?.addEventListener("pointerleave", onLeave);
+  /** angle = 자전 각(라디안), want = 그릴 지름(기기 픽셀). */
+  draw(tex: HTMLCanvasElement, angle: number, want: number): HTMLCanvasElement {
+    this.resize(want);
+    const res = this.res;
+    const r = res / 2;
+    const { ctx, wctx, warp } = this;
 
-    // 화면 밖에서는 그리지 않는다.
-    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; }, {
-      rootMargin: "200px",
-    });
-    io.observe(canvas);
-
-    /** 한 번에 그리는 줄 너비(px). 1 이면 가장 매끄럽지만 호출 수가 그만큼 는다. */
-    const SLICE = 1;
-
-    function syncSize() {
-      // 실제 표시 크기 × 화면 배율. 세로줄 하나씩 그리는 방식이라 비용이
-      // 가로 픽셀 수에 비례하므로 상한을 둔다.
-      //
-      // ⚠️ 배율 1 인 화면에서도 최소 2배로 그린다. 등배로 그리면 세로줄 하나가
-      //    화면 한 픽셀이라 계단이 그대로 드러난다 — 화질이 깨져 보이던 원인.
-      const dpr = Math.max(2, Math.min(window.devicePixelRatio || 1, 3));
-      const next = Math.min(Math.round((canvas!.clientWidth || 144) * dpr), 512);
-      if (next > 0 && next !== res) {
-        res = next;
-        canvas!.width = res;
-        canvas!.height = res;
-        warp.width = res;
-        warp.height = res;
-        for (const g of [ctx!, wctx!]) {
-          g.imageSmoothingEnabled = true;
-          g.imageSmoothingQuality = "high";
-        }
-      }
+    // ── 1차: 적도 기준으로 펼치기 ── (원리는 파일 머리말)
+    wctx.clearRect(0, 0, res, res);
+    for (let i = 0; i < res; i++) {
+      // 화면 가로 위치 → 구면 경도. 정사영에서 x = sin(경도) 이므로 경도는 asin(x).
+      const nx = (i + 0.5 - r) / r;
+      if (nx <= -1 || nx >= 1) continue;
+      const cos = Math.sqrt(1 - nx * nx);
+      const lambda = Math.asin(nx) + angle;
+      const u = (((lambda / Math.PI) % 1) + 1) % 1;
+      const tx = TEX_W * (0.5 + u);
+      // 가장자리로 갈수록 한 줄에 넓은 범위가 눌려 들어간다 — 이 눌림이 곧 구면감이다.
+      const span = Math.min(TEX_W / (Math.PI * r * cos), TEX_W);
+      wctx.drawImage(tex, tx - span / 2, 0, span, TEX_H, i, 0, 1, res);
     }
 
-    function draw(now: number) {
-      raf = requestAnimationFrame(draw);
-      if (!last) last = now;
-      const dt = (now - last) / 1000;
-      last = now;
-      if (!paused && visible) angle += (dt / PERIOD_SEC) * Math.PI * 2;
-      if (!visible || !tex) return;
-
-      syncSize();
-      const r = res / 2;
-
-      // ── 1차: 적도 기준으로 펼치기 ──
-      // 위도에 따른 가로 압축은 아직 넣지 않는다. 여기서는 가로 위치를
-      // '적도에서의 위치' 로만 본다.
-      wctx!.clearRect(0, 0, res, res);
-      for (let i = 0; i < res; i += SLICE) {
-        // 화면 가로 위치 → 구면 경도. 정사영에서 x = sin(경도) 이므로 경도는 asin(x).
-        const nx = (i + SLICE / 2 - r) / r;
-        if (nx <= -1 || nx >= 1) continue;
-        const cos = Math.sqrt(1 - nx * nx);
-        const lambda = Math.asin(nx) + angle;
-
-        // 경도 → 텍스처 가로 위치. 텍스처가 보이는 반구(π)를 폭 전체에 담고
-        // 끝과 끝이 이어지므로, 한 방향으로 계속 감기만 하면 된다. 두 벌 이어
-        // 붙여 뒀으므로 가운데 벌을 쓴다.
-        //
-        // 뒷면은 원본에 없어서 같은 반구가 한 바퀴에 두 번 지나간다. 이음매를
-        // 지워 뒀기 때문에 어디가 경계인지 보이지 않는다.
-        const u = (((lambda / Math.PI) % 1) + 1) % 1;
-        const tx = TEX_W * (0.5 + u);
-
-        // 이 한 줄이 담아야 할 텍스처 폭.
-        //   du/di = 1 / (π · r · cos)  →  가장자리(cos→0)로 갈수록 급격히 넓어진다.
-        // **이 넓어짐이 곧 구면 눌림이다.** 가장자리 한 줄에 넓은 범위가 압축돼
-        // 들어가면서 무늬가 납작해지고, 그래야 공이 도는 것으로 읽힌다.
-        const span = Math.min((TEX_W * SLICE) / (Math.PI * r * cos), TEX_W);
-
-        wctx!.drawImage(tex!, tx - span / 2, 0, span, TEX_H, i, 0, SLICE, res);
-      }
-
-      // ── 2차: 위도별 가로 압축 ──
-      // 위도 φ 줄은 폭이 cos(φ) 배로 줄어든다. 이걸 넣어야 극 쪽 무늬가
-      // 가운데로 오므라들고, 덤으로 실루엣이 저절로 정확한 원이 된다.
-      ctx!.clearRect(0, 0, res, res);
-      for (let y = 0; y < res; y++) {
-        const sin = (2 * (y + 0.5)) / res - 1;
-        const cos = Math.sqrt(Math.max(1 - sin * sin, 0));
-        if (cos <= 0) continue;
-        const w = res * cos;
-        ctx!.drawImage(warp, 0, y, res, 1, (res - w) / 2, y, w, 1);
-      }
+    // ── 2차: 위도별 가로 압축 ── 극 쪽이 오므라들고 실루엣이 정확한 원이 된다.
+    ctx.clearRect(0, 0, res, res);
+    for (let y = 0; y < res; y++) {
+      const sin = (2 * (y + 0.5)) / res - 1;
+      const cos = Math.sqrt(Math.max(1 - sin * sin, 0));
+      if (cos <= 0) continue;
+      const w = res * cos;
+      ctx.drawImage(warp, 0, y, res, 1, (res - w) / 2, y, w, 1);
     }
-
-    img.onload = () => {
-      tex = buildTileableTexture(img);
-      if (!tex) return;
-      syncSize();
-      setReady(true);
-      raf = requestAnimationFrame(draw);
-    };
-
-    return () => {
-      cancelAnimationFrame(raf);
-      io.disconnect();
-      hoverTarget?.removeEventListener("pointerenter", onEnter);
-      hoverTarget?.removeEventListener("pointerleave", onLeave);
-    };
-  }, [src]);
-
-  return (
-    <>
-      {/* 캔버스가 준비되기 전(또는 모션 줄이기)에는 원본 그림이 그대로 보인다. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        className={`${className} ${ready ? "opacity-0" : ""}`}
-        aria-hidden={ready}
-      />
-      <canvas ref={canvasRef} className={`${className} ${ready ? "" : "opacity-0"}`} aria-hidden />
-    </>
-  );
+    return this.canvas;
+  }
 }

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { MASCOT_ORDER, mascotsForSkin, type MascotId, type MascotMeta } from "@/lib/mascots";
+import { MASCOT_ORDER, mascotsForSkin, type MascotId, type MascotMeta, mascotGlow } from "@/lib/mascots";
 import { useSiteSkin } from "@/components/season/SeasonContext";
 import { useMascotSelection } from "@/components/space/MascotSelectionContext";
 import { clamp01 } from "@/lib/motion";
@@ -17,15 +17,49 @@ const FALLBACK_ANGLES_DEG = [-90, 30, 150];
 const EDGE_MARGIN_PX = 70;
 const RADIUS_FLOOR_PX = 80;
 const MASCOT_CLEARANCE_PX = 30;
+/**
+ * 궤도를 눕힌다 — 위에서 내려다본 원이 아니라 비스듬히 본 타원. 세로 반지름이 가로의 이만큼.
+ * 뒤쪽(위)을 지날 때는 작고 어둡게 로고 뒤로, 앞쪽(아래)을 지날 때는 크고 밝게 로고 앞으로 간다.
+ * 홈 행성계(home/space/spaceScene.ts)의 위성 궤도와 같은 생각이다.
+ */
+const ORBIT_TILT = 0.5;
+/** 타원을 살짝 돌려 둔다(라디안) — 수평이면 납작한 띠처럼 보인다 */
+const ORBIT_ROT = -0.17;
+/** 마우스 시차 — 마스코트 겹이 움직이는 최대 폭(px). 로고(작게)와 별(크게) 사이 */
+const PARALLAX_PX = 14;
 
 // 마스코트 절반 대각선 길이 계산
+/** 돌린 타원의 뒤 반(위 · sin<0) 또는 앞 반(아래)을 SVG 경로로 */
+function ellipseHalf(cx: number, cy: number, rx: number, ry: number, rot: number, half: "back" | "front") {
+  const pts: string[] = [];
+  const from = half === "back" ? Math.PI : 0;
+  for (let i = 0; i <= 48; i++) {
+    const a = from + (Math.PI * i) / 48;
+    const x = Math.cos(a) * rx;
+    const y = Math.sin(a) * ry;
+    pts.push(`${(cx + x * Math.cos(rot) - y * Math.sin(rot)).toFixed(1)},${(cy + x * Math.sin(rot) + y * Math.cos(rot)).toFixed(1)}`);
+  }
+  return `M${pts.join("L")}`;
+}
+
 function getMascotHalfDiagonal(meta: MascotMeta): number {
   return Math.sqrt((meta.orbitWidth / 2) ** 2 + (meta.orbitHeight / 2) ** 2);
 }
 
 type Vec2 = { x: number; y: number };
 
-export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progress: number; reduceMotion: boolean; minRadius?: number }) {
+export function MascotOrbit({
+  progress,
+  reduceMotion,
+  minRadius = 0,
+  pointer,
+}: {
+  progress: number;
+  reduceMotion: boolean;
+  minRadius?: number;
+  /** 마우스 위치(-1~1). HeroScene 이 부드럽게 따라가게 해서 넘긴다 */
+  pointer?: React.RefObject<{ x: number; y: number }>;
+}) {
   const { selectMascot } = useMascotSelection();
   // 시즌 스킨이면 할로윈 그림(크기도 다르다). 아래 MASCOTS 는 전부 이걸 가리킨다.
   const MASCOTS = mascotsForSkin(useSiteSkin());
@@ -45,9 +79,17 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
   const rectRef = useRef({ width: 0, height: 0, left: 0, top: 0 });
   const radiusRef = useRef(0);
   const minRadiusRef = useRef(minRadius);
+  // 히어로가 다 사라진 뒤(progress ≥ 1)에는 위치 · 밝기 계산을 건너뛴다 — 히어로는 투명해질 뿐
+  // 자리에 남아 있어서, 그냥 두면 다음 장면을 보는 동안에도 매 프레임 보이지 않는 마스코트를 옮긴다.
+  const progressRef = useRef(progress);
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const [ringRadius, setRingRadius] = useState(0);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  const ringRefs = useRef<(SVGSVGElement | null)[]>([null, null]);
   const mascotElsRef = useRef<(HTMLDivElement | null)[]>([null, null, null]);
 
   // minRadius가 바뀔 때마다 반지름 재계산 (별도 useEffect)
@@ -58,7 +100,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
     if (width > 0 && height > 0) {
       const maxMascotDiagonal = Math.max(...MASCOT_ORDER.map((id) => getMascotHalfDiagonal(MASCOTS[id])));
       const minDesiredRadius = minRadius + maxMascotDiagonal + MASCOT_CLEARANCE_PX;
-      const edgeSafe = Math.min(minDesiredRadius, width / 2 - EDGE_MARGIN_PX, height / 2 - EDGE_MARGIN_PX);
+      const edgeSafe = Math.min(minDesiredRadius, width / 2 - EDGE_MARGIN_PX, (height / 2 - EDGE_MARGIN_PX) / ORBIT_TILT);
       const newRadius = Math.max(RADIUS_FLOOR_PX, edgeSafe);
       radiusRef.current = newRadius;
       setRingRadius(newRadius);
@@ -73,13 +115,14 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
     function measure() {
       const rect = container!.getBoundingClientRect();
       rectRef.current = { width: rect.width, height: rect.height, left: rect.left, top: rect.top };
+      setBox({ w: rect.width, h: rect.height });
 
       // 첫 측정 후 반지름 계산
       const { width, height } = rect;
       if (width > 0 && height > 0) {
         const maxMascotDiagonal = Math.max(...MASCOT_ORDER.map((id) => getMascotHalfDiagonal(MASCOTS[id])));
         const minDesiredRadius = minRadiusRef.current + maxMascotDiagonal + MASCOT_CLEARANCE_PX;
-        const edgeSafe = Math.min(minDesiredRadius, width / 2 - EDGE_MARGIN_PX, height / 2 - EDGE_MARGIN_PX);
+        const edgeSafe = Math.min(minDesiredRadius, width / 2 - EDGE_MARGIN_PX, (height / 2 - EDGE_MARGIN_PX) / ORBIT_TILT);
         const newRadius = Math.max(RADIUS_FLOOR_PX, edgeSafe);
         radiusRef.current = newRadius;
         setRingRadius(newRadius);
@@ -109,6 +152,11 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
     document.addEventListener("pointerdown", handleDocumentPointerDown);
 
     function tick(time: number) {
+      if (progressRef.current >= 1) {
+        lastTimeRef.current = null;
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
       const lastTime = lastTimeRef.current;
       const dt = lastTime === null ? 16 : Math.min(time - lastTime, 48);
       lastTimeRef.current = time;
@@ -132,13 +180,23 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
       speedRef.current += (targetSpeed - speedRef.current) * ease;
 
       const delta = BASE_ANGULAR_VELOCITY * speedRef.current * dt;
+      const p = pointer?.current ?? { x: 0, y: 0 };
+      const sx = p.x * PARALLAX_PX;
+      const sy = p.y * PARALLAX_PX;
+      for (const ring of ringRefs.current) {
+        if (ring) ring.style.transform = `translate3d(${sx}px, ${sy}px, 0)`;
+      }
 
       MASCOT_ORDER.forEach((id, i) => {
         const meta = MASCOTS[id];
         anglesRef.current[i] += delta;
         const angle = anglesRef.current[i];
-        const localX = Math.cos(angle) * radius;
-        const localY = Math.sin(angle) * radius;
+        // 눕힌 타원 위의 점 → 살짝 돌린다. depth: -1(뒤) ~ 1(앞)
+        const ox = Math.cos(angle) * radius;
+        const oy = Math.sin(angle) * radius * ORBIT_TILT;
+        const depth = Math.sin(angle);
+        const localX = ox * Math.cos(ORBIT_ROT) - oy * Math.sin(ORBIT_ROT) + sx;
+        const localY = ox * Math.sin(ORBIT_ROT) + oy * Math.cos(ORBIT_ROT) + sy;
 
         lastPosRef.current[i] = { x: centerViewportX + localX, y: centerViewportY + localY };
 
@@ -146,7 +204,11 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
         if (el) {
           const halfW = meta.orbitWidth / 2;
           const halfH = meta.orbitHeight / 2;
-          el.style.transform = `translate3d(${width / 2 + localX - halfW}px, ${height / 2 + localY - halfH}px, 0)`;
+          const scale = 1 + depth * 0.18;
+          el.style.transform = `translate3d(${width / 2 + localX - halfW}px, ${height / 2 + localY - halfH}px, 0) scale(${scale})`;
+          // 뒤쪽은 로고 · 문구(z-10) 뒤로, 앞쪽은 앞으로
+          el.style.zIndex = depth > 0 ? "20" : "1";
+          el.style.filter = `brightness(${0.62 + 0.38 * ((depth + 1) / 2)})`;
         }
       });
 
@@ -161,7 +223,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
       document.removeEventListener("pointerdown", handleDocumentPointerDown);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [reduceMotion, hasHover, MASCOTS]);
+  }, [reduceMotion, hasHover, MASCOTS, pointer]);
 
   function handleSelect(idx: number, id: MascotId) {
     if (hasHover) {
@@ -206,7 +268,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
                 width={meta.orbitWidth}
                 height={meta.orbitHeight}
                 priority
-                className="drop-shadow-[0_0_30px_var(--glow)]"
+                style={{ filter: mascotGlow(meta.id, 30) }}
               />
               <span
                 className={`pointer-events-none rounded-md bg-black/40 px-1.5 py-0.5 text-micro text-foreground backdrop-blur-sm transition-opacity duration-150 ${
@@ -228,19 +290,32 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
   return (
     <div ref={containerRef} className="pointer-events-none absolute inset-0">
       <div className="absolute inset-0" style={{ opacity: fadeOpacity }}>
-        {ringRadius > 0 && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 rounded-full"
-            style={{
-              width: ringRadius * 2,
-              height: ringRadius * 2,
-              transform: "translate(-50%, -50%)",
-              // 시즌 스킨이 --orbit-ring 을 금빛으로 바꾼다(season.css). 평소엔 원래 색.
-              border: "1px solid var(--orbit-ring, rgba(148, 163, 255, 0.25))",
-            }}
-          />
-        )}
+        {/*
+          궤도선 — 눕힌 타원을 뒤 반(위)과 앞 반(아래)으로 나눠 그린다. 뒤 반은 로고 · 문구 뒤에,
+          앞 반은 앞에 둬야 마스코트가 실제로 로고 둘레를 도는 것처럼 보인다.
+          시즌 스킨이 --orbit-ring 을 금빛으로 바꾼다(season.css). 평소엔 원래 색.
+        */}
+        {ringRadius > 0 && box.w > 0 &&
+          (["back", "front"] as const).map((half, k) => (
+            <svg
+              key={half}
+              ref={(el) => {
+                ringRefs.current[k] = el;
+              }}
+              aria-hidden
+              className="pointer-events-none absolute inset-0 h-full w-full"
+              style={{ zIndex: half === "front" ? 20 : 1 }}
+              viewBox={`0 0 ${box.w} ${box.h}`}
+            >
+              <path
+                d={ellipseHalf(box.w / 2, box.h / 2, ringRadius, ringRadius * ORBIT_TILT, ORBIT_ROT, half)}
+                fill="none"
+                stroke="var(--orbit-ring, rgba(148, 163, 255, 0.25))"
+                strokeWidth={1}
+                opacity={half === "back" ? 0.55 : 1}
+              />
+            </svg>
+          ))}
         {MASCOT_ORDER.map((id, i) => {
           const meta = MASCOTS[id];
           return (
@@ -269,7 +344,7 @@ export function MascotOrbit({ progress, reduceMotion, minRadius = 0 }: { progres
                   width={meta.orbitWidth}
                   height={meta.orbitHeight}
                   priority
-                  className="drop-shadow-[0_0_30px_var(--glow)]"
+                  style={{ filter: mascotGlow(meta.id, 30) }}
                 />
                 <span
                   className={`pointer-events-none rounded-md bg-black/40 px-1.5 py-0.5 text-micro text-foreground backdrop-blur-sm transition-opacity duration-150 ${
