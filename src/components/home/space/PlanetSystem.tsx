@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chevron } from "@/components/ui/Chevron";
 import { FALLBACK_LOGO } from "@/components/contents/PosterImage";
+import Link from "next/link";
 import { PlanetPanel } from "./PlanetPanel";
 import { SpaceControls } from "./SpaceControls";
 import { slotLayout, SpaceScene, type SceneSlot } from "./spaceScene";
@@ -157,6 +158,37 @@ export function PlanetSystem({ themes, local }: { themes: HomeThemeCard[]; local
         aria-label="행성계. 끌어서 시점을 바꾸고, 행성이나 위성을 눌러 정보를 여세요. 아래 버튼으로도 고를 수 있습니다."
         role="img"
       />
+
+      {/*
+        패널 내용(테마 · 모드 · 한 줄)을 글로 — 패널은 행성을 눌러야 그려져서 서버 HTML 에 없었다(2026-11-09).
+        화면 낭독기는 장면이 그림 한 장이라 이 목록으로 바로 들어가고, 검색엔진 · AI 도 이걸 읽는다.
+        눈에 보이는 내용은 패널과 같다 — 여기에만 있는 문구를 넣지 않는다(숨긴 글로 순위를 올리는 것처럼 보인다).
+      */}
+      <nav aria-label="테마 바로가기" className="sr-only">
+        <ul>
+          {slots.map((s) =>
+            s.kind === "theme" && !s.theme.is_locked ? (
+              <li key={s.theme.id}>
+                <Link href={`/themes/${s.theme.slug}`} prefetch={false}>
+                  {s.theme.name}
+                </Link>
+                {(s.theme.orbits ?? []).length > 0 && (
+                  <ul>
+                    {(s.theme.orbits ?? []).map((o) => (
+                      <li key={o.key}>
+                        <Link href={o.href} prefetch={false}>
+                          {o.label}
+                        </Link>{" "}
+                        {o.spec}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ) : null
+          )}
+        </ul>
+      </nav>
 
       {/* 행성 이름표 — 장면이 매 프레임 위치를 옮긴다. 키보드로 행성을 고르는 길이기도 하다. */}
       <div className="pointer-events-none absolute inset-0 hidden sm:block">
