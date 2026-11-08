@@ -19,6 +19,7 @@ import {
 } from "@/lib/groupBooking";
 import { getGroupBusySlots, getGroupClosures } from "@/lib/groupClosures";
 import { closureSlots, quoteFirstDate } from "@/lib/groupPricing";
+import { groupJsonLd, jsonLdHtml } from "@/lib/structuredData";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
 
@@ -44,13 +45,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "단체 예약",
+  title: "바-ㅇ탈출 단체 예약",
   // 색인 대상이므로 이 페이지 내용으로 직접 적는다. 루트 레이아웃 설명으로
   // 떨어지면 한 번 색인된 뒤 고쳐도 옛 문구가 계속 검색에 나간다.
   description:
     "6~24명 단체 전용 예약. 우리 모임끼리만 단독으로 진행하는 3시간 팀 대항 파티형 방탈출. 인원·날짜·옵션을 고르면 예상 견적이 바로 나와요.",
   alternates: { canonical: `${SITE_URL}/group` },
-  ...shareCard("단체 예약", `${SITE_URL}/group`),
+  ...shareCard("바-ㅇ탈출 단체 예약", `${SITE_URL}/group`),
 };
 
 /** 블록 한 겹. 집계용 표시를 빼먹지 않으려고 래퍼로 묶는다. */
@@ -437,6 +438,8 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
   return (
     // 견적 + 오른쪽 금액 카드 두 칸이 들어가야 해서 사이트 틀 폭(5xl)을 쓴다.
     <main className="mx-auto max-w-5xl px-5 pb-20 pt-6 sm:pt-10">
+      {/* 구조화 데이터 — 바-ㅇ탈출을 이용하는 방식 중 하나로 싣는다(structuredData.ts) */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLdHtml(groupJsonLd())} />
       <GroupQuoteFlow closures={dayClosures} busy={busy} firstDate={quoteFirstDate()} hero={hero} info={info} />
 
       {/* 어느 블록까지 읽고 멈추는지 기록한다(화면에 아무것도 그리지 않는다) */}
