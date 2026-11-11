@@ -1374,6 +1374,12 @@ function TimePicker({
           onDone={onWeekdayDone}
           busyToday={busyToday}
           conflict={isWeekdayTime(weekdayTime) && closedSlot(date, weekdayTime)}
+          openMinutes={(h) =>
+            MINUTES.filter((m) => {
+              const t = `${pad2(h)}:${pad2(m)}`;
+              return isWeekdayTime(t) && !closedSlot(date, t);
+            })
+          }
         />
       </>
     );
@@ -1413,6 +1419,18 @@ const AM_HOURS = [9, 10, 11];
 const PM_HOURS = [12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
 const hourLabel = (h: number) => String(h > 12 ? h - 12 : h);
 const pad2 = (n: number) => String(n).padStart(2, "0");
+const MINUTES = Array.from({ length: 60 }, (_, m) => m);
+
+/** 시작할 수 있는 분 목록을 구간 글로 — [0..10, 50..59] → "00~10분, 50~59분" */
+function minuteRanges(ms: number[]) {
+  const out: string[] = [];
+  for (let i = 0; i < ms.length; i++) {
+    const a = ms[i];
+    while (i + 1 < ms.length && ms[i + 1] === ms[i] + 1) i++;
+    out.push(a === ms[i] ? `${pad2(a)}분` : `${pad2(a)}~${pad2(ms[i])}분`);
+  }
+  return out.join(", ");
+}
 
 function WeekdayTimePicker({
   value,
@@ -1420,6 +1438,7 @@ function WeekdayTimePicker({
   onDone,
   busyToday,
   conflict,
+  openMinutes,
 }: {
   value: string;
   onChange: (t: string) => void;
@@ -1428,6 +1447,11 @@ function WeekdayTimePicker({
   /** 그날 이미 예약이 있는 시간대. 평일은 시간을 자유롭게 받으므로 피할 시간을 알려 준다. */
   busyToday: BusySlot[];
   conflict: boolean;
+  /**
+   * 그 시에 시작할 수 있는 분. 비면 그 시는 다른 예약과 다 겹친다 — 버튼을 막는다(주말 회차 버튼과 같다).
+   * 일부만 겹치는 시는 열어 두고, 고르면 시작할 수 있는 분을 알려 준다(분은 자유 입력이라).
+   */
+  openMinutes: (h: number) => number[];
 }) {
   const init = /^\d{2}:\d{2}$/.test(value) ? { h: Number(value.slice(0, 2)), m: value.slice(3) } : null;
   const [half, setHalf] = useState<"am" | "pm">(init && init.h < 12 ? "am" : "pm");
@@ -1470,20 +1494,25 @@ function WeekdayTimePicker({
         ))}
       </div>
       <div role="radiogroup" aria-label="시" className="grid grid-cols-5 gap-1.5">
-        {hours.map((h) => (
-          <button
-            key={h}
-            type="button"
-            role="radio"
-            aria-checked={hour === h}
-            onClick={() => pickHour(h)}
-            className={`min-h-[44px] rounded-lg border text-body-sm font-semibold tabular-nums transition ${
-              hour === h ? "border-[#f082f4] bg-[#f082f4]/15" : "border-line bg-panel hover:border-line-strong"
-            }`}
-          >
-            {hourLabel(h)}시
-          </button>
-        ))}
+        {hours.map((h) => {
+          const closed = openMinutes(h).length === 0;
+          return (
+            <button
+              key={h}
+              type="button"
+              role="radio"
+              aria-checked={hour === h}
+              aria-label={closed ? `${hourLabel(h)}시 — 다른 예약과 겹쳐요` : undefined}
+              disabled={closed}
+              onClick={() => pickHour(h)}
+              className={`min-h-[44px] rounded-lg border text-body-sm font-semibold tabular-nums transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                closed ? "line-through" : ""
+              } ${hour === h ? "border-[#f082f4] bg-[#f082f4]/15" : "border-line bg-panel hover:border-line-strong"}`}
+            >
+              {hourLabel(h)}시
+            </button>
+          );
+        })}
       </div>
       <div className="flex items-center gap-2">
         <input
@@ -1520,7 +1549,12 @@ function WeekdayTimePicker({
         </p>
       )}
       {!out && conflict && (
-        <p className="text-body-sm font-semibold text-danger">다른 예약과 겹치는 시간이에요. 다른 시간을 골라주세요.</p>
+        <p className="text-body-sm font-semibold text-danger">
+          다른 예약과 겹치는 시간이에요.{" "}
+          {hour != null && openMinutes(hour).length > 0
+            ? `${hourLabel(hour)}시는 ${minuteRanges(openMinutes(hour))}에 시작할 수 있어요.`
+            : "다른 시간을 골라주세요."}
+        </p>
       )}
       {busyToday.length > 0 && (
         <p className="text-body-sm text-muted">
