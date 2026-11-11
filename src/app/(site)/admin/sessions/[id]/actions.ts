@@ -864,6 +864,25 @@ export async function adminManualApply(
   return { success: true, confirmationCode: application.confirmation_code, status: application.status };
 }
 
+/**
+ * 한 신청의 참여자 전화번호(참여자 id → 번호). 신청 상세 · 정보 수정 팝업을 **열 때만** 부른다.
+ * 회차 화면은 번호를 아예 읽지 않는다 — 목록을 여는 것만으로 모든 번호가 페이지 데이터에
+ * 실리지 않게(2026-11-11 대표님).
+ */
+export async function getAttendeePhones(
+  applicationId: string
+): Promise<{ error: string } | { phones: Record<string, string> }> {
+  const cookieStore = await cookies();
+  await requireAdminAuth(cookieStore.get("admin_auth")?.value);
+
+  const { data, error } = await createAdminClient()
+    .from("admin_attendee_view")
+    .select("id, phone")
+    .eq("application_id", applicationId);
+  if (error) return { error: "전화번호를 불러오지 못했습니다." };
+  return { phones: Object.fromEntries((data ?? []).map((r) => [r.id as string, r.phone as string])) };
+}
+
 export type EditAttendeeInput = {
   id: string;
   name: string;
