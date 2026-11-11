@@ -5,7 +5,7 @@ import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard
 import { writeAuditLog } from "@/lib/auditLog";
 import { GROUP_BOOKING_THEME_SLUGS, isInquiryStatus, inquiryStatusLabel } from "@/lib/groupBooking";
 import { GROUP_CLOSURES_TAG } from "@/lib/groupClosures";
-import { BASE_MINUTES, HHMM, ISO_DATE, addMinutes } from "@/lib/groupPricing";
+import { BASE_MINUTES, HHMM, ISO_DATE, OPTION, addMinutes } from "@/lib/groupPricing";
 import { kstToUtcIso } from "@/lib/scheduleRules";
 
 /**
@@ -89,7 +89,7 @@ export async function saveInquiryStatus(input: {
 }
 
 /**
- * 문의의 인원 · 모임 이름 · 담당자 이름 고치기(2026-11-11 대표님).
+ * 문의의 인원 · 모임 이름 · 담당자 이름 · 구성 고치기(2026-11-11 대표님).
  * 담당자 이름은 암호화해 넣어야 해서 DB 함수(admin_update_group_booking_inquiry)를 거친다.
  * 예상 금액은 그대로 둔다 — 접수 시점에 계산한 기록이다.
  */
@@ -98,6 +98,8 @@ export async function saveInquiryInfo(input: {
   headcount: number;
   groupName: string;
   organizerName: string;
+  /** null 이면 구성은 그대로 둔다(구성 없이 받은 v1 접수분). */
+  options: { icebreaking: boolean; character: boolean; after_party_hours: number; cleanup: boolean } | null;
 }): Promise<ActionResult> {
   try {
     const supabase = await requireAdmin();
@@ -105,12 +107,19 @@ export async function saveInquiryInfo(input: {
       return { error: "인원은 2~200명 사이로 넣어주세요." };
     }
     if (!input.organizerName.trim()) return { error: "담당자 이름을 넣어주세요." };
+    const o = input.options;
+    if (o && !(Number.isInteger(o.after_party_hours) && o.after_party_hours >= 0 && o.after_party_hours <= OPTION.afterParty.maxHours)) {
+      return { error: "애프터파티 시간을 확인해주세요." };
+    }
 
     const { error } = await supabase.rpc("admin_update_group_booking_inquiry", {
       p_id: input.id,
       p_headcount: input.headcount,
       p_group_name: input.groupName,
       p_organizer_name: input.organizerName,
+      p_options: o
+        ? { icebreaking: !!o.icebreaking, character: !!o.character, after_party_hours: o.after_party_hours, cleanup: !!o.cleanup }
+        : null,
     });
     if (error) return { error: error.message };
 
