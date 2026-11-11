@@ -88,6 +88,48 @@ export async function saveInquiryStatus(input: {
   }
 }
 
+/**
+ * 문의의 인원 · 모임 이름 · 담당자 이름 고치기(2026-11-11 대표님).
+ * 담당자 이름은 암호화해 넣어야 해서 DB 함수(admin_update_group_booking_inquiry)를 거친다.
+ * 예상 금액은 그대로 둔다 — 접수 시점에 계산한 기록이다.
+ */
+export async function saveInquiryInfo(input: {
+  id: string;
+  headcount: number;
+  groupName: string;
+  organizerName: string;
+}): Promise<ActionResult> {
+  try {
+    const supabase = await requireAdmin();
+    if (!Number.isInteger(input.headcount) || input.headcount < 2 || input.headcount > 200) {
+      return { error: "인원은 2~200명 사이로 넣어주세요." };
+    }
+    if (!input.organizerName.trim()) return { error: "담당자 이름을 넣어주세요." };
+
+    const { error } = await supabase.rpc("admin_update_group_booking_inquiry", {
+      p_id: input.id,
+      p_headcount: input.headcount,
+      p_group_name: input.groupName,
+      p_organizer_name: input.organizerName,
+    });
+    if (error) return { error: error.message };
+
+    // 이름은 개인정보라 감사 기록에는 인원만 남긴다.
+    await writeAuditLog({
+      action: "group_booking.updated",
+      targetType: "group_booking_inquiry",
+      targetId: input.id,
+      summary: `단체 예약 문의 정보 수정 — ${input.headcount}명`,
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/group-bookings");
+    return { success: true, message: "저장했습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
 type ClosureInput = {
   date: string;
   time: string | null;

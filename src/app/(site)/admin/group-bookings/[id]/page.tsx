@@ -12,6 +12,7 @@ import {
   teamStyleLabel,
 } from "@/lib/groupBooking";
 import { BASE_MINUTES, HHMM, addMinutes, won } from "@/lib/groupPricing";
+import { InquiryInfoEditor } from "../InquiryInfoEditor";
 import { InquiryRow } from "../InquiryRow";
 import { ContactLink, SourceCell, suggestedBooking, type Inquiry } from "../inquiryParts";
 
@@ -140,16 +141,20 @@ export default async function AdminGroupBookingDetailPage({
               <span className="ml-2 text-body font-normal text-muted">희망</span>
             </p>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="text-body font-semibold">{r.group_name ?? r.organizer_name ?? "이름 없음"}</span>
-            {r.group_name && r.organizer_name && <span className="text-body-sm text-muted">{r.organizer_name}</span>}
-            <span className="rounded-md bg-muted/20 px-2 py-0.5 text-micro text-muted">{r.headcount}명</span>
-            <span
-              className={`rounded-md px-2 py-0.5 text-micro font-semibold ${STATUS_TAG[r.status] ?? "bg-fill-strong text-muted"}`}
-            >
-              {inquiryStatusLabel(r.status)}
-            </span>
-          </div>
+          {/* 모임 이름 · 담당자 · 인원은 여기서 고친다(InquiryInfoEditor) */}
+          <InquiryInfoEditor
+            id={r.id}
+            headcount={r.headcount}
+            groupName={r.group_name}
+            organizerName={r.organizer_name}
+            statusTag={
+              <span
+                className={`rounded-md px-2 py-0.5 text-micro font-semibold ${STATUS_TAG[r.status] ?? "bg-fill-strong text-muted"}`}
+              >
+                {inquiryStatusLabel(r.status)}
+              </span>
+            }
+          />
         </header>
 
         {/* ── 신청 내용 ── 묶음마다 카드 하나 */}
