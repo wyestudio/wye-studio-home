@@ -142,7 +142,7 @@ export function PopupEditor({ popups }: { popups: PopupRow[] }) {
           onClick={() => setEditing(emptyInput())}
           className="rounded-md bg-glow px-3 py-2 text-body-sm text-white"
         >
-          + 팝업 추가
+          + 팝업 등록
         </button>
       </div>
 

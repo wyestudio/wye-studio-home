@@ -86,7 +86,7 @@ export function InquiryRow({
             onClick={() => setEditing(true)}
             className="shrink-0 rounded-md border border-border px-2 py-1 text-muted hover:text-foreground"
           >
-            고치기
+            수정
           </button>
         </div>
       )}

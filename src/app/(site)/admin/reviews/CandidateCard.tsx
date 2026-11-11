@@ -111,7 +111,7 @@ export function CandidateCard({
                 onClick={() => run(() => publishCandidate({ id: c.id, themeSlug }))}
                 className="rounded-lg bg-brand px-3 py-1.5 text-body-sm font-semibold text-brand-foreground disabled:opacity-40"
               >
-                후기에 넣기
+                후기 등록
               </button>
               <button
                 type="button"

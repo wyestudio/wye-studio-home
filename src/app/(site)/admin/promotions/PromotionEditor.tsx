@@ -194,7 +194,7 @@ export function PromotionEditor({
           onClick={() => setEditing(emptyInput())}
           className="rounded-md bg-glow px-3 py-2 text-body-sm text-white"
         >
-          + 프로모션 추가
+          + 프로모션 등록
         </button>
       </div>
 

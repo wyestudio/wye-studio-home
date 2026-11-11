@@ -97,7 +97,7 @@ export function FaqEditor({ faq, onDone }: { faq?: FaqRow; onDone?: () => void }
           disabled={busy}
           className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
         >
-          {busy ? "저장 중…" : form.id ? "저장" : "질문 추가"}
+          {busy ? "저장 중…" : form.id ? "저장" : "질문 등록"}
         </button>
         {form.id && (
           <button

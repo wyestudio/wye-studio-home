@@ -136,7 +136,7 @@ export function UtmLinkEditor({ links }: { links: UtmLink[] }) {
           onClick={() => setEditing({ ...EMPTY })}
           className="rounded-md bg-foreground px-4 py-2 text-body-sm font-semibold text-background"
         >
-          새 링크 만들기
+          링크 등록
         </button>
       )}
 

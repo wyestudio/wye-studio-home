@@ -157,7 +157,7 @@ export function CouponPanel({
           }}
           className="rounded-md border border-border px-3 py-1.5 text-body-sm"
         >
-          {adding ? "취소" : "+ 쿠폰 종류 만들기"}
+          {adding ? "취소" : "+ 쿠폰 종류 등록"}
         </button>
       </div>
 

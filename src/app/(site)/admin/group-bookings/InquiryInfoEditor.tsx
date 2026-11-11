@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { saveInquiryInfo } from "./actions";
 
 /**
- * 문의 상세 머리의 「모임 이름 · 담당자 · 인원」 줄. 고치기를 누르면 세 칸을 고칠 수 있다(2026-11-11 대표님).
+ * 문의 상세 머리의 「모임 이름 · 담당자 · 인원」 줄. 수정을 누르면 세 칸을 고칠 수 있다(2026-11-11 대표님).
  * 예상 금액은 접수 때 계산한 값 그대로다 — 인원을 바꿔도 다시 계산하지 않는다.
  */
 export function InquiryInfoEditor({
@@ -61,7 +61,7 @@ export function InquiryInfoEditor({
           onClick={() => setEditing(true)}
           className="ml-auto rounded-md border border-border px-2 py-1 text-body-sm text-muted hover:text-foreground"
         >
-          고치기
+          수정
         </button>
       </div>
     );

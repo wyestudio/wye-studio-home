@@ -140,7 +140,7 @@ export function RankingEditor({
           onClick={() => setEditing(blank())}
           className="ml-auto rounded-md bg-glow px-3 py-2 text-body-sm text-white"
         >
-          기록 추가
+          기록 등록
         </button>
       </div>
 

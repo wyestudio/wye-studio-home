@@ -80,7 +80,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
           onClick={() => setEditing({ ...EMPTY })}
           className="rounded-md bg-glow px-3 py-2 text-body-sm text-glow-foreground"
         >
-          + 장소 추가
+          + 장소 등록
         </button>
       </div>
 

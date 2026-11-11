@@ -56,7 +56,7 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
           }}
           className="rounded-md border border-border px-3 py-1.5 text-body-sm"
         >
-          {adding ? "취소" : tab === "notice" ? "+ 공지 추가" : "+ 질문 추가"}
+          {adding ? "취소" : tab === "notice" ? "+ 공지 등록" : "+ 질문 등록"}
         </button>
       </div>
 
