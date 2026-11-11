@@ -147,6 +147,7 @@ export default async function AdminGroupBookingDetailPage({
             headcount={r.headcount}
             groupName={r.group_name}
             organizerName={r.organizer_name}
+            options={r.options}
             statusTag={
               <span
                 className={`rounded-md px-2 py-0.5 text-micro font-semibold ${STATUS_TAG[r.status] ?? "bg-fill-strong text-muted"}`}

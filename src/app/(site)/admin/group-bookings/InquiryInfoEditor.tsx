@@ -2,23 +2,40 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { OPTION } from "@/lib/groupPricing";
 import { saveInquiryInfo } from "./actions";
+import type { Inquiry } from "./inquiryParts";
+
+type Opts = { icebreaking: boolean; character: boolean; after_party_hours: number; cleanup: boolean };
+
+/** 저장된 구성 → 칸 값. 빠진 값은 견적 화면의 기본값(레크리에이션 포함, 나머지 없음)으로 채운다. */
+function toOpts(o: Inquiry["options"]): Opts {
+  return {
+    icebreaking: o?.icebreaking !== false,
+    character: !!o?.character,
+    after_party_hours: o?.after_party_hours ?? 0,
+    cleanup: !!o?.cleanup,
+  };
+}
 
 /**
- * 문의 상세 머리의 「모임 이름 · 담당자 · 인원」 줄. 수정을 누르면 세 칸을 고칠 수 있다(2026-11-11 대표님).
- * 예상 금액은 접수 때 계산한 값 그대로다 — 인원을 바꿔도 다시 계산하지 않는다.
+ * 문의 상세 머리의 「모임 이름 · 담당자 · 인원」 줄. 수정을 누르면 세 칸과 구성을 고칠 수 있다(2026-11-11 대표님).
+ * 예상 금액은 접수 때 계산한 값 그대로다 — 인원 · 구성을 바꿔도 다시 계산하지 않는다.
  */
 export function InquiryInfoEditor({
   id,
   headcount,
   groupName,
   organizerName,
+  options,
   statusTag,
 }: {
   id: string;
   headcount: number;
   groupName: string | null;
   organizerName: string | null;
+  /** 견적 단계에서 고른 구성. v1 접수분은 null. */
+  options: Inquiry["options"];
   /** 상태 꼬리표 — 보기 모드에서 인원 옆에 그대로 둔다. */
   statusTag: React.ReactNode;
 }) {
@@ -27,6 +44,7 @@ export function InquiryInfoEditor({
   const [count, setCount] = useState(String(headcount));
   const [group, setGroup] = useState(groupName ?? "");
   const [organizer, setOrganizer] = useState(organizerName ?? "");
+  const [opts, setOpts] = useState<Opts>(toOpts(options));
   const [message, setMessage] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -34,13 +52,22 @@ export function InquiryInfoEditor({
     setCount(String(headcount));
     setGroup(groupName ?? "");
     setOrganizer(organizerName ?? "");
+    setOpts(toOpts(options));
     setMessage("");
     setEditing(false);
   }
 
   function save() {
     startTransition(async () => {
-      const res = await saveInquiryInfo({ id, headcount: Number(count), groupName: group, organizerName: organizer });
+      // 구성 없이 받은 접수분(v1)은 구성을 건드리지 않았으면 그대로 비워 둔다.
+      const untouched = JSON.stringify(opts) === JSON.stringify(toOpts(null));
+      const res = await saveInquiryInfo({
+        id,
+        headcount: Number(count),
+        groupName: group,
+        organizerName: organizer,
+        options: options === null && untouched ? null : opts,
+      });
       if ("error" in res) return setMessage(res.error);
       setMessage("");
       setEditing(false);
@@ -92,7 +119,36 @@ export function InquiryInfoEditor({
           />
         </label>
       </div>
-      <p className="text-body-sm text-muted">인원을 바꿔도 예상 금액은 접수 때 값 그대로입니다.</p>
+      <fieldset className="flex flex-col gap-1.5 rounded-lg border border-border p-3">
+        <legend className="px-1 text-label text-muted">구성</legend>
+        {(
+          [
+            ["icebreaking", "레크리에이션"],
+            ["character", "캐릭터 꾸미기"],
+            ["cleanup", "뒷정리"],
+          ] as const
+        ).map(([k, label]) => (
+          <label key={k} className="flex items-center gap-2 text-body-sm">
+            <input type="checkbox" checked={opts[k]} onChange={(e) => setOpts({ ...opts, [k]: e.target.checked })} />
+            {label}
+          </label>
+        ))}
+        <label className="flex items-center gap-2 text-body-sm">
+          애프터파티
+          <select
+            value={opts.after_party_hours}
+            onChange={(e) => setOpts({ ...opts, after_party_hours: Number(e.target.value) })}
+            className="rounded-lg border border-border bg-panel px-2 py-1 text-input"
+          >
+            {Array.from({ length: OPTION.afterParty.maxHours + 1 }, (_, h) => (
+              <option key={h} value={h}>
+                {h === 0 ? "없음" : `${h}시간`}
+              </option>
+            ))}
+          </select>
+        </label>
+      </fieldset>
+      <p className="text-body-sm text-muted">인원 · 구성을 바꿔도 예상 금액은 접수 때 값 그대로입니다.</p>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
