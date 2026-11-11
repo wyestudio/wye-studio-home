@@ -1426,18 +1426,19 @@ const MINUTES = Array.from({ length: 60 }, (_, m) => m);
  * 뒤쪽이 비면 "4시 30분 이후부터", 앞쪽이 비면 "12시 30분까지", 사이사이 비면 구간을 나열한다.
  */
 function openHint(h: number, ms: number[]) {
-  const at = `${hourLabel(h)}시`;
-  if (ms.length === 1) return `${at} ${ms[0] === 0 ? "정각" : `${ms[0]}분`}에만 예약 가능합니다.`;
+  const at = (m: number) => `${hourLabel(h)}시${m === 0 ? "" : ` ${m}분`}`;
   const contiguous = ms.every((m, i) => i === 0 || m === ms[i - 1] + 1);
-  if (contiguous && ms[ms.length - 1] === 59) return `${at} ${ms[0]}분 이후부터 예약 가능합니다.`;
-  if (contiguous && ms[0] === 0) return `${at} ${ms[ms.length - 1]}분까지 예약 가능합니다.`;
+  // 정각만 되면 "11시까지" — "이전까지" 는 11시 정각이 빠지는 것으로 읽힌다.
+  if (contiguous && ms[0] === 0) return `${at(ms[ms.length - 1])}까지 예약 가능합니다.`;
+  if (contiguous && ms[ms.length - 1] === 59) return `${at(ms[0])} 이후부터 예약 가능합니다.`;
+  if (ms.length === 1) return `${at(ms[0])}에만 예약 가능합니다.`;
   const out: string[] = [];
   for (let i = 0; i < ms.length; i++) {
     const a = ms[i];
     while (i + 1 < ms.length && ms[i + 1] === ms[i] + 1) i++;
     out.push(a === ms[i] ? `${a}분` : `${a}~${ms[i]}분`);
   }
-  return `${at} ${out.join(", ")}에 예약 가능합니다.`;
+  return `${hourLabel(h)}시 ${out.join(", ")}에 예약 가능합니다.`;
 }
 
 function WeekdayTimePicker({
@@ -1479,6 +1480,11 @@ function WeekdayTimePicker({
     emit(h, m);
   };
   const out = value !== "" && !isWeekdayTime(value);
+  // 고른 시가 다른 예약과 일부만 겹치는가 — 09:30~21:30 범위로 잘리는 분(9시 · 21시)은 겹침이 아니다.
+  const partialHour =
+    hour != null &&
+    openMinutes(hour).length > 0 &&
+    openMinutes(hour).length < MINUTES.filter((m) => isWeekdayTime(`${pad2(hour)}:${pad2(m)}`)).length;
 
   return (
     <>
@@ -1556,13 +1562,18 @@ function WeekdayTimePicker({
           {WEEKDAY_TIME_FIRST}~{WEEKDAY_TIME_LAST} 사이로 입력해주세요.
         </p>
       )}
-      {!out && conflict && (
+      {!out && conflict ? (
         <p className="text-body-sm font-semibold text-danger">
           타 예약과 겹치는 시간입니다.{" "}
           {hour != null && openMinutes(hour).length > 0
             ? openHint(hour, openMinutes(hour))
             : "다른 시간을 선택해 주세요."}
         </p>
+      ) : (
+        // 일부만 겹치는 시를 고르면 분을 넣기 전에 먼저 알려 준다(2026-11-11 대표님) — 겹치는 분을 넣으면 위 빨간 글로 바뀐다.
+        !out &&
+        partialHour &&
+        hour != null && <p className="text-body-sm text-muted">{openHint(hour, openMinutes(hour))}</p>
       )}
       {busyToday.length > 0 && (
         <p className="text-body-sm text-muted">
