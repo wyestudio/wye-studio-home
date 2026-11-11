@@ -912,7 +912,6 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
                   weekendTime={weekendTime}
                   weekdayTime={weekdayTime}
                   closedSlot={closedSlot}
-                  busyToday={date ? busy.filter((b) => b.date === date) : []}
                   // 시간을 다 고르면 옵션 줄로 넘어간다 — 날짜를 고르면 시간 줄이 열리는 것과 같다(2026-10-28 대표님).
                   onWeekend={(t) => {
                     setWeekendTime(t);
@@ -1338,7 +1337,6 @@ function TimePicker({
   weekendTime,
   weekdayTime,
   closedSlot,
-  busyToday,
   onWeekend,
   onWeekday,
   onWeekdayDone,
@@ -1348,7 +1346,6 @@ function TimePicker({
   weekendTime: string | null;
   weekdayTime: string;
   closedSlot: (d: string, t: string | null) => boolean;
-  busyToday: BusySlot[];
   onWeekend: (t: string) => void;
   onWeekday: (t: string) => void;
   onWeekdayDone: (t: string) => void;
@@ -1372,7 +1369,6 @@ function TimePicker({
           value={weekdayTime}
           onChange={onWeekday}
           onDone={onWeekdayDone}
-          busyToday={busyToday}
           conflict={isWeekdayTime(weekdayTime) && closedSlot(date, weekdayTime)}
           openMinutes={(h) =>
             MINUTES.filter((m) => {
@@ -1445,7 +1441,6 @@ function WeekdayTimePicker({
   value,
   onChange,
   onDone,
-  busyToday,
   conflict,
   openMinutes,
 }: {
@@ -1453,12 +1448,10 @@ function WeekdayTimePicker({
   onChange: (t: string) => void;
   /** 분 두 자리를 다 넣었을 때. */
   onDone: (t: string) => void;
-  /** 그날 이미 예약이 있는 시간대. 평일은 시간을 자유롭게 받으므로 피할 시간을 알려 준다. */
-  busyToday: BusySlot[];
   conflict: boolean;
   /**
    * 그 시에 시작할 수 있는 분. 비면 그 시는 다른 예약과 다 겹친다 — 버튼을 막는다(주말 회차 버튼과 같다).
-   * 일부만 겹치는 시는 열어 두고, 고르면 시작할 수 있는 분을 알려 준다(분은 자유 입력이라).
+   * 일부만 겹치는 시는 열어 두고, 겹치는 분을 넣으면 시작할 수 있는 분을 빨간 글로 알려 준다(분은 자유 입력이라).
    */
   openMinutes: (h: number) => number[];
 }) {
@@ -1480,11 +1473,6 @@ function WeekdayTimePicker({
     emit(h, m);
   };
   const out = value !== "" && !isWeekdayTime(value);
-  // 고른 시가 다른 예약과 일부만 겹치는가 — 09:30~21:30 범위로 잘리는 분(9시 · 21시)은 겹침이 아니다.
-  const partialHour =
-    hour != null &&
-    openMinutes(hour).length > 0 &&
-    openMinutes(hour).length < MINUTES.filter((m) => isWeekdayTime(`${pad2(hour)}:${pad2(m)}`)).length;
 
   return (
     <>
@@ -1562,22 +1550,13 @@ function WeekdayTimePicker({
           {WEEKDAY_TIME_FIRST}~{WEEKDAY_TIME_LAST} 사이로 입력해주세요.
         </p>
       )}
-      {!out && conflict ? (
+      {/* 겹칠 때만 알린다. 미리 띄우는 회색 안내 · 그날 예약 시간 목록은 넣지 않는다(2026-11-11 대표님). */}
+      {!out && conflict && (
         <p className="text-body-sm font-semibold text-danger">
           타 예약과 겹치는 시간입니다.{" "}
           {hour != null && openMinutes(hour).length > 0
             ? openHint(hour, openMinutes(hour))
             : "다른 시간을 선택해 주세요."}
-        </p>
-      ) : (
-        // 일부만 겹치는 시를 고르면 분을 넣기 전에 먼저 알려 준다(2026-11-11 대표님) — 겹치는 분을 넣으면 위 빨간 글로 바뀐다.
-        !out &&
-        partialHour &&
-        hour != null && <p className="text-body-sm text-muted">{openHint(hour, openMinutes(hour))}</p>
-      )}
-      {busyToday.length > 0 && (
-        <p className="text-body-sm text-muted">
-          이날 받을 수 없는 시간: {busyToday.map((b) => `${b.start}~${b.end}`).join(", ")}
         </p>
       )}
     </>
