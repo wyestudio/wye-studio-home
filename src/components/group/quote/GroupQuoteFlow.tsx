@@ -1421,15 +1421,23 @@ const hourLabel = (h: number) => String(h > 12 ? h - 12 : h);
 const pad2 = (n: number) => String(n).padStart(2, "0");
 const MINUTES = Array.from({ length: 60 }, (_, m) => m);
 
-/** 시작할 수 있는 분 목록을 구간 글로 — [0..10, 50..59] → "00~10분, 50~59분" */
-function minuteRanges(ms: number[]) {
+/**
+ * 일부만 겹치는 시에서 시작할 수 있는 분을 한 문장으로.
+ * 뒤쪽이 비면 "4시 30분 이후부터", 앞쪽이 비면 "12시 30분까지", 사이사이 비면 구간을 나열한다.
+ */
+function openHint(h: number, ms: number[]) {
+  const at = `${hourLabel(h)}시`;
+  if (ms.length === 1) return `${at} ${ms[0] === 0 ? "정각" : `${ms[0]}분`}에만 예약 가능합니다.`;
+  const contiguous = ms.every((m, i) => i === 0 || m === ms[i - 1] + 1);
+  if (contiguous && ms[ms.length - 1] === 59) return `${at} ${ms[0]}분 이후부터 예약 가능합니다.`;
+  if (contiguous && ms[0] === 0) return `${at} ${ms[ms.length - 1]}분까지 예약 가능합니다.`;
   const out: string[] = [];
   for (let i = 0; i < ms.length; i++) {
     const a = ms[i];
     while (i + 1 < ms.length && ms[i + 1] === ms[i] + 1) i++;
-    out.push(a === ms[i] ? `${pad2(a)}분` : `${pad2(a)}~${pad2(ms[i])}분`);
+    out.push(a === ms[i] ? `${a}분` : `${a}~${ms[i]}분`);
   }
-  return out.join(", ");
+  return `${at} ${out.join(", ")}에 예약 가능합니다.`;
 }
 
 function WeekdayTimePicker({
@@ -1550,10 +1558,10 @@ function WeekdayTimePicker({
       )}
       {!out && conflict && (
         <p className="text-body-sm font-semibold text-danger">
-          다른 예약과 겹치는 시간이에요.{" "}
+          타 예약과 겹치는 시간입니다.{" "}
           {hour != null && openMinutes(hour).length > 0
-            ? `${hourLabel(hour)}시는 ${minuteRanges(openMinutes(hour))}에 시작할 수 있어요.`
-            : "다른 시간을 골라주세요."}
+            ? openHint(hour, openMinutes(hour))
+            : "다른 시간을 선택해 주세요."}
         </p>
       )}
       {busyToday.length > 0 && (
