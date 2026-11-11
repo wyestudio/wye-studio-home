@@ -9,17 +9,18 @@ import { AttendeeFormFields, attendeeInputClassName, type AttendeeFormValue } fr
 import { formatSessionDateTime } from "@/lib/format";
 import {
   adminUpdateApplication,
+  getAttendeePhones,
   listMoveTargets,
   type EditAttendeeInput,
   type MoveResult,
   type MoveTarget,
 } from "./actions";
 
+/** 전화번호는 없다 — 수정 창을 열 때 getAttendeePhones() 로 받아 칸을 채운다(개인정보). */
 export type EditableAttendee = {
   id: string;
   is_representative: boolean;
   name: string;
-  phone: string;
   /** 노말모드 예약은 비어 있다(null). */
   birth_year: number | null;
   nickname: string | null;
@@ -34,7 +35,7 @@ function toRow(a: EditableAttendee): AttendeeRow {
     id: a.id,
     isRepresentative: a.is_representative,
     name: a.name,
-    phone: a.phone,
+    phone: "",
     // 노말 예약은 출생연도가 없다 — "null" 글자가 칸에 들어가지 않게 비운다.
     birthYear: a.birth_year ? String(a.birth_year) : "",
     nickname: a.nickname ?? "",
@@ -75,7 +76,23 @@ export function EditApplicationDialog({
   const [targets, setTargets] = useState<MoveTarget[] | null>(null);
   const [targetId, setTargetId] = useState("");
   const [moved, setMoved] = useState<MoveResult | null>(null);
+  // 전화번호를 받기 전에는 저장을 막는다 — 빈 번호로 덮어쓰지 않게.
+  const [phonesLoaded, setPhonesLoaded] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!open || phonesLoaded) return;
+    getAttendeePhones(applicationId)
+      .then((r) => {
+        if ("error" in r) {
+          setError(r.error);
+          return;
+        }
+        setAttendees((prev) => prev.map((a) => ({ ...a, phone: r.phones[a.id] ?? "" })));
+        setPhonesLoaded(true);
+      })
+      .catch(() => setError("전화번호를 불러오지 못했습니다."));
+  }, [open, phonesLoaded, applicationId]);
 
   useEffect(() => {
     if (!open || targets) return;
@@ -174,11 +191,11 @@ export function EditApplicationDialog({
       title="신청 정보 수정"
       message="신청확인/입금확인 문자를 보내지 않고 정보만 고칩니다. 출생년도·성별을 바꿔도 확정/대기 상태는 다시 계산되지 않아요."
       cancelLabel="취소"
-      confirmLabel={isLoading ? "저장중..." : "저장"}
+      confirmLabel={isLoading ? "저장중..." : phonesLoaded ? "저장" : "불러오는 중..."}
       onCancel={onClose}
       onConfirm={handleConfirm}
       error={error}
-      confirmDisabled={isLoading}
+      confirmDisabled={isLoading || !phonesLoaded}
     >
       <div className="mt-4 flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">

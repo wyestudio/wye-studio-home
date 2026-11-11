@@ -4,6 +4,7 @@ import { useState } from "react";
 import { InfoRow } from "@/components/lookup/InfoRow";
 import { formatDateTimeFull } from "@/lib/format";
 import { EXPERIENCE_RANGE_LABELS, type ExperienceRange } from "@/lib/validation";
+import { getAttendeePhones } from "./actions";
 
 // consent_photo/consent_marketing 컬럼은 not null default false라 값만으로는
 // "실제로 미동의"와 "이 컬럼을 채우기 전(과거 접수 건)"을 구분할 수 없다 — 배포
@@ -29,11 +30,11 @@ type AdminApplication = {
   refund_account_holder: string | null;
 };
 
+/** 전화번호는 없다 — 팝업을 열 때 getAttendeePhones() 로 받는다(개인정보). */
 type AdminAttendee = {
   id: string;
   is_representative: boolean;
   name: string;
-  phone: string;
   birth_year: number | null;
   nickname: string | null;
   gender: "M" | "F" | null;
@@ -48,13 +49,37 @@ export function ApplicationDetailDialog({
   attendees: AdminAttendee[];
 }) {
   const [open, setOpen] = useState(false);
+  // null = 아직 안 받음. 한 번 받으면 다시 열 때는 그대로 쓴다.
+  const [phones, setPhones] = useState<Record<string, string> | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const sortedAttendees = [...attendees].sort((a, b) => (b.is_representative ? 1 : 0) - (a.is_representative ? 1 : 0));
+
+  function openDialog() {
+    setOpen(true);
+    if (phones) return;
+    setPhoneError(null);
+    getAttendeePhones(application.id)
+      .then((r) => ("error" in r ? setPhoneError(r.error) : setPhones(r.phones)))
+      .catch(() => setPhoneError("전화번호를 불러오지 못했습니다."));
+  }
+
+  function phoneValue(attendeeId: string) {
+    if (phoneError) return <span className="text-danger">{phoneError}</span>;
+    if (!phones) return <span className="font-normal text-muted">불러오는 중…</span>;
+    const phone = phones[attendeeId];
+    if (!phone) return "-";
+    return (
+      <a href={`tel:${phone.replace(/[^\d]/g, "")}`} className="tabular-nums text-glow underline">
+        {phone}
+      </a>
+    );
+  }
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={openDialog}
         className="font-mono text-body-sm text-glow hover:underline"
       >
         {application.confirmation_code}
@@ -150,7 +175,7 @@ export function ApplicationDetailDialog({
                       label="이름"
                       value={`${attendee.name}${attendee.nickname ? ` (${attendee.nickname})` : ""}`}
                     />
-                    <InfoRow label="전화번호" value={attendee.phone} />
+                    <InfoRow label="전화번호" value={phoneValue(attendee.id)} />
                     <InfoRow label="출생년도" value={attendee.birth_year ? `${attendee.birth_year}년생` : "-"} />
                     <InfoRow label="성별" value={attendee.gender === "M" ? "남성" : attendee.gender === "F" ? "여성" : "-"} />
                     <InfoRow

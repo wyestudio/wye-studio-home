@@ -13,7 +13,7 @@ import { getInternalApplicationIds } from "@/lib/internalTraffic";
 import { getSessionStats } from "@/lib/sessions";
 import { formatHeadcountLine, countUnpaidConfirmed, type SessionDisplayRow } from "@/lib/sessionStatsFormat";
 import { Chevron } from "@/components/ui/Chevron";
-import type { ExperienceRange } from "@/lib/validation";
+import { EXPERIENCE_RANGE_LABELS, type ExperienceRange } from "@/lib/validation";
 import { isDatingTheme } from "@/lib/theme";
 import { getParticipationHistory, revisitLabel } from "@/lib/participationHistory";
 
@@ -50,13 +50,15 @@ type App = {
   is_internal: boolean;
 };
 
-/** admin_attendee_view 한 줄 + 몇 번째 참여인지. */
+/**
+ * admin_attendee_view 한 줄 + 몇 번째 참여인지.
+ * 전화번호는 없다 — 팝업을 열 때 getAttendeePhones() 로 따로 받는다(개인정보).
+ */
 type Att = {
   id: string;
   application_id: string;
   is_representative: boolean;
   name: string;
-  phone: string;
   birth_year: number | null;
   nickname: string | null;
   gender: "M" | "F" | null;
@@ -82,6 +84,12 @@ function needsRefund(app: App): boolean {
 }
 
 const tag = "rounded-md px-2 py-0.5 text-micro font-semibold";
+
+/** 목록 칸에 들어갈 짧은 경험 표기 — "0방 (경험 없음)" 은 칸에 비해 길다. */
+function experienceShort(range: ExperienceRange | null): string {
+  if (!range) return "-";
+  return range === "0" ? "0방" : (EXPERIENCE_RANGE_LABELS[range] ?? range);
+}
 
 /**
  * 신청 한 건 — 카드 하나.
@@ -174,7 +182,6 @@ function AppCard({
                 id: a.id,
                 is_representative: a.is_representative,
                 name: a.name,
-                phone: a.phone,
                 birth_year: a.birth_year,
                 nickname: a.nickname,
                 gender: a.gender,
@@ -196,7 +203,11 @@ function AppCard({
           ))}
         </dl>
 
-        {/* ── 참여자 ── 사람마다 한 줄, 칸을 맞춘다 */}
+        {/*
+          ── 참여자 ── 사람마다 한 줄, 칸을 맞춘다.
+          닉네임 · 경험은 목록에서 바로, 전화번호는 접수번호 팝업에서만 본다(2026-11-11 대표님).
+          휴대폰은 이름 줄 아래에 성별 · 출생 · 경험을 한 줄로, 넓은 화면은 한 줄 네 칸.
+        */}
         <div>
           <p className="mb-1.5 text-label font-semibold text-muted">참여자</p>
           {people > 0 ? (
@@ -204,13 +215,14 @@ function AppCard({
               {atts.map((a) => (
                 <li
                   key={a.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1 px-3 py-2.5 text-body-sm sm:grid-cols-[minmax(0,1fr)_3rem_3.5rem_auto]"
+                  className="grid grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1 px-3 py-2.5 text-body-sm sm:grid-cols-[minmax(0,1fr)_3rem_3.5rem_6rem]"
                 >
-                  <span className="min-w-0 font-semibold">
+                  <span className="col-span-3 min-w-0 font-semibold sm:col-span-1">
                     {a.is_representative && (
                       <span className="mr-1.5 rounded-md bg-fill px-1.5 py-0.5 text-micro font-normal text-muted">대표</span>
                     )}
                     {a.name}
+                    {a.nickname && <span className="ml-1.5 font-normal text-muted">{a.nickname}</span>}
                     {/* 몇 번째 참여인가 — 운영자 전용(participationHistory.ts). 첫 참여면 안 붙인다. */}
                     {a.revisit && (
                       <span className="ml-1.5 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-micro font-normal text-amber-400">
@@ -220,12 +232,7 @@ function AppCard({
                   </span>
                   <span className="text-muted">{a.gender === "M" ? "남" : a.gender === "F" ? "여" : "-"}</span>
                   <span className="tabular-nums text-muted">{a.birth_year ?? "-"}</span>
-                  <a
-                    href={`tel:${a.phone.replace(/[^\d]/g, "")}`}
-                    className="col-span-3 tabular-nums text-glow underline sm:col-span-1"
-                  >
-                    {a.phone}
-                  </a>
+                  <span className="tabular-nums text-muted">{experienceShort(a.experience_range)}</span>
                 </li>
               ))}
             </ul>
@@ -278,9 +285,10 @@ export default async function AdminSessionDetailPage(props: {
     .eq("session_id", params.id)
     .order("created_at", { ascending: false });
 
+  // ⚠️ phone 은 읽지 않는다 — 팝업을 열 때 getAttendeePhones() 로 받는다.
   const { data: attendees, error: attendeesError } = await supabase
     .from("admin_attendee_view")
-    .select("*")
+    .select("id, application_id, session_id, is_representative, name, birth_year, nickname, gender, experience_range")
     .eq("session_id", params.id);
 
   if (!session) {
