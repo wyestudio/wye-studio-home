@@ -182,7 +182,7 @@ export function ContentBlocksEditor({
                   className="rounded-md border border-border px-2 py-1 text-micro disabled:opacity-30">아래로</button>
                 <button type="button" onClick={() => setOpenIndex(open ? null : i)}
                   className="rounded-md border border-border px-2 py-1 text-micro">
-                  {open ? "접기" : "편집"}
+                  {open ? "접기" : "수정"}
                 </button>
                 <button type="button" onClick={() => remove(i)}
                   className="rounded-md border border-red-500/40 px-2 py-1 text-micro text-red-400">삭제</button>

@@ -212,7 +212,7 @@ export function ThemeEditor({
       )}
 
       {/*
-        편집 중에는 목록과 '추가' 버튼을 숨긴다.
+        편집 중에는 목록과 '등록' 버튼을 숨긴다.
         예전에는 편집 폼이 목록 위에 열려서, 수정을 누르면 한참 스크롤해야
         내가 고치는 테마가 보였다.
       */}
@@ -222,7 +222,7 @@ export function ThemeEditor({
             onClick={() => setEditing(emptyTheme(activeVenues[0].id))}
             className="rounded-md bg-glow px-3 py-2 text-body-sm text-glow-foreground"
           >
-            + 테마 추가
+            + 테마 등록
           </button>
         </div>
       )}

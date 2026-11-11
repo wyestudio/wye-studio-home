@@ -175,7 +175,7 @@ export async function publishCandidate(input: {
     const links = Array.isArray(block.links) ? [...(block.links as Record<string, unknown>[])] : [];
 
     // 같은 주소가 이미 실려 있으면 또 넣지 않는다. 다만 빈 날짜·작성자는 채운다 —
-    // 날짜 없이 실린 글을 '되돌리기 → 후기에 넣기' 로 바로잡을 수 있게.
+    // 날짜 없이 실린 글을 '되돌리기 → 후기 등록' 로 바로잡을 수 있게.
     const at = links.findIndex(
       (l) => normalizeUrl(String(l?.url ?? "")) === normalizeUrl(cand.url)
     );

@@ -365,7 +365,7 @@ export function SessionManager({
           disabled={pending}
           className="rounded-md bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
         >
-          {pending ? "저장 중…" : "저장하고 회차 만들기"}
+          {pending ? "저장 중…" : "회차 등록"}
         </button>
         <span className="text-micro text-muted">
           이미 있는 회차는 그대로 둡니다. 신청이 붙어 있을 수 있어서요.

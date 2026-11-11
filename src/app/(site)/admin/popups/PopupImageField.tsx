@@ -85,7 +85,7 @@ export function PopupImageField({
           disabled={busy}
           className="flex-1 rounded-md border border-border px-3 py-1.5 text-micro disabled:opacity-50"
         >
-          {busy ? "올리는 중…" : value ? "변경" : "이미지 올리기"}
+          {busy ? "등록 중…" : value ? "수정" : "이미지 등록"}
         </button>
         {value && (
           <button

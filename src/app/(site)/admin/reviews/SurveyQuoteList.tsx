@@ -142,7 +142,7 @@ export function SurveyQuoteList({
                       : "bg-brand text-brand-foreground"
                   }`}
                 >
-                  {busy === q.text ? "처리 중…" : isOn ? "빼기" : "넣기"}
+                  {busy === q.text ? "처리 중…" : isOn ? "삭제" : "등록"}
                 </button>
               </li>
             );
