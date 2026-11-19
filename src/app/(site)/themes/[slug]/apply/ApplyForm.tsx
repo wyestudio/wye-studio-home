@@ -51,7 +51,7 @@ import { GroupBookingCta } from "@/components/group/GroupBookingCta";
      나란히 놓인다.
 */
 const field =
-  "h-12 w-full rounded-lg border border-line bg-fill px-3 text-input outline-none focus:border-line-strong sm:h-14 text-h3";
+  "h-12 w-full rounded-lg border border-line bg-fill px-3 text-input outline-none focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)] sm:h-14 text-h3";
 const fieldInvalid =
   "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 text-h3";
 const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";
