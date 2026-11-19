@@ -320,7 +320,7 @@ export function ThemeBlockView({
 
       {block.type === "image" && block.src && (
         <div className="relative mx-auto aspect-[16/9] w-full max-w-4xl overflow-hidden rounded-xl border border-line">
-          <Image src={block.src} alt={block.alt || block.title} fill className="object-cover" />
+          <Image src={block.src} alt={block.alt || block.title} fill sizes="(min-width: 896px) 896px, 100vw" className="object-cover" />
         </div>
       )}
 
