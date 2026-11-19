@@ -57,3 +57,4 @@
 | [11-stack-and-security.md](./11-stack-and-security.md) | 스택 선택 이유 · 보안 강화 조치 |
 | [12-data-model-and-screens.md](./12-data-model-and-screens.md) | 데이터 모델(v23) · 화면/라우팅 구조 |
 | [13-backlog.md](./13-backlog.md) | 미구현 항목 · 앞으로 할 일 · 설계 변경 이력 |
+| [14-ui-design-review-todo.md](./14-ui-design-review-todo.md) | **UI 디자인 점검 후속 작업 목록** (2026-11) — 디자인 스킬 설치 후 점검 결과, 진행 상황 |
