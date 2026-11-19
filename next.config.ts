@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    // 변환한 이미지를 31일 동안 다시 만들지 않는다. 기본 4시간이면 같은 사진을 4시간마다 다시
+    // 변환해 무료 한도(한 달 5,000건)에 가까워진다 — Supabase 가 `no-cache` 를 내려 그 값이 그대로 쓰인다.
+    // ⚠️ 그래서 같은 주소로 이미지를 덮어쓰면 최대 31일 옛 이미지가 나간다. 새 이름으로 올린다(wye-customer-facing).
+    minimumCacheTTL: 2678400,
     remotePatterns: [
       {
         // 테마 포스터는 Supabase Storage(theme-assets 버킷)에 올라간다.
