@@ -30,10 +30,12 @@
   - `src/components/ui/ScrollAwayFloat.tsx`, `src/components/layout/Footer.tsx`(`site-footer` 표시)
   - 확인: 폭 390·820·1100·1400 × `/lookup`·`/notice`·`/group`·테마 상세 × 맨 위·맨 아래·살짝 올림 = 48가지에서 겹침 0건
   - 커밋: `db43475`
-- [ ] **메뉴 버튼과 신청 폼 입력칸의 키보드 포커스 표시**
-  - 햄버거 버튼에 `focus:outline-none` 만 있고 대체 표시가 없다 — `src/components/layout/Header.tsx:261` 부근
-  - 신청 폼 입력칸은 테두리 밝기만 조금 바뀐다. 공용 `Input.tsx` 의 포커스 링을 따른다 — `src/app/(site)/themes/[slug]/apply/ApplyForm.tsx:54`, `AttendeeFields.tsx:17`
-  - 제안: `focus-visible:ring-2` 계열
+- [x] **메뉴 버튼과 신청 폼 입력칸의 키보드 포커스 표시**
+  - 메뉴 버튼(≡): 키보드로 왔을 때만 `brand` 2px 테두리(`focus-visible:ring-2`). 손가락으로 누를 때는 안 보인다 — `src/components/layout/Header.tsx`
+  - 신청 폼 입력칸·선택칸, 환불 정보 입력창: 흰 테두리만 밝아지던 것을 공용 `Input` 과 같은 파란 테두리 + 3px 빛으로 — `ApplyForm.tsx`, `AttendeeFields.tsx`, `Select.tsx`(`glass` 모양, 신청 폼 전용), `src/components/lookup/RefundInfoDialog.tsx`
+  - 확인: 메뉴 버튼은 실제 Tab 키로 테두리가 생기고 클릭에는 안 생김. 신청 폼은 7칸 × 390·1280px 모두 적용. 환불 정보 입력창은 같은 클래스라 화면 확인은 안 함(조회 결과까지 들어가야 열린다)
+  - 남은 것: 휴면 중인 회원 정보 폼(`src/components/auth/ProfileDetailsForm.tsx`)도 같은 약한 표시지만 쓰이지 않아 두었다
+  - 커밋: `6296bf6`
 - [ ] **어두운 화면 선언과 휴대폰 상단 막대 색**
   - `color-scheme: dark` 가 없어 달력·선택창·스크롤바가 밝게 뜰 수 있다(`src/app/globals.css`)
   - `<meta name="theme-color">` 가 없어 아이폰 사파리 상단 막대 색이 페이지와 따로 논다(`(site)/layout.tsx` 의 viewport)
@@ -72,3 +74,6 @@
 - **Claude in Chrome 확인용 탭은 백그라운드(`hidden`)라 rAF·스크롤 이벤트가 안 돈다.** 스크롤에 반응하는 화면을 재면 "안 고쳐졌다" 로 잘못 나온다
   → headless Chrome(`--headless=new --remote-debugging-port`)을 띄워 CDP 의 `Emulation.setDeviceMetricsOverride` 로 폭을 바꿔가며 잰다
 - 폭은 최소 390 · 820 · 1100 을 본다 ← 640~1023px 구간에서만 생기는 문제가 있었다
+- 포커스 표시를 잴 때는 CDP 의 `Emulation.setFocusEmulationEnabled` 를 켠다 ← headless 창은 포커스가 없어서
+  코드로 `focus()` 를 불러도 `:focus` 스타일이 안 걸리고 "안 고쳐졌다" 로 잘못 나온다
+- 신청 폼은 테스트 DB 의 열린 회차 id 로 `/themes/<slug>/apply?session=<id>` 를 연다(다른 테마 회차면 맞는 주소로 보내준다)
