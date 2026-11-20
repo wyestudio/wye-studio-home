@@ -181,9 +181,10 @@ export function StarfieldCanvas() {
       className="pointer-events-none fixed inset-0 -z-10"
       // 배경 그라데이션 — 왼쪽 위 모서리에서 보랏빛이 번지고 나머지는 검정. 화면에 고정이라
       // 페이지가 길어도 늘어나지 않는다. 그 위에 별을 그린다. 세 안을 나란히 비교해 대표님이 골랐다.
+      // 시즌 스킨이 --starfield-bg 로 바꿀 수 있다(season.css 크리스마스).
       style={{
         background:
-          "radial-gradient(ellipse 90% 70% at 15% 0%, #1a1636 0%, #0a0b1a 45%, #04070d 80%)",
+          "var(--starfield-bg, radial-gradient(ellipse 90% 70% at 15% 0%, #1a1636 0%, #0a0b1a 45%, #04070d 80%))",
       }}
     />
   );

@@ -12,11 +12,22 @@ const SNOW: [number, number, number, number][] = [
   [86, 3, 28, -27], [94, 2, 32, -8],
 ];
 
+/** 가장자리에 떠 있는 눈송이 — 그림 · 칸 이름. 위치 · 크기는 season.css 의 .xmas-bd-flake--N */
+const FLAKES = [
+  "xmas-snowflake", "xmas-snowflake-2", "xmas-snowflake", "xmas-snowflake-2",
+  "xmas-snowflake", "xmas-snowflake-2", "xmas-snowflake-2", "xmas-snowflake",
+] as const;
+
 /**
- * 크리스마스 배경 — 위 왼쪽 전구 줄, 아래 눈 언덕, 왼쪽 트리 · 선물, 오른쪽 오두막 · 가로등 · 눈사람,
- * 가장자리 눈송이, 천천히 내리는 작은 눈. 위치 · 크기는 season.css 의 .xmas-bd-* 에 있다.
+ * 크리스마스 배경 — 시안(WYE_Christmas_v2)의 겨울 마을. 아래부터 먼 숲 → 왼쪽 트리 · 선물,
+ * 오른쪽 오두막 · 눈사람 · 가로등 → 맨 앞 눈 언덕. 가장자리 눈송이, 천천히 내리는 작은 눈,
+ * 홈 밖에서는 왼쪽 위 전구 줄. 위치 · 크기는 season.css 의 .xmas-bd-* 에 있다.
  * xmas-bd-floor — 바닥에 붙은 것들. 하단 고정 버튼 막대가 있으면 같이 위로 올린다.
  * 할로윈처럼 화면에 고정돼 콘텐츠 **뒤**에 깔리고 클릭을 받지 않는다.
+ *
+ * 트리 · 오두막은 그린 그림(래스터)이라 SVG 가 아니라 <img> 다. 크리스마스일 때만 그려지므로
+ * 시즌이 꺼지면 받지도 않는다. 오두막은 시안이 배경째 잘라 준 것이라 하늘을 투명으로 빼서 넣었다.
+ * next/image 로 바꾸지 않는다 — 이미 줄여 둔 webp 라 Vercel 이미지 변환 한도만 쓴다.
  */
 function ChristmasBackdrop({ isHome }: { isHome: boolean }) {
   return (
@@ -30,17 +41,30 @@ function ChristmasBackdrop({ isHome }: { isHome: boolean }) {
         ))}
       </div>
       <SeasonArt art="xmas-lights" fit="xMinYMin meet" className="xmas-bd-lights" />
-      <SeasonArt art="xmas-snowflake" className="xmas-bd-flake xmas-bd-flake--1" />
-      <SeasonArt art="xmas-snowflake-2" className="xmas-bd-flake xmas-bd-flake--2" />
-      <SeasonArt art="xmas-sparkle" className="xmas-bd-spark xmas-bd-spark--1" />
-      <SeasonArt art="xmas-sparkle" className="xmas-bd-spark xmas-bd-spark--2" />
-      {/* 눈 언덕 → 그 위에 소품 순으로 겹친다. 숲 실루엣은 화면 폭 전체에 깔면 톱니 띠처럼 보여 뺐다. */}
-      <SeasonArt art="xmas-hills" fit="xMidYMax slice" className="xmas-bd-floor xmas-bd-ground" />
-      <SeasonArt art="xmas-pine" className="xmas-bd-floor xmas-bd-pine" />
-      <SeasonArt art="xmas-gift" className="xmas-bd-floor xmas-bd-gift" />
-      <SeasonArt art="xmas-cabin" className="xmas-bd-floor xmas-bd-cabin" />
-      <SeasonArt art="xmas-lantern" className="xmas-bd-floor xmas-bd-lantern" />
-      <SeasonArt art="xmas-snowman" className="xmas-bd-floor xmas-bd-snowman" />
+      {FLAKES.map((art, i) => (
+        <SeasonArt key={i} art={art} className={`xmas-bd-flake xmas-bd-flake--${i + 1}`} />
+      ))}
+      {/* 먼 숲은 화면 4분의 1씩 네 장 — 한 장을 늘이면 나무가 옆으로 퍼지고 너무 가까워 보인다 */}
+      {[0, 1, 2, 3].map((i) => (
+        <SeasonArt key={i} art="xmas-pines-far" className={`xmas-bd-floor xmas-bd-pines xmas-bd-pines--${i + 1}`} />
+      ))}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/season/christmas/xmas-tree-presents.webp"
+        srcSet="/season/christmas/xmas-tree-presents-440.webp 440w, /season/christmas/xmas-tree-presents.webp 860w"
+        sizes="(max-width: 767px) 220px, 430px"
+        alt=""
+        decoding="async"
+        className="season-art xmas-bd-floor xmas-bd-tree"
+      />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/season/christmas/xmas-cabin-scene.webp"
+        alt=""
+        decoding="async"
+        className="season-art xmas-bd-floor xmas-bd-cabin"
+      />
+      <SeasonArt art="xmas-drift" fit="none" className="xmas-bd-floor xmas-bd-ground" />
     </div>
   );
 }

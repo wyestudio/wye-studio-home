@@ -20,6 +20,7 @@
  * 그대로였다 — 브라우저가 그림 파일 두 장을 섞어 그린 것이다. 파일을 따로 불러오지 않으면
  * 섞일 여지가 없다. 그림이 0.1~0.6KB 라 페이지가 무거워지지 않는다.
  */
+import { useId } from "react";
 import { SEASON_ART_SVGS } from "@/components/season/seasonArtSvgs";
 import { SeasonOnly, useSiteSkin } from "@/components/season/SeasonContext";
 import type { SiteSkin } from "@/lib/season";
@@ -42,11 +43,8 @@ export type SeasonArtName =
   | "xmas-sparkle"
   | "xmas-snowflake"
   | "xmas-snowflake-2"
-  | "xmas-hills"
-  | "xmas-pine"
-  | "xmas-cabin"
-  | "xmas-lantern"
-  | "xmas-snowman"
+  | "xmas-drift"
+  | "xmas-pines-far"
   | "xmas-lights";
 
 /**
@@ -90,6 +88,8 @@ export function SeasonArt({
   christmas?: SeasonArtName | null;
 }) {
   const shown = artForSkin(art, useSiteSkin(), christmas);
+  // 그라데이션 id — 같은 그림이 한 화면에 여러 번 나오고 그중 하나가 감춰지면(display:none) 다른 쪽 색이 빠진다
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   if (!shown) return null;
   const { viewBox, attrs, inner } = SEASON_ART_SVGS[shown];
   const [, , w, h] = viewBox.split(" ").map(Number);
@@ -107,7 +107,7 @@ export function SeasonArt({
       data-art={shown}
       className={`season-art ${className}`}
       // 내용은 저장소에 있는 고정 SVG 다(seasonArtSvgs.ts). 사용자 입력이 섞이지 않는다.
-      dangerouslySetInnerHTML={{ __html: inner }}
+      dangerouslySetInnerHTML={{ __html: inner.replaceAll("__ID__", `${uid}-`) }}
     />
   );
 }
