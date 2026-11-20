@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
@@ -115,6 +115,23 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
  * 그 사람의 녹화를 Clarity 필터로 찾게 한다(번호는 무작위라 사람을 알아볼 수 없다).
  */
 const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
+
+/**
+ * 휴대폰 주소창 둘레 색(theme-color) — 페이지 배경과 같은 색이어야 이어져 보인다.
+ * ⚠️ globals.css 의 --background · season.css 의 시즌 --background 와 **같은 값**이어야 한다.
+ * ⚠️ iOS 26 사파리는 theme-color 를 안 쓰고 페이지 배경색을 보고 정한다.
+ *    이 값은 안드로이드 크롬 · iOS 18 이하 · 홈 화면에 추가한 웹앱용이다.
+ */
+const THEME_COLOR: Record<SiteSkin | "default", string> = {
+  default: "#04070d",
+  halloween: "#190d2b",
+};
+
+/** colorScheme: 체크박스·스크롤바·자동완성 같은 브라우저 기본 부품을 어두운 화면용으로 그린다. */
+export async function generateViewport(): Promise<Viewport> {
+  const skin = await currentSkin();
+  return { themeColor: THEME_COLOR[skin ?? "default"], colorScheme: "dark" };
+}
 
 /**
  * 어드민·테스트 서브도메인에서는 GTM 을 아예 싣지 않는다.
