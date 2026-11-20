@@ -36,9 +36,13 @@
   - 확인: 메뉴 버튼은 실제 Tab 키로 테두리가 생기고 클릭에는 안 생김. 신청 폼은 7칸 × 390·1280px 모두 적용. 환불 정보 입력창은 같은 클래스라 화면 확인은 안 함(조회 결과까지 들어가야 열린다)
   - 남은 것: 휴면 중인 회원 정보 폼(`src/components/auth/ProfileDetailsForm.tsx`)도 같은 약한 표시지만 쓰이지 않아 두었다
   - 커밋: `6296bf6`
-- [ ] **어두운 화면 선언과 휴대폰 상단 막대 색**
-  - `color-scheme: dark` 가 없어 달력·선택창·스크롤바가 밝게 뜰 수 있다(`src/app/globals.css`)
-  - `<meta name="theme-color">` 가 없어 아이폰 사파리 상단 막대 색이 페이지와 따로 논다(`(site)/layout.tsx` 의 viewport)
+- [x] **어두운 화면 선언과 휴대폰 상단 막대 색**
+  - `color-scheme: dark` — `src/app/globals.css` 의 `html` + `(site)/layout.tsx` 의 `generateViewport`. 체크박스·스크롤바·자동완성 칸이 어두운 화면용으로 그려진다
+  - `theme-color` — 사이트 배경색(`#04070d`), 핼러윈 스킨이면 `#190d2b`. `generateViewport` 가 시즌을 읽어 고른다
+  - ⚠️ iOS 26 사파리는 `theme-color` 를 안 쓰고 페이지 배경색으로 막대 색을 정한다(개발자 보고 · 애플 공식 문서 없음). 이 값은 안드로이드 크롬 · iOS 18 이하 · 홈 화면 웹앱용
+  - 확인: 3105 HTML 에 두 meta 확인(테스트 DB 가 핼러윈이라 `#190d2b`). 팝업 체크박스가 흰 상자 → 어두운 상자로 바뀐 것 비교 캡처. 인쇄용 흰 문서는 인쇄 때 글자색을 `#111` 로 강제해 영향 없음
+  - 확인 못 함: 시즌 꺼진 기본색이 실제로 찍히는 것, 안드로이드 실기기 주소창
+  - 커밋: `f863dcd`
 - [ ] **Threads 아이콘이 실제 로고가 아니다**
   - 동그라미 두 겹(과녁 모양)이다 — `src/components/home/scenes/NoticeScene.tsx:36-44`
 - [ ] **공지 목록 제목 잘림과 📌 이모지**
