@@ -55,6 +55,7 @@ const GROUP_LINK_CLASS =
 
 /** 시즌 스킨 때 '참여 전 확인' 번호 자리에 돌아가며 붙는 그림(season.css 가 번호를 감춘다). */
 const SEASON_CALLOUT_ART: SeasonArtName[] = ["ghost", "bat-orange", "pumpkin"];
+const CHRISTMAS_CALLOUT_ART: SeasonArtName[] = ["xmas-holly", "xmas-star", "xmas-gift"];
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];
@@ -479,7 +480,11 @@ export function ThemeBlockView({
               className="season-callout-badge flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-danger/20 text-micro font-semibold text-danger sm:h-9 sm:w-9"
             >
               <span className="season-callout-num">{i + 1}</span>
-              <SeasonArt art={SEASON_CALLOUT_ART[i % SEASON_CALLOUT_ART.length]} className="season-callout-art" />
+              <SeasonArt
+                art={SEASON_CALLOUT_ART[i % SEASON_CALLOUT_ART.length]}
+                christmas={CHRISTMAS_CALLOUT_ART[i % CHRISTMAS_CALLOUT_ART.length]}
+                className="season-callout-art"
+              />
             </span>
           ))}
         />

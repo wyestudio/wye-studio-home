@@ -32,7 +32,7 @@ export function ThemeShowcase({ themes }: { themes: ThemeCardData[] }) {
         대신 한글로 바꿨다(2026-10-21 대표님).
       */}
       {/* 시즌 스킨 때만 보이는 장식 문구(season.css). 제목 위에 얹는다. */}
-      <SeasonLabel text="TRICK OR ESCAPE" className="mb-3" />
+      <SeasonLabel spot="themes" className="mb-3" />
       <h1 className="text-center text-h1 font-extrabold">테마 목록</h1>
 
       {themes.length === 0 ? (

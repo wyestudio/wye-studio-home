@@ -124,6 +124,37 @@ const HALLOWEEN_MASCOTS: Record<MascotId, MascotMeta> = {
   kape: { ...MASCOTS.kape, ...HALLOWEEN_ART.kape },
 };
 
+/*
+  시즌 스킨(크리스마스) — 원래 그림에 시안 패키지의 장식만 얹었다(2026-11-20).
+    우쥬 — 사슴뿔 · 케이프 — 산타 모자 · 이스 — 원래 그대로(시안대로 한 캐릭터에 하나씩, 셋 다 얹지 않는다)
+  합성 그림은 public/season/christmas/ 에 있다. 몸통 크기가 원래와 같아 보이게 폭은 원래 값을 두고
+  높이만 장식만큼 늘렸다.
+*/
+const CHRISTMAS_ART: Partial<Record<MascotId, MascotArt>> = {
+  woodju: {
+    orbitSrc: "/season/christmas/mascot-wooju-antlers.png",
+    orbitWidth: 92,
+    orbitHeight: 87,
+    cursorSrc: "/season/christmas/mascot-wooju-antlers.png",
+    cursorWidth: 46,
+    cursorHeight: 44,
+  },
+  kape: {
+    orbitSrc: "/season/christmas/mascot-kape-santa.png",
+    orbitWidth: 72,
+    orbitHeight: 68,
+    cursorSrc: "/season/christmas/mascot-kape-santa.png",
+    cursorWidth: 50,
+    cursorHeight: 48,
+  },
+};
+
+const CHRISTMAS_MASCOTS: Record<MascotId, MascotMeta> = {
+  woodju: { ...MASCOTS.woodju, ...CHRISTMAS_ART.woodju },
+  is: MASCOTS.is,
+  kape: { ...MASCOTS.kape, ...CHRISTMAS_ART.kape },
+};
+
 /**
  * 홈 자유이동(MascotFreeRoam)에서 마스코트마다 다르게 움직이는 방식.
  *   top · bottom — 돌아다닐 세로 띠(화면 높이 대비, 마스코트 중심 기준). 없으면 어디든.
@@ -160,5 +191,7 @@ export const HALLOWEEN_ROAM: Partial<Record<MascotId, RoamStyle>> = {
 
 /** 지금 스킨에 맞는 마스코트 목록. 스킨이 없으면 원래 것. */
 export function mascotsForSkin(skin: SiteSkin | null): Record<MascotId, MascotMeta> {
-  return skin === "halloween" ? HALLOWEEN_MASCOTS : MASCOTS;
+  if (skin === "halloween") return HALLOWEEN_MASCOTS;
+  if (skin === "christmas") return CHRISTMAS_MASCOTS;
+  return MASCOTS;
 }

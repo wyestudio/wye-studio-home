@@ -424,7 +424,8 @@ export default async function ThemeDetailPage({
        노말(파랑)을 색으로 가르는데, 파티가 주황이 되면 얼리버드 노랑과 헷갈린다.
     ⚠️ 노말모드(시안)는 그대로다. 모드를 색으로 구분하는 건 시즌에도 유지한다.
   */
-  const halloween = (await getSiteSkin()) === "halloween";
+  const skin = await getSiteSkin();
+  const halloween = skin === "halloween";
   const seasonAccent = halloween && theme.id === themeLevel.id ? HALLOWEEN_ACCENT : accent;
   const modeVariants = halloween
     ? variants.map((v) => (v.id === themeLevel.id ? { ...v, accent_color: HALLOWEEN_ACCENT } : v))
@@ -564,7 +565,7 @@ export default async function ThemeDetailPage({
                   때는 태그가 안 들어가 작은 쪽(compact)을 쓴다.
                 */}
                 {/* 시즌이 꺼지면 아예 안 그린다 — 장식 글자가 페이지 데이터에 남아 AI 가 시즌 상품으로 읽었다 */}
-                {halloween && themeLevel.hero_image_path && (
+                {skin && themeLevel.hero_image_path && (
                   <>
                     <span className={synopsis ? "sm:hidden" : ""}>
                       <PosterSeasonDecor compact />

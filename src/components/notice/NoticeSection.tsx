@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
 import { SeasonArt } from "@/components/season/SeasonArt";
+import { useSiteSkin } from "@/components/season/SeasonContext";
+import type { SiteSkin } from "@/lib/season";
 import type { Notice } from "@/lib/content";
 
 const kstDate = (iso: string) =>
@@ -16,6 +18,9 @@ const kstDate = (iso: string) =>
     .replace(/\s/g, "")
     .replace(/\.$/, "");
 
+/** 시즌 스킨 때 강조할 공지 — 제목에 이 말이 든 공지. */
+const SEASON_NOTICE_WORD: Record<SiteSkin, string> = { halloween: "할로윈", christmas: "크리스마스" };
+
 /**
  * 공지사항 — 제목 목록 + 상세 모달.
  *
@@ -24,6 +29,8 @@ const kstDate = (iso: string) =>
  */
 export function NoticeSection({ notices }: { notices: Notice[] }) {
   const [open, setOpen] = useState<Notice | null>(null);
+  const skin = useSiteSkin();
+  const seasonWord = skin ? SEASON_NOTICE_WORD[skin] : null;
 
   return (
     <section>
@@ -41,8 +48,8 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
           {notices.map((n) => (
             <li
               key={n.id}
-              // 시즌 스킨 때 할로윈 공지를 강조한다(season.css). 첫 줄이 아니라 제목으로 고른다.
-              data-season-highlight={n.title.includes("할로윈") ? "" : undefined}
+              // 시즌 스킨 때 그 시즌 공지를 강조한다(season.css). 첫 줄이 아니라 제목으로 고른다.
+              data-season-highlight={seasonWord && n.title.includes(seasonWord) ? "" : undefined}
             >
               <button
                 onClick={() => setOpen(n)}

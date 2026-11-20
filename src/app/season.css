@@ -1,5 +1,5 @@
 /*
-  시즌 스킨 (2026-10-21, 할로윈).
+  시즌 스킨 (2026-10-21 할로윈, 2026-11-20 크리스마스).
 
   켜고 끄는 건 어드민 > 시즌 스킨이다. 켜지면 루트 레이아웃이 <html data-season="halloween">
   을 달고, 이 파일의 규칙이 전부 그 표시를 조건으로 걸린다. **표시가 없으면 이 파일은
@@ -7,6 +7,10 @@
 
   수치는 승인 시안(wouldyouescape-halloween-claude 패키지의 halloween-reference.css ·
   ASSET-MAP.md)을 따랐다. 로고 모자는 우리 로고 크기가 시안과 달라 비율(%)로 옮겼다.
+
+  크리스마스는 할로윈과 **같은 자리**(로고 모자 · 버튼 옆 · 제목 옆 · 포스터)를 쓰고 그림만
+  바꾼다(SeasonArt 의 CHRISTMAS_SWAP). 자리 규칙(.season-hat-- 등)은 두 스킨이 같이 쓰고,
+  색과 크리스마스에서만 다른 크기는 맨 아래 「크리스마스」 칸에서 덮는다.
 
   ⚠️ 이 파일은 Tailwind 레이어 **밖**에 있다. 같은 요소에 Tailwind 클래스가 있어도 여기
      규칙이 이긴다(레이어 밖 > 레이어 안). 장식 요소에만 쓰는 이름(season-*)을 겨냥할 것.
@@ -17,7 +21,7 @@
 /* ── 켜고 끄기 ───────────────────────────────────────────────────────────── */
 
 /* 꺼져 있으면 장식은 아예 없는 것처럼. 켜지면 요소 자신의 display(Tailwind 포함)를 쓴다. */
-html:not([data-season="halloween"]) :is(.season-art, .season-only) {
+html:not([data-season]) :is(.season-art, .season-only) {
   display: none !important;
 }
 
@@ -1163,4 +1167,437 @@ body:has(.apply-cta-bar) :is(.season-bd-ground, .season-bd-pumpkin) {
 /* 단체 예약 페이지(/group)에서는 유령을 숨긴다 — 오른쪽 가장자리의 스위치·버튼을 가린다. */
 body:has(.group-quote-flow) .season-egg {
   display: none;
+}
+
+/* ══ 크리스마스 (2026-11-20) ═══════════════════════════════════════════════ */
+
+/*
+  GPT 시안(WYE_Christmas_Claude_Package)의 색 — 짙은 우주 네이비 위에 아이보리 눈, 은은한 금빛,
+  포인트 빨강 · 전나무 초록. 모드 색(파티 민트 · 노말 시안)은 그대로 둔다(시안 지시).
+*/
+html[data-season="christmas"] {
+  --background: #090d20;
+  --background-deep: #060911;
+  --surface: #10162a;
+  --foreground: #f4f1ea;
+  --muted: #aeb2cf;
+  --border: #2e3552;
+  --brand: #f6bd68;
+  --brand-soft: #f6bd6825;
+  --brand-foreground: #1b1206;
+  --glow: #ffd08a;
+  --glass-border: #fff0d325;
+  --panel: #141a2c;
+  --panel-raised: #1a2238;
+  --panel-border: #343a55;
+  --surface-glass-from: #182038e8;
+  --surface-glass-to: #0d1224e8;
+  --orbit-ring: #f6bd6850;
+}
+
+html[data-season="christmas"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 6%, #1d2652 0, #0e1430 40%, #070a18 85%);
+}
+
+html[data-season="christmas"] .site-header {
+  border-bottom: 1px solid #f6bd6823;
+}
+
+html[data-season="christmas"] .site-header:not([data-home]) {
+  background-color: #0a0f22d9;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+html[data-season="christmas"] .site-header:not([data-home]) > div {
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* 산타 모자 — 로고 오른쪽 위에 얹는다(시안). 모자 끝이 오른쪽으로 늘어진 그림이라 기울이지 않는다. */
+html[data-season="christmas"] :is(.season-hat--header, .season-hat--hero) {
+  width: 50%;
+  left: 55%;
+  top: -40%;
+  transform: rotate(8deg);
+}
+
+/* YES 옆 선물 — 반짝임은 금빛으로 */
+@keyframes xmas-cta-idle {
+  0%,
+  100% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 6px rgb(246 189 104 / 0)) drop-shadow(0 0 16px rgb(246 189 104 / 0))
+      drop-shadow(0 0 30px rgb(246 189 104 / 0));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgb(246 189 104 / 0.95)) drop-shadow(0 0 16px rgb(246 189 104 / 0.6))
+      drop-shadow(0 0 30px rgb(246 189 104 / 0.35));
+  }
+}
+
+html[data-season="christmas"] .hero-cta-label-default {
+  animation-name: xmas-cta-idle;
+}
+
+html[data-season="christmas"] .season-cta-pumpkin {
+  transform: rotate(-6deg);
+}
+
+html[data-season="christmas"] .season-cta:hover .season-cta-pumpkin {
+  transform: rotate(4deg) translateY(-2px);
+}
+
+/* 홈 로고 오른쪽 위 — 박쥐 자리의 눈송이 */
+html[data-season="christmas"] .season-hero-bat {
+  width: 40px;
+  opacity: 0.8;
+}
+
+/* 'Planets to Escape' 옆 — 박쥐 자리의 금별 */
+html[data-season="christmas"] .season-title-bat {
+  width: 30px;
+  height: 30px;
+  left: -40px;
+  top: -8px;
+}
+
+/* 제목 옆 — 유령 자리의 호랑가시 */
+html[data-season="christmas"] .season-heading-ghost {
+  width: 40px;
+  height: 35px;
+  top: -10px;
+  transform: rotate(-10deg);
+}
+
+/* 포스터 — 금빛 테두리, 왼쪽 위 호랑가시 하나, 오른쪽 위 빨간 CHRISTMAS EDITION 태그 */
+html[data-season="christmas"] .season-poster-frame {
+  border-color: #e6aa69;
+  box-shadow: 0 0 0 4px #f6bd680d, 0 10px 40px #04060f80;
+}
+
+html[data-season="christmas"] .season-poster-frame:hover {
+  border-color: #ffd08a;
+}
+
+html[data-season="christmas"] .season-poster-web {
+  left: 6px;
+  top: 6px;
+  width: 52px;
+  height: 46px;
+  opacity: 1;
+  transform: rotate(-14deg);
+  filter: drop-shadow(0 2px 3px #0009);
+}
+
+html[data-season="christmas"] .season-poster-tag {
+  border-color: rgb(230 170 105 / 0.85);
+  background: linear-gradient(180deg, #c03a4b, #9c2a3d);
+  text-shadow: 0 1px 1px rgb(60 0 10 / 0.5);
+}
+
+/* 금별은 빨간 바탕에서 그대로 보인다 — 할로윈처럼 하얗게 칠하지 않는다. */
+html[data-season="christmas"] .season-poster-tag-spark {
+  filter: none;
+}
+
+html[data-season="christmas"] .season-poster-decor--compact .season-poster-web {
+  width: 30px;
+  height: 27px;
+  left: 3px;
+  top: 3px;
+}
+
+/* 공지 강조 — 제목에 '크리스마스'가 든 공지 */
+html[data-season="christmas"] [data-season-highlight] {
+  background: linear-gradient(90deg, #d94c551a, #0f5b4b1f);
+  box-shadow: inset 3px 0 #f6bd68;
+}
+
+html[data-season="christmas"] [data-season-highlight] button {
+  color: #ffe0a6;
+}
+
+/* 자주 묻는 질문 — 네이비 유리 + 금빛 테두리, 질문 앞 호랑가시 */
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) {
+  background:
+    linear-gradient(120deg, transparent 62%, rgb(255 230 180 / 0.07) 78%, rgb(255 230 180 / 0.07) 84%, transparent 100%),
+    linear-gradient(160deg, rgb(30 40 78 / 0.55), rgb(10 14 32 / 0.7));
+  border-color: rgb(246 189 104 / 0.3);
+  box-shadow:
+    inset 0 1px 0 rgb(255 240 211 / 0.1),
+    0 0 20px -8px rgb(246 189 104 / 0.3),
+    0 20px 45px rgb(0 0 0 / 0.4);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row):hover {
+  border-color: rgb(246 189 104 / 0.7);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row)::after {
+  background-image: linear-gradient(120deg, transparent 46%, rgb(255 240 211 / 0.3) 50%, transparent 54%);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row):is([open], :has(> button[aria-expanded="true"])) {
+  border-color: rgb(246 189 104 / 0.6);
+  box-shadow:
+    inset 3px 0 #f6bd68,
+    0 0 24px -6px rgb(246 189 104 / 0.4),
+    0 20px 45px rgb(0 0 0 / 0.4);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) > :is(button, summary) > span:first-child::before {
+  content: "";
+  display: inline-block;
+  width: 1.15em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.12em;
+  background: url("/season/christmas/holly-ornament.svg") center / contain no-repeat;
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) > :is(button, summary) > span:last-child {
+  color: #f6bd68;
+}
+
+/* 테마 상세 블록 카드 · '참여 전 확인' 번호(호랑가시 · 금별 · 선물) */
+html[data-season="christmas"] .season-card {
+  background: linear-gradient(160deg, rgb(30 40 78 / 0.45), rgb(10 14 32 / 0.6));
+  border-color: rgb(246 189 104 / 0.2);
+  box-shadow: inset 0 1px 0 rgb(255 240 211 / 0.07);
+}
+
+html[data-season="christmas"] .season-callout-badge {
+  background: rgb(246 189 104 / 0.12);
+  box-shadow: 0 0 14px -4px rgb(246 189 104 / 0.45);
+}
+
+html[data-season="christmas"] .season-callout-num {
+  display: none;
+}
+
+/* ── 크리스마스 배경(SeasonBackdrop 의 ChristmasBackdrop) ── */
+
+/* 천천히 내리는 작은 눈. transform 만 움직인다. */
+.xmas-snow {
+  position: absolute;
+  inset: 0;
+}
+
+.xmas-snow > span {
+  position: absolute;
+  top: -12px;
+  border-radius: 9999px;
+  background: #eef5ff;
+  opacity: 0.55;
+  animation: xmas-fall linear infinite;
+}
+
+@keyframes xmas-fall {
+  to {
+    transform: translate3d(24px, 105vh, 0);
+  }
+}
+
+/* 전구 줄 — 헤더 아래 왼쪽 위 구석에만 적게. 홈은 헤더 로고와 겹쳐 뺀다. */
+.xmas-bd-lights {
+  left: 0;
+  top: var(--header-bottom, var(--header-height, 72px));
+  width: min(560px, 40vw);
+  opacity: 0.85;
+}
+
+.season-backdrop--home .xmas-bd-lights {
+  display: none;
+}
+
+.xmas-bd-flake--1 {
+  left: 6%;
+  top: 30%;
+  width: 26px;
+  opacity: 0.6;
+}
+
+.xmas-bd-flake--2 {
+  right: 5%;
+  top: 22%;
+  width: 34px;
+  opacity: 0.5;
+}
+
+.xmas-bd-spark--1 {
+  right: 9%;
+  top: 48%;
+  width: 14px;
+  opacity: 0.8;
+}
+
+.xmas-bd-spark--2 {
+  left: 3%;
+  top: 58%;
+  width: 11px;
+  opacity: 0.7;
+}
+
+/*
+  바닥 — 눈 언덕 위에 소품. 맞춤(cover · 아래 붙임)은 fit 에 있다.
+  ⚠️ 배경은 화면에 고정이라 본문이 늘 그 위로 지나간다. 시안의 흰 눈 그대로면 흰 글자가
+     눈 위에서 안 읽힌다(테마 카드 정보 · 시놉시스). 밤 눈빛으로 어둡게 눌러 둔다.
+*/
+.xmas-bd-ground {
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 110px;
+  filter: brightness(0.42);
+}
+
+.xmas-bd-pine {
+  left: 1.5%;
+  bottom: 30px;
+  width: 140px;
+}
+
+.xmas-bd-gift {
+  left: calc(1.5% + 78px);
+  bottom: 22px;
+  width: 78px;
+}
+
+.xmas-bd-cabin {
+  right: 1.5%;
+  bottom: 26px;
+  width: 200px;
+}
+
+/* 가로등 · 눈사람은 오두막 옆이라 본문 틀(1024px) 바깥에 자리가 남는 1600px 이상에서만 — 1440 에서 모드 창 뒤로 비쳤다. */
+.xmas-bd-lantern {
+  right: calc(1.5% + 196px);
+  bottom: 40px;
+  width: 60px;
+}
+
+.xmas-bd-snowman {
+  right: calc(1.5% + 262px);
+  bottom: 24px;
+  width: 72px;
+}
+
+@media (max-width: 1599px) {
+  .xmas-bd-lantern,
+  .xmas-bd-snowman {
+    display: none;
+  }
+}
+
+/* 중간 폭 — 본문 옆 여백이 좁아 소품이 글자 뒤로 들어온다. 트리 · 오두막만 작게 남긴다. */
+@media (max-width: 1279px) {
+  .xmas-bd-gift,
+  .xmas-bd-lantern,
+  .xmas-bd-snowman,
+  .xmas-bd-spark {
+    display: none;
+  }
+
+  /* 본문 뒤로 들어오므로 연하게 */
+  .xmas-bd-pine {
+    width: 90px;
+    opacity: 0.6;
+  }
+
+  .xmas-bd-cabin {
+    width: 120px;
+    opacity: 0.6;
+  }
+
+  /* 테마 상세는 헤더 밑에 탭 줄이 붙는다(DetailTabs, xl 미만) — 그 아래로 내려 가려지지 않게. */
+  body:has([data-section-key]) .xmas-bd-lights {
+    top: calc(var(--header-bottom, var(--header-height, 64px)) + 50px);
+  }
+
+  .xmas-bd-flake--1 {
+    left: 2%;
+  }
+
+  .xmas-bd-flake--2 {
+    right: 2%;
+  }
+}
+
+@media (max-width: 767px) {
+  .xmas-bd-lights {
+    width: 70vw;
+    opacity: 0.7;
+  }
+
+  .xmas-bd-cabin {
+    display: none;
+  }
+
+  .xmas-bd-ground {
+    height: 64px;
+  }
+
+  /* 화면 안에 다 들어오게 작게. 끝까지 내리면 푸터 글자 뒤로 들어와 연하게 둔다. */
+  .xmas-bd-pine {
+    left: 8px;
+    bottom: 14px;
+    width: 52px;
+    opacity: 0.5;
+  }
+
+  .xmas-bd-snowman {
+    display: block;
+    right: 10px;
+    bottom: 10px;
+    width: 40px;
+    opacity: 0.5;
+  }
+
+  .xmas-bd-flake--1 {
+    left: 12px;
+    top: 42%;
+    width: 16px;
+  }
+
+  .xmas-bd-flake--2 {
+    right: 14px;
+    top: 26%;
+    width: 20px;
+  }
+}
+
+/* 하단 고정 버튼 막대 위로 바닥 장식을 올린다 — 수치는 할로윈과 같은 막대 실측값(위 「하단 고정 버튼 막대」). */
+@media (max-width: 639px) {
+  body:has(.mobile-cta-bar) .xmas-bd-floor {
+    translate: 0 -79px;
+  }
+}
+
+body:has(.apply-cta-bar) .xmas-bd-floor {
+  translate: 0 -88px;
+}
+
+@media (min-width: 1024px) {
+  body:has(.apply-cta-bar) .xmas-bd-floor {
+    translate: 0 -95px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xmas-snow {
+    display: none;
+  }
+
+  html[data-season="christmas"] .hero-cta-label-default {
+    animation: none;
+    filter: drop-shadow(0 0 5px rgb(246 189 104 / 0.55));
+  }
 }
