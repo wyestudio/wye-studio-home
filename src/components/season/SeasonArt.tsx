@@ -118,7 +118,8 @@ export function SeasonArt({
  * 실려 검색엔진 · AI 가 읽는다 — 그래서 문구는 여기 두고 자리 이름만 받는다.
  */
 const SEASON_LABELS = {
-  themes: { halloween: "TRICK OR ESCAPE", christmas: "A LITTLE CHRISTMAS MAGIC" },
+  // 크리스마스는 문구 없이 제목만(2026-11-20 대표님)
+  themes: { halloween: "TRICK OR ESCAPE" },
 } satisfies Record<string, Partial<Record<SiteSkin, string>>>;
 
 export function SeasonLabel({
