@@ -4,13 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Chevron } from "@/components/ui/Chevron";
 import { GROUP_EVENT, pushGa4Event } from "@/lib/analytics";
-import { GROUP_PAGE_LABEL } from "@/lib/groupBooking";
+import { GROUP_ACCENT, GROUP_PAGE_LABEL } from "@/lib/groupBooking";
 import {
+  BROCHURE_AUDIENCE,
   BROCHURE_COVER,
   BROCHURE_PAGES,
   BROCHURE_PDF,
+  BROCHURE_PDF_LABEL,
   BROCHURE_PDF_SIZE,
   BROCHURE_RATIO,
+  BROCHURE_TITLE,
   brochurePage,
 } from "@/lib/groupBrochure";
 
@@ -26,6 +29,21 @@ import {
 */
 
 const TOTAL = BROCHURE_PAGES.length;
+const FULL_TITLE = `${BROCHURE_AUDIENCE} ${BROCHURE_TITLE}`;
+
+/** 대상 배지(기업 · 나중에 일반). 단체 페이지의 강조색 칩(첫 화면 '단체 전용' · FAQ 의 Q)과 같은 색이다. */
+function AudienceBadge({ inline = false }: { inline?: boolean }) {
+  return (
+    <span
+      className={`shrink-0 rounded-md px-1.5 py-0.5 text-micro font-extrabold ${
+        inline ? "mr-1.5 inline-block align-middle" : ""
+      }`}
+      style={{ backgroundColor: `${GROUP_ACCENT}26`, color: GROUP_ACCENT }}
+    >
+      {BROCHURE_AUDIENCE}
+    </span>
+  );
+}
 
 function track(name: string, params: { sectionKey?: string; sectionIndex?: number } = {}) {
   pushGa4Event(name, { themeLabel: GROUP_PAGE_LABEL, ...params });
@@ -65,7 +83,12 @@ export function BrochureCard() {
           style={{ aspectRatio: BROCHURE_RATIO }}
         />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-body font-semibold">단체 프로그램 소개서</span>
+          {/* 휴대폰에서는 두 줄이 된다 — 낱말 가운데서 끊기지 않게 break-keep */}
+          {/* 배지를 글줄 안에 둔다 — 옆 칸으로 빼면 휴대폰에서 제목이 세 줄로 꺾인다. */}
+          <span className="text-body font-semibold break-keep">
+            <AudienceBadge inline />
+            {BROCHURE_TITLE}
+          </span>
           <span className="text-body-sm text-muted">{TOTAL}쪽 · 바로 보기</span>
         </span>
         <Chevron dir="right" className="h-4 w-4 shrink-0 text-muted" />
@@ -78,7 +101,7 @@ export function BrochureCard() {
         // 혼자 서 있는 링크다 — 누르는 높이를 44px 로 두고 -my 로 주변 여백을 먹는다(첫 화면의 '테마 보기' 링크와 같다).
         className="-my-2 inline-flex h-11 items-center self-start text-body-sm text-muted underline underline-offset-4 hover:text-foreground"
       >
-        회사 공유용 PDF 받기 ({BROCHURE_PDF_SIZE})
+        {BROCHURE_PDF_LABEL} ({BROCHURE_PDF_SIZE})
       </a>
       {open && <BrochureViewer onClose={close} />}
     </div>
@@ -156,11 +179,14 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
       data-quote-ignore
       role="dialog"
       aria-modal="true"
-      aria-label="단체 프로그램 소개서"
+      aria-label={FULL_TITLE}
       className="animate-fade-in fixed inset-0 z-[60] flex flex-col bg-background"
     >
       <div className="flex items-center gap-3 px-4 pt-[env(safe-area-inset-top)]">
-        <p className="min-w-0 flex-1 truncate text-body font-semibold">단체 프로그램 소개서</p>
+        <p className="flex min-w-0 flex-1 items-center gap-1.5">
+          <AudienceBadge />
+          <span className="truncate text-body font-semibold">{BROCHURE_TITLE}</span>
+        </p>
         <p className="text-label tabular-nums text-muted" aria-live="polite">
           {page + 1} / {TOTAL}
         </p>
@@ -241,7 +267,7 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
           onClick={() => track(GROUP_EVENT.brochureDownload, { sectionKey: "viewer" })}
           className="inline-flex h-11 items-center rounded-lg border border-line px-5 text-label font-semibold hover:border-line-strong"
         >
-          회사 공유용 PDF 받기 ({BROCHURE_PDF_SIZE})
+          {BROCHURE_PDF_LABEL} ({BROCHURE_PDF_SIZE})
         </a>
       </div>
     </div>,
