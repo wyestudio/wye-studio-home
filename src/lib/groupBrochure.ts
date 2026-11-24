@@ -14,11 +14,11 @@
  *    (WebP 1600px · PDF 는 JPEG 1920px 로 다시 묶어 21.7MB → 2.6MB).
  */
 /**
- * 화면에 보이는 이름. 대상은 제목 앞 배지로 가른다 — 기업용이고, 일반 참여자용이 생기면 같은 제목에
- * 배지만 바꿔 나란히 둔다(2026-11-24 대표님). PDF 링크는 '사내 공유용' 으로 쓴다.
+ * 화면에 보이는 이름. 대상(기업)을 이름 앞에 글자로 붙인다 — 일반 참여자용이 생기면 같은 꼴로
+ * 나란히 둔다(2026-11-24 대표님). 배지로 붙였더니 휴대폰에서 두 줄로 꺾여 글자로 바꿨다.
+ * PDF 링크는 '사내 공유용' 으로 쓴다.
  */
-export const BROCHURE_AUDIENCE = "기업";
-export const BROCHURE_TITLE = "단체 프로그램 소개서";
+export const BROCHURE_TITLE = "기업용 프로그램 소개서";
 export const BROCHURE_PDF_LABEL = "사내 공유용 PDF 받기";
 export const BROCHURE_BASE = "/group/brochure-2026-11";
 export const BROCHURE_PDF = `${BROCHURE_BASE}/wye-group-brochure-2026-11.pdf`;
