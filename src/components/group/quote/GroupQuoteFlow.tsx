@@ -332,6 +332,11 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
     startSent.current = true;
     pushGa4Event(GROUP_EVENT.quoteStart, { themeLabel: GROUP_PAGE_LABEL });
   }
+  /** `data-quote-ignore` 안(소개서 카드 · 뷰어)에서 생긴 이벤트는 견적 시작으로 세지 않는다. */
+  function markStartUnlessIgnored(e: React.SyntheticEvent) {
+    if ((e.target as HTMLElement).closest?.("[data-quote-ignore]")) return;
+    markStart();
+  }
 
   const clearError = (...keys: string[]) =>
     setErrors((x) => {
@@ -797,8 +802,10 @@ function QuoteFlowInner({ closures, busy, firstDate, hero, info, saved }: Props 
     <QuoteContext.Provider value={ctx}>
       <div
         className="group-quote-flow grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-x-12"
-        onFocusCapture={markStart}
-        onPointerDownCapture={markStart}
+        // 첫 화면의 소개서 카드 · 뷰어(포털이라도 React 이벤트는 여기까지 올라온다)에서 누르거나 포커스한 건
+        // 견적을 건드린 게 아니다 — 세면 '견적 시작' 이 소개서 열람만큼 부풀려진다(2026-11-24).
+        onFocusCapture={markStartUnlessIgnored}
+        onPointerDownCapture={markStartUnlessIgnored}
       >
         <div className="min-w-0 lg:col-start-1 lg:row-start-1">{hero}</div>
 

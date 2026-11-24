@@ -143,7 +143,9 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
+  // 정적 파일(그림 · PDF)은 프록시를 거치지 않는다 — 받을 때마다 함수가 돌 이유가 없다.
+  // pdf 는 단체 소개서(public/group/brochure-*) 때문에 더했다(2026-11-24).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|pdf)$).*)",
   ],
 };

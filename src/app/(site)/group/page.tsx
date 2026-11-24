@@ -7,6 +7,7 @@ import { Chevron } from "@/components/ui/Chevron";
 import { KakaoChannelButton } from "@/components/ui/KakaoChannelButton";
 import { SectionViewTracker } from "@/components/analytics/SectionViewTracker";
 import { GroupEntryTracker } from "@/components/group/GroupEntryTracker";
+import { BrochureCard } from "@/components/group/BrochureViewer";
 import { GroupQuoteFlow } from "@/components/group/quote/GroupQuoteFlow";
 import { ProgramBuilder } from "@/components/group/quote/ProgramBuilder";
 import { GROUP_EVENT } from "@/lib/analytics";
@@ -287,6 +288,8 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           </div>
         ))}
       </dl>
+      {/* 소개서 — 받기 전에 먼저 넘겨 보게 한다(2026-11-24 대표님. 배경은 groupBrochure.ts). */}
+      <BrochureCard />
     </Block>
   );
 

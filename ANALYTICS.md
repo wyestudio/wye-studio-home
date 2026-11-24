@@ -128,9 +128,12 @@
 | `group_quote_start` | 견적 폼의 칸을 **처음 건드렸을 때**. 방문당 한 번 | `theme_label` |
 | `group_quote_submit` | 견적 신청이 접수됐을 때(서버 성공) | `theme_label` |
 | `group_quote_error` | 제출했는데 막혔을 때 | `theme_label`, `section_key`=`quote`, `section_label`(막힌 항목) |
+| `group_brochure_open` | 첫 화면의 소개서 카드를 눌러 뷰어를 열 때 | `theme_label`, `section_key`=`hero` |
+| `group_brochure_read` | 소개서 뷰어를 닫을 때 한 번 | `theme_label`, `section_index`(가장 멀리 본 쪽, 1부터) |
+| `group_brochure_download` | 소개서 PDF 링크를 누를 때 | `theme_label`, `section_key`(`hero` · `viewer`) |
 
 쏘는 곳: `GroupEntryTracker.tsx`(진입) · `components/analytics/SectionViewTracker.tsx`(블록) ·
-`GroupQuoteCta.tsx`(버튼) · `QuoteForm.tsx`(폼). 이름은 `src/lib/analytics.ts` 의
+`GroupQuoteCta.tsx`(버튼) · `QuoteForm.tsx`(폼) · `BrochureViewer.tsx`(소개서). 이름은 `src/lib/analytics.ts` 의
 `GROUP_EVENT` 한 곳에 모여 있다.
 
 **`theme_label` 에는 테마명이 아니라 `단체 예약 안내` 가 들어간다**(`GROUP_PAGE_LABEL`).
