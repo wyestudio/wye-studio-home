@@ -186,6 +186,14 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        // 단체 소개서(PDF · 슬라이드 그림)는 /group 에서 보여 주되 검색에는 내보내지 않는다
+        // (2026-11-24 대표님). 기업 로고가 들어 있고, 요금이 바뀌면 옛 소개서가 검색에 남는다.
+        // ⚠️ robots.txt 로 막지 않는다 — 막으면 구글이 이 헤더를 못 읽어 주소만 색인될 수 있다.
+        // ⚠️ 그림을 next/image 최적화(/_next/image)로 내보내면 이 헤더가 안 붙는다 — 원본 주소로 쓴다.
+        source: "/group/brochure-:edition/:file*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noimageindex" }],
+      },
     ];
   },
 };

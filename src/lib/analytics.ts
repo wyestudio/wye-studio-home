@@ -136,4 +136,10 @@ export const GROUP_EVENT = {
   quoteSubmit: "group_quote_submit",
   /** 제출했는데 막혔다. sectionLabel = 막힌 항목 — 폼이 어디서 사람을 떨구는지. */
   quoteError: "group_quote_error",
+  /** 소개서 뷰어를 열었다. sectionKey = 연 자리. */
+  brochureOpen: "group_brochure_open",
+  /** 소개서 뷰어를 닫았다. sectionIndex = 가장 멀리 본 쪽(1부터) — 어디까지 읽고 덮는지. */
+  brochureRead: "group_brochure_read",
+  /** 소개서 PDF 를 열었다. sectionKey = 누른 자리(hero · viewer). */
+  brochureDownload: "group_brochure_download",
 } as const;
