@@ -5,6 +5,7 @@ import { formatKrw, formatDateTimeDotted } from "@/lib/format";
 import { EXPERIENCE_RANGE_LABELS } from "@/lib/validation";
 import { getSessionStats } from "@/lib/sessions";
 import { createClient } from "@/lib/supabase/server";
+import { formatPhoneDigits } from "@/lib/phone";
 
 const GENDER_LABEL: Record<"M" | "F", string> = { M: "남", F: "여" };
 const SESSION_TYPE_ORDER = ["그룹", "소개팅"];
@@ -356,4 +357,85 @@ export async function sendReviewCollectFailureAlert({
   } catch (err) {
     console.error("[slack] 후기 수집 실패 알림 전송 중 에러", err);
   }
+}
+
+/**
+ * 문자 발송 실패 알림 (backup-alert 채널).
+ *
+ * 왜 알림이 필요한가
+ *   문자 실패는 신청·어드민 처리를 막지 않도록 로그만 남기고 넘어간다. 그래서 솔라피 키가
+ *   만료되자 **2주 가까이 모든 문자가 안 나갔는데 아무도 몰랐다**(2026-11-08 ~ 11-21).
+ *   고객이 "입금 안내를 못 받았다" 고 연락해 와서야 알았다. 서버 로그는 1시간만 남는다.
+ *
+ * 받는 사람 번호를 싣는다 — 알림만 보고 그 고객에게 직접 연락할 수 있어야 한다.
+ * 신청 알림(`slackV2.ts`)이 이미 연락처를 싣고 있어 기준도 같다.
+ *
+ * ⚠️ 이 함수는 절대 throw 하지 않는다. 문자 실패를 알리다가 신청을 실패시키면 안 된다.
+ */
+export async function sendSmsFailureAlert({
+  label,
+  reason,
+  recipients,
+  context,
+}: {
+  /** 어떤 문자인가 — "신청확인 문자", "장소안내 문자" 등 */
+  label: string;
+  /** 실패 원인. 솔라피 오류 원문을 그대로 */
+  reason: string;
+  /** 받지 못한 사람의 번호 */
+  recipients: string[];
+  /** 접수번호처럼 그 건을 찾을 단서 */
+  context?: string;
+}): Promise<void> {
+  // 테스트 환경은 문자를 보내지 않으므로 실패할 일도 없다. 혹시 생겨도 운영 채널에
+  // 테스트 알림을 올리지 않는다(단체 예약 알림과 같은 결정 — 2026-10-28).
+  if (process.env.NEXT_PUBLIC_IS_TEST_ENV === "true") return;
+
+  try {
+    const webhookUrl =
+      pickSlackWebhook("SLACK_BACKUP_ALERT_WEBHOOK_URL") ?? pickSlackWebhook("SLACK_WEBHOOK_URL");
+    if (!webhookUrl) {
+      console.warn("[slack] 쓸 수 있는 웹훅이 없어 문자 발송 실패 알림을 건너뜁니다.");
+      return;
+    }
+
+    // 한 번에 수백 명이 실패해도 채널을 덮지 않도록 앞의 몇 명만 싣는다.
+    const SHOWN = 10;
+    const shown = recipients.slice(0, SHOWN).map(formatPhoneDigits);
+
+    const facts = [
+      `:rotating_light: 문자 발송 실패 — ${label} ${recipients.length}건`,
+      context ? `건: ${context}` : null,
+      `받지 못한 번호: ${shown.join(", ")}${recipients.length > SHOWN ? ` 외 ${recipients.length - SHOWN}명` : ""}`,
+      `사유: ${reason}`,
+    ].filter((l): l is string => l !== null);
+    const text = [
+      ...facts,
+      "",
+      "이 고객들은 문자를 받지 못했습니다. 필요하면 직접 연락해 주세요.",
+      "사유가 API Key·잔액 문제라면 이후 문자도 전부 실패합니다 — console.solapi.com 에서 확인하세요.",
+    ].join("\n");
+
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    if (!res.ok) {
+      console.error(`[slack] 문자 발송 실패 알림 전송 실패: ${res.status} ${await res.text()}`);
+    }
+  } catch (err) {
+    console.error("[slack] 문자 발송 실패 알림 전송 중 에러", err);
+  }
+}
+
+/** 솔라피 오류를 사람이 읽을 한 줄로. 오류 이름(ExpiredApiKey 등)이 원인을 가장 잘 말해준다. */
+export function smsErrorText(err: unknown): string {
+  if (err instanceof Error) {
+    // 솔라피 SDK 는 메시지 앞에 이미 원인 이름을 붙여 오기도 한다("ValidationError: …").
+    // 그때 겉 이름(ClientError)을 또 붙이면 읽기만 어렵다.
+    if (/^\w+: /.test(err.message) || !err.name || err.name === "Error") return err.message;
+    return `${err.name}: ${err.message}`;
+  }
+  return String(err);
 }

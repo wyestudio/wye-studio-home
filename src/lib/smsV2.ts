@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatKrw, formatDuration } from "@/lib/format";
 import { BANK_ACCOUNT } from "@/lib/bankAccount";
 import { refundPolicySms, toRefundPolicy, type RefundPolicy } from "@/lib/refundPolicy";
+import { sendSmsFailureAlert, smsErrorText } from "@/lib/slack";
 
 /**
  * 테마·회차 구조용 문자 발송.
@@ -122,6 +123,12 @@ export async function sendApplicationConfirmationSmsV2(params: {
   const service = getService();
   if (!service || !senderNumber) {
     console.warn("[smsV2] SOLAPI_* 미설정 — 신청확인 문자를 건너뜁니다.");
+    await sendSmsFailureAlert({
+      label: "신청확인 문자",
+      reason: "SOLAPI_* 환경변수 미설정",
+      recipients: [params.to],
+      context: `접수번호 ${params.confirmationCode}`,
+    });
     return;
   }
 
@@ -152,6 +159,13 @@ export async function sendApplicationConfirmationSmsV2(params: {
   } catch (err) {
     // 신청은 이미 성공했다. 문자 실패로 사용자에게 에러를 보이면 안 된다.
     console.error("[smsV2] 신청확인 문자 발송 실패", err);
+    // 로그만으로는 아무도 모른다(서버 로그는 1시간 보관) — 슬랙으로 바로 알린다.
+    await sendSmsFailureAlert({
+      label: "신청확인 문자",
+      reason: smsErrorText(err),
+      recipients: [params.to],
+      context: `접수번호 ${params.confirmationCode}`,
+    });
   }
 }
 
@@ -262,9 +276,11 @@ async function sendTemplate(
   logLabel: string,
   solo = false
 ): Promise<void> {
+  const failCtx = vars.confirmation_code ? `접수번호 ${vars.confirmation_code}` : undefined;
   const body = await getTemplateBodyFor(key, solo, "");
   if (!body) {
     console.error(`[smsV2] 템플릿(${key})을 찾을 수 없어 ${logLabel}를 건너뜁니다.`);
+    await sendSmsFailureAlert({ label: logLabel, reason: `문자 템플릿(${key})이 없음`, recipients: [to], context: failCtx });
     return;
   }
   const text = render(body, vars);
@@ -291,6 +307,7 @@ async function sendTemplate(
   const service = getService();
   if (!service || !senderNumber) {
     console.warn(`[smsV2] SOLAPI_* 미설정 — ${logLabel}를 건너뜁니다.`);
+    await sendSmsFailureAlert({ label: logLabel, reason: "SOLAPI_* 환경변수 미설정", recipients: [to], context: failCtx });
     return;
   }
   try {
@@ -298,6 +315,7 @@ async function sendTemplate(
     console.log(`[smsV2] ${logLabel} 발송 완료`);
   } catch (err) {
     console.error(`[smsV2] ${logLabel} 발송 실패`, err);
+    await sendSmsFailureAlert({ label: logLabel, reason: smsErrorText(err), recipients: [to], context: failCtx });
   }
 }
 
