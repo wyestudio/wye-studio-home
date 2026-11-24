@@ -1,5 +1,6 @@
 import "server-only";
 import { SolapiMessageService } from "solapi";
+import { sendSmsFailureAlert, smsErrorText } from "@/lib/slack";
 
 /**
  * 여러 명에게 한 번에 문자를 보낸다.
@@ -66,6 +67,11 @@ export async function sendSmsBulk(
   const service = getService();
   if (!service || !senderNumber) {
     console.warn(`[smsBulk] SOLAPI_* 미설정 — ${logLabel} ${messages.length}건을 건너뜁니다.`);
+    await sendSmsFailureAlert({
+      label: logLabel,
+      reason: "SOLAPI_* 환경변수 미설정",
+      recipients: messages.map((m) => m.to),
+    });
     return { sentKeys: messages.map((m) => m.key), failures: [] };
   }
 
@@ -114,10 +120,21 @@ export async function sendSmsBulk(
       // 전건 실패(MessageNotReceivedError) 또는 네트워크 오류.
       // ⚠️ 실패로 남겨 다음 실행이 재시도하게 둔다. 기존 한 건씩 보내던 코드와
       //    같은 판단이다 — 못 받는 것보다 한 번 더 받는 쪽이 낫다.
-      const reason = err instanceof Error ? err.message : "알 수 없는 오류";
+      const reason = err instanceof Error ? smsErrorText(err) : "알 수 없는 오류";
       console.error(`[smsBulk] ${logLabel} ${chunk.length}건 발송 실패`, err);
       for (const m of chunk) failures.push({ key: m.key, reason });
     }
+  }
+
+  // 묶음마다가 아니라 한 번에 모아서 알린다 — 묶음 수만큼 알림이 쌓이지 않게.
+  if (failures.length > 0) {
+    const toByKey = new Map(messages.map((m) => [m.key, m.to]));
+    const reasons = [...new Set(failures.map((f) => f.reason))];
+    await sendSmsFailureAlert({
+      label: logLabel,
+      reason: reasons.slice(0, 3).join(" / ") + (reasons.length > 3 ? ` 외 ${reasons.length - 3}가지` : ""),
+      recipients: failures.map((f) => toByKey.get(f.key) ?? f.key),
+    });
   }
 
   return { sentKeys, failures };
