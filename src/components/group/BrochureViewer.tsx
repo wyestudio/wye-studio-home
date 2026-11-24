@@ -4,9 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Chevron } from "@/components/ui/Chevron";
 import { GROUP_EVENT, pushGa4Event } from "@/lib/analytics";
-import { GROUP_ACCENT, GROUP_PAGE_LABEL } from "@/lib/groupBooking";
+import { GROUP_PAGE_LABEL } from "@/lib/groupBooking";
 import {
-  BROCHURE_AUDIENCE,
   BROCHURE_COVER,
   BROCHURE_PAGES,
   BROCHURE_PDF,
@@ -29,21 +28,6 @@ import {
 */
 
 const TOTAL = BROCHURE_PAGES.length;
-const FULL_TITLE = `${BROCHURE_AUDIENCE} ${BROCHURE_TITLE}`;
-
-/** 대상 배지(기업 · 나중에 일반). 단체 페이지의 강조색 칩(첫 화면 '단체 전용' · FAQ 의 Q)과 같은 색이다. */
-function AudienceBadge({ inline = false }: { inline?: boolean }) {
-  return (
-    <span
-      className={`shrink-0 rounded-md px-1.5 py-0.5 text-micro font-extrabold ${
-        inline ? "mr-1.5 inline-block align-middle" : ""
-      }`}
-      style={{ backgroundColor: `${GROUP_ACCENT}26`, color: GROUP_ACCENT }}
-    >
-      {BROCHURE_AUDIENCE}
-    </span>
-  );
-}
 
 function track(name: string, params: { sectionKey?: string; sectionIndex?: number } = {}) {
   pushGa4Event(name, { themeLabel: GROUP_PAGE_LABEL, ...params });
@@ -69,7 +53,8 @@ export function BrochureCard() {
           setOpen(true);
           track(GROUP_EVENT.brochureOpen, { sectionKey: "hero" });
         }}
-        className="flex items-center gap-3.5 rounded-xl border border-panel-border bg-panel p-2.5 pr-4 text-left transition-colors hover:border-line-strong"
+        // 썸네일 w-24 · 간격 gap-3 은 360px 폭(갤럭시 기본)에서 제목이 한 줄에 들어가게 맞춘 값이다.
+        className="flex items-center gap-3 rounded-xl border border-panel-border bg-panel p-2.5 pr-4 text-left transition-colors hover:border-line-strong"
       >
         {/* 표지 그림이 곧 '무엇을 여는지' 의 설명이다 — 모르는 파일이 아니라는 걸 보여 준다. */}
         {/* eslint-disable-next-line @next/next/no-img-element -- 검색 제외 헤더가 붙은 원본 주소를 써야 한다 */}
@@ -79,16 +64,12 @@ export function BrochureCard() {
           width={640}
           height={359}
           decoding="async"
-          className="w-28 shrink-0 rounded-md border border-line-subtle"
+          className="w-24 shrink-0 rounded-md border border-line-subtle"
           style={{ aspectRatio: BROCHURE_RATIO }}
         />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          {/* 휴대폰에서는 두 줄이 된다 — 낱말 가운데서 끊기지 않게 break-keep */}
-          {/* 배지를 글줄 안에 둔다 — 옆 칸으로 빼면 휴대폰에서 제목이 세 줄로 꺾인다. */}
-          <span className="text-body font-semibold break-keep">
-            <AudienceBadge inline />
-            {BROCHURE_TITLE}
-          </span>
+          {/* 아주 좁은 화면에서 꺾이더라도 낱말 가운데서 끊기지 않게 break-keep */}
+          <span className="text-body font-semibold break-keep">{BROCHURE_TITLE}</span>
           <span className="text-body-sm text-muted">{TOTAL}쪽 · 바로 보기</span>
         </span>
         <Chevron dir="right" className="h-4 w-4 shrink-0 text-muted" />
@@ -179,14 +160,11 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
       data-quote-ignore
       role="dialog"
       aria-modal="true"
-      aria-label={FULL_TITLE}
+      aria-label={BROCHURE_TITLE}
       className="animate-fade-in fixed inset-0 z-[60] flex flex-col bg-background"
     >
       <div className="flex items-center gap-3 px-4 pt-[env(safe-area-inset-top)]">
-        <p className="flex min-w-0 flex-1 items-center gap-1.5">
-          <AudienceBadge />
-          <span className="truncate text-body font-semibold">{BROCHURE_TITLE}</span>
-        </p>
+        <p className="min-w-0 flex-1 truncate text-body font-semibold">{BROCHURE_TITLE}</p>
         <p className="text-label tabular-nums text-muted" aria-live="polite">
           {page + 1} / {TOTAL}
         </p>
