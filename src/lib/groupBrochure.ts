@@ -21,7 +21,15 @@
 export const BROCHURE_TITLE = "기업용 프로그램 소개서";
 export const BROCHURE_PDF_LABEL = "사내 공유용 PDF 받기";
 export const BROCHURE_BASE = "/group/brochure-2026-11";
-export const BROCHURE_PDF = `${BROCHURE_BASE}/wye-group-brochure-2026-11.pdf`;
+/**
+ * 받았을 때 저장되는 이름(2026-11-24 대표님). 세 군데에 같은 이름을 둔다 — 브라우저마다 보는 곳이 달라서다.
+ *   - 파일 이름(주소) — Safari 는 헤더를 무시하고 주소의 파일 이름으로 저장한다
+ *   - Content-Disposition 헤더(next.config.ts) — Chrome · Firefox 가 저장 이름으로 쓴다
+ *   - PDF 안의 제목 정보 — Chrome 이 PDF 탭 제목으로 쓴다(PDF 를 다시 만들 때 같이 넣는다)
+ * ⚠️ 이름을 바꾸면 public 의 파일 이름도 같이 바꾼다. 안 바꾸면 링크가 404 가 된다.
+ */
+export const BROCHURE_PDF_NAME = "[우주이스케이프] 기업용 단체 프로그램 소개서.pdf";
+export const BROCHURE_PDF = `${BROCHURE_BASE}/${encodeURIComponent(BROCHURE_PDF_NAME)}`;
 export const BROCHURE_PDF_SIZE = "2.6MB";
 export const BROCHURE_COVER = `${BROCHURE_BASE}/cover.webp`;
 /** 슬라이드 원본 비율(1456 × 816). 그림이 오기 전에 자리를 잡아 화면이 튀지 않게 한다. */
