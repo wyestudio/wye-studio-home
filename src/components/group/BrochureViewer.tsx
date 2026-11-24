@@ -97,12 +97,30 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
   const farthest = useRef(0);
   const closing = useRef(false);
 
+  // 마지막으로 가려던 장. 부드러운 스크롤이 도는 동안 위치를 읽으면 아직 이전 장이라,
+  // 연달아 누를 때 같은 장으로 두 번 가게 된다 — 직후 잠깐은 가려던 장을 기준으로 삼는다.
+  const intended = useRef({ index: 0, at: 0 });
+
   const goTo = useCallback((i: number) => {
     const el = trackRef.current;
     if (!el) return;
     const next = Math.max(0, Math.min(TOTAL - 1, i));
+    intended.current = { index: next, at: Date.now() };
     el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
   }, []);
+
+  /** 지금 기준이 되는 장 — 방금 넘기라고 했으면 그 장, 아니면 화면에 보이는 장. */
+  const currentIndex = useCallback(() => {
+    if (Date.now() - intended.current.at < 600) return intended.current.index;
+    const el = trackRef.current;
+    return el ? Math.round(el.scrollLeft / el.clientWidth) : 0;
+  }, []);
+
+  /** 슬라이드를 누르면 왼쪽 절반은 이전 장, 오른쪽 절반은 다음 장. 밀기 뒤에는 브라우저가 click 을 보내지 않는다. */
+  function onTap(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    goTo(currentIndex() + (e.clientX < rect.left + rect.width / 2 ? -1 : 1));
+  }
 
   // 닫기는 한 길로 모은다: 버튼 · Esc · 바깥 누르기 → history.back() → popstate → 실제로 닫기.
   // 휴대폰 뒤로가기도 같은 popstate 로 들어온다. 뷰어를 연 채 뒤로가기를 누르면
@@ -129,10 +147,6 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
       if (e.key === "ArrowRight") goTo(currentIndex() + 1);
       if (e.key === "ArrowLeft") goTo(currentIndex() - 1);
     };
-    const currentIndex = () => {
-      const el = trackRef.current;
-      return el ? Math.round(el.scrollLeft / el.clientWidth) : 0;
-    };
     window.addEventListener("popstate", onPop);
     window.addEventListener("keydown", onKey);
     // 뒤 페이지가 같이 스크롤되지 않게 잠근다.
@@ -145,7 +159,7 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
       window.removeEventListener("keydown", onKey);
       root.style.overflow = prevOverflow;
     };
-  }, [onClose, requestClose, goTo]);
+  }, [onClose, requestClose, goTo, currentIndex]);
 
   function onScroll() {
     const el = trackRef.current;
@@ -186,7 +200,10 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
         <div
           ref={trackRef}
           onScroll={onScroll}
-          className="flex h-full w-full snap-x snap-mandatory overflow-x-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          onClick={onTap}
+          // touch-action: manipulation — 두 번 눌러 확대를 끈다(빠르게 두 번 넘길 때 화면이 확대되지 않게).
+          // 손가락 둘로 벌리는 확대와 밀기는 그대로 된다.
+          className="flex h-full w-full touch-manipulation snap-x snap-mandatory overflow-x-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {BROCHURE_PAGES.map((alt, i) => (
             // [container-type:size] — 그림 폭을 이 칸의 폭 · 높이로 계산한다(아래 img 의 cqw · cqh).
@@ -211,10 +228,10 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        {/* PC 에서만 화살표 버튼. 휴대폰은 손가락으로 민다. */}
+        {/* PC 에서만 화살표 버튼. 휴대폰은 밀거나 양옆을 누른다(onTap). */}
         <button
           type="button"
-          onClick={() => goTo(page - 1)}
+          onClick={() => goTo(currentIndex() - 1)}
           disabled={page === 0}
           aria-label="이전 쪽"
           className="absolute left-4 hidden h-11 w-11 items-center justify-center rounded-full border border-line bg-panel text-foreground hover:border-line-strong disabled:opacity-30 lg:flex"
@@ -223,7 +240,7 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
         </button>
         <button
           type="button"
-          onClick={() => goTo(page + 1)}
+          onClick={() => goTo(currentIndex() + 1)}
           disabled={page === TOTAL - 1}
           aria-label="다음 쪽"
           className="absolute right-4 hidden h-11 w-11 items-center justify-center rounded-full border border-line bg-panel text-foreground hover:border-line-strong disabled:opacity-30 lg:flex"
@@ -236,7 +253,7 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
       <div className="flex flex-col items-center gap-3 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] [@media(max-height:500px)]:hidden">
         {/* 휴대폰 세로 화면에서는 슬라이드 글자가 작다 — 가로로 돌리면 화면을 꽉 채운다. */}
         <p className="text-body-sm text-muted portrait:block landscape:hidden lg:hidden">
-          옆으로 밀어 넘기고, 가로로 돌리면 크게 보여요
+          양옆을 누르거나 밀어서 넘기고, 가로로 돌리면 크게 보여요
         </p>
         <a
           href={BROCHURE_PDF}
