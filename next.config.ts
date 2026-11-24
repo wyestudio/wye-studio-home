@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { BROCHURE_PDF_NAME } from "./src/lib/groupBrochure";
 
 const nextConfig: NextConfig = {
   // ⚠️ 서버 액션 호출 로그를 끈다. 켜 두면 개발 서버가 인자를 그대로 터미널에 찍는데,
@@ -193,6 +194,18 @@ const nextConfig: NextConfig = {
         // ⚠️ 그림을 next/image 최적화(/_next/image)로 내보내면 이 헤더가 안 붙는다 — 원본 주소로 쓴다.
         source: "/group/brochure-:edition/:file*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noimageindex" }],
+      },
+      {
+        // 소개서 PDF 는 브라우저에서 먼저 열리고(inline), 저장할 때는 우리가 정한 이름으로 저장된다.
+        // 헤더 값은 ASCII 만 되므로 한글 이름은 filename*(RFC 5987)로, filename 은 영문 대체 이름이다.
+        // 이름의 근거 · Safari 차이는 src/lib/groupBrochure.ts 의 BROCHURE_PDF_NAME.
+        source: "/group/brochure-:edition/:file(.*\\.pdf)",
+        headers: [
+          {
+            key: "Content-Disposition",
+            value: `inline; filename="wouldyouescape-brochure.pdf"; filename*=UTF-8''${encodeURIComponent(BROCHURE_PDF_NAME)}`,
+          },
+        ],
       },
     ];
   },
