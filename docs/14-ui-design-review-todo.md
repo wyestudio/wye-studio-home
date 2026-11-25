@@ -77,7 +77,8 @@
   - `src/components/home/scenes/HeroScene.tsx:138-180`
 - [x] **테마 상세의 상자 안의 상자** — SELECT MODE 패널 > 모드 카드 > MODE SKILLS 상자, 테두리가 세 겹. `src/app/(site)/themes/[slug]/ModeBox.tsx` — **유지로 결정(대표님). 다시 올리지 않는다**
   - 이유: 게임의 모드 선택 창을 본뜬 의도된 모양이다(시안 2026-10-08, 코드 머리말). 세 겹이 창 · 고를 버튼 · 스킬 칸으로 역할이 다르고, `wye-design-system` 도 이 자리의 도트 모양을 예외로 정해 뒀다. 이미 여러 번 다듬은 화면이다
-- [ ] **Orbitron 글꼴 빼기** — 홈 "Planets to Escape" 제목 한 곳에만 쓰이는 네 번째 글꼴. `src/components/home/scenes/ThemeScene.tsx`, `orbitron.ts`
+- [x] **Orbitron 글꼴 빼기** — 홈 "Planets to Escape" 제목 한 곳에만 쓰이는 네 번째 글꼴. `src/components/home/scenes/ThemeScene.tsx`, `orbitron.ts` — **유지로 결정(대표님). 다시 올리지 않는다**
+  - 이유: Geist Mono · Space Grotesk 와 나란히 비교해 대표님이 고른 글꼴이다(`orbitron.ts` 머리말). 홈에서만 영문 한 굵기(약 6.5KB)를 받아 속도 부담이 거의 없고, 행성 장면의 SF 표지 분위기를 맡는 장식용 제목이다
 - [ ] **인스타 카드 다시 만들기** — 어두운 사이트에서 유일한 흰 면(공식 embed iframe). 자체 썸네일 + 캡션 카드로. `src/components/home/scenes/InstagramScene.tsx:264`
 - [ ] **주 버튼 모양 통일** — 홈 "> YES" 글자 링크 · `/lookup` 테두리 버튼 · 테마 상세 민트 · 단체 핑크
 
