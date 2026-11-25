@@ -11,6 +11,16 @@ const CAROUSEL_FROM = 5;
 const INTERVAL_MS = 5000;
 /** 카드 사이 간격(px). 아래 gap-3 / sm:gap-4 와 같아야 페이지 폭 계산이 맞는다. */
 const GAP = { base: 12, sm: 16 };
+/**
+ * 페이지 점은 한 번에 이만큼만 보인다(인스타 사진 넘김 점처럼 지금 위치를 따라 흐른다).
+ * 다 늘어놓으면 후기 수만큼 길어져서 모바일에서 화살표를 밀어냈다(25개에 356px).
+ * 9개는 많아 보여서 5개로 줄였다(대표님). 홀수라야 지금 점이 가운데 선다.
+ */
+const DOTS_SHOWN = 5;
+/** 점 하나 폭과 점 사이 간격(px). 지금 점만 DOT_ACTIVE 로 길다. */
+const DOT = 8;
+const DOT_ACTIVE = 20;
+const DOT_GAP = 6;
 
 /**
  * 한 줄 후기.
@@ -156,22 +166,78 @@ function QuoteCarousel({ quotes, accent }: { quotes: Quote[]; accent: string }) 
       {/* 화살표 + 페이지 점. 점은 지금 어디쯤인지와 남은 양을 알려준다. */}
       <div className="mt-4 flex items-center justify-center gap-3">
         <ArrowButton dir={-1} onClick={() => manual(page - 1)} />
-        <div className="flex items-center gap-1.5">
+        <PageDots pages={pages} page={page} accent={accent} onPick={manual} />
+        <ArrowButton dir={1} onClick={() => manual(page + 1)} />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 흐르는 페이지 점. 최대 DOTS_SHOWN 개가 보이고, 지금 점이 가운데 오도록 줄이 옆으로 밀린다.
+ * 창 밖에 더 있으면 그쪽 끝 두 점을 작게 그려 "더 있다" 를 알린다.
+ *
+ * 보조기기에는 점 대신 "N페이지 중 M번째" 한 줄로 읽힌다. 5초마다 저절로 넘어가므로
+ * 넘어갈 때마다 읽어 주지는 않는다(aria-live 를 걸지 않는다).
+ */
+function PageDots({
+  pages,
+  page,
+  accent,
+  onPick,
+}: {
+  pages: number;
+  page: number;
+  accent: string;
+  onPick: (p: number) => void;
+}) {
+  const shown = Math.min(pages, DOTS_SHOWN);
+  const start = Math.min(Math.max(page - Math.floor(DOTS_SHOWN / 2), 0), pages - shown);
+  const end = start + shown; // 창 끝(포함 안 함)
+  const step = DOT + DOT_GAP;
+
+  /** 창 가장자리 점 크기. 그 너머에 점이 더 있을 때만 줄인다. */
+  const scaleOf = (i: number) => {
+    if (start > 0 && i === start) return 0.5;
+    if (start > 0 && i === start + 1) return 0.75;
+    if (end < pages && i === end - 1) return 0.5;
+    if (end < pages && i === end - 2) return 0.75;
+    return 1;
+  };
+
+  return (
+    <>
+      <span className="sr-only">{`${pages}페이지 중 ${page + 1}번째`}</span>
+      {/* 창 앞쪽 점은 늘 보통 점이라(지금 점은 창 안에 있다) 밀어낼 거리는 start × step 이다. */}
+      <div
+        aria-hidden
+        className="overflow-hidden"
+        style={{ width: (shown - 1) * step + DOT_ACTIVE, height: DOT }}
+      >
+        <div
+          className="flex items-center transition-transform duration-300 motion-reduce:transition-none"
+          style={{ gap: DOT_GAP, transform: `translateX(${-start * step}px)` }}
+        >
           {Array.from({ length: pages }, (_, i) => (
             <button
               key={i}
               type="button"
-              onClick={() => manual(i)}
-              aria-label={`${i + 1}번째 페이지`}
-              aria-current={i === page}
-              className={`h-2 rounded-full transition-all ${i === page ? "" : "bg-muted/40"}`}
-              style={{ width: i === page ? 20 : 8, ...(i === page ? { backgroundColor: accent } : {}) }}
+              tabIndex={-1}
+              onClick={() => onPick(i)}
+              className={`shrink-0 rounded-full transition-all duration-300 motion-reduce:transition-none ${
+                i === page ? "" : "bg-muted/40"
+              }`}
+              style={{
+                width: i === page ? DOT_ACTIVE : DOT,
+                height: DOT,
+                transform: `scale(${scaleOf(i)})`,
+                ...(i === page ? { backgroundColor: accent } : {}),
+              }}
             />
           ))}
         </div>
-        <ArrowButton dir={1} onClick={() => manual(page + 1)} />
       </div>
-    </div>
+    </>
   );
 }
 
@@ -181,7 +247,8 @@ function ArrowButton({ dir, onClick }: { dir: -1 | 1; onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label={dir === -1 ? "이전 후기" : "다음 후기"}
-      className="flex h-8 w-8 items-center justify-center rounded-full border border-panel-border
+      // 44px — 손가락으로 누르는 최소 크기. shrink-0 이 없으면 점 줄에 밀려 찌그러졌다(모바일 18px).
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-panel-border
                  bg-panel text-foreground"
     >
       <Chevron dir={dir === -1 ? "left" : "right"} className="h-4 w-4" />
