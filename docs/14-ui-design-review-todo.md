@@ -65,8 +65,9 @@
 
 ## 대표님이 정하셔야 할 것 (화면 인상이 바뀜 — 고치기 전에 묻는다)
 
-- [ ] **섹션마다 붙은 영문 꼬리표**(BOOKING · HOW TO PLAY · REVIEWS · PRICE …)
-  - AI 랜딩 페이지의 대표적인 버릇이다. 다만 `wye-design-system` 이 영문 섹션 라벨을 허용한다 → 규칙과 충돌
+- [x] **섹션마다 붙은 영문 꼬리표**(BOOKING · HOW TO PLAY · REVIEWS · PRICE …) — **유지로 결정(대표님). 다시 올리지 않는다**
+  - 이유: `wye-design-system` 이 `text-micro` 의 쓰임으로 "영문 섹션 라벨" 을 정해 둔 의도된 요소이고, 우주 · HUD 콘셉트와 어울린다. 섹션 id · 모드 전환 착지가 이 라벨에 묶여 있어 걷어낼 위험이 더 크다
+  - (점검 때 적은 것) AI 랜딩 페이지의 대표적인 버릇이다. 다만 `wye-design-system` 이 영문 섹션 라벨을 허용한다 → 규칙과 충돌
   - 섹션 id 가 이 라벨에서 만들어진다(`ThemeBlocks.tsx:152`, `DetailTabs.tsx:27`). 라벨만 숨기고 id 는 남겨야 상단 탭이 안 깨진다
   - `src/components/ui/SectionHeading.tsx:51`, `src/app/(site)/themes/[slug]/page.tsx:659`, `src/components/contents/ThemeBlocks.tsx:139`
 - [ ] **첫 화면에 한국어 소개 한 줄**
