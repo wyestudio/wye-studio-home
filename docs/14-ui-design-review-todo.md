@@ -75,7 +75,8 @@
   - 본 시안(문구는 `SITE_DESCRIPTION` 앞부분 "여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출"): 제목과 YES 사이(흐름이 끊김) · 로고 위(로고와 제목 묶음이 흐려짐) · SCROLL 위(PC 마스코트 궤도 아래끝과 겹침 — 궤도가 SCROLL 바로 위까지 내려온다) · YES 아래(겹침은 없지만 별로)
   - (점검 때 적은 것) 지금 글자는 "would you escape? / > YES / SCROLL" 뿐이라 무엇을 하는 곳인지 모른다. 유일한 h1 도 이 영문이다
   - `src/components/home/scenes/HeroScene.tsx:138-180`
-- [ ] **테마 상세의 상자 안의 상자** — SELECT MODE 패널 > 모드 카드 > MODE SKILLS 상자, 테두리가 세 겹. `src/app/(site)/themes/[slug]/ModeBox.tsx`
+- [x] **테마 상세의 상자 안의 상자** — SELECT MODE 패널 > 모드 카드 > MODE SKILLS 상자, 테두리가 세 겹. `src/app/(site)/themes/[slug]/ModeBox.tsx` — **유지로 결정(대표님). 다시 올리지 않는다**
+  - 이유: 게임의 모드 선택 창을 본뜬 의도된 모양이다(시안 2026-10-08, 코드 머리말). 세 겹이 창 · 고를 버튼 · 스킬 칸으로 역할이 다르고, `wye-design-system` 도 이 자리의 도트 모양을 예외로 정해 뒀다. 이미 여러 번 다듬은 화면이다
 - [ ] **Orbitron 글꼴 빼기** — 홈 "Planets to Escape" 제목 한 곳에만 쓰이는 네 번째 글꼴. `src/components/home/scenes/ThemeScene.tsx`, `orbitron.ts`
 - [ ] **인스타 카드 다시 만들기** — 어두운 사이트에서 유일한 흰 면(공식 embed iframe). 자체 썸네일 + 캡션 카드로. `src/components/home/scenes/InstagramScene.tsx:264`
 - [ ] **주 버튼 모양 통일** — 홈 "> YES" 글자 링크 · `/lookup` 테두리 버튼 · 테마 상세 민트 · 단체 핑크
