@@ -70,8 +70,10 @@
   - (점검 때 적은 것) AI 랜딩 페이지의 대표적인 버릇이다. 다만 `wye-design-system` 이 영문 섹션 라벨을 허용한다 → 규칙과 충돌
   - 섹션 id 가 이 라벨에서 만들어진다(`ThemeBlocks.tsx:152`, `DetailTabs.tsx:27`). 라벨만 숨기고 id 는 남겨야 상단 탭이 안 깨진다
   - `src/components/ui/SectionHeading.tsx:51`, `src/app/(site)/themes/[slug]/page.tsx:659`, `src/components/contents/ThemeBlocks.tsx:139`
-- [ ] **첫 화면에 한국어 소개 한 줄**
-  - 지금 글자는 "would you escape? / > YES / SCROLL" 뿐이라 무엇을 하는 곳인지 모른다. 유일한 h1 도 이 영문이다
+- [x] **첫 화면에 한국어 소개 한 줄** — **넣지 않기로 결정(대표님). 다시 올리지 않는다**
+  - 이유: "would you escape?" 질문에 "YES" 로 답하고 누르면 참여로 가는 연출이다. 둘 사이에 글자가 끼면 그 흐름이 깨지고, 다른 자리도 어울리지 않았다
+  - 본 시안(문구는 `SITE_DESCRIPTION` 앞부분 "여러 팀이 동시에 경쟁하는 팀대항 이색 방탈출"): 제목과 YES 사이(흐름이 끊김) · 로고 위(로고와 제목 묶음이 흐려짐) · SCROLL 위(PC 마스코트 궤도 아래끝과 겹침 — 궤도가 SCROLL 바로 위까지 내려온다) · YES 아래(겹침은 없지만 별로)
+  - (점검 때 적은 것) 지금 글자는 "would you escape? / > YES / SCROLL" 뿐이라 무엇을 하는 곳인지 모른다. 유일한 h1 도 이 영문이다
   - `src/components/home/scenes/HeroScene.tsx:138-180`
 - [ ] **테마 상세의 상자 안의 상자** — SELECT MODE 패널 > 모드 카드 > MODE SKILLS 상자, 테두리가 세 겹. `src/app/(site)/themes/[slug]/ModeBox.tsx`
 - [ ] **Orbitron 글꼴 빼기** — 홈 "Planets to Escape" 제목 한 곳에만 쓰이는 네 번째 글꼴. `src/components/home/scenes/ThemeScene.tsx`, `orbitron.ts`
