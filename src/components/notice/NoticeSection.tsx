@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { HudPlaceholder } from "@/components/ui/HudPlaceholder";
 import { SeasonArt } from "@/components/season/SeasonArt";
+import { PinIcon } from "@/components/notice/PinIcon";
 import type { Notice } from "@/lib/content";
 
 const kstDate = (iso: string) =>
@@ -46,10 +47,12 @@ export function NoticeSection({ notices }: { notices: Notice[] }) {
             >
               <button
                 onClick={() => setOpen(n)}
-                className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors hover:bg-fill sm:gap-5 sm:px-6 sm:py-5 lg:px-7 lg:py-6"
+                // 모바일은 날짜를 제목 아래로 내려 제목이 한 줄을 다 쓰게 한다. 넘치면 한 줄에서 자른다
+                // (두 줄을 허용하면 줄마다 높이가 달라진다).
+                className="flex w-full flex-col items-start gap-1 px-4 py-3.5 text-left transition-colors hover:bg-fill sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-6 sm:py-5 lg:px-7 lg:py-6"
               >
-                <span className="min-w-0 flex-1 truncate text-h3">
-                  {n.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
+                <span className="w-full min-w-0 truncate text-h3 sm:w-auto sm:flex-1">
+                  {n.is_pinned && <PinIcon className="mr-1.5" />}
                   {n.title}
                 </span>
                 {n.published_at && (
@@ -86,7 +89,7 @@ function NoticeModal({ notice, onClose }: { notice: Notice; onClose: () => void 
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <h3 className="font-semibold text-h3">
-              {notice.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
+              {notice.is_pinned && <PinIcon className="mr-1.5" />}
               {notice.title}
             </h3>
             {notice.published_at && (

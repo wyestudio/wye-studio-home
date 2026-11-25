@@ -7,6 +7,7 @@ import { GuideButton } from "../GuideButton";
 import { NOTICE_GUIDE } from "@/lib/noticeGuide";
 import { FAQ_GUIDE } from "@/lib/faqGuide";
 import { formatDateFull } from "@/lib/format";
+import { PinIcon } from "@/components/notice/PinIcon";
 
 // 날짜 형식은 어드민 전체가 같아야 한다 — formatDateFull 하나만 쓴다.
 const kst = formatDateFull;
@@ -79,10 +80,11 @@ export function ContentManager({ notices, faqs }: { notices: NoticeRow[]; faqs: 
               <div key={n.id}>
                 <button
                   onClick={() => setOpenId(openId === n.id ? null : n.id)}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-border px-4 py-3 text-left hover:bg-muted/10"
+                  // 공개 공지 목록(NoticeSection)과 같이 모바일은 날짜를 제목 아래로 내린다
+                  className="flex w-full flex-col items-start gap-1 rounded-lg border border-border px-4 py-3 text-left hover:bg-muted/10 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                 >
-                  <span className="min-w-0 flex-1 truncate text-body-sm">
-                    {n.is_pinned && <span className="mr-1.5 text-glow">📌</span>}
+                  <span className="w-full min-w-0 truncate text-body-sm sm:w-auto sm:flex-1">
+                    {n.is_pinned && <PinIcon className="mr-1.5" />}
                     {n.title}
                   </span>
                   <span className="shrink-0 text-micro text-muted">
