@@ -258,7 +258,8 @@ export function Header({ admin = false }: { admin?: boolean }) {
                  주변 여백을 먹어 레이아웃은 그대로 둔다). 손가락 기준 최소
                  크기다(Apple HIG 44pt · Material 48dp · WCAG 2.5.8).
             */
-            className="-m-2.5 flex h-11 w-11 flex-col items-center justify-center gap-1.5 p-2.5 focus:outline-none"
+            // focus-visible: 키보드(Tab)로 왔을 때만 테두리를 그린다. 손가락으로 누를 때는 안 보인다.
+            className="-m-2.5 flex h-11 w-11 flex-col items-center justify-center gap-1.5 rounded-lg p-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             aria-label="메뉴"
           >
             <div className={`h-0.5 w-6 bg-foreground transition-transform ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />

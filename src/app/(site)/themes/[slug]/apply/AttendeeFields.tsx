@@ -12,9 +12,11 @@ import type { AttendeeForm } from "./ApplyForm";
  * ⚠️ 글자는 `text-input`(16px 고정)이다. 14px 이었을 때 아이폰에서 칸을 누를
  *    때마다 화면이 확대됐다(2026-10-04 UX 진단 P0). 16px 아래로 내리지 말 것.
  * ⚠️ 높이 48px(h-12) 은 터치 영역 기준이다(Apple HIG 44pt · Material 48dp).
+ * ⚠️ 포커스는 공용 Input 과 같은 파란 테두리 + 3px 빛이다. 흰 테두리만 밝히면(line-strong)
+ *    어느 칸에 있는지 안 보였다.
  */
 export const field =
-  "h-12 w-full rounded-lg border border-line bg-fill px-3 text-input outline-none focus:border-line-strong sm:h-14 text-h3";
+  "h-12 w-full rounded-lg border border-line bg-fill px-3 text-input outline-none focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)] sm:h-14 text-h3";
 export const fieldInvalid =
   "h-12 w-full rounded-lg border border-danger bg-danger-soft px-3 text-input text-danger outline-none sm:h-14 text-h3";
 export const label = "block text-label font-semibold text-muted mb-1.5 lg:mb-2";

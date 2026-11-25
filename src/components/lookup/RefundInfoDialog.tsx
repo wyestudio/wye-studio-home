@@ -5,7 +5,7 @@ import { formatKrw } from "@/lib/format";
 // 신청 폼과 같은 입력칸 — 반투명 카드 위에 올리는 모양.
 // 큰 화면에서는 테마 상세 비율에 맞춰 한 단계 키운다.
 const field =
-  "w-full rounded-lg border border-line bg-fill px-3 py-2.5 text-body outline-none focus:border-line-strong sm:px-4 sm:py-3.5";
+  "w-full rounded-lg border border-line bg-fill px-3 py-2.5 text-body outline-none focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)] sm:px-4 sm:py-3.5";
 const label = "block text-body-sm font-semibold text-muted mb-1.5";
 
 export function RefundInfoDialog({

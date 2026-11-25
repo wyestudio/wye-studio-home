@@ -2,6 +2,9 @@
 
 html {
   scrollbar-gutter: stable;
+  /* 어두운 화면이라고 브라우저에 알린다 — 없으면 체크박스·스크롤바·자동완성 칸을 흰색으로 그린다.
+     layout.tsx 의 generateViewport(colorScheme) 와 짝이다(그쪽은 CSS 를 읽기 전 첫 화면용). */
+  color-scheme: dark;
 }
 
 .copy-protected {

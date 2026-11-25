@@ -98,7 +98,7 @@ export function Select({
             : isOpen
               ? "border-brand focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
               : variant === "glass"
-                ? "border-line focus:border-line-strong"
+                ? "border-line focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
                 : "border-border focus:border-brand focus:shadow-[0_0_0_3px_var(--brand-soft)]"
         }`}
       >
