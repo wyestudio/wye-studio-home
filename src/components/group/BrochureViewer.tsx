@@ -14,6 +14,7 @@ import {
   BROCHURE_RATIO,
   BROCHURE_TITLE,
   brochurePage,
+  BROCHURE_WIDTHS,
 } from "@/lib/groupBrochure";
 
 /*
@@ -210,11 +211,15 @@ function BrochureViewer({ onClose }: { onClose: () => void }) {
             <div key={i} className="flex h-full w-full shrink-0 snap-center items-center justify-center px-4 [container-type:size] lg:px-20">
               {/* eslint-disable-next-line @next/next/no-img-element -- 검색 제외 헤더가 붙은 원본 주소를 써야 한다 */}
               <img
-                src={brochurePage(i)}
+                src={brochurePage(i, 1600)}
+                // 세로 휴대폰(390px × 3배 화면)은 1600, 가로 휴대폰 · PC(레티나)는 2400 을 받는다.
+                // sizes 를 화면 폭으로 둔다 — 그림이 화면 폭보다 넓게 그려질 일은 없다.
+                srcSet={BROCHURE_WIDTHS.map((w) => `${brochurePage(i, w)} ${w}w`).join(", ")}
+                sizes="100vw"
                 alt={`${i + 1}쪽: ${alt}`}
                 width={1600}
                 height={897}
-                // 처음 몇 장만 바로, 나머지는 다가갈 때 받는다 — 17장(1.4MB)을 한꺼번에 받지 않는다.
+                // 처음 몇 장만 바로, 나머지는 다가갈 때 받는다 — 17장(최대 3.1MB)을 한꺼번에 받지 않는다.
                 loading={i < 2 ? "eager" : "lazy"}
                 decoding="async"
                 draggable={false}

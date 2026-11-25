@@ -10,8 +10,9 @@
  *    next.config.ts 가 `brochure-*` 전체에 붙이므로 폴더 이름 규칙을 지킨다.
  * ⚠️ 그림은 next/image 최적화를 거치지 않고 원본 주소로 쓴다 — 최적화 주소(/_next/image)에는
  *    검색 제외 헤더가 안 붙고, 무료 이미지 변환 한도도 쓴다.
- * ⚠️ 원본은 글자 정보가 없는 그림 PDF 다. 슬라이드 그림 · PDF 는 원본을 다시 그려 만든 것
- *    (WebP 1600px · PDF 는 JPEG 1920px 로 다시 묶어 21.7MB → 2.6MB).
+ * ⚠️ 슬라이드 그림은 대표님이 준 PNG 원본(4368px, 17장 38MB)을 WebP 로 줄인 것이다 — 1600px(세로 휴대폰) ·
+ *    2400px(가로 휴대폰 · PC) 두 벌, 합계 1.7MB · 3.1MB. PNG 를 그대로 올리면 첫 장만 4MB 라 휴대폰에서 늦게 뜬다.
+ *    PDF 는 원본 그림 PDF 를 JPEG 1920px 로 다시 묶은 것(21.7MB → 2.6MB).
  */
 /**
  * 화면에 보이는 이름. 대상(기업)을 이름 앞에 글자로 붙인다 — 일반 참여자용이 생기면 같은 꼴로
@@ -20,7 +21,7 @@
  */
 export const BROCHURE_TITLE = "기업용 프로그램 소개서";
 export const BROCHURE_PDF_LABEL = "사내 공유용 PDF 받기";
-export const BROCHURE_BASE = "/group/brochure-2026-11";
+export const BROCHURE_BASE = "/group/brochure-2026-11b";
 /**
  * 받았을 때 저장되는 이름(2026-11-24 대표님). 세 군데에 같은 이름을 둔다 — 브라우저마다 보는 곳이 달라서다.
  *   - 파일 이름(주소) — Safari 는 헤더를 무시하고 주소의 파일 이름으로 저장한다
@@ -56,4 +57,7 @@ export const BROCHURE_PAGES: readonly string[] = [
   "마무리 — 문의 안내",
 ];
 
-export const brochurePage = (i: number) => `${BROCHURE_BASE}/p${String(i + 1).padStart(2, "0")}.webp`;
+/** 슬라이드 그림 폭 두 벌. 화면 폭(기기 픽셀)에 맞춰 브라우저가 고른다 — BrochureViewer 의 srcSet. */
+export const BROCHURE_WIDTHS = [1600, 2400] as const;
+export const brochurePage = (i: number, w: (typeof BROCHURE_WIDTHS)[number]) =>
+  `${BROCHURE_BASE}/p${String(i + 1).padStart(2, "0")}-${w}.webp`;
