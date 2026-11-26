@@ -1,73 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { SeasonArt } from "@/components/season/SeasonArt";
 import { GhostEasterEgg } from "@/components/season/GhostEasterEgg";
 import { useSiteSkin } from "@/components/season/SeasonContext";
 
-/** 내리는 눈송이 — 왼쪽 위치(%) · 크기(px) · 한 번 내리는 시간(초) · 시작 지연(초). 적게, 느리게(시안). */
-const SNOW: [number, number, number, number][] = [
-  [4, 3, 26, -2], [11, 2, 31, -17], [19, 4, 24, -9], [27, 2, 34, -25], [36, 3, 29, -4],
-  [45, 2, 33, -21], [54, 3, 27, -13], [63, 2, 35, -6], [71, 4, 25, -19], [79, 2, 30, -11],
-  [86, 3, 28, -27], [94, 2, 32, -8],
-];
-
-/** 가장자리에 떠 있는 눈송이 — 그림 · 칸 이름. 위치 · 크기는 season.css 의 .xmas-bd-flake--N */
-const FLAKES = [
-  "xmas-snowflake", "xmas-snowflake-2", "xmas-snowflake", "xmas-snowflake-2",
-  "xmas-snowflake", "xmas-snowflake-2", "xmas-snowflake-2", "xmas-snowflake",
-] as const;
-
-/**
- * 크리스마스 배경 — 시안(WYE_Christmas_v2)의 겨울 마을. 아래부터 먼 숲 → 왼쪽 트리 · 선물,
- * 오른쪽 오두막 · 눈사람 · 가로등 → 맨 앞 눈 언덕. 가장자리 눈송이, 천천히 내리는 작은 눈,
- * 홈 밖에서는 왼쪽 위 전구 줄. 위치 · 크기는 season.css 의 .xmas-bd-* 에 있다.
- * xmas-bd-floor — 바닥에 붙은 것들. 하단 고정 버튼 막대가 있으면 같이 위로 올린다.
- * 할로윈처럼 화면에 고정돼 콘텐츠 **뒤**에 깔리고 클릭을 받지 않는다.
- *
- * 트리 · 오두막은 그린 그림(래스터)이라 SVG 가 아니라 <img> 다. 크리스마스일 때만 그려지므로
- * 시즌이 꺼지면 받지도 않는다. 오두막은 시안이 배경째 잘라 준 것이라 하늘을 투명으로 빼서 넣었다.
- * next/image 로 바꾸지 않는다 — 이미 줄여 둔 webp 라 Vercel 이미지 변환 한도만 쓴다.
- */
-function ChristmasBackdrop({ isHome }: { isHome: boolean }) {
-  return (
-    <div aria-hidden className={`season-only season-backdrop ${isHome ? "season-backdrop--home" : ""}`}>
-      <div className="xmas-snow">
-        {SNOW.map(([left, size, dur, delay], i) => (
-          <span
-            key={i}
-            style={{ left: `${left}%`, width: size, height: size, animationDuration: `${dur}s`, animationDelay: `${delay}s` }}
-          />
-        ))}
-      </div>
-      <SeasonArt art="xmas-lights" fit="xMinYMin meet" className="xmas-bd-lights" />
-      {FLAKES.map((art, i) => (
-        <SeasonArt key={i} art={art} className={`xmas-bd-flake xmas-bd-flake--${i + 1}`} />
-      ))}
-      {/* 먼 숲은 화면 4분의 1씩 네 장 — 한 장을 늘이면 나무가 옆으로 퍼지고 너무 가까워 보인다 */}
-      {[0, 1, 2, 3].map((i) => (
-        <SeasonArt key={i} art="xmas-pines-far" className={`xmas-bd-floor xmas-bd-pines xmas-bd-pines--${i + 1}`} />
-      ))}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/season/christmas/xmas-tree-presents.webp"
-        srcSet="/season/christmas/xmas-tree-presents-440.webp 440w, /season/christmas/xmas-tree-presents.webp 860w"
-        sizes="(max-width: 767px) 220px, 430px"
-        alt=""
-        decoding="async"
-        className="season-art xmas-bd-floor xmas-bd-tree"
-      />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/season/christmas/xmas-cabin-scene.webp"
-        alt=""
-        decoding="async"
-        className="season-art xmas-bd-floor xmas-bd-cabin"
-      />
-      <SeasonArt art="xmas-drift" fit="none" className="xmas-bd-floor xmas-bd-ground" />
-    </div>
-  );
-}
+/*
+  크리스마스 배경은 그림이 커서(40KB 남짓) 따로 떼어 둔다 — 크리스마스일 때만 받는다.
+  서버에서도 그대로 그려 내려가므로(ssr 기본값) 화면이 뜬 뒤에 뒤늦게 나타나지 않는다.
+*/
+const ChristmasBackdrop = dynamic(() =>
+  import("@/components/season/ChristmasBackdrop").then((m) => m.ChristmasBackdrop),
+);
 
 /**
  * 화면 가장자리 배경 장식 — 달 · 박쥐 · 거미줄 · 성 실루엣 · 호박 · 유령 · 별.

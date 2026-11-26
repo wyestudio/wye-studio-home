@@ -36,6 +36,14 @@ html:not([data-season]) :is(.season-art, .season-only) {
   max-width: none;
 }
 
+/* 일러스트 파일로 된 장식(크리스마스) — 그림은 요소의 CSS 배경이다(SeasonArt.tsx). 칸 안에 다 보이게 맞춘다. */
+.season-pic {
+  display: inline-block;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
 /* ── 색 ──────────────────────────────────────────────────────────────────── */
 
 html[data-season="halloween"] {
@@ -1172,37 +1180,40 @@ body:has(.group-quote-flow) .season-egg {
 /* ══ 크리스마스 (2026-11-20) ═══════════════════════════════════════════════ */
 
 /*
-  GPT 시안(WYE_Christmas_Claude_Package)의 색 — 짙은 우주 네이비 위에 아이보리 눈, 은은한 금빛,
-  포인트 빨강 · 전나무 초록. 모드 색(파티 민트 · 노말 시안)은 그대로 둔다(시안 지시).
+  색 — 짙은 우주 네이비 위에 흰 눈. 포인트는 **빨강**, 테두리 · 판은 **전나무 초록**.
+  ⚠️ 포인트를 금빛 · 주황으로 두지 않는다 — 할로윈 스킨의 주황과 같아 보인다(2026-11-25 대표님).
+     금빛은 전구 · 방울 · 리본 같은 그림 안에서만 쓴다.
+  모드 색(파티 민트 · 노말 시안)은 그대로 둔다.
+  그림은 전부 scripts/season/gen-christmas-art.mjs 가 만든다(배경 풍경 · 작은 장식 · 전구 줄).
 */
 html[data-season="christmas"] {
   --background: #090d20;
   --background-deep: #060911;
   --surface: #10162a;
-  --foreground: #f4f1ea;
+  --foreground: #f4f5fb;
   --muted: #aeb2cf;
   --border: #2e3552;
-  --brand: #f6bd68;
-  --brand-soft: #f6bd6825;
-  --brand-foreground: #1b1206;
-  --glow: #ffd08a;
-  --glass-border: #fff0d325;
+  --brand: #e5484d;
+  --brand-soft: #e5484d26;
+  --brand-foreground: #fff;
+  --glow: #ff8a8a;
+  --glass-border: #e8eeff22;
   --panel: #141a2c;
   --panel-raised: #1a2238;
   --panel-border: #343a55;
   --surface-glass-from: #182038e8;
   --surface-glass-to: #0d1224e8;
-  --orbit-ring: #f6bd6850;
+  --orbit-ring: #ffffff38;
 }
 
-/* 밤하늘 — 시안의 남보라. 별빛 캔버스의 배경을 바꾼다(StarfieldCanvas). 아래쪽은 지평선 빛. */
+/* 밤하늘 — 남보라. 별빛 캔버스의 배경을 바꾼다(StarfieldCanvas). 아래쪽은 지평선 빛. */
 html[data-season="christmas"] {
   --starfield-bg: linear-gradient(to top, #1e2050 0, transparent 40%),
     radial-gradient(ellipse at 50% 0%, #1c1d48 0, #13142f 45%, #0a0b1c 90%);
 }
 
 html[data-season="christmas"] .site-header {
-  border-bottom: 1px solid #f6bd6823;
+  border-bottom: 1px solid #ffffff14;
 }
 
 html[data-season="christmas"] .site-header:not([data-home]) {
@@ -1217,26 +1228,31 @@ html[data-season="christmas"] .site-header:not([data-home]) > div {
   -webkit-backdrop-filter: none;
 }
 
-/* 산타 모자 — 로고 오른쪽 위에 얹는다(시안). 모자 끝이 오른쪽으로 늘어진 그림이라 기울이지 않는다. */
+/*
+  산타 모자 — 로고(행성)의 오른쪽 위 어깨에 눌러 씌운다. 털 띠가 행성 윗선을 덮어야 쓴 것처럼 보인다
+  (띠가 윗선 위에 떠 있으면 옆에 둥둥 뜬다).
+  ⚠️ 수치는 모자 그림(xmas-santa-hat.webp, 312×220) 안에서 털 띠가 놓인 자리에 맞춘 것이다.
+     그림을 바꾸면 띠 자리가 달라지므로 헤더 · 홈 로고를 화면으로 보고 다시 맞춘다.
+*/
 html[data-season="christmas"] :is(.season-hat--header, .season-hat--hero) {
-  width: 50%;
-  left: 55%;
-  top: -40%;
-  transform: rotate(8deg);
+  width: 48%;
+  left: 40%;
+  top: -26%;
+  transform: rotate(12deg);
 }
 
-/* YES 옆 선물 — 반짝임은 금빛으로 */
+/* YES 옆 선물 — 반짝임은 빨갛게 */
 @keyframes xmas-cta-idle {
   0%,
   100% {
     opacity: 0.8;
-    filter: drop-shadow(0 0 6px rgb(246 189 104 / 0)) drop-shadow(0 0 16px rgb(246 189 104 / 0))
-      drop-shadow(0 0 30px rgb(246 189 104 / 0));
+    filter: drop-shadow(0 0 6px rgb(255 96 96 / 0)) drop-shadow(0 0 16px rgb(255 96 96 / 0))
+      drop-shadow(0 0 30px rgb(255 96 96 / 0));
   }
   50% {
     opacity: 1;
-    filter: drop-shadow(0 0 6px rgb(246 189 104 / 0.95)) drop-shadow(0 0 16px rgb(246 189 104 / 0.6))
-      drop-shadow(0 0 30px rgb(246 189 104 / 0.35));
+    filter: drop-shadow(0 0 6px rgb(255 96 96 / 0.95)) drop-shadow(0 0 16px rgb(255 96 96 / 0.6))
+      drop-shadow(0 0 30px rgb(255 96 96 / 0.35));
   }
 }
 
@@ -1252,36 +1268,31 @@ html[data-season="christmas"] .season-cta:hover .season-cta-pumpkin {
   transform: rotate(4deg) translateY(-2px);
 }
 
-/* 홈 로고 오른쪽 위 — 박쥐 자리의 눈송이 */
-html[data-season="christmas"] .season-hero-bat {
-  width: 40px;
-  opacity: 0.8;
-}
-
-/* 'Planets to Escape' 옆 — 박쥐 자리의 금별 */
+/* 'Planets to Escape' 옆 — 박쥐 자리의 방울 */
 html[data-season="christmas"] .season-title-bat {
-  width: 30px;
-  height: 30px;
-  left: -40px;
-  top: -8px;
+  width: 38px;
+  height: 36px;
+  left: -48px;
+  top: -12px;
+  transform: rotate(-12deg);
 }
 
-/* 제목 옆 — 유령 자리의 호랑가시 */
+/* 제목 옆 — 유령 자리의 루돌프 */
 html[data-season="christmas"] .season-heading-ghost {
   width: 40px;
-  height: 35px;
-  top: -10px;
-  transform: rotate(-10deg);
+  height: 40px;
+  top: -14px;
+  transform: rotate(10deg);
 }
 
-/* 포스터 — 금빛 테두리, 왼쪽 위 호랑가시 하나, 오른쪽 위 빨간 CHRISTMAS EDITION 태그 */
+/* 포스터 — 빨간 테두리, 왼쪽 위 호랑가시 하나, 오른쪽 위 빨간 CHRISTMAS EDITION 태그 */
 html[data-season="christmas"] .season-poster-frame {
-  border-color: #e6aa69;
-  box-shadow: 0 0 0 4px #f6bd680d, 0 10px 40px #04060f80;
+  border-color: #d8454c;
+  box-shadow: 0 0 0 4px #e5484d12, 0 10px 40px #04060f80;
 }
 
 html[data-season="christmas"] .season-poster-frame:hover {
-  border-color: #ffd08a;
+  border-color: #ff7b7b;
 }
 
 html[data-season="christmas"] .season-poster-web {
@@ -1313,41 +1324,64 @@ html[data-season="christmas"] .season-poster-decor--compact .season-poster-web {
   top: 3px;
 }
 
+/*
+  포스터 위에 쌓인 눈 — 칸 폭에 맞춰 옆으로 늘인다(SeasonArt 의 fit="none").
+  포스터 칸이 overflow-hidden 이라 칸 밖으로 얹지 못한다 — 안쪽 맨 위에 붙인다.
+*/
+.season-poster-snow {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  top: -2px;
+  width: 100%;
+  height: 24px;
+  filter: drop-shadow(0 2px 2px rgb(4 6 15 / 0.35));
+}
+
+.season-poster-decor--compact .season-poster-snow {
+  height: 13px;
+}
+
+/* 태그는 눈 아래로 내린다 — 그대로 두면 눈 끝자락에 걸친다 */
+html[data-season="christmas"] .season-poster-tag {
+  top: 20px;
+}
+
 /* 공지 강조 — 제목에 '크리스마스'가 든 공지 */
 html[data-season="christmas"] [data-season-highlight] {
   background: linear-gradient(90deg, #d94c551a, #0f5b4b1f);
-  box-shadow: inset 3px 0 #f6bd68;
+  box-shadow: inset 3px 0 #e5484d;
 }
 
 html[data-season="christmas"] [data-season-highlight] button {
-  color: #ffe0a6;
+  color: #ffc4c4;
 }
 
-/* 자주 묻는 질문 — 네이비 유리 + 금빛 테두리, 질문 앞 호랑가시 */
+/* 자주 묻는 질문 — 네이비 유리 + 초록 테두리, 열면 빨간 띠. 질문 앞 호랑가시 */
 html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) {
   background:
-    linear-gradient(120deg, transparent 62%, rgb(255 230 180 / 0.07) 78%, rgb(255 230 180 / 0.07) 84%, transparent 100%),
+    linear-gradient(120deg, transparent 62%, rgb(225 235 255 / 0.06) 78%, rgb(225 235 255 / 0.06) 84%, transparent 100%),
     linear-gradient(160deg, rgb(30 40 78 / 0.55), rgb(10 14 32 / 0.7));
-  border-color: rgb(246 189 104 / 0.3);
+  border-color: rgb(63 180 134 / 0.32);
   box-shadow:
-    inset 0 1px 0 rgb(255 240 211 / 0.1),
-    0 0 20px -8px rgb(246 189 104 / 0.3),
+    inset 0 1px 0 rgb(232 238 255 / 0.1),
+    0 0 20px -8px rgb(63 180 134 / 0.3),
     0 20px 45px rgb(0 0 0 / 0.4);
 }
 
 html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row):hover {
-  border-color: rgb(246 189 104 / 0.7);
+  border-color: rgb(63 180 134 / 0.75);
 }
 
 html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row)::after {
-  background-image: linear-gradient(120deg, transparent 46%, rgb(255 240 211 / 0.3) 50%, transparent 54%);
+  background-image: linear-gradient(120deg, transparent 46%, rgb(232 238 255 / 0.3) 50%, transparent 54%);
 }
 
 html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row):is([open], :has(> button[aria-expanded="true"])) {
-  border-color: rgb(246 189 104 / 0.6);
+  border-color: rgb(63 180 134 / 0.6);
   box-shadow:
-    inset 3px 0 #f6bd68,
-    0 0 24px -6px rgb(246 189 104 / 0.4),
+    inset 3px 0 #e5484d,
+    0 0 24px -6px rgb(229 72 77 / 0.35),
     0 20px 45px rgb(0 0 0 / 0.4);
 }
 
@@ -1358,32 +1392,35 @@ html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) > :is(button
   height: 1em;
   margin-right: 0.5em;
   vertical-align: -0.12em;
-  background: url("/season/christmas/holly-ornament.svg") center / contain no-repeat;
+  background: url("/season/christmas/xmas-holly.webp") center / contain no-repeat;
 }
 
 html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) > :is(button, summary) > span:last-child {
-  color: #f6bd68;
+  color: #ff7b7b;
 }
 
-/* 테마 상세 블록 카드 · '참여 전 확인' 번호(호랑가시 · 금별 · 선물) */
+/* 테마 상세 블록 카드 · '참여 전 확인' 번호(산타 · 루돌프 · 리스 · 방울) */
 html[data-season="christmas"] .season-card {
   background: linear-gradient(160deg, rgb(30 40 78 / 0.45), rgb(10 14 32 / 0.6));
-  border-color: rgb(246 189 104 / 0.2);
-  box-shadow: inset 0 1px 0 rgb(255 240 211 / 0.07);
+  border-color: rgb(63 180 134 / 0.24);
+  box-shadow: inset 0 1px 0 rgb(232 238 255 / 0.07);
 }
 
 html[data-season="christmas"] .season-callout-badge {
-  background: rgb(246 189 104 / 0.12);
-  box-shadow: 0 0 14px -4px rgb(246 189 104 / 0.45);
+  background: rgb(229 72 77 / 0.14);
+  box-shadow: 0 0 14px -4px rgb(229 72 77 / 0.5);
 }
 
 html[data-season="christmas"] .season-callout-num {
   display: none;
 }
 
-/* ── 크리스마스 배경(SeasonBackdrop 의 ChristmasBackdrop) ── */
+/* ── 크리스마스 배경(ChristmasBackdrop.tsx) ── */
 
-/* 천천히 내리는 작은 눈. transform 만 움직인다. */
+/*
+  내리는 눈 — 세 층. 멀수록 작고 느리고 흐리게, 가까울수록 크고 빠르고 초점이 나가게(원근).
+  transform 만 움직인다.
+*/
 .xmas-snow {
   position: absolute;
   inset: 0;
@@ -1391,184 +1428,519 @@ html[data-season="christmas"] .season-callout-num {
 
 .xmas-snow > span {
   position: absolute;
-  top: -12px;
+  top: -20px;
   border-radius: 9999px;
-  background: #eef5ff;
-  opacity: 0.55;
+  background: #eef3ff;
   animation: xmas-fall linear infinite;
+}
+
+.xmas-snow--far > span {
+  opacity: 0.45;
+}
+
+.xmas-snow--mid > span {
+  opacity: 0.7;
+  --xmas-drift: 40px;
+}
+
+.xmas-snow--near > span {
+  opacity: 0.5;
+  filter: blur(1.5px);
+  --xmas-drift: 90px;
 }
 
 @keyframes xmas-fall {
   to {
-    transform: translate3d(24px, 105vh, 0);
+    transform: translate3d(var(--xmas-drift, 18px), calc(100vh + 40px), 0);
   }
 }
 
-/* 전구 줄 — 헤더 아래 왼쪽 위 구석에만. 홈은 헤더 로고와 겹쳐 뺀다. */
-.xmas-bd-lights {
-  left: 0;
-  top: var(--header-bottom, var(--header-height, 72px));
-  width: min(440px, 30vw);
-  opacity: 0.8;
+/*
+  바닥에 붙은 것 전부. 안의 그림은 그리는 순서가 곧 겹치는 순서다(뒤 → 앞).
+  --xmas-k 는 풍경의 키 — 언덕 높이와 그 위에 놓인 것들의 자리 · 크기에 똑같이 곱해, 홈 밖에서
+  풍경을 통째로 낮춘다(아래 「홈 밖」).
+*/
+.xmas-bd-floor {
+  position: absolute;
+  inset: 0;
+  --xmas-k: 1;
 }
-
-.season-backdrop--home .xmas-bd-lights {
-  display: none;
-}
-
-/* 가장자리 눈송이 — 본문 틀 바깥 여백에 흩어 둔다 */
-.xmas-bd-flake {
-  opacity: 0.7;
-}
-
-.xmas-bd-flake--1 { left: 7%; top: 15%; width: 26px; }
-.xmas-bd-flake--2 { left: 22%; top: 24%; width: 14px; }
-.xmas-bd-flake--3 { left: 12%; top: 44%; width: 20px; }
-.xmas-bd-flake--4 { right: 8%; top: 18%; width: 28px; }
-.xmas-bd-flake--5 { right: 20%; top: 36%; width: 16px; }
-.xmas-bd-flake--6 { right: 4%; top: 50%; width: 12px; }
-.xmas-bd-flake--7 { left: 3%; top: 30%; width: 12px; }
-.xmas-bd-flake--8 { right: 28%; top: 11%; width: 18px; }
 
 /*
-  바닥 — 먼 숲 → 트리 · 오두막 → 맨 앞 눈 언덕(그리는 순서가 곧 겹치는 순서).
-  눈 언덕은 시안대로 보랏빛 그림자 — 회색 평면 눈밭으로 만들지 않는다(시안의 실패 사례).
+  홈에서 스크롤하면 풍경이 원근대로 내려간다 — 먼 것은 조금, 가까운 것은 많이(땅을 떠나 올라가는
+  느낌). --xmas-p(0→1)는 ChristmasBackdrop 이 스크롤에 맞춰 넣고, 홈 밖에서는 늘 0 이다.
+  --xmas-s 는 실제로 움직이는 양 — '동작 줄이기' 에서는 0 으로 두어 자리는 그대로 두고 밝기만 낮춘다.
 */
+.season-backdrop {
+  --xmas-s: calc(var(--xmas-p, 0) * var(--xmas-move, 1));
+}
+
+/* 뒤 장면(행성 · 인스타 · 공지)의 글자가 읽히게 풍경을 눌러 둔다 */
+.season-backdrop--home .xmas-bd-floor {
+  opacity: calc(1 - var(--xmas-p, 0) * 0.55);
+}
+
+/* 밝은 것(달 · 눈밭 · 눈사람 · 루돌프)은 내려가면서 아예 사라진다 */
+.xmas-bd-moon,
+.xmas-bd-ground,
+.xmas-bd-props,
+.xmas-bd-rudolph {
+  opacity: calc(1 - var(--xmas-p, 0) * 1.5);
+}
+
+.xmas-bd-floor > * {
+  position: absolute;
+}
+
+/*
+  달 — 하늘 오른쪽 위에 떠 있다(홈에서만 그린다). 바닥 칸 밖, 썰매보다 뒤에 있어 썰매가 달 앞을 지난다.
+*/
+.xmas-bd-moon {
+  position: absolute;
+  translate: 0 calc(var(--xmas-s) * 3vh);
+  left: 71%;
+  top: clamp(150px, 24vh, 290px);
+  width: clamp(76px, 8.5vw, 164px);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 38% 36%, #f4f6ff 0, #dbe2ff 55%, #bcc8f8 100%);
+  box-shadow:
+    0 0 40px 8px rgb(190 205 255 / 0.28),
+    0 0 120px 50px rgb(150 170 255 / 0.14);
+}
+
+/* 언덕 세 겹 — 칸을 꽉 채우고 아래에 붙인다(넘치는 쪽은 양옆이 잘린다) */
+.xmas-bd-far,
+.xmas-bd-mid,
+.xmas-bd-near,
 .xmas-bd-ground {
   left: 0;
   bottom: 0;
   width: 100%;
-  height: clamp(90px, 15vh, 170px);
 }
 
-.xmas-bd-pines {
-  bottom: clamp(40px, 7vh, 80px);
-  width: 25%;
-  opacity: 0.45;
+.xmas-bd-far {
+  height: calc(clamp(190px, 33vh, 400px) * var(--xmas-k));
+  translate: 0 calc(var(--xmas-s) * 5vh);
 }
 
-.xmas-bd-pines--1 { left: 0; }
-.xmas-bd-pines--2 { left: 25%; }
-.xmas-bd-pines--3 { left: 50%; }
-.xmas-bd-pines--4 { left: 75%; }
+.xmas-bd-mid {
+  height: calc(clamp(140px, 24vh, 300px) * var(--xmas-k));
+  translate: 0 calc(var(--xmas-s) * 9vh);
+}
 
-/* 트리는 그림 아래 눈더미가 앞 눈 언덕에 묻히게 조금 내린다 */
-.xmas-bd-tree {
-  left: 1%;
-  bottom: clamp(4px, 2vh, 24px);
-  height: clamp(240px, 46vh, 480px);
+.xmas-bd-near {
+  height: calc(clamp(100px, 17vh, 215px) * var(--xmas-k));
+  translate: 0 calc(var(--xmas-s) * 12vh);
+}
+
+.xmas-bd-ground {
+  height: calc(clamp(56px, 9.5vh, 120px) * var(--xmas-k));
+  translate: 0 calc(var(--xmas-s) * 20vh);
+}
+
+/* 숲 · 마을은 제 둔덕을 깔고 있다 — 둔덕이 언덕과 같은 색이라 어디 놓아도 이어진다 */
+.xmas-bd-grove {
+  translate: 0 calc(var(--xmas-s) * 9vh);
+  left: 25%; /* 왼쪽 큰 트리에 가리지 않는 자리 */
+  bottom: calc(clamp(84px, 14.5vh, 185px) * var(--xmas-k));
+  width: calc(clamp(120px, 12vw, 230px) * var(--xmas-k));
+}
+
+.xmas-bd-village {
+  translate: 0 calc(var(--xmas-s) * 12vh);
+  right: 13%;
+  bottom: calc(clamp(40px, 7vh, 92px) * var(--xmas-k));
+  width: calc(clamp(200px, 21vw, 400px) * var(--xmas-k));
+}
+
+.xmas-bd-props {
+  translate: 0 calc(var(--xmas-s) * 24vh);
+  left: 29%;
+  bottom: clamp(16px, 3vh, 38px);
+  width: clamp(104px, 9.5vw, 180px);
+}
+
+/* 루돌프 — SCROLL 표시 오른쪽, 마을로 가는 길 앞에 서 있다 */
+.xmas-bd-rudolph {
+  translate: 0 calc(var(--xmas-s) * 24vh);
+  left: 54.5%;
+  bottom: clamp(10px, 2vh, 26px);
+  width: clamp(84px, 7.6vw, 150px);
+}
+
+/*
+  화면 양끝의 큰 나무 — 눈앞에 있어 초점이 나간 것처럼 살짝 흐린다.
+  화면 밖으로 내보내는 양은 **나무 폭의 비율**(translate)로 정한다 — 나무 크기는 화면 높이를,
+  vw 는 화면 폭을 따라가서, vw 로 밀면 폭이 넓고 낮은 화면(태블릿)에서 나무가 통째로 사라진다.
+*/
+/* 큰 트리 — 장식(마스코트 · 전구)이 보여야 해서 흐리게 하지 않는다. 밑동의 선물도 화면 안에 둔다. */
+.xmas-bd-pine {
   width: auto;
-  object-fit: contain;
 }
 
-/* 그림 오른쪽 끝 눈밭이 화면 끝에서 끊겨 보이지 않게 살짝 밖으로 */
-.xmas-bd-cabin {
-  right: -16px;
-  bottom: clamp(20px, 4vh, 48px);
-  width: clamp(320px, 31vw, 620px);
-  height: auto;
+/* --pine-x — 화면 밖으로 내보낸 양. 스크롤하면 거기서 더 바깥 · 아래로 빠진다(가장 가까워서 가장 많이). */
+.xmas-bd-pine--left {
+  --pine-x: -3%;
+  left: 0;
+  bottom: -2vh;
+  height: clamp(330px, 62vh, 720px);
+  translate: calc(var(--pine-x) - var(--xmas-s) * 24%) calc(var(--xmas-s) * 26vh);
+}
+
+.xmas-bd-pine--right {
+  --pine-x: 26%;
+  right: 0;
+  bottom: -4vh;
+  height: clamp(280px, 50vh, 580px);
+  translate: calc(var(--pine-x) + var(--xmas-s) * 24%) calc(var(--xmas-s) * 22vh);
+  transform: scaleX(-1);
+}
+
+/*
+  헤더 아래 전구 줄 — 한 칸(240px)을 옆으로 이어 붙인다. 빛무리 두 장이 번갈아 밝아져 깜빡인다.
+  ⚠️ 그림은 CSS 배경이다(<img> 가 아니다 — SeasonArt.tsx 의 카카오톡 인앱 브라우저 건).
+*/
+.xmas-bd-garland {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--header-bottom, var(--header-height, 72px));
+  height: 64px;
+  background: url("/season/christmas/garland.svg") 0 0 / 240px 64px repeat-x;
+}
+
+/* 홈은 다음 장면부터 제목('Planets to Escape')이 헤더 바로 밑에 붙는다 — 스크롤하면 전구 줄을 걷는다 */
+.season-backdrop--home .xmas-bd-garland {
+  opacity: calc(1 - var(--xmas-p, 0) * 1.6);
+}
+
+.xmas-bd-garland::before,
+.xmas-bd-garland::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/season/christmas/garland-glow-a.svg") 0 0 / 240px 64px repeat-x;
+  animation: xmas-twinkle 1.8s ease-in-out infinite alternate;
+}
+
+.xmas-bd-garland::after {
+  background-image: url("/season/christmas/garland-glow-b.svg");
+  animation-delay: -1.8s;
+}
+
+@keyframes xmas-twinkle {
+  from {
+    opacity: 0.15;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/*
+  전구 줄에 걸린 리스 — 끈 끝(그림 맨 위)이 헤더 아래 선에 닿는다. 바람에 살짝 흔들린다.
+  홈은 오른쪽 위가 비어 있어 어느 폭에서나 걸고, 홈 밖은 본문 틀 옆 여백이 있는 1280px 부터 건다.
+*/
+.season-backdrop > .xmas-bd-wreath {
+  top: calc(var(--header-bottom, var(--header-height, 72px)) - 2px);
+  right: clamp(14px, 4.5vw, 96px);
+  width: clamp(54px, 6vw, 92px);
+  transform-origin: 50% 0;
+  animation: xmas-sway 5.5s ease-in-out infinite alternate;
+}
+
+.season-backdrop:not(.season-backdrop--home) > .xmas-bd-wreath {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .season-backdrop:not(.season-backdrop--home) > .xmas-bd-wreath {
+    display: block;
+    right: 22px;
+    width: 76px;
+  }
+}
+
+@keyframes xmas-sway {
+  from {
+    transform: rotate(-3.5deg);
+  }
+  to {
+    transform: rotate(3.5deg);
+  }
+}
+
+/*
+  산타 썰매 — 홈의 하늘을 왼쪽에서 오른쪽으로 가로지른다. 한 바퀴 50초 중 앞 절반 남짓 동안
+  지나가고 나머지는 화면 밖에서 쉰다. 스크롤해 다음 장면으로 넘어가면 사라진다.
+*/
+.xmas-bd-sleigh {
+  position: absolute;
+  left: 0;
+  top: clamp(150px, 24vh, 300px);
+  width: clamp(150px, 15vw, 260px);
+  opacity: calc(1 - var(--xmas-p, 0) * 2.2);
+  transform-origin: 0 50%;
+  animation: xmas-sleigh 50s linear -6s infinite;
+}
+
+/* 가로지르기 — 멀리서 작게 나타나 가까워지며 커진다 */
+@keyframes xmas-sleigh {
+  from {
+    transform: translate3d(-110%, 0, 0) scale(0.7);
+  }
+  58%,
+  to {
+    transform: translate3d(calc(100vw + 10%), 0, 0) scale(1.08);
+  }
+}
+
+/* 큰 곡선 — 떠오르다 꼭대기를 넘어 살짝 내려온다. 고개도 그 길을 따라 든다 */
+.xmas-sleigh-arc,
+.xmas-sleigh-bob {
+  position: absolute;
+  inset: 0;
+}
+
+.xmas-sleigh-arc {
+  animation: xmas-sleigh-arc 50s ease-in-out -6s infinite;
+}
+
+@keyframes xmas-sleigh-arc {
+  from {
+    transform: translate3d(0, 8vh, 0) rotate(-10deg);
+  }
+  30% {
+    transform: translate3d(0, -7vh, 0) rotate(-3deg);
+  }
+  58%,
+  to {
+    transform: translate3d(0, -1vh, 0) rotate(5deg);
+  }
+}
+
+/* 출렁임 */
+.xmas-sleigh-bob {
+  animation: xmas-sleigh-bob 1.9s ease-in-out infinite alternate;
+}
+
+@keyframes xmas-sleigh-bob {
+  from {
+    transform: translate3d(0, -5%, 0);
+  }
+  to {
+    transform: translate3d(0, 5%, 0);
+  }
+}
+
+/*
+  같은 그림 두 장 — 고삐가 지나는 자리(가로 53% · 세로 40%)에서 나눠 그 자리를 축으로 까딱인다.
+  축에서는 두 장이 늘 붙어 있어 고삐가 끊겨 보이지 않는다. 경계는 흐리게 겹쳐 잘린 선을 감춘다.
+*/
+.xmas-sleigh-part {
+  position: absolute;
+  inset: 0;
+  background-size: 100% 100%;
+  transform-origin: 53% 40%;
+  animation: xmas-sleigh-rock 0.95s ease-in-out infinite alternate;
+}
+
+.xmas-sleigh-part--sled {
+  -webkit-mask-image: linear-gradient(to right, #000 51%, transparent 55%);
+  mask-image: linear-gradient(to right, #000 51%, transparent 55%);
+}
+
+.xmas-sleigh-part--deer {
+  -webkit-mask-image: linear-gradient(to right, transparent 51%, #000 55%);
+  mask-image: linear-gradient(to right, transparent 51%, #000 55%);
+  animation-direction: alternate-reverse;
+  animation-delay: -0.3s;
+}
+
+@keyframes xmas-sleigh-rock {
+  from {
+    transform: rotate(-1.6deg);
+  }
+  to {
+    transform: rotate(1.8deg);
+  }
+}
+
+/* 별가루 — 썰매 뒤에서 반짝 생겼다가 뒤로 밀려나며 꺼진다 */
+.xmas-sleigh-dust {
+  position: absolute;
+  width: 7%;
+  aspect-ratio: 1;
+  background: #ffe9b0;
+  clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
+  opacity: 0;
+  animation: xmas-sleigh-dust 1.7s linear infinite;
+}
+
+@keyframes xmas-sleigh-dust {
+  from {
+    opacity: 0;
+    transform: translate3d(60%, -40%, 0) scale(0.2) rotate(0deg);
+  }
+  18% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1) rotate(20deg);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(-520%, 160%, 0) scale(0.15) rotate(90deg);
+  }
+}
+
+/*
+  중간 폭(1279px 이하) — 본문 틀(1024px) 옆 여백이 좁아 큰 나무가 글자 뒤로 들어온다.
+  화면 밖으로 더 밀어 가지 끝만 보이게 한다.
+*/
+@media (max-width: 1279px) {
+  .xmas-bd-pine--left {
+    height: clamp(300px, min(56vh, 52vw), 640px); /* 세로로 긴 태블릿에서 장면을 덮지 않게 폭에도 묶는다 */
+    --pine-x: -34%;
+  }
+
+  .xmas-bd-pine--right {
+    height: clamp(260px, min(46vh, 43vw), 520px);
+    --pine-x: 46%;
+  }
+}
+
+/*
+  좁은 화면 — 나무를 그대로 두면 화면을 다 덮는다. 키를 낮추고 양끝으로 밀어
+  반쯤만 보이게 하고, 마을 · 숲 · 눈사람은 화면 안에 다 들어오게 줄인다.
+*/
+@media (max-width: 767px) {
+  .xmas-bd-pine--left {
+    bottom: -1vh;
+    height: clamp(180px, 30vh, 290px);
+    --pine-x: -49%;
+  }
+
+  .xmas-bd-pine--right {
+    bottom: -2vh;
+    height: clamp(150px, 24vh, 230px);
+    --pine-x: 47%;
+  }
+
+  .xmas-bd-moon {
+    left: 64%;
+    top: 21vh;
+    width: 54px;
+  }
+
+  .xmas-bd-grove {
+    left: 20%;
+    width: calc(104px * var(--xmas-k));
+  }
+
+  .xmas-bd-village {
+    right: 5%;
+    width: calc(196px * var(--xmas-k));
+  }
+
+  /* 가운데에는 SCROLL 표시가 있다 — 왼쪽으로 비킨다 */
+  .xmas-bd-props {
+    left: 21%;
+    width: 78px;
+  }
+
+  .xmas-bd-rudolph {
+    left: 61%;
+    width: 62px;
+  }
+
+  /* 헤더 밑 여백이 좁다 — 전구 줄을 줄여 바로 아래 제목 · 탭에 닿지 않게 한다 */
+  .xmas-bd-garland {
+    height: 48px;
+  }
+
+  .xmas-bd-garland,
+  .xmas-bd-garland::before,
+  .xmas-bd-garland::after {
+    background-size: 180px 48px;
+  }
+
+  html[data-season="christmas"] .season-poster-web {
+    width: 40px;
+    height: 35px;
+    left: 4px;
+    top: 5px;
+  }
+
+  .season-poster-snow {
+    height: 18px;
+  }
+
+  html[data-season="christmas"] .season-poster-tag {
+    top: 16px;
+  }
 }
 
 /*
   홈 밖 — 배경은 화면에 고정이라 본문(테마 카드 정보 · 시놉시스 · 모드 창)이 늘 그 위로 지나간다.
-  작고 연하게 눌러 글자가 읽히게 한다.
+  낮추고 통째로 어둡게 눌러 글자가 읽히게 한다.
 */
-.season-backdrop:not(.season-backdrop--home) .xmas-bd-tree {
-  height: clamp(200px, 34vh, 360px);
-  opacity: 0.55;
+.season-backdrop:not(.season-backdrop--home) .xmas-bd-floor {
+  --xmas-k: 0.72;
+  opacity: 0.4;
 }
 
-.season-backdrop:not(.season-backdrop--home) .xmas-bd-cabin {
-  width: clamp(260px, 24vw, 460px);
-  opacity: 0.55;
+/*
+  테마 상세는 헤더 바로 밑(40px)에서 '파티형 방탈출' · 제목이 시작해 전구와 겹친다. 1279px 이하는
+  헤더 밑에 탭 줄까지 붙어 전구 줄이 그 뒤에 가린다 — 상세에서는 뺀다.
+*/
+body:has([data-section-key]) .xmas-bd-garland {
+  display: none;
 }
 
-.season-backdrop:not(.season-backdrop--home) .xmas-bd-ground {
-  height: clamp(70px, 11vh, 120px);
-  filter: brightness(0.55);
+/* 맨 앞 눈밭 · 눈사람 · 루돌프는 밝아서 반투명으로 눌러도 그 위 글자가 묻힌다 — 홈에서만 보인다. */
+.season-backdrop:not(.season-backdrop--home) :is(.xmas-bd-ground, .xmas-bd-props, .xmas-bd-rudolph) {
+  display: none;
 }
 
-.season-backdrop:not(.season-backdrop--home) .xmas-bd-pines {
-  opacity: 0.35;
+/* 나무도 본문 틀 옆 여백에 머물게 줄이고 더 내보낸다 */
+.season-backdrop:not(.season-backdrop--home) .xmas-bd-pine--left {
+  height: clamp(290px, 54vh, 620px);
+  --pine-x: -42%;
 }
 
-/* 중간 폭 — 본문 옆 여백이 좁아 그림이 글자 뒤로 들어온다. 작게 줄이고 가운데 쪽 눈송이는 뺀다. */
-@media (max-width: 1279px) {
-  .xmas-bd-flake--2,
-  .xmas-bd-flake--5,
-  .xmas-bd-flake--8 {
-    display: none;
-  }
-
-  .xmas-bd-tree,
-  .season-backdrop:not(.season-backdrop--home) .xmas-bd-tree {
-    height: clamp(200px, 32vh, 300px);
-  }
-
-  .xmas-bd-cabin,
-  .season-backdrop:not(.season-backdrop--home) .xmas-bd-cabin {
-    width: clamp(240px, 26vw, 320px);
-  }
-
-  .season-backdrop:not(.season-backdrop--home) :is(.xmas-bd-tree, .xmas-bd-cabin) {
-    opacity: 0.45;
-  }
-
-  /* 테마 상세는 헤더 밑에 탭 줄이 붙는다(DetailTabs, xl 미만) — 그 아래로 내려 가려지지 않게. */
-  body:has([data-section-key]) .xmas-bd-lights {
-    top: calc(var(--header-bottom, var(--header-height, 64px)) + 50px);
-  }
+.season-backdrop:not(.season-backdrop--home) .xmas-bd-pine--right {
+  height: clamp(240px, 44vh, 500px);
+  --pine-x: 50%;
 }
 
-/* 모바일 — 트리 · 오두막을 양쪽 끝에 반쯤 걸친다(시안: 좌측 일부만) */
+/*
+  좁은 화면은 본문이 화면 폭을 다 써서 마을 · 숲이 늘 글자 뒤에 놓인다 — 언덕 윤곽만 남기고,
+  나무는 가지 끝만 보이게 한다.
+*/
 @media (max-width: 767px) {
-  .xmas-bd-lights {
-    width: 70vw;
-    opacity: 0.7;
-  }
-
-  .xmas-bd-flake--3,
-  .xmas-bd-flake--7 {
+  .season-backdrop:not(.season-backdrop--home) :is(.xmas-bd-village, .xmas-bd-grove) {
     display: none;
   }
 
-  .xmas-bd-flake--1 { left: 12px; top: 20%; width: 16px; }
-  .xmas-bd-flake--4 { right: 14px; top: 16%; width: 20px; }
-  .xmas-bd-flake--6 { right: 10px; top: 46%; width: 10px; }
-
-  .xmas-bd-ground,
-  .season-backdrop:not(.season-backdrop--home) .xmas-bd-ground {
-    height: 72px;
+  .season-backdrop:not(.season-backdrop--home) .xmas-bd-pine--left {
+    height: clamp(180px, 30vh, 290px);
+    --pine-x: -62%;
   }
 
-  .xmas-bd-pines {
-    bottom: 40px;
+  .season-backdrop:not(.season-backdrop--home) .xmas-bd-pine--right {
+    height: clamp(150px, 24vh, 230px);
+    --pine-x: 64%;
   }
+}
 
-  .xmas-bd-tree,
-  .season-backdrop:not(.season-backdrop--home) .xmas-bd-tree {
-    left: -48px;
-    bottom: 6px;
-    height: 220px;
-  }
+/* 홈의 SCROLL 표시 — 밝은 눈밭 위에 걸쳐서 흰 글자 · 흰 선이 묻힌다. 어두운 테두리 빛을 두른다. */
+html[data-season="christmas"] :has(> .scroll-cue-rail) {
+  filter: drop-shadow(0 0 2px rgb(8 12 40 / 0.95)) drop-shadow(0 0 7px rgb(8 12 40 / 0.75));
+}
 
-  .xmas-bd-cabin,
-  .season-backdrop:not(.season-backdrop--home) .xmas-bd-cabin {
-    right: -110px;
-    bottom: 22px;
-    width: 300px;
-  }
-
-  /* 홈 밖은 본문이 화면 폭을 다 써서 그림이 늘 글자 뒤에 깔린다 — 오두막은 빼고 트리만 작고 연하게 */
-  .season-backdrop:not(.season-backdrop--home) .xmas-bd-tree {
-    left: -36px;
-    height: 160px;
-    opacity: 0.35;
-  }
-
-  .season-backdrop:not(.season-backdrop--home) .xmas-bd-cabin {
-    display: none;
-  }
+/* 푸터 — 화면 맨 아래에서 풍경(언덕 · 마을) 위에 놓인다. 어둡게 깔아 글자가 읽히게 한다. */
+html[data-season="christmas"] .site-footer {
+  background: rgb(7 10 26 / 0.84);
 }
 
 /* 하단 고정 버튼 막대 위로 바닥 장식을 올린다 — 수치는 할로윈과 같은 막대 실측값(위 「하단 고정 버튼 막대」). */
@@ -1593,8 +1965,39 @@ body:has(.apply-cta-bar) .xmas-bd-floor {
     display: none;
   }
 
+  /* 스크롤해도 풍경을 움직이지 않는다 — 밝기만 낮춘다 */
+  .season-backdrop {
+    --xmas-move: 0;
+  }
+
+  .season-backdrop > .xmas-bd-wreath {
+    animation: none;
+  }
+
+  /* 썰매는 왼쪽 하늘에 세워 둔다 */
+  .xmas-bd-sleigh {
+    animation: none;
+    transform: translate3d(12vw, 0, 0);
+  }
+
+  .xmas-sleigh-arc,
+  .xmas-sleigh-bob,
+  .xmas-sleigh-part {
+    animation: none;
+  }
+
+  .xmas-sleigh-dust {
+    display: none;
+  }
+
+  .xmas-bd-garland::before,
+  .xmas-bd-garland::after {
+    animation: none;
+    opacity: 0.7;
+  }
+
   html[data-season="christmas"] .hero-cta-label-default {
     animation: none;
-    filter: drop-shadow(0 0 5px rgb(246 189 104 / 0.55));
+    filter: drop-shadow(0 0 5px rgb(255 96 96 / 0.55));
   }
 }

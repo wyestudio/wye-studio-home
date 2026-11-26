@@ -55,7 +55,7 @@ const GROUP_LINK_CLASS =
 
 /** 시즌 스킨 때 '참여 전 확인' 번호 자리에 돌아가며 붙는 그림(season.css 가 번호를 감춘다). */
 const SEASON_CALLOUT_ART: SeasonArtName[] = ["ghost", "bat-orange", "pumpkin"];
-const CHRISTMAS_CALLOUT_ART: SeasonArtName[] = ["xmas-holly", "xmas-star", "xmas-gift"];
+const CHRISTMAS_CALLOUT_ART: SeasonArtName[] = ["xmas-santa-hat", "xmas-rudolph", "xmas-wreath", "xmas-bells"];
 
 /** 타임테이블 점의 행성 색. 항목이 4개를 넘으면 처음부터 다시 돈다. */
 const PLANET_CYCLE: Planet[] = ["mercury", "venus", "earth", "mars"];

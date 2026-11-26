@@ -10,8 +10,9 @@
  *    검색엔진 · AI 가 읽는다. 글자는 <span className="season-text" data-text="…" /> 로 CSS 가 그리게 하고,
  *    그 속성도 남지 않게 <SeasonOnly> 로 감싸 시즌이 꺼지면 아예 그리지 않는다.
  *
- * ⚠️ 그림은 승인 시안 패키지의 SVG 를 그대로 쓴다(public/season/halloween/ → seasonArtSvgs.ts).
- *    모양을 고치지 않는다. 위치·크기·회전은 season.css 에 있다.
+ * ⚠️ 할로윈 그림은 승인 시안 패키지의 SVG 를 그대로 쓴다(public/season/halloween/ → seasonArtSvgs.ts).
+ *    모양을 고치지 않는다. 크리스마스 그림은 일러스트 파일(public/season/christmas/xmas-*.webp)이다.
+ *    위치·크기·회전은 season.css 에 있다.
  * ⚠️ 장식이라 aria-hidden 이고, 클릭을 받지 않는다(CSS 의 pointer-events).
  *
  * <img> 로 불러오지 않고 페이지 안에 직접 그린다. 안드로이드 카카오톡 인앱 브라우저에서
@@ -39,13 +40,11 @@ export type SeasonArtName =
   | "xmas-santa-hat"
   | "xmas-gift"
   | "xmas-holly"
-  | "xmas-star"
   | "xmas-sparkle"
-  | "xmas-snowflake"
-  | "xmas-snowflake-2"
-  | "xmas-drift"
-  | "xmas-pines-far"
-  | "xmas-lights";
+  | "xmas-snowcap"
+  | "xmas-wreath"
+  | "xmas-bells"
+  | "xmas-rudolph";
 
 /**
  * 크리스마스 때 할로윈 그림 자리에 대신 그릴 그림. 자리(모자 · 버튼 옆 · 제목 옆)는 그대로 두고
@@ -55,9 +54,9 @@ export type SeasonArtName =
 const CHRISTMAS_SWAP: Partial<Record<SeasonArtName, SeasonArtName | null>> = {
   "witch-hat": "xmas-santa-hat",
   pumpkin: "xmas-gift",
-  ghost: "xmas-holly",
-  "bat-orange": "xmas-star",
-  "bat-dark": "xmas-snowflake",
+  ghost: "xmas-rudolph",
+  "bat-orange": "xmas-bells",
+  "bat-dark": null,
   sparkle: "xmas-sparkle",
   "poster-web": "xmas-holly",
   moon: null,
@@ -91,8 +90,19 @@ export function SeasonArt({
   // 그라데이션 id — 같은 그림이 한 화면에 여러 번 나오고 그중 하나가 감춰지면(display:none) 다른 쪽 색이 빠진다
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   if (!shown) return null;
-  const { viewBox, attrs, inner } = SEASON_ART_SVGS[shown];
+  const { viewBox, attrs, inner, src } = SEASON_ART_SVGS[shown];
   const [, , w, h] = viewBox.split(" ").map(Number);
+  if (src) {
+    // 일러스트 파일 — <img> 가 아니라 CSS 배경으로 깐다(위 카카오톡 인앱 브라우저 건). 모양은 season.css 의 .season-pic
+    return (
+      <span
+        aria-hidden
+        style={{ aspectRatio: `${w} / ${h}`, backgroundImage: `url(${src})` }}
+        data-art={shown}
+        className={`season-art season-pic ${className}`}
+      />
+    );
+  }
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -149,7 +159,7 @@ export function SeasonLabel({
 
 /**
  * 포스터 장식 — 왼쪽 위 거미줄, 오른쪽 아래 호박, 오른쪽 위 HALLOWEEN EDITION 태그.
- * 크리스마스는 왼쪽 위 호랑가시 하나와 CHRISTMAS EDITION 태그.
+ * 크리스마스는 위에 쌓인 눈, 왼쪽 위 호랑가시, 오른쪽 아래 선물, CHRISTMAS EDITION 태그.
  * 테마 목록 카드와 테마 상세 포스터가 같이 쓴다.
  *
  * 부모(포스터 칸)에 position 이 있어야 한다. 장식은 칸 **안에** 붙어서 카드와 같이
@@ -160,9 +170,10 @@ export function PosterSeasonDecor({ compact = false }: { compact?: boolean }) {
   const skin = useSiteSkin();
   return (
     <span aria-hidden className={`season-only season-poster-decor ${compact ? "season-poster-decor--compact" : ""}`}>
+      {/* 포스터 위에 쌓인 눈 — 칸 폭에 맞춰 옆으로 늘인다 */}
+      {skin === "christmas" && <SeasonArt art="xmas-snowcap" fit="none" className="season-poster-snow" />}
       <SeasonArt art="poster-web" className="season-poster-web" />
-      {/* 크리스마스는 호랑가시 하나만(시안) — 포스터를 덜 가린다 */}
-      <SeasonArt art="pumpkin" christmas={null} className="season-poster-pumpkin" />
+      <SeasonArt art="pumpkin" className="season-poster-pumpkin" />
       <SeasonOnly>
         <span className="season-poster-tag">
           <SeasonArt art="sparkle" className="season-poster-tag-spark" />
