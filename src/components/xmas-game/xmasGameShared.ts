@@ -63,10 +63,13 @@ export const shareHeadline = (r: ShareRecord) =>
   r.rank ? `랭킹 ${r.rank}위, ${r.score}점!` : `${r.round}라운드 ${r.score}점!`;
 
 /**
- * 분석 이벤트(pushGa4Event). 한 판에 많아야 서너 번 남는다.
+ * 분석 이벤트(pushGa4Event). 한 판에 많아야 서너 번 남는다. 어드민 > 크리스마스 게임의 「참여 현황」 이 이 이름들로
+ * 센다(DB 의 xmas_game_funnel) — 이름을 바꾸면 그 함수도 같이 바꾼다.
  * ⚠️ 문을 누르는 것은 남기지 않는다(한 판에 80번이 넘는다) — 달력에 data-track-off 를 달아 방문 발자취에서도 뺐다.
  */
 export const XMAS_GAME_EVENT = {
+  /** 테마 상세의 이벤트 블록이 화면에 들어왔다(페이지 방문당 한 번) */
+  view: "xmas_game_view",
   /** 게임 창을 열었다 */
   open: "xmas_game_open",
   /** 1라운드를 시작했다(다시하기 포함) */

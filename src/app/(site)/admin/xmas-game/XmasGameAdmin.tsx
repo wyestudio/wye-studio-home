@@ -35,6 +35,40 @@ export type GameStats = {
   r20: number;
 };
 
+/** 참여 현황(사람 수) — DB 의 xmas_game_funnel(). guests 는 손님만, everyone 은 우리 기기까지. */
+type FunnelNumbers = Record<
+  | "viewed"
+  | "opened"
+  | "visited"
+  | "via_share"
+  | "started"
+  | "finished"
+  | "passed"
+  | "gift"
+  | "ranked"
+  | "shared"
+  | "apply_click"
+  | "applied",
+  number
+>;
+export type GameFunnel = { guests: FunnelNumbers; everyone: FunnelNumbers };
+
+/** 참여 현황의 줄 — 위에서 아래로 손님이 지나가는 순서. */
+const FUNNEL_ROWS: [keyof FunnelNumbers, string, string][] = [
+  ["viewed", "이벤트 블록을 봄", "테마 상세에서 블록이 화면에 들어온 사람"],
+  ["opened", "「게임 참여하기」 누름", ""],
+  ["visited", "게임 화면에 들어옴", "공유 링크로 바로 온 사람 포함"],
+  ["via_share", "공유 링크로 들어옴", "공유한 본인이 눌러 본 것도 포함"],
+  ["started", "게임 시작", ""],
+  ["finished", "5라운드까지 마침", ""],
+  ["passed", "선물 점수 통과", ""],
+  ["gift", "정답 맞히고 선물 코드 받음", ""],
+  ["ranked", "랭킹 등록", ""],
+  ["shared", "「친구에게 공유하기」 누름", ""],
+  ["apply_click", "「참여 신청하러 가기」 누름", ""],
+  ["applied", "게임한 뒤 신청 완료", "게임을 시작한 뒤에 신청서를 낸 사람"],
+];
+
 /** "12명 중 9명" 을 "75%" 로. 아무도 없으면 값을 모른다는 뜻으로 '-' 를 쓴다. */
 const percent = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : "-");
 
@@ -55,7 +89,7 @@ const normalizeCode = (raw: string) => raw.toUpperCase().replace(/[^A-Z0-9]/g, "
 const BUTTON = "rounded-md border px-3 py-1.5 text-label font-semibold transition-colors disabled:opacity-50";
 
 /**
- * 크리스마스 게임 어드민 — 위에서부터 요약 · 선물 코드 확인(현장용) · 코드 목록 · 랭킹 · 난이도 확인.
+ * 크리스마스 게임 어드민 — 위에서부터 요약 · 선물 코드 확인(현장용) · 코드 목록 · 랭킹 · 참여 현황 · 난이도 확인.
  * 현장에서는 휴대폰으로 연다. 코드 확인 칸을 맨 위에 크게 둔다.
  */
 export function XmasGameAdmin({
@@ -64,12 +98,14 @@ export function XmasGameAdmin({
   gifts,
   ranks,
   stats,
+  funnel,
 }: {
   started: number;
   finished: number;
   gifts: GiftRow[];
   ranks: RankRow[];
   stats: GameStats | null;
+  funnel: GameFunnel | null;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -274,6 +310,43 @@ export function XmasGameAdmin({
           </div>
         )}
       </section>
+
+      {/*
+        참여 현황 — 몇 명이 보고, 누르고, 하고, 공유했나. 방문 발자취에서 센다(판 기록과는 다른 번호라 위쪽 숫자와
+        딱 맞지는 않는다 — 위는 "판", 여기는 "사람"). 손님 숫자가 기준이고 우리 기기를 넣은 숫자는 옆에 흐리게 둔다.
+      */}
+      {funnel && (
+        <section>
+          <h2 className="mb-1 text-h3 font-semibold">참여 현황</h2>
+          <p className="mb-3 text-body-sm text-muted">
+            사람(브라우저) 수입니다. 우리 기기는 뺀 숫자가 기준이고, 넣은 숫자를 옆에 적었습니다. 방문 기록은 60일
+            뒤 지워져서 그 뒤에는 이 표가 비워집니다.
+          </p>
+          <div className="overflow-x-auto rounded-lg border border-line">
+            <table className="w-full min-w-[520px] text-left text-body-sm">
+              <thead className="bg-fill text-label text-muted">
+                <tr>
+                  <th className="px-3 py-2 font-semibold">단계</th>
+                  <th className="px-3 py-2 text-right font-semibold">손님</th>
+                  <th className="px-3 py-2 text-right font-semibold">우리 기기 포함</th>
+                </tr>
+              </thead>
+              <tbody>
+                {FUNNEL_ROWS.map(([key, label, note]) => (
+                  <tr key={key} className="border-t border-line-subtle">
+                    <td className="px-3 py-2">
+                      <span className="font-semibold">{label}</span>
+                      {note && <span className="ml-2 text-label text-muted">{note}</span>}
+                    </td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums">{funnel.guests[key]}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted">{funnel.everyone[key]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/*
         난이도가 목표대로 가는지 — 속도 · 통과선은 대표님의 일곱 판에 맞춘 어림이라, 손님 기록이 쌓이면 여기서 확인하고

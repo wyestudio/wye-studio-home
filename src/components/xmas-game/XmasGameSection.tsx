@@ -89,6 +89,22 @@ export function XmasGameSection({ themeLabel, accent }: { themeLabel: string; ac
     return stop;
   }, []);
 
+  useEffect(() => {
+    // 이 블록을 본 사람 수 — 참여 현황의 첫 칸이다. 4분의 1이 보이면 봤다고 친다(다른 블록의 SectionViewTracker 와 같은 기준).
+    const el = section.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        pushGa4Event(XMAS_GAME_EVENT.view, { themeLabel });
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [themeLabel]);
+
   return (
     <section id={XMAS_GAME_HASH} ref={section} aria-label="크리스마스 이벤트" className={`${theme.theme} ${c.section}`}>
       <SectionHeading

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
+import { XmasGameGtm } from "@/components/xmas-game/XmasGameGtm";
 import { jua } from "@/components/xmas-game/xmasGameFont";
 import "../globals.css";
 
@@ -13,8 +14,8 @@ import "../globals.css";
     (wye-server-cost). 사이트 머리 · 커서 마스코트 · 시즌 배경도 게임에는 방해라 싣지 않는다.
 
   ⚠️ 글꼴은 (site) 레이아웃과 **같은 파일**을 가리킨다. 사이트에서 넘어온 손님은 이미 받아 둔 글꼴을 다시 쓴다.
-  ⚠️ GTM · Clarity 는 싣지 않는다((site) 레이아웃이 호스트를 보고 싣는 것이라 여기서는 가릴 수 없다).
-     판의 시작 · 결과는 방문 발자취(VisitTracker)에만 남는다.
+  ⚠️ GTM 은 서버가 아니라 브라우저에서 주소를 보고 싣는다(XmasGameGtm — 운영 호스트에서만). Clarity 는 싣지 않는다.
+     판의 시작 · 결과는 방문 발자취(VisitTracker)와 GA4 양쪽에 남는다.
 */
 const suit = localFont({
   src: "../(site)/fonts/SUIT-Variable.woff2",
@@ -55,6 +56,7 @@ export default function SantaCalendarLayout({ children }: { children: React.Reac
       <body className="min-h-full" style={{ backgroundColor: GAME_BACKGROUND }}>
         {children}
         <VisitTracker />
+        <XmasGameGtm />
       </body>
     </html>
   );

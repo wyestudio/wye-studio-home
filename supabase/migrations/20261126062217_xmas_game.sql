@@ -2,7 +2,7 @@
 --
 -- 적용: test 20261126062343 (적용 완료, 2026-11-26) / 운영 미적용
 --       같은 날 선물 점수 37 → 35, 이어하기 10 → 20라운드로 바꾸면서 test 에는 xmas_game_submit · xmas_game_claim ·
---       xmas_game_stats 를 다시 실행해 이 파일과 맞췄다(표는 그대로).
+--       xmas_game_stats 를 다시 실행해 이 파일과 맞췄다(표는 그대로). xmas_game_funnel 도 같은 날 test 에 더했다.
 --
 -- 테마 상세의 게임(src/components/xmas-game/)이 쓴다. 한 판이 한 줄이다 — 시작할 때 줄이 생기고,
 -- 5라운드를 마치면 점수가 적히고, 닉네임을 넣으면 랭킹에 오르고, 정답을 맞히면 선물 코드가 붙는다.
@@ -21,6 +21,7 @@
 -- 이벤트가 끝나면 표째 지워도 된다(다른 표가 참조하지 않는다).
 --
 -- 되돌리기:
+--   drop function if exists public.xmas_game_funnel();
 --   drop function if exists public.xmas_game_stats();
 --   drop function if exists public.xmas_game_claim(uuid, uuid, text);
 --   drop function if exists public.xmas_game_name(uuid, uuid, text);
@@ -277,6 +278,81 @@ $function$;
 
 revoke all on function public.xmas_game_stats() from public, anon, authenticated;
 grant execute on function public.xmas_game_stats() to service_role;
+
+-- ── 참여 현황(어드민): 이벤트 블록을 본 사람부터 신청까지, 사람(브라우저) 수로 ──
+-- 방문 발자취(visit_events)에서 센다 — 게임 화면의 방문과 xmas_game_* 이벤트(src/components/xmas-game/xmasGameShared.ts 의
+-- XMAS_GAME_EVENT). 판 기록(xmas_game_runs)과는 사람을 잇지 않는다: 저쪽 번호(player_id)는 일부러 방문 번호와 다르게 뒀다.
+-- guests 는 손님만, everyone 은 우리 기기(/internal 에서 켠 것)까지.
+-- ⚠️ 방문 발자취는 60일 뒤 지워진다. 이벤트가 끝나고 두 달이 지나면 이 숫자는 0 으로 돌아간다.
+-- ⚠️ via_share 는 공유 주소(/santa-calendar/r/…)를 연 사람이다. 공유한 본인이 눌러 본 것도 들어간다.
+create or replace function public.xmas_game_funnel()
+returns jsonb
+language sql
+stable
+security definer
+set search_path to 'public'
+as $function$
+  with ev as (
+    select visitor_id, internal, kind, name, at
+    from visit_events
+    where (kind = 'event' and name like 'xmas\_game\_%')
+       or (kind = 'page' and name like '/santa-calendar%')
+  ),
+  per as (
+    select visitor_id,
+           bool_or(internal) as internal,
+           bool_or(name = 'xmas_game_view') as viewed,
+           bool_or(name = 'xmas_game_open') as opened,
+           bool_or(kind = 'page') as visited,
+           bool_or(kind = 'page' and name like '/santa-calendar/r/%') as via_share,
+           bool_or(name = 'xmas_game_start') as started,
+           bool_or(name in ('xmas_game_fail', 'xmas_game_pass')) as finished,
+           bool_or(name = 'xmas_game_pass') as passed,
+           bool_or(name = 'xmas_game_gift') as gift,
+           bool_or(name = 'xmas_game_rank') as ranked,
+           bool_or(name = 'xmas_game_share') as shared,
+           bool_or(name = 'xmas_game_apply') as apply_click,
+           min(at) filter (where name = 'xmas_game_start') as first_start
+    from ev
+    group by visitor_id
+  ),
+  marked as (
+    select p.*,
+           -- 게임을 시작한 뒤에 신청을 마친 사람
+           p.started and exists (
+             select 1 from visitor_links l
+             where l.visitor_id = p.visitor_id and l.application_id is not null and l.created_at >= p.first_start
+           ) as applied
+    from per p
+  ),
+  counted as (
+    select g.guests_only,
+           jsonb_build_object(
+             'viewed', count(*) filter (where viewed),
+             'opened', count(*) filter (where opened),
+             'visited', count(*) filter (where visited),
+             'via_share', count(*) filter (where via_share),
+             'started', count(*) filter (where started),
+             'finished', count(*) filter (where finished),
+             'passed', count(*) filter (where passed),
+             'gift', count(*) filter (where gift),
+             'ranked', count(*) filter (where ranked),
+             'shared', count(*) filter (where shared),
+             'apply_click', count(*) filter (where apply_click),
+             'applied', count(*) filter (where applied)
+           ) as numbers
+    from (values (true), (false)) as g(guests_only)
+    left join marked m on (not g.guests_only or not m.internal)
+    group by g.guests_only
+  )
+  select jsonb_build_object(
+    'guests', (select numbers from counted where guests_only),
+    'everyone', (select numbers from counted where not guests_only)
+  );
+$function$;
+
+revoke all on function public.xmas_game_funnel() from public, anon, authenticated;
+grant execute on function public.xmas_game_funnel() to service_role;
 
 revoke all on function public.xmas_game_board(uuid) from public;
 revoke all on function public.xmas_game_start(uuid, text) from public;

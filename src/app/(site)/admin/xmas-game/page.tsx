@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { XmasGameAdmin, type GameStats, type GiftRow, type RankRow } from "./XmasGameAdmin";
+import { XmasGameAdmin, type GameFunnel, type GameStats, type GiftRow, type RankRow } from "./XmasGameAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ const RANK_LIMIT = 100;
  */
 export default async function AdminXmasGamePage() {
   const supabase = createAdminClient();
-  const [startedRes, finishedRes, giftsRes, ranksRes, statsRes] = await Promise.all([
+  const [startedRes, finishedRes, giftsRes, ranksRes, statsRes, funnelRes] = await Promise.all([
     supabase.from("xmas_game_runs").select("id", { count: "exact", head: true }),
     supabase.from("xmas_game_runs").select("id", { count: "exact", head: true }).gte("round", 5),
     supabase
@@ -34,6 +34,8 @@ export default async function AdminXmasGamePage() {
       .limit(1000),
     // 난이도 확인 — 사람 기준 집계는 줄 수가 많아 DB 가 센다. 실패해도 나머지 화면은 그대로 보여 준다(칸만 빠진다)
     supabase.rpc("xmas_game_stats"),
+    // 참여 현황 — 방문 발자취에서 사람 수로 센다. 이것도 실패하면 칸만 빠진다
+    supabase.rpc("xmas_game_funnel"),
   ]);
   const error = startedRes.error ?? finishedRes.error ?? giftsRes.error ?? ranksRes.error;
 
@@ -69,6 +71,7 @@ export default async function AdminXmasGamePage() {
             gifts={(giftsRes.data ?? []) as GiftRow[]}
             ranks={ranks}
             stats={statsRes.error ? null : (statsRes.data as GameStats)}
+            funnel={funnelRes.error ? null : (funnelRes.data as GameFunnel)}
           />
         )}
       </div>
