@@ -191,6 +191,12 @@ export async function renderShareImage(record: ShareRecord | null): Promise<Imag
         </div>
       </div>
     ),
-    { ...SHARE_IMAGE_SIZE, fonts: [{ name: "Jua", data: font, style: "normal", weight: 400 }] },
+    {
+      ...SHARE_IMAGE_SIZE,
+      fonts: [{ name: "Jua", data: font, style: "normal", weight: 400 }],
+      // 오래 쥐고 있으라고 직접 적는다. 안 적으면 "받자마자 낡은 것"(max-age=0)으로 나가서, Vercel 이 요청이 올 때마다
+      // 뒤에서 그림을 다시 그린다(테스트 서버에서 x-vercel-cache: STALE 로 확인). 그림이 바뀌면 주소 뒤의 ?값이 바뀐다.
+      headers: { "cache-control": "public, immutable, no-transform, max-age=31536000, s-maxage=31536000" },
+    },
   );
 }

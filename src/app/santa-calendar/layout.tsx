@@ -35,10 +35,17 @@ const wyeSymbols = localFont({
 /** 휴대폰 상단 막대 색 — 게임 화면의 바탕(XmasGame.module.css 의 .root)과 맞춘다. */
 const GAME_BACKGROUND = "#0f3d33";
 
-// 공유 카드 그림의 주소를 만드는 기준 — (site) 레이아웃과 같은 값이다(운영 · 테스트가 도메인이 다르다)
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com"),
-};
+/*
+  공유 카드 그림의 주소를 만드는 기준. 운영은 (site) 레이아웃과 같은 값이다.
+  테스트 서버는 NEXT_PUBLIC_SITE_URL 이 운영 주소로 잡혀 있어서, 그대로 쓰면 테스트 서버의 카드가 운영의 그림을 가리킨다
+  (운영에 아직 없는 그림이면 카드가 깨진다). 테스트 프로젝트에서는 Vercel 이 넣어 주는 그 프로젝트의 도메인을 쓴다.
+*/
+const SITE_URL =
+  process.env.NEXT_PUBLIC_IS_TEST_ENV === "true" && process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.NEXT_PUBLIC_SITE_URL || "https://www.wouldyouescape.com";
+
+export const metadata: Metadata = { metadataBase: new URL(SITE_URL) };
 
 export const viewport: Viewport = { themeColor: GAME_BACKGROUND, colorScheme: "dark", viewportFit: "cover" };
 
