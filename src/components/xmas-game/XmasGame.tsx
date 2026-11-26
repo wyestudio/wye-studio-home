@@ -27,7 +27,6 @@ import {
   friendRecord,
   returnPath,
   savedGiftCode,
-  shareHeadline,
   shareUrl,
   type ShareRecord,
 } from "./xmasGameShared";
@@ -40,6 +39,7 @@ import theme from "./xmasScene.module.css";
  * 흐름
  *   게임 방법 → 1~5라운드 → 35점 미만: 최종 점수 + 닉네임을 넣으면 내 순위 · 상위 3명
  *                         → 35점 이상: 정답 입력 → 맞히면 선물 코드 + 참여 신청하러 가기 + 이어하기(6~20라운드) + 현재 랭킹
+ *                                      → 「기록만 남기기」 로 건너뛰어도 이어하기 · 랭킹은 된다(선물 코드만 없다)
  *
  * 나눠 둔 것
  *   xmasGameEngine  문 · 점수 · 라운드(시계)        xmasGameAudio  음악 · 효과음
@@ -245,11 +245,13 @@ export default function XmasGame() {
       who: SHARE_CHARACTERS[Math.floor(Math.random() * SHARE_CHARACTERS.length)],
     };
     const url = shareUrl(record);
-    const text = `${shareHeadline(record)} 내 기록에 도전해 보세요.\n우주이스케이프 크리스마스 이벤트 「${XMAS_GAME_TITLE}」`;
+    // 같이 보내는 글은 이름 한 줄뿐이다 — 랭킹 · 점수 · "도전해 보세요" 는 바로 아래 공유 카드가 말한다(2026-11-26 대표님).
+    const text = `우주이스케이프 크리스마스 이벤트 「${XMAS_GAME_TITLE}」`;
     pushGa4Event(XMAS_GAME_EVENT.share, { themeLabel: origin });
     if (navigator.share) {
       try {
-        await navigator.share({ title: XMAS_GAME_TITLE, text, url });
+        // title 은 넘기지 않는다 — 카카오톡이 "제목 - 글" 로 이어 붙여 이름이 두 번 나온다
+        await navigator.share({ text, url });
       } catch {
         // 공유 취소 — 무시
       }
@@ -589,7 +591,8 @@ export default function XmasGame() {
                   </button>
                 </div>
               )}
-              {result.kind === "win" && (
+              {/* 다섯 라운드를 통과한 화면(정답을 맞혔든 기록만 남겼든)에서만 — 이어하기가 끝난 화면에는 없다 */}
+              {!bonus && (
                 <div className={s.next}>
                   <button type="button" className={`${s.btn} ${s.btnGreen} ${s.btnBig}`} onClick={game.continueBonus}>
                     6라운드 이어하기
