@@ -5,7 +5,7 @@ import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard
 import { writeAuditLog } from "@/lib/auditLog";
 import { GROUP_BOOKING_THEME_SLUGS, isInquiryStatus, inquiryStatusLabel } from "@/lib/groupBooking";
 import { GROUP_CLOSURES_TAG } from "@/lib/groupClosures";
-import { BASE_MINUTES, HHMM, ISO_DATE, OPTION, addMinutes } from "@/lib/groupPricing";
+import { BASE_MINUTES, CLOSURE_BUFFER_MINUTES, HHMM, ISO_DATE, OPTION, addMinutes } from "@/lib/groupPricing";
 import { kstToUtcIso } from "@/lib/scheduleRules";
 
 /**
@@ -212,6 +212,14 @@ async function insertClosure(
   });
 
   const parts = [`${label} 을 마감으로 표시했습니다.`];
+  if (c.time) {
+    const b = CLOSURE_BUFFER_MINUTES;
+    // 앞쪽은 자정 전으로 넘기지 않는다(closureSlots 와 같다).
+    const before = Math.min(b, Number(c.time.slice(0, 2)) * 60 + Number(c.time.slice(3, 5)));
+    parts.push(
+      `세팅 · 정리 시간을 더해 ${addMinutes(c.time, -before)}~${addMinutes(c.time, (c.minutes ?? BASE_MINUTES) + b)} 신청을 막습니다.`
+    );
+  }
   if (sessions.closed.length) parts.push(`겹치는 회차 ${sessions.closed.length}개도 닫았습니다(${sessions.closed.join(", ")}).`);
   if (sessions.kept.length)
     parts.push(`신청자가 있어 열어 둔 회차: ${sessions.kept.join(", ")} — 회차 관리에서 직접 확인해주세요.`);
@@ -329,9 +337,12 @@ async function closeOverlappingSessions(
   minutes: number | null,
   label: string
 ): Promise<{ closed: string[]; kept: string[] }> {
-  const from = kstToUtcIso(date, time ?? "00:00");
+  // 시간 구간이면 앞뒤 세팅 · 정리 시간까지 닫는다 — 고객 화면이 막는 구간(closureSlots)과 같다.
+  const buffer = CLOSURE_BUFFER_MINUTES * 60_000;
+  const start = kstToUtcIso(date, time ?? "00:00");
+  const from = time ? new Date(new Date(start).getTime() - buffer).toISOString() : start;
   const to = time
-    ? new Date(new Date(from).getTime() + (minutes ?? BASE_MINUTES) * 60_000).toISOString()
+    ? new Date(new Date(start).getTime() + (minutes ?? BASE_MINUTES) * 60_000 + buffer).toISOString()
     : kstToUtcIso(date, "23:59");
 
   const { data: groupTheme } = await supabase
