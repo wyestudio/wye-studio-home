@@ -13,6 +13,8 @@ import { isAdminHost, isProductionHost } from "@/lib/hosts";
 const PROTECTED_PATTERN = /^\/(account|auth\/(naver|kakao)\/link)/;
 
 const SITE_GATE_PATH = process.env.SITE_GATE_PATH || "/site-gate-w3k9m5x7";
+// 사이트 게이트를 거치지 않는 경로 — 임시다. 아래 1단계의 설명을 볼 것.
+const GATE_FREE_PATTERN = /^\/santa-calendar(\/|$)/;
 const ADMIN_PATH = process.env.ADMIN_PATH || "/admin";
 const OYD_GATE_PATH = "/openyourdream/gate";
 
@@ -51,8 +53,14 @@ export async function proxy(request: NextRequest) {
   }
 
   // 1단계: 사이트 전체 비밀번호 게이트
+  //
+  // ⚠️ 임시(2026-11-26 대표님): 크리스마스 게임 화면(/santa-calendar)만 게이트를 거치지 않는다. 테스트 서버에서
+  //    카카오톡 공유 카드를 확인하려는 것이다 — 카카오가 게이트에 막히면 제목 · 그림을 읽어 가지 못한다.
+  //    게임 화면에는 신청 · 고객 정보가 없다(게임과 랭킹 닉네임뿐). 어드민 호스트는 빼지 않는다.
+  //    **운영(main)에 올리기 전에 이 예외(GATE_FREE_PATTERN)를 지워 테스트 서버를 다시 전부 막는다.**
   const sitePassword = process.env.SITE_ACCESS_PASSWORD;
-  if (sitePassword && !isApiPath && !pathname.startsWith(SITE_GATE_PATH)) {
+  const gateFree = !onAdminHost && GATE_FREE_PATTERN.test(pathname);
+  if (sitePassword && !isApiPath && !pathname.startsWith(SITE_GATE_PATH) && !gateFree) {
     const gateCookie = request.cookies.get("site_gate_auth")?.value;
     if (!gateCookie || !verifySiteGateToken(gateCookie)) {
       const loginUrl = new URL(`${SITE_GATE_PATH}/login`, request.url);
