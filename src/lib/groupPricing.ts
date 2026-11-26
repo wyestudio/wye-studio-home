@@ -283,7 +283,14 @@ export function overlapsBusy(busy: readonly BusySlot[], date: string, time: stri
 }
 
 /**
- * 운영자가 시간 구간으로 막은 일정(start ~ start+minutes)을 BusySlot 으로 바꾼다.
+ * 마감 구간 앞뒤로 더 막는 시간(분) — 앞은 세팅, 뒤는 정리(2026-11-26 대표님).
+ * 13:30~16:30 확정이면 12:30~17:30 을 막아, 다음 단체는 09:30(3시간) 이나 17:30 부터만 받는다.
+ * 마감 줄에는 확정 일시 그대로 두고, 막을 때만 넓힌다.
+ */
+export const CLOSURE_BUFFER_MINUTES = 60;
+
+/**
+ * 운영자가 시간 구간으로 막은 일정(start ~ start+minutes)을 앞뒤 CLOSURE_BUFFER_MINUTES 만큼 넓혀 BusySlot 으로 바꾼다.
  * 구간 마감은 예약이 있는 시간과 똑같이 '겹치면 못 받는다' 로 본다(2026-10-30 대표님).
  * 종일 마감(time null)은 여기서 빼고 따로 본다. minutes 가 없으면(옛 행) 단체 기본 3시간.
  */
@@ -292,10 +299,14 @@ export function closureSlots(
 ): BusySlot[] {
   return closures.flatMap((c) => {
     if (c.time == null) return [];
-    const end = (hhmmToMin(c.time) + (c.minutes ?? BASE_MINUTES)) % 1440;
-    return [{ date: c.date, start: c.time, end: `${pad(Math.floor(end / 60))}:${pad(end % 60)}` }];
+    const s = Math.max(0, hhmmToMin(c.time) - CLOSURE_BUFFER_MINUTES);
+    const len = Math.min(1440, hhmmToMin(c.time) + (c.minutes ?? BASE_MINUTES) + CLOSURE_BUFFER_MINUTES - s);
+    const end = (s + len) % 1440;
+    return [{ date: c.date, start: hhmm(s), end: hhmm(end) }];
   });
 }
+
+const hhmm = (min: number) => `${pad(Math.floor(min / 60))}:${pad(min % 60)}`;
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
