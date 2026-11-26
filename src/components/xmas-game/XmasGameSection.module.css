@@ -1,0 +1,364 @@
+/*
+  크리스마스 이벤트 입구 — 테마 상세의 한 블록(2026-11-26 대표님).
+
+  다른 블록처럼 소제목(CHRISTMAS EVENT) + 제목을 얹고, 그 아래 판 하나가 게임 화면의 한 조각처럼 보인다:
+  같은 풍경 · 같은 글꼴(주아) · 같은 버튼(아래 턱) · 같은 금색 점선 칸 · 같은 달력 틀.
+
+  짜임(게임 이벤트 배너의 흔한 짜임을 따랐다)
+    넓은 화면  왼쪽에 "받는 것을 앞세운 제목 → 무슨 게임인지 한 문장 → 누를 것" 을 위에서 아래로,
+               오른쪽에 게임의 한 장면과 그 밑의 선물 코드 자리. 두 기둥의 높이가 비슷해야 한다 — 코드 자리를
+               비워 두면 오른쪽이 짧아져 어긋난다(그래서 받기 전에도 빈 칸을 둔다).
+    휴대폰     한 줄로 쌓는다: 제목 → 한 문장 → 달력 그림 → (받은 코드) → 버튼. 글이 먼저, 누를 것이 맨 아래.
+
+  배경 · 색 · 글꼴은 xmasScene.module.css 의 .scene 과 --x-* 이름표로만 쓴다. 여기에 색을 직접 적지 않는다.
+  본문 문장의 크기는 컴포넌트의 text-* 토큰이, 표시용 글꼴(.display)을 쓰는 제목 · 버튼 · 숫자의 크기는 여기가 정한다.
+  간격은 4의 배수만 쓴다. 칸 · 글자를 기울이지 않는다.
+*/
+.section {
+  /* 공유 링크 · 돌아가기로 내려왔을 때 붙어 있는 헤더 · 탭에 가리지 않게 */
+  scroll-margin-top: 7rem;
+}
+
+/*
+  블록 제목 "크리스마스 이벤트" — 양옆에 트리와 산타, "크리스마스" 다섯 글자는 빨강 · 초록을 번갈아.
+  그림은 글자 높이보다 조금 크게 두고 글자 가운데에 맞춘다.
+*/
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titleArt {
+  flex: none;
+  width: 1.3em;
+}
+
+.titleArt svg {
+  display: block;
+  width: 100%;
+}
+
+.titleRed {
+  color: var(--x-title-red);
+}
+
+.titleGreen {
+  color: var(--x-title-green);
+}
+
+.panel {
+  /* 아래 눈 언덕의 높이 — 글과 버튼이 언덕에 묻히지 않게 그만큼 아래를 비운다 */
+  --x-ground: 88px;
+  padding: 56px 56px calc(var(--x-ground) + 24px);
+  border-radius: 20px;
+}
+
+.banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 48px;
+}
+
+.text {
+  min-width: 0;
+}
+
+/* 제목 · 숫자 · 버튼 — 게임 화면과 같은 글꼴. 굵기가 하나뿐이라 억지로 굵게 그리지 못하게 막는다 */
+.display {
+  font-family: var(--x-display);
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+.headline {
+  font-size: clamp(30px, 3.8vw, 44px);
+  line-height: 1.25;
+}
+
+.em {
+  color: var(--x-gold);
+}
+
+.lead {
+  max-width: 26em;
+  margin-top: 12px;
+  color: var(--x-snow-dim);
+  /* 마지막 줄에 낱말 하나만 떨어지지 않게 줄 길이를 고르게 나눈다 */
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+/* 오른쪽 기둥 — 달력 그림, 그 밑에 받은 선물 코드 */
+.side {
+  display: grid;
+  gap: 16px;
+}
+
+/* 받은 선물 코드 — 게임 화면 「게임 방법」 의 금색 점선 칸과 같은 모양. 달력 그림과 폭을 맞춘다 */
+.code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 24px 8px 12px;
+  border: 2px dashed var(--x-gold-edge);
+  border-radius: 16px;
+  color: var(--x-ink);
+  background: var(--x-gold-soft);
+  text-align: left;
+}
+
+.code > span:first-child {
+  flex: none;
+  width: 48px;
+}
+
+.code svg {
+  display: block;
+  width: 100%;
+}
+
+.code small {
+  display: block;
+  color: var(--x-gold-ink);
+}
+
+/* 아직 못 받은 코드의 자리 — 같은 칸을 비워 둔 모양(바탕 없이 점선만, 글자는 한 단계 가라앉힌다) */
+.codeLocked {
+  color: var(--x-gold-soft);
+  background: var(--x-snow-glass);
+}
+
+.codeLocked > span:first-child {
+  opacity: 0.7;
+}
+
+.codeLocked small {
+  color: var(--x-snow-dim);
+}
+
+.codeLocked strong {
+  color: var(--x-gold);
+}
+
+.code strong {
+  display: block;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  /* 현장에서 길게 눌러 복사하거나 읽어 줄 수 있게 */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 가장 먼저 눌러야 할 것 — 게임 화면의 버튼과 같은 모양(아래 턱) */
+.start {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(320px, 100%);
+  min-height: 64px;
+  margin-top: 24px;
+  padding: 16px 40px;
+  border-radius: 16px;
+  color: var(--x-paper);
+  background: var(--x-red);
+  box-shadow: 0 5px 0 var(--x-red-lip);
+  font-size: 22px;
+  line-height: 1.2;
+  transition:
+    transform 0.1s,
+    box-shadow 0.1s;
+}
+
+.start:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--x-red-lip);
+}
+
+.start:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--x-red-lip);
+}
+
+/* 초점 테두리는 아래 턱까지 감싼다(outline 은 몸통만 둘러 턱에 걸쳐 어긋난다 — XmasGame.module.css 의 .btn 과 같다) */
+.start:focus-visible {
+  outline: none;
+}
+
+.start:focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: -6px -6px -11px;
+  border: 3px solid var(--x-gold);
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+/* ── 게임의 한 장면: 크리스마스 어드벤트 캘린더 여섯 칸(게임 화면의 달력과 같은 틀) ── */
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 104px);
+  grid-auto-rows: 104px;
+  gap: 8px;
+  padding: 12px;
+  border: 3px solid var(--x-paper-edge);
+  border-radius: 16px;
+  background: var(--x-paper);
+  box-shadow:
+    0 6px 0 var(--x-paper-lip),
+    0 16px 32px var(--x-shadow);
+}
+
+.board > span {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+/* 닫힌 문 — 날짜만 */
+.door {
+  padding: 4px 12px;
+  font-size: 32px;
+  line-height: 1.2;
+}
+
+.doorRose {
+  color: var(--x-door-rose-ink);
+  background: var(--x-door-rose);
+}
+
+.doorPine {
+  color: var(--x-paper);
+  background: var(--x-door-pine);
+}
+
+.doorSun {
+  color: var(--x-door-sun-ink);
+  background: var(--x-door-sun);
+}
+
+/* 열린 문 — 캐릭터가 아래에서 올라와 있다 */
+.open {
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 8px 0;
+  background: var(--x-door);
+}
+
+.open svg {
+  display: block;
+  width: 100%;
+  margin-bottom: -8%;
+}
+
+.pop {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 0 8px;
+  border: 2px solid var(--x-paper-white);
+  border-radius: 9999px;
+  color: var(--x-paper-white);
+  background: var(--x-leaf);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+@media (max-width: 959px) {
+  .banner {
+    gap: 32px;
+  }
+
+  .board {
+    grid-template-columns: repeat(3, 80px);
+    grid-auto-rows: 80px;
+  }
+
+  .door {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .panel {
+    --x-ground: 64px;
+    padding: 32px 20px calc(var(--x-ground) + 16px);
+    border-radius: 16px;
+  }
+
+  /*
+    한 줄로 쌓는다 — 제목 → 한 문장 → 달력 그림 → (받은 코드) → 버튼. 두 기둥(.text · .side)의 틀을 풀어
+    안의 것들을 한 줄에 세우고 순서를 다시 매긴다. 간격은 gap 대신 각자의 위 여백으로 준다.
+  */
+  .banner {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0;
+    text-align: center;
+  }
+
+  .text,
+  .side {
+    display: contents;
+  }
+
+  .headline {
+    order: 1;
+  }
+
+  .lead {
+    order: 2;
+  }
+
+  .board {
+    order: 4;
+    /* 칸 크기를 판 폭에 맞춘다 — 좁은 휴대폰에서도 그림이 판을 채운다 */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-rows: auto;
+    width: min(100%, 320px);
+    margin-top: 24px;
+    text-align: left;
+  }
+
+  .board > span {
+    aspect-ratio: 1;
+  }
+
+  .code {
+    order: 5;
+    width: min(100%, 320px);
+    margin-top: 16px;
+  }
+
+  /* 빈 코드 칸은 감춘다 — 세로로 길어지기만 한다 */
+  .codeLocked {
+    display: none;
+  }
+
+  .start {
+    order: 6;
+    width: 100%;
+    margin-top: 28px;
+  }
+
+  .lead {
+    margin-inline: auto;
+  }
+
+  /* 문장 하나가 한 줄 */
+  .lead span {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start {
+    transition: none;
+  }
+}

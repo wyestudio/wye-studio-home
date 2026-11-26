@@ -1,0 +1,155 @@
+/*
+  게임을 내려받는 동안의 화면(XmasGameLoader). 달력 문 한 칸 + 제목 + 점 셋.
+
+  문 안에서 캐릭터 셋이 차례로 올라온다 — 한 명이 1.2초씩, 올라와 두 번 폴짝이고 내려가면 다음이 올라온다.
+  셋이 같은 움직임(3.6초)을 1.2초씩 어긋나게 돈다. 첫 캐릭터(눈사람)는 화면이 뜨는 순간 이미 올라와 있다.
+  색 · 글꼴은 xmasScene.module.css 의 이름표로만 쓴다. 기울이지 않는다(위아래로만 움직인다).
+*/
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+@supports (height: 100svh) {
+  .root {
+    min-height: 100svh;
+  }
+}
+
+/* 열린 문 한 칸 — 게임 달력의 틀(종이 테두리 + 아래 턱)과 같은 모양 */
+.door {
+  position: relative;
+  overflow: hidden;
+  width: 128px;
+  height: 128px;
+  border: 6px solid var(--x-paper);
+  border-radius: 20px;
+  background: var(--x-door);
+  box-shadow:
+    0 6px 0 var(--x-paper-lip),
+    0 16px 32px var(--x-shadow);
+}
+
+.char {
+  position: absolute;
+  inset: 12px 8px 0;
+  display: flex;
+  align-items: flex-end;
+  /* 차례가 아닐 때는 문 아래에 숨어 있다 */
+  transform: translateY(110%);
+  animation: wait 3.6s infinite;
+}
+
+.char svg {
+  display: block;
+  width: 100%;
+  margin-bottom: -8%;
+}
+
+/* 뒤의 둘은 한 바퀴의 2/3 · 1/3 지점에서 시작한다(아직 숨어 있는 구간) — 1.2초 · 2.4초 뒤에 올라온다 */
+.char:nth-child(2) {
+  animation-delay: -2.4s;
+}
+
+.char:nth-child(3) {
+  animation-delay: -1.2s;
+}
+
+@keyframes wait {
+  /* 올라와서 두 번 폴짝 */
+  0%,
+  11%,
+  22% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.3, 0, 0.4, 1);
+  }
+  5.5%,
+  16.5% {
+    transform: translateY(-9%);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.7, 1);
+  }
+  /* 내려가서 다음 차례까지 숨는다 */
+  28%,
+  95% {
+    transform: translateY(110%);
+    animation-timing-function: cubic-bezier(0.2, 1.4, 0.5, 1);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.title {
+  margin: 32px 0 0;
+  color: var(--x-snow);
+  font-family: var(--x-display);
+  font-size: 24px;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.3;
+}
+
+.dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--x-gold);
+  animation: dot 1.2s ease-in-out infinite;
+}
+
+.dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-6px);
+  }
+}
+
+/* 움직임을 줄여 달라고 한 기기 — 눈사람만 올라와 있고, 점은 깜빡이기만 한다 */
+@media (prefers-reduced-motion: reduce) {
+  .char {
+    animation: none;
+  }
+
+  .char:first-child {
+    transform: none;
+  }
+
+  .dots i {
+    animation-name: dotFade;
+  }
+}
+
+@keyframes dotFade {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+  30% {
+    opacity: 1;
+  }
+}

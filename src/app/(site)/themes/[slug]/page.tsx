@@ -51,6 +51,7 @@ import { ModeBox, modeHref, modeKey } from "./ModeBox";
 import { ModeHud } from "./ModeHud";
 import { getSiteSkin } from "@/lib/siteSeason";
 import { HalloweenEventSection } from "./HalloweenEventSection";
+import { XmasGameSection } from "@/components/xmas-game/XmasGameSection";
 import { HALLOWEEN_ACCENT } from "@/lib/season";
 import { PosterSeasonDecor, SeasonArt } from "@/components/season/SeasonArt";
 import { SectionViewTracker } from "./SectionViewTracker";
@@ -426,6 +427,7 @@ export default async function ThemeDetailPage({
   */
   const skin = await getSiteSkin();
   const halloween = skin === "halloween";
+  const christmas = skin === "christmas";
   const seasonAccent = halloween && theme.id === themeLevel.id ? HALLOWEEN_ACCENT : accent;
   const modeVariants = halloween
     ? variants.map((v) => (v.id === themeLevel.id ? { ...v, accent_color: HALLOWEEN_ACCENT } : v))
@@ -711,6 +713,17 @@ export default async function ThemeDetailPage({
       {halloween && base.slug === "baotalchul" && (
         <div className={`mx-auto w-full max-w-4xl ${SCREEN_SECTION}`}>
           <HalloweenEventSection />
+        </div>
+      )}
+
+      {/*
+        ── 크리스마스 이벤트(미니게임) ── 할로윈 이벤트와 같은 자리. 스킨이 켜져 있으면 모든 테마에 붙는다
+        (2026-11-26 대표님). 여기서는 안내와 「게임 참여하기」 만 그린다 — 게임은 새 창(/santa-calendar)에서
+        열리고, 판 기록 · 랭킹은 브라우저가 Supabase 로 바로 보낸다(이 페이지의 서버 렌더가 늘지 않는다).
+      */}
+      {christmas && (
+        <div className={`mx-auto w-full max-w-4xl ${SCREEN_SECTION}`}>
+          <XmasGameSection themeLabel={theme.name} accent={seasonAccent} />
         </div>
       )}
 

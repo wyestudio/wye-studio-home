@@ -32,7 +32,8 @@ export function VisitTracker() {
     const onClick = (e: MouseEvent) => {
       const target = e.target instanceof Element ? e.target : null;
       const el = target?.closest("a, button, summary, [role='button'], [data-track]");
-      if (!el) return;
+      // data-track-off: 연타하는 영역(크리스마스 게임의 달력 — 한 판에 80번 넘게 누른다)은 남기지 않는다
+      if (!el || el.closest("[data-track-off]")) return;
       const masked = !!el.closest("[data-clarity-mask]");
       const text = masked ? "" : visibleText(el);
       const label =
