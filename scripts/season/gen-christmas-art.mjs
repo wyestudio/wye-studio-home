@@ -1,19 +1,17 @@
 /*
-  크리스마스 스킨에서 **코드로 그리는 그림**을 만든다 — 배경의 언덕 세 겹과 맨 앞 눈밭, 포스터 눈 지붕,
-  반짝이, 헤더 아래 전구 줄. 매끈한 곡선뿐이라 손으로 그릴 것이 없고, 화면 폭에 맞춰 늘려도 안 깨진다.
+  크리스마스 스킨에서 **코드로 그리는 작은 장식**을 만든다 — 포스터 눈 지붕 · 반짝이.
   그림을 고치려면 여기를 고치고 다시 돌린다.
 
-    node scripts/season/gen-christmas-art.mjs                  저장소의 세 곳에 쓴다
+    node scripts/season/gen-christmas-art.mjs                  seasonArtSvgs.ts 의 크리스마스 칸을 갈아 끼운다
     node scripts/season/gen-christmas-art.mjs --preview <폴더>  낱장 SVG 로만 뽑는다(저장소는 안 건드린다)
 
-  쓰는 곳:
-    src/components/season/seasonArtSvgs.ts    작은 장식 — 크리스마스 칸만 갈아 끼운다
-    src/components/season/xmasSceneSvgs.ts    배경의 언덕 · 눈밭
-    public/season/christmas/garland*.svg      CSS 가 url() 로 쓰는 전구 줄
-
-  일러스트(마을 · 숲 · 눈사람 · 루돌프 · 큰 나무 · 썰매 · 모자 · 선물 · 호랑가시 · 리스 · 방울)는 여기서 만들지 않는다.
+  일러스트(모자 · 선물 · 호랑가시 · 리스 · 방울 · 루돌프)는 여기서 만들지 않는다.
   public/season/christmas/xmas-*.webp 가 원본이고(대표님이 주신 그림을 잘라 넣었다), 아래 RASTER 에는
   그 파일의 크기만 적는다 — **그림 파일을 바꾸면 RASTER 의 가로 · 세로도 같이 고치고 다시 돌린다.**
+
+  ⚠️ 배경(언덕 · 눈밭)과 헤더 아래 전구 줄을 그리는 코드가 아래에 남아 있지만 **사이트는 이제 쓰지 않는다.**
+     배경은 2026-11-27 최종 시안의 그림으로 바뀌었다(public/season/christmas/scene/, ChristmasBackdrop.tsx).
+     --preview 로 뽑아 볼 수만 있고, 저장소에는 쓰지 않는다.
 */
 import fs from "node:fs";
 import path from "node:path";
@@ -112,6 +110,8 @@ const arts = {};
 // 일러스트 파일(public/season/christmas/<이름>.webp) — [가로, 세로]. 작은 장식 칸에 주소와 비율만 적어 넣는다.
 const RASTER = {
   "xmas-santa-hat": [312, 220],
+  // 로고에 씌우는 모자 — 로고 모양에 맞춰 따로 그린 것(2026-11-27 대표님이 GPT 로 받았다). 털 띠가 로고 윗선을 따라 휜다
+  "xmas-santa-hat-logo": [640, 356],
   "xmas-gift": [229, 246],
   "xmas-holly": [300, 226],
   "xmas-wreath": [302, 328],
@@ -227,7 +227,6 @@ if (pi > 0) {
   console.log(Object.entries(arts).map(([n, a]) => `${n} ${(a.inner.length / 1024).toFixed(1)}KB`).join("\n"));
 } else {
   const repo = path.resolve(HERE, "../..");
-  const SCENE = ["xmas-hills-far", "xmas-hills-mid", "xmas-hills-near", "xmas-ground"];
   const ICON = ["xmas-sparkle", "xmas-snowcap"];
   const raster = ([n, [w, h]]) => `  "${n}": {\n    viewBox: "0 0 ${w} ${h}",\n    attrs: {  },\n    inner: "",\n    src: "/season/christmas/${n}.webp",\n  },\n`;
   const entry = (n, attrs) => `  "${n}": {\n    viewBox: "${arts[n].viewBox}",\n${attrs ? "    attrs: {  },\n" : ""}    inner: ${JSON.stringify(arts[n].inner)},\n  },\n`;
@@ -239,12 +238,5 @@ if (pi > 0) {
   if (a < 0 || b < 0) throw new Error("seasonArtSvgs.ts 에서 크리스마스 칸을 못 찾았다");
   t = t.slice(0, a) + "  // ── 크리스마스 — scripts/season/gen-christmas-art.mjs 가 쓴다. 손으로 고치지 않는다 ──\n" + Object.entries(RASTER).map(raster).join("") + ICON.map((n) => entry(n, true)).join("") + t.slice(b);
   fs.writeFileSync(f1, t);
-  // 2) 배경 그림
-  const f2 = path.join(repo, "src/components/season/xmasSceneSvgs.ts");
-  const head = `/*\n  크리스마스 배경 그림 — scripts/season/gen-christmas-art.mjs 가 만든다. 손으로 고치지 않는다.\n  크리스마스일 때만 받도록 ChristmasBackdrop 만 이 파일을 읽고, 그 컴포넌트는 따로 떼어 불러온다\n  (SeasonBackdrop.tsx). 언덕 · 눈밭뿐이다 — 마을 · 나무 같은 일러스트는 public/season/christmas/xmas-*.webp 다.\n  id 앞의 __ID__ 는 그릴 때 요소마다 다른 값으로 바뀐다(같은 그림을 두 번 그려도 안 겹치게).\n*/\nexport type XmasSceneName =\n${SCENE.map((n) => `  | "${n.replace("xmas-", "")}"`).join("\n")};\n\nexport const XMAS_SCENE_SVGS: Record<XmasSceneName, { viewBox: string; inner: string }> = {\n`;
-  fs.writeFileSync(f2, head + SCENE.map((n) => entry(n, false).replace(`"${n}"`, `"${n.replace("xmas-", "")}"`)).join("") + "};\n");
-  // 3) CSS 가 url() 로 쓰는 파일
-  const pub = path.join(repo, "public/season/christmas");
-  for (const [f, svg] of Object.entries(tiles)) fs.writeFileSync(path.join(pub, f), svg);
-  console.log("wrote", f1, f2, pub);
+  console.log("wrote", f1);
 }

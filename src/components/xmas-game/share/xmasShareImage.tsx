@@ -140,7 +140,7 @@ export async function renderShareImage(record: ShareRecord | null): Promise<Imag
         <div style={{ position: "absolute", top: 34, right: 52, display: "flex", alignItems: "center" }}>
           <div style={{ fontSize: 32, marginRight: 14, marginTop: 22 }}>우주이스케이프</div>
           {/* eslint-disable-next-line @next/next/no-img-element -- 화면이 아니라 그림 엔진이 그리는 JSX 다 */}
-          <img src={logo} width={98} height={88} alt="" />
+          <img src={logo} width={107} height={88} alt="" />
         </div>
 
         {/* 달력 문 한 칸과 캐릭터 */}

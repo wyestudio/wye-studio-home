@@ -38,6 +38,7 @@ export type SeasonArtName =
   | "poster-web"
   | "sparkle"
   | "xmas-santa-hat"
+  | "xmas-santa-hat-logo"
   | "xmas-gift"
   | "xmas-holly"
   | "xmas-sparkle"
@@ -52,7 +53,7 @@ export type SeasonArtName =
  * null 이면 크리스마스 때 그 자리를 비운다. 자리마다 달리 하고 싶으면 SeasonArt 의 christmas 로 덮는다.
  */
 const CHRISTMAS_SWAP: Partial<Record<SeasonArtName, SeasonArtName | null>> = {
-  "witch-hat": "xmas-santa-hat",
+  "witch-hat": "xmas-santa-hat-logo",
   pumpkin: "xmas-gift",
   ghost: "xmas-rudolph",
   "bat-orange": "xmas-bells",

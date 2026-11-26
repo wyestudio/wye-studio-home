@@ -5,7 +5,7 @@
 | 파일 | 무엇 | 어떻게 만들었나 |
 |---|---|---|
 | `Jua-share.ttf` | 주아(Jua, SIL OFL 1.1) 글꼴에서 **카드에 나오는 글자만** 남긴 것(64자, 26KB) | 아래 명령 |
-| `logo-santa.png` | 산타모자 쓴 로고 | `public/logo-white.png` 에 `public/season/christmas/xmas-santa-hat.webp` 를 헤더와 같은 비율(폭 48%, 왼쪽 40%, 위 −26%, 12° 기울임)로 얹어 높이 176px 로 줄였다 |
+| `logo-santa.png` | 산타모자 쓴 로고 | `public/logo-white.png` 위에 로고용 모자 원본(로고와 같은 캔버스에 그린 것 — 사이트는 그 모자만 잘라 `public/season/christmas/xmas-santa-hat-logo.webp` 로 쓴다)을 그대로 겹쳐(모자가 로고 위로 솟은 만큼 캔버스가 길다) 높이 176 으로 줄였다 |
 
 ## 카드 문구를 고쳤으면 글꼴을 다시 만든다
 

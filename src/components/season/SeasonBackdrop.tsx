@@ -7,8 +7,8 @@ import { GhostEasterEgg } from "@/components/season/GhostEasterEgg";
 import { useSiteSkin } from "@/components/season/SeasonContext";
 
 /*
-  크리스마스 배경은 그림이 커서(40KB 남짓) 따로 떼어 둔다 — 크리스마스일 때만 받는다.
-  서버에서도 그대로 그려 내려가므로(ssr 기본값) 화면이 뜬 뒤에 뒤늦게 나타나지 않는다.
+  크리스마스 배경은 코드가 커서(배치 계산 · 눈덩이 굴리기) 따로 떼어 둔다 — 크리스마스일 때만 받는다.
+  서버는 빈 칸만 내려보내고, 장면은 브라우저가 화면 크기를 보고 채운다(ChristmasBackdrop.tsx).
 */
 const ChristmasBackdrop = dynamic(() =>
   import("@/components/season/ChristmasBackdrop").then((m) => m.ChristmasBackdrop),

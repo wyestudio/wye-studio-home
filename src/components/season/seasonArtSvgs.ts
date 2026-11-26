@@ -77,6 +77,12 @@ export const SEASON_ART_SVGS: Record<SeasonArtName, ArtSvg> = {
     inner: "",
     src: "/season/christmas/xmas-santa-hat.webp",
   },
+  "xmas-santa-hat-logo": {
+    viewBox: "0 0 640 356",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-santa-hat-logo.webp",
+  },
   "xmas-gift": {
     viewBox: "0 0 229 246",
     attrs: {  },

@@ -125,33 +125,41 @@ const HALLOWEEN_MASCOTS: Record<MascotId, MascotMeta> = {
 };
 
 /*
-  시즌 스킨(크리스마스) — 원래 그림에 시안 패키지의 장식만 얹었다(2026-11-20).
-    우쥬 — 사슴뿔 · 케이프 — 산타 모자 · 이스 — 원래 그대로(시안대로 한 캐릭터에 하나씩, 셋 다 얹지 않는다)
-  합성 그림은 public/season/christmas/ 에 있다. 몸통 크기가 원래와 같아 보이게 폭은 원래 값을 두고
-  높이만 장식만큼 늘렸다.
+  시즌 스킨(크리스마스) — 최종 시안의 크리스마스판 그림(2026-11-27 대표님).
+    우쥬 — 전구 줄에 감긴 모습 · 이스 — 썰매를 탄 모습 · 케이프 — 트리의 구슬 오너먼트
+  홈에서는 캐릭터가 궤도를 돌지 않고 배경 장면 안에 있다(ChristmasBackdrop.tsx). 거기서 누르면 커서 캐릭터가
+  이 그림으로 바뀐다. 그림은 장면과 같은 폴더(public/season/christmas/scene/)에 있다.
 */
-const CHRISTMAS_ART: Partial<Record<MascotId, MascotArt>> = {
+const CHRISTMAS_ART: Record<MascotId, MascotArt> = {
   woodju: {
-    orbitSrc: "/season/christmas/mascot-wooju-antlers.png",
+    orbitSrc: "/season/christmas/scene/woodju.png",
     orbitWidth: 92,
-    orbitHeight: 87,
-    cursorSrc: "/season/christmas/mascot-wooju-antlers.png",
+    orbitHeight: 83,
+    cursorSrc: "/season/christmas/scene/woodju.png",
     cursorWidth: 46,
-    cursorHeight: 44,
+    cursorHeight: 42,
+  },
+  is: {
+    orbitSrc: "/season/christmas/scene/is.png",
+    orbitWidth: 80,
+    orbitHeight: 74,
+    cursorSrc: "/season/christmas/scene/is.png",
+    cursorWidth: 46,
+    cursorHeight: 43,
   },
   kape: {
-    orbitSrc: "/season/christmas/mascot-kape-santa.png",
-    orbitWidth: 72,
-    orbitHeight: 68,
-    cursorSrc: "/season/christmas/mascot-kape-santa.png",
-    cursorWidth: 50,
-    cursorHeight: 48,
+    orbitSrc: "/season/christmas/scene/kape.png",
+    orbitWidth: 62,
+    orbitHeight: 80,
+    cursorSrc: "/season/christmas/scene/kape.png",
+    cursorWidth: 36,
+    cursorHeight: 47,
   },
 };
 
 const CHRISTMAS_MASCOTS: Record<MascotId, MascotMeta> = {
   woodju: { ...MASCOTS.woodju, ...CHRISTMAS_ART.woodju },
-  is: MASCOTS.is,
+  is: { ...MASCOTS.is, ...CHRISTMAS_ART.is },
   kape: { ...MASCOTS.kape, ...CHRISTMAS_ART.kape },
 };
 
