@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull } from "@/lib/format";
-import { AdminPage } from "@/components/admin/ui";
+import { AdminEmpty, AdminPage } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +31,10 @@ const CHANNEL_LABELS: Record<string, string> = {
   youtube: "유튜브 (쇼츠 포함)",
 };
 
+/**
+ * 후기 페이백 신청 목록.
+ * 2026-11-27 대표님: 상태 탭 없이 모양만 정리한다(표 6열 이하, 휴대폰 카드). 조회 · 보이는 값은 예전과 같다.
+ */
 export default async function AdminReviewPaybacksPage() {
   const supabase = createAdminClient();
 
@@ -52,48 +56,92 @@ export default async function AdminReviewPaybacksPage() {
   const rows = (applications as ReviewPaybackApplication[]) ?? [];
 
   return (
-    <AdminPage title="후기 페이백" description={`후기를 남기고 페이백을 신청한 건입니다. 지금 ${rows.length}건.`}>
+    <AdminPage title="후기 페이백" description="후기를 남기고 페이백을 신청한 건입니다. 게시물을 확인한 뒤 적힌 계좌로 보냅니다.">
+      <p className="mb-3 text-body-sm text-muted">
+        총 <strong className="text-foreground">{rows.length}</strong>건
+      </p>
 
       {rows.length === 0 ? (
-        <p className="text-muted py-4">아직 신청이 없습니다.</p>
+        <AdminEmpty title="아직 신청이 없어요" hint="후기 페이백 신청서가 들어오면 여기에 보입니다." />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">신청일시</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">이름</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">휴대폰</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">참가 회차</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">후기 채널</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">게시물 링크</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">은행</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">계좌번호</th>
-                <th className="text-left py-3 px-4 font-semibold text-body-sm">예금주</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((app) => (
-                <tr key={app.id} className="border-b border-border/50 hover:bg-muted/30 align-top">
-                  <td className="py-3 px-4 text-micro whitespace-nowrap">{formatDateTimeFull(app.created_at)}</td>
-                  <td className="py-3 px-4 text-body-sm">{app.name}</td>
-                  <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.phone}</td>
-                  <td className="py-3 px-4 text-body-sm whitespace-nowrap">{SESSION_LABELS[app.session_slug] ?? app.session_slug}</td>
-                  <td className="py-3 px-4 text-body-sm whitespace-nowrap">{CHANNEL_LABELS[app.channel] ?? app.channel}</td>
-                  <td className="py-3 px-4 text-body-sm max-w-[220px] truncate">
-                    <a href={app.post_url} target="_blank" rel="noopener" className="text-glow hover:underline">
-                      {app.post_url}
-                    </a>
-                  </td>
-                  <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.bank_name}</td>
-                  <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.account_number}</td>
-                  <td className="py-3 px-4 text-body-sm whitespace-nowrap">{app.account_holder}</td>
+        <>
+          {/* 휴대폰: 카드 */}
+          <ul className="flex flex-col gap-2 md:hidden">
+            {rows.map((app) => (
+              <li key={app.id} className="rounded-xl border border-border bg-surface p-4">
+                <div className="flex flex-wrap items-baseline gap-1.5">
+                  <span className="text-body font-semibold">{app.name}</span>
+                  <span className="text-body-sm tabular-nums text-muted">{app.phone}</span>
+                </div>
+                <div className="mt-1 text-body-sm text-muted">{sessionLabel(app)}</div>
+                <div className="mt-2 text-body-sm">
+                  <span className="text-muted">{channelLabel(app)}</span>
+                  <PostLink url={app.post_url} className="block break-all" />
+                </div>
+                <div className="mt-2 text-body-sm tabular-nums">
+                  {app.bank_name} {app.account_number}
+                  <span className="text-muted"> · 예금주 {app.account_holder}</span>
+                </div>
+                <div className="mt-1 text-body-sm tabular-nums text-muted">{formatDateTimeFull(app.created_at)} 신청</div>
+              </li>
+            ))}
+          </ul>
+
+          {/* 컴퓨터: 표 — 열은 5개(docs/01 5장 원칙 3). 휴대폰은 신청자 칸, 은행 · 계좌번호 · 예금주는 한 칸에 모은다 */}
+          <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
+            <table className="w-full text-body-sm">
+              <thead className="border-b border-border text-left text-label text-muted">
+                <tr>
+                  <th className="px-3 py-2.5">신청자</th>
+                  <th className="px-3 py-2.5">참가 회차</th>
+                  <th className="px-3 py-2.5">후기</th>
+                  <th className="px-3 py-2.5">입금 계좌</th>
+                  <th className="px-3 py-2.5">신청일시</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((app) => (
+                  <tr key={app.id} className="border-b border-border/50 align-top last:border-0 hover:bg-fill-subtle">
+                    <td className="px-3 py-3">
+                      <span className="font-semibold text-foreground">{app.name}</span>
+                      <span className="block whitespace-nowrap tabular-nums text-muted">{app.phone}</span>
+                    </td>
+                    <td className="px-3 py-3">{sessionLabel(app)}</td>
+                    <td className="px-3 py-3">
+                      {channelLabel(app)}
+                      {/* 긴 주소가 표를 밀지 않게 한 줄로 자른다 — 전체 주소는 누르면 열린다 */}
+                      <PostLink url={app.post_url} className="block max-w-56 truncate" />
+                    </td>
+                    <td className="px-3 py-3">
+                      <span className="whitespace-nowrap tabular-nums">
+                        {app.bank_name} {app.account_number}
+                      </span>
+                      <span className="block text-muted">예금주 {app.account_holder}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 tabular-nums text-muted">{formatDateTimeFull(app.created_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </AdminPage>
+  );
+}
+
+function sessionLabel(app: ReviewPaybackApplication): string {
+  return SESSION_LABELS[app.session_slug] ?? app.session_slug;
+}
+
+function channelLabel(app: ReviewPaybackApplication): string {
+  return CHANNEL_LABELS[app.channel] ?? app.channel;
+}
+
+function PostLink({ url, className = "" }: { url: string; className?: string }) {
+  return (
+    <a href={url} target="_blank" rel="noopener" title={url} className={`text-glow hover:underline ${className}`}>
+      {url}
+    </a>
   );
 }
