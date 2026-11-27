@@ -11,10 +11,11 @@ import {
   claimGift,
   fetchBoard,
   registerNickname,
+  retryDeck,
   savedNickname,
   shareStatus,
   startRun,
-  submitScore,
+  submitRun,
   type Board,
   type BoardRow,
 } from "./xmasGameApi";
@@ -28,6 +29,8 @@ import {
   XMAS_GAME_TITLE,
   XMAS_SHARE_ARG,
   applyPath,
+  cleanNickname,
+  nicknameError,
   formatGiftCode,
   friendRecord,
   returnPath,
@@ -273,18 +276,32 @@ export default function XmasGame() {
     window.open(INSTAGRAM_DM, "_blank", "noopener");
   }
 
-  /** 공유 완료 팝업의 「N라운드 도전하기」. */
-  function startRetry() {
+  /**
+   * 공유 완료 팝업의 「N라운드 도전하기」. 그 라운드의 새 문 패를 서버에서 받아 다시 한다 — 점수를 서버가 다시 세려면
+   * 재도전한 라운드의 문 패도 서버가 정해야 한다. 못 받으면 그대로 하되 그 뒤 기록은 랭킹에 안 올라간다(엔진이 가른다).
+   */
+  const [retryStarting, setRetryStarting] = useState(false);
+  async function startRetry() {
+    if (retryStarting || failedRound == null) return;
+    setRetryStarting(true);
+    const id = await run.current;
+    await submitted.current;
+    const deck = id ? await retryDeck(id, failedRound) : null;
+    setRetryStarting(false);
     setRetryReady(false);
     setRetryChoose(false);
     setRetryMsg("");
-    if (game.retryRound()) pushGa4Event(XMAS_GAME_EVENT.retry, { themeLabel: origin });
+    if (game.retryRound(deck)) pushGa4Event(XMAS_GAME_EVENT.retry, { themeLabel: origin });
   }
 
   useEffect(() => {
     game.setEventHandler((e: GameEvent) => {
       if (e.type === "start") {
-        run.current = startRun(origin);
+        // 판 번호와 서버가 정한 문 패 — 문 패는 카운트다운 동안 엔진에 넘긴다(점수를 서버가 다시 센다)
+        run.current = startRun(origin).then((started) => {
+          if (started) game.setDecks(started.decks);
+          return started?.id ?? null;
+        });
         submitted.current = null;
         setBoard(null);
         setBoardFailed(false);
@@ -303,10 +320,11 @@ export default function XmasGame() {
       const round = e.type === "five" ? GIFT_ROUNDS : e.round;
       submitted.current = (async () => {
         const id = await run.current;
-        let next = id ? await submitScore(id, round, e.points, e.peak) : null;
+        // 점수가 아니라 누른 기록을 보낸다 — 서버가 다시 센다. 서버 문 패로 하지 못한 판(ranked 아님)은 보내지 않는다
+        let next = id && e.ranked ? await submitRun(id, round, e.log) : null;
         // 시작 전에 닉네임을 적어 뒀고 아직 랭킹에 없으면 여기서 바로 올린다
-        const name = nickRef.current.trim();
-        if (id && next && !next.me && name.length >= 1 && name.length <= 10) {
+        const name = cleanNickname(nickRef.current);
+        if (id && next?.ok && !next.me && !nicknameError(name)) {
           const named = await registerNickname(id, name);
           if (named?.ok) {
             next = named;
@@ -342,9 +360,9 @@ export default function XmasGame() {
   };
   /** 게임 방법 카드의 「게임 시작」 — 닉네임이 비었으면 시작하지 않고 칸으로 보낸다. */
   function beginWithNick() {
-    const name = nick.trim();
-    if (name.length < 1 || name.length > 10) {
-      setNickError("닉네임을 입력해 주세요. (10자 이내)");
+    const problem = nicknameError(nick);
+    if (problem) {
+      setNickError(problem);
       nickInput.current?.focus();
       return;
     }
@@ -354,10 +372,10 @@ export default function XmasGame() {
   // 머리의 재시작 버튼 — 여기로도 닉네임 없이 시작할 수 없다. 랭킹에 없고 닉네임도 비었으면 게임 방법 카드로 돌려보낸다
   const restart = () => {
     game.reset();
-    const name = nick.trim();
-    if (!(board ?? lobby)?.me && (name.length < 1 || name.length > 10)) {
+    const problem = nicknameError(nick);
+    if (!(board ?? lobby)?.me && problem) {
       setShowRules(false);
-      setNickError("닉네임을 입력해 주세요. (10자 이내)");
+      setNickError(problem);
       return;
     }
     game.begin();
@@ -953,7 +971,7 @@ export default function XmasGame() {
             <h2 id="xmas-retry-title" className={`${s.cardTitle} ${s.display}`}>
               공유 완료!
             </h2>
-            <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={startRetry}>
+            <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={startRetry} disabled={retryStarting}>
               {failedRound}라운드 도전하기
             </button>
           </section>
@@ -994,10 +1012,13 @@ const Tile = memo(function Tile({
         disabled={!open}
         aria-label={shown ? KIND_LABEL[shown.card.kind] : undefined}
         // 손가락이 닿는 순간 센다 — click 은 뗄 때 와서 빠른 라운드에서 늦는다. click 은 키보드용으로 남긴다
+        // 사람이 만든 입력만 받는다(isTrusted) — 개발자도구에서 스크립트로 누른 것(el.click() · dispatchEvent)은 무시한다
         onPointerDown={(e) => {
-          if (e.button === 0) onTap(index);
+          if (e.button === 0 && e.nativeEvent.isTrusted) onTap(index);
         }}
-        onClick={() => onTap(index)}
+        onClick={(e) => {
+          if (e.nativeEvent.isTrusted) onTap(index);
+        }}
       >
         {shown && (
           <span
@@ -1088,11 +1109,12 @@ function RankBlock({
 
   async function submit() {
     if (saving) return;
-    const name = nickname.trim();
-    if (name.length < 1 || name.length > 10) {
-      setMessage("닉네임은 1~10자로 입력해 주세요.");
+    const problem = nicknameError(nickname);
+    if (problem) {
+      setMessage(problem);
       return;
     }
+    const name = cleanNickname(nickname);
     setSaving(true);
     setMessage((await onRegister(name)) ?? "");
     setSaving(false);

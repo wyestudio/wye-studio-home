@@ -30,6 +30,24 @@ const USER_MOVES = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
 const noop = () => () => {};
 
 /**
+ * 받은 선물 코드를 다시 읽을 때 — 게임은 새 창에서 하고 「돌아가기」 는 그 창을 닫을 뿐이라, 이 창(상세)은 코드를 받기 전
+ * 모습 그대로 남는다(2026-11-27 대표님 — "돌아가면 받은 코드가 바로 보이게").
+ *   storage    다른 창(게임)이 저장소에 코드를 적는 순간 이 창에 온다
+ *   focus      이 창으로 돌아왔을 때(storage 가 안 오는 브라우저 대비)
+ *   pageshow   같은 탭에서 뒤로 가기로 돌아와 예전 화면이 되살아났을 때
+ */
+function subscribeGiftCode(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener("focus", onChange);
+  window.addEventListener("pageshow", onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener("focus", onChange);
+    window.removeEventListener("pageshow", onChange);
+  };
+}
+
+/**
  * 크리스마스 이벤트 「산타의 어드벤트 캘린더」 입구 — 테마 상세의 회차 선택과 상세 정보 사이(2026-11-26 대표님).
  *
  * 크리스마스 스킨이 켜져 있을 때만 붙는다(page.tsx). 스킨을 끄면 같이 사라진다.
@@ -77,7 +95,7 @@ export function XmasGameSection({
 }) {
   const section = useRef<HTMLElement>(null);
   // 서버가 그릴 때는 저장소를 모른다 — 빈 값으로 그리고 브라우저에서 채운다
-  const code = useSyncExternalStore(noop, savedGiftCode, () => null);
+  const code = useSyncExternalStore(subscribeGiftCode, savedGiftCode, () => null);
   // 게임 화면에 지금 화면(모드 포함)을 실어 보낸다 — 그쪽의 돌아가기 · 공유가 이 값을 쓴다
   const href = useSyncExternalStore(noop, gameHref, () => XMAS_GAME_PATH);
 
