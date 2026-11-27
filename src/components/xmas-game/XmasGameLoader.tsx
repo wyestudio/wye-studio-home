@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { characterSvg } from "./xmasGameArt";
-import { XMAS_GAME_TITLE } from "./xmasGameShared";
+import { XMAS_GAME_PAGE_TITLE } from "./xmasGameShared";
 import l from "./XmasGameLoader.module.css";
 import theme from "./xmasScene.module.css";
 
@@ -23,7 +23,7 @@ function Loading() {
         ))}
       </div>
       <p className={l.title} aria-hidden>
-        {XMAS_GAME_TITLE}
+        {XMAS_GAME_PAGE_TITLE}
       </p>
       <span className={l.dots} aria-hidden>
         <i />

@@ -260,7 +260,8 @@ html.custom-cursor-active [role="button"],
 html.custom-cursor-active input,
 html.custom-cursor-active select,
 html.custom-cursor-active textarea,
-html.custom-cursor-active label {
+html.custom-cursor-active label,
+html.custom-cursor-active [data-grab] {
   cursor: none;
 }
 

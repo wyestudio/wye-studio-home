@@ -179,6 +179,8 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 function el(cls: string, html?: string): HTMLDivElement {
   const e = document.createElement("div");
   e.className = cls;
+  // 잡거나 끌 수 있는 것(눈덩이 · 캐릭터 손잡이) — 커서 마스코트가 이 표식을 보고 흐려지고, 잡으면 커진다(MascotCursor.tsx)
+  if (/\bxmas-sc-(ball|hit)\b/.test(cls)) e.dataset.grab = "";
   if (html) e.innerHTML = html;
   return e;
 }

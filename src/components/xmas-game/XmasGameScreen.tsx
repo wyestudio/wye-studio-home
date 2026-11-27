@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getSiteSkin } from "@/lib/siteSeason";
 import { XmasGameLoader } from "./XmasGameLoader";
-import { XMAS_GAME_TITLE, XMAS_GIFT_GOAL, shareHeadline, type ShareRecord } from "./xmasGameShared";
+import { XMAS_GAME_PAGE_TITLE, XMAS_GIFT_GOAL, shareHeadline, type ShareRecord } from "./xmasGameShared";
 
 /**
  * 게임 화면의 서버 쪽 — 주소가 둘이라(/santa-calendar, 기록을 실은 공유 주소 /santa-calendar/r/…) 같이 쓴다.
@@ -16,7 +16,7 @@ export async function XmasGameScreen() {
   if ((await getSiteSkin()) !== "christmas") {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-5 px-5 text-center text-white">
-        <h1 className="text-h2 font-extrabold">{XMAS_GAME_TITLE}</h1>
+        <h1 className="text-h2 font-extrabold">{XMAS_GAME_PAGE_TITLE}</h1>
         <p className="text-body">지금은 이벤트 기간이 아니에요.</p>
         <Link href="/" className="rounded-lg bg-white px-5 py-3 text-body font-semibold text-black">
           홈으로
@@ -39,7 +39,7 @@ const SHARE_DESCRIPTION =
  * ⚠️ robots.ts 로는 막지 않는다. 거기서 막으면 인스타 DM 같은 곳이 공유 카드를 읽어 가지 못한다.
  */
 export function xmasGameMetadata(record: ShareRecord | null): Metadata {
-  const pageTitle = `${XMAS_GAME_TITLE} | 우주이스케이프`;
+  const pageTitle = `${XMAS_GAME_PAGE_TITLE} | 우주이스케이프`;
   const cardTitle = record ? `${shareHeadline(record)} 내 기록에 도전해 보세요 | 우주이스케이프` : pageTitle;
   return {
     title: { absolute: pageTitle },

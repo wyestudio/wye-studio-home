@@ -21,6 +21,7 @@ import {
   XMAS_GAME_HASH,
   XMAS_GAME_PATH,
   SHARE_CHARACTERS,
+  XMAS_GAME_PAGE_TITLE,
   XMAS_GAME_TITLE,
   applyPath,
   formatGiftCode,
@@ -246,7 +247,7 @@ export default function XmasGame() {
     };
     const url = shareUrl(record);
     // 같이 보내는 글은 이름 한 줄뿐이다 — 랭킹 · 점수 · "도전해 보세요" 는 바로 아래 공유 카드가 말한다(2026-11-26 대표님).
-    const text = `우주이스케이프 크리스마스 이벤트 「${XMAS_GAME_TITLE}」`;
+    const text = `우주이스케이프 크리스마스 이벤트 게임 「${XMAS_GAME_TITLE}」`;
     pushGa4Event(XMAS_GAME_EVENT.share, { themeLabel: origin });
     if (navigator.share) {
       try {
@@ -300,7 +301,7 @@ export default function XmasGame() {
           </svg>
           돌아가기
         </button>
-        <h1 className={`${s.wordmark} ${s.display}`}>{XMAS_GAME_TITLE}</h1>
+        <h1 className={`${s.wordmark} ${s.display}`}>{XMAS_GAME_PAGE_TITLE}</h1>
         <div className={s.tools}>
           <button type="button" className={s.tool} aria-label="게임 재시작" title="게임 재시작" onClick={restart}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

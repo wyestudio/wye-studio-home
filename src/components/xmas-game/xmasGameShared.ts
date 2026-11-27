@@ -8,6 +8,8 @@
 import type { Kind } from "./xmasGameArt";
 
 export const XMAS_GAME_TITLE = "산타의 어드벤트 캘린더";
+/** 게임 화면의 제목(브라우저 탭 · 화면 위 이름 · 공유 카드 제목) — 이름만으로는 무엇인지 몰라 "게임" 을 붙인다(2026-11-27 대표님). */
+export const XMAS_GAME_PAGE_TITLE = `${XMAS_GAME_TITLE} 게임`;
 
 /**
  * 선물이 열리는 점수 — 다섯 라운드 합계(가장 많이 내면 52점). 엔진의 게이지와 화면 문구가 이 값을 쓴다.

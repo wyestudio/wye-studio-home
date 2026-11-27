@@ -10,6 +10,13 @@ import { useMascotSelection } from "@/components/space/MascotSelectionContext";
 // 가려버려서(예: 헤더 메뉴의 글자 스왑 효과) 옅게 만들어 아래 내용이 잘 보이게 한다.
 const INTERACTIVE_SELECTOR = "a, button, [role='button'], input, select, textarea, label";
 const DIMMED_OPACITY = "0.3";
+/*
+  잡거나 끌 수 있는 것(data-grab — 크리스마스 장면의 눈덩이 · 우쥬 · 케이프 · 이스 썰매) 위에서도 똑같이 흐려진다.
+  잡는 동안은 커서 마스코트가 살짝 커졌다가 놓으면 돌아온다 — 손 모양 커서(grab) 대신 이것이 "잡았다" 를 알린다
+  (2026-11-27 대표님).
+*/
+const GRAB_SELECTOR = "[data-grab]";
+const GRAB_SCALE = "scale(1.25)";
 
 export function MascotCursor() {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -43,7 +50,7 @@ export function MascotCursor() {
       const current = mascotRef.current;
       el.style.transform = `translate3d(${e.clientX - current.cursorWidth / 2}px, ${e.clientY - current.cursorHeight / 2}px, 0)`;
       const target = e.target as HTMLElement | null;
-      const isInteractive = !!target?.closest(INTERACTIVE_SELECTOR);
+      const isInteractive = !!target?.closest(`${INTERACTIVE_SELECTOR}, ${GRAB_SELECTOR}`);
       el.style.opacity = isInteractive ? DIMMED_OPACITY : "1";
     }
 
@@ -66,11 +73,28 @@ export function MascotCursor() {
       el.style.opacity = "0";
     }
 
+    // 크기는 안쪽 그림에 준다 — 바깥 칸의 transform 은 커서 자리(translate)가 쓰고 있다
+    function handleDown(e: PointerEvent) {
+      const img = el?.firstElementChild as HTMLElement | null;
+      if (img && (e.target as HTMLElement | null)?.closest(GRAB_SELECTOR)) img.style.transform = GRAB_SCALE;
+    }
+
+    function handleUp() {
+      const img = el?.firstElementChild as HTMLElement | null;
+      if (img) img.style.transform = "";
+    }
+
     window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerdown", handleDown);
+    window.addEventListener("pointerup", handleUp);
+    window.addEventListener("pointercancel", handleUp);
     document.addEventListener("pointerover", handleOver);
     document.addEventListener("pointerleave", handleLeave);
     return () => {
       window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerdown", handleDown);
+      window.removeEventListener("pointerup", handleUp);
+      window.removeEventListener("pointercancel", handleUp);
       document.removeEventListener("pointerover", handleOver);
       document.removeEventListener("pointerleave", handleLeave);
       document.body.style.cursor = "";
@@ -90,7 +114,7 @@ export function MascotCursor() {
         alt=""
         width={mascot.cursorWidth}
         height={mascot.cursorHeight}
-        style={{ filter: mascotGlow(mascot.id, 10) }}
+        style={{ filter: mascotGlow(mascot.id, 10), transition: "transform 0.18s cubic-bezier(0.2, 1.4, 0.4, 1)" }}
       />
     </div>
   );
