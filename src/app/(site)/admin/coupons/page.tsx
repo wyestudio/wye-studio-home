@@ -6,6 +6,11 @@ import type { CouponRow } from "./CouponPanel";
 
 export const dynamic = "force-dynamic";
 
+/** 현재 시각. 렌더 함수 밖으로 빼 purity 규칙을 지킨다. */
+function getNowIso(): string {
+  return new Date().toISOString();
+}
+
 export default async function AdminCouponsPage() {
   const supabase = createAdminClient();
 
@@ -40,6 +45,7 @@ export default async function AdminCouponsPage() {
         <p role="alert" className="text-body-sm text-danger">불러올 수 없습니다: {error.message}</p>
       ) : (
         <CouponTabs
+          nowIso={getNowIso()}
           campaigns={(campaignsRes.data ?? []) as CampaignRow[]}
           coupons={(couponsRes.data ?? []) as CouponRow[]}
           themes={(themesRes.data ?? []) as { id: string; name: string }[]}
