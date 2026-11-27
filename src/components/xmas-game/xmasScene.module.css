@@ -31,6 +31,8 @@
   --x-ink-mute: #5d7268;
   --x-red: #c8372f;
   --x-red-lip: #8c211b;
+  /* 어두운 솔잎색 바탕 위의 빨간 글자(점수판의 산타 -1) — 버튼의 빨강은 거기서 묻힌다 */
+  --x-red-bright: #ff8375;
   --x-green: #1f5a47;
   --x-green-lip: #123a2e;
   --x-leaf: #23784f;

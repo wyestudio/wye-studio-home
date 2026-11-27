@@ -67,7 +67,11 @@ grant select, insert, update, delete on public.xmas_game_runs to service_role;
 
 comment on table public.xmas_game_runs is '크리스마스 미니게임 판 기록 · 랭킹 · 선물 코드. 어드민 /xmas-game 에서 본다.';
 
--- ── 랭킹: 사람(브라우저)마다 가장 좋은 판 하나. 위 3명과 내 순위 ──
+-- ── 랭킹: 사람(브라우저)마다 가장 좋은 판 하나. 위 10명과 내 순위, 내 바로 위아래 한 명씩 ──
+-- top    1~10위
+-- me     내 자리(등록했을 때만)
+-- around 내 바로 위 · 나 · 바로 아래(등록했을 때만) — 10위 밖이면 화면이 점 셋 밑에 이 석 줄을 보여 준다
+-- (2026-11-27 대표님 — 처음에는 위 3명과 나만 돌려줬다. 운영에는 같은 날 이 정의로 다시 실행했다)
 create or replace function public.xmas_game_board(p_player uuid default null)
 returns jsonb
 language sql
@@ -84,6 +88,9 @@ as $function$
   ranked as (
     select b.*, row_number() over (order by b.score desc, b.max_combo desc, b.finished_at) as pos
     from best b
+  ),
+  mine as (
+    select pos from ranked where player_id = p_player
   )
   select jsonb_build_object(
     'players', (select count(*) from ranked),
@@ -91,9 +98,14 @@ as $function$
       select jsonb_agg(jsonb_build_object(
                'rank', r.pos, 'name', r.nickname, 'score', r.score, 'round', r.round,
                'me', coalesce(r.player_id = p_player, false)) order by r.pos)
-      from ranked r where r.pos <= 3), '[]'::jsonb),
+      from ranked r where r.pos <= 10), '[]'::jsonb),
     'me', (select jsonb_build_object('rank', r.pos, 'name', r.nickname, 'score', r.score, 'round', r.round)
-           from ranked r where r.player_id = p_player)
+           from ranked r where r.player_id = p_player),
+    'around', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'rank', r.pos, 'name', r.nickname, 'score', r.score, 'round', r.round,
+               'me', coalesce(r.player_id = p_player, false)) order by r.pos)
+      from ranked r, mine m where r.pos between m.pos - 1 and m.pos + 1), '[]'::jsonb)
   );
 $function$;
 

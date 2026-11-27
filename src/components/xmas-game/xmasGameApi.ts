@@ -16,7 +16,8 @@ const NICK_KEY = "wye_xmas_nick";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 export type BoardRow = { rank: number; name: string; score: number; round: number; me?: boolean };
-export type Board = { ok?: boolean; players: number; top: BoardRow[]; me: BoardRow | null };
+/** top: 1~10위 / me: 내 자리 / around: 내 바로 위 · 나 · 바로 아래(10위 밖일 때 점 셋 밑에 보여 준다) */
+export type Board = { ok?: boolean; players: number; top: BoardRow[]; me: BoardRow | null; around?: BoardRow[] };
 export type Claim = { ok: boolean; code?: string; reason?: "score" | "tries" | "answer" };
 
 function newId(): string {
