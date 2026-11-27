@@ -6,12 +6,14 @@ import type { ActionResult } from "@/lib/adminGuard";
 import { redeemGift, restoreGift, setPlayerHidden } from "./actions";
 import {
   FunnelBars,
+  Pager,
   PlayHistory,
   RankTable,
   ReachChart,
   reachMatches,
   roundName,
   shortKst,
+  usePaged,
   type GameOverview,
 } from "./XmasGameCharts";
 
@@ -145,6 +147,8 @@ export function XmasGameAdmin({
       ? (gifts.find((g) => g.gift_code === code) ?? null)
       : null;
   const redeemed = gifts.filter((g) => g.gift_redeemed_at).length;
+  // 선물 코드는 위 칸에서 찾아 처리하니 목록은 짧게 — 한 페이지에 5개(2026-11-27 대표님)
+  const giftPages = usePaged(gifts, 5);
   const players = overview.players;
   const shown =
     reach === null ? players : players.filter((p) => reachMatches(p, reach));
@@ -238,7 +242,7 @@ export function XmasGameAdmin({
                 </tr>
               </thead>
               <tbody>
-                {gifts.map((g) => (
+                {giftPages.slice.map((g) => (
                   <tr key={g.id} className="border-t border-line-subtle">
                     <td className="px-3 py-2 font-mono font-semibold tracking-wider">
                       {showCode(g.gift_code)}
@@ -288,6 +292,7 @@ export function XmasGameAdmin({
             </table>
           </div>
         )}
+        <Pager {...giftPages} />
       </Section>
 
       <Section
@@ -367,7 +372,7 @@ export function XmasGameAdmin({
           )}
         </div>
         <div className="mt-3">
-          <PlayHistory players={shown} />
+          <PlayHistory key={reach ?? "all"} players={shown} />
         </div>
       </Section>
 
