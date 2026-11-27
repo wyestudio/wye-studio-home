@@ -98,7 +98,7 @@ test("검증 — 기타 직접 입력 · 혼자만 고르는 선택지 · 목록
 });
 
 test("요약에는 이름 · 휴대폰 번호가 없다", () => {
-  const rows = summaryRows({ groupName: "모임", headcount: 12, leaderName: "김서윤", phone: "01012345678", team: "상담 후 결정" });
+  const rows = summaryRows({ groupName: "모임", headcount: 12, leaderName: "김서윤", phone: "01012345678", team: "상담 후 결정" }, LEADER_ALL);
   assert.equal(rows.some((r) => r.id === "leaderName" || r.id === "phone"), false);
   assert.equal(rows.some((r) => r.value.includes("김서윤") || r.value.includes("0101234")), false);
 });

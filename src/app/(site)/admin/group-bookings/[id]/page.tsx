@@ -43,6 +43,12 @@ import { loadNametagMode, loadParticipants, loadSavedTeams, loadTeamPeople } fro
 import { ParticipantsTab } from "./ParticipantsTab";
 import { TeamsTab } from "./TeamsTab";
 import { ReportTab } from "./ReportTab";
+import { flattenTemplate, leaderParts } from "@/lib/groupForms/template";
+import { loadTemplate, loadTemplateVersion } from "@/lib/groupFormTemplates";
+import { answerText } from "@/lib/groupForms/leaderForm";
+import type { Answers } from "@/lib/groupForms/validate";
+
+const PARTICIPANT_FIXED_IDS = ["name", "phone", "nick", "age", "exp", "terms", "privacy", "phoneBox", "photo"];
 
 export const dynamic = "force-dynamic";
 
@@ -111,8 +117,12 @@ export default async function AdminGroupBookingDetailPage({
   let links: FormLinkView[] = [];
   // 모임장 신청서 — 개요 탭에서만 읽는다(휴대폰 번호 · 새 담당자 이름은 가린 값으로 온다).
   const leader = tab === "overview" ? await loadLeaderResponse(id) : null;
+  // 신청서는 그때의 양식으로 읽는다(양식을 고친 뒤에도 문항 이름 · 선택지가 어긋나지 않게).
+  const leaderTemplate = leader ? (await loadTemplateVersion("leader", leader.templateVersion)).template : null;
   // 참가자 탭 — 명단(전화번호는 가린 값)과 명찰 색 기준. 팀 편성 탭 — 닉네임 · 방수와 저장된 편성 · 모임장 요청.
-  const peopleData = tab === "people" ? await Promise.all([loadParticipants(id), loadNametagMode(id)]) : null;
+  const peopleData = tab === "people" ? await Promise.all([loadParticipants(id), loadNametagMode(id), loadTemplate("participant")]) : null;
+  // 양식에 더한 질문(전용 칸이 없는 질문) — 참가자 줄에 답을 같이 보여준다.
+  const extraQuestions = peopleData ? flattenTemplate(peopleData[2].template).filter((q) => !PARTICIPANT_FIXED_IDS.includes(q.id)) : [];
   const teamsData = tab === "teams" ? await Promise.all([loadTeamPeople(id), loadSavedTeams(id), loadLeaderAnswers(id)]) : null;
   // 리포트 탭 — 저장해 둔 내용이 있는지만 본다(내용은 열 때 읽는다).
   const reportSavedAt =
@@ -256,6 +266,9 @@ export default async function AdminGroupBookingDetailPage({
             at: formatDateTimeFull(p.edited ? p.updatedAt : p.submittedAt),
             edited: p.edited,
             recent: p.recent,
+            extras: extraQuestions
+              .map((q) => ({ label: q.label, value: answerText(q, p.answers as Answers) }))
+              .filter((x) => x.value !== "-"),
           }))}
         />
       ) : tab === "teams" && teamsData ? (
@@ -338,6 +351,8 @@ export default async function AdminGroupBookingDetailPage({
               <LeaderCard
                 id={id}
                 cancelled={cancelled}
+                baseQuestions={leaderTemplate ? leaderParts(leaderTemplate).base : []}
+                questions={leaderTemplate ? flattenTemplate(leaderTemplate, { skip: ["base"] }) : []}
                 data={{
                   answers: leader.answers,
                   submittedAt: formatDateTimeFull(leader.submittedAt),

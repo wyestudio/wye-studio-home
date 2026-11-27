@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { AdminBadge, AdminField, AdminNotice, adminButtonClass, adminInputClass } from "@/components/admin/ui";
 import { CONTACT_METHODS } from "@/lib/groupBooking";
-import { LEADER_BASE, LEADER_QUESTIONS, LEADER_SECOND } from "@/lib/groupForms/leaderSchema";
 import { answerText } from "@/lib/groupForms/leaderForm";
 import { OTHER, otherKey, type Question } from "@/lib/groupForms/schema";
 import { isVisible, type Answers } from "@/lib/groupForms/validate";
@@ -43,9 +42,21 @@ export type LeaderCardData = {
 };
 
 const HIGHLIGHT_IDS = ["team", "teamHow", "difficulty", "level", "event", "eventDetail", "surprise", "repeat", "repeatN", "afterParty", "apHours", "cleanup", "byob", "display", "welcome", "contactPref", "openchat", "etc"];
-const EDITABLE = [...LEADER_SECOND, ...LEADER_QUESTIONS];
 
-export function LeaderCard({ id, cancelled, data }: { id: string; cancelled: boolean; data: LeaderCardData }) {
+export function LeaderCard({
+  id,
+  cancelled,
+  data,
+  baseQuestions,
+  questions: EDITABLE,
+}: {
+  id: string;
+  cancelled: boolean;
+  data: LeaderCardData;
+  /** 그 신청서를 낼 때의 양식 — 기본 정보(견적에서 온 값) 질문과, 고칠 수 있는 나머지 질문(묶음 이름이 붙어 있다). */
+  baseQuestions: Question[];
+  questions: Question[];
+}) {
   const { pending, note, run } = useGroupAction();
   const [editing, setEditing] = useState<string | null>(null);
   const a = data.answers;
@@ -148,7 +159,7 @@ export function LeaderCard({ id, cancelled, data }: { id: string; cancelled: boo
           <section>
             <h4 className="text-body-sm font-semibold text-muted">기본 정보 (신청서에 적힌 값)</h4>
             <dl className="mt-2 flex flex-col gap-2">
-              {LEADER_BASE.filter((q) => a[q.id] !== undefined).map((q) => (
+              {baseQuestions.filter((q) => a[q.id] !== undefined).map((q) => (
                 <div key={q.id}>
                   <dt className="text-body-sm text-muted">{q.label}</dt>
                   <dd className="break-words text-body-sm text-foreground">{answerText(q, a)}</dd>

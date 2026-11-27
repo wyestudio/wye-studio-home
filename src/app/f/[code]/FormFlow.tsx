@@ -142,7 +142,8 @@ export function FormFlow({
   const filled = step.kind === "question" ? !(value == null || value === "" || (Array.isArray(value) && value.length === 0)) : true;
   const optional = step.kind === "question" && !step.q.required;
   // 하나 고르기는 고르는 즉시 넘어간다. 이미 답이 있거나(뒤로 왔을 때) 「기타」 를 골라 직접 적어야 하면 버튼을 보여준다.
-  const autoAdvance = step.kind === "question" && isPickOne(step.q, answers) && !filled;
+  // 마지막 화면은 고르기여도 넘어가지 않는다 — 제출은 반드시 「제출하기」 를 눌러서 한다(잘못 눌러 바로 제출되지 않게).
+  const autoAdvance = step.kind === "question" && isPickOne(step.q, answers) && !filled && !last;
 
   return (
     <div>
@@ -206,8 +207,9 @@ export function FormFlow({
               const cur = { ...answers, [step.q.id]: v };
               setAnswers(cur);
               setError("");
-              // 「기타」 는 직접 적어야 해서 넘어가지 않는다.
-              if (!(step.q.other && v === OTHER)) window.setTimeout(() => void next(cur), 160);
+              // 「기타」 는 직접 적어야 해서 넘어가지 않는다. 마지막 화면도 넘어가지 않는다(제출 버튼을 눌러야 한다).
+              const isLast = i >= stepsFor(cur).length - 1;
+              if (!(step.q.other && v === OTHER) && !isLast) window.setTimeout(() => void next(cur), 160);
             }}
           />
         )}

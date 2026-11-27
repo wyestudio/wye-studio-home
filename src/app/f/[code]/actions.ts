@@ -2,7 +2,9 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadParticipantStatus, requestIpHash, resolveForm, type ParticipantStatus } from "@/lib/groupFormLinks";
-import { PARTICIPANT_FORM, REVIEW_FORM } from "@/lib/groupForms/schema";
+import type { FormDef } from "@/lib/groupForms/schema";
+import { flattenTemplate } from "@/lib/groupForms/template";
+import { loadTemplate } from "@/lib/groupFormTemplates";
 import { cleanText, nicknameWidth, validateForm } from "@/lib/groupForms/validate";
 
 /**
@@ -17,6 +19,9 @@ import { cleanText, nicknameWidth, validateForm } from "@/lib/groupForms/validat
  */
 
 type Result = { ok: true } | { error: string; field?: string };
+
+/** 참가자 설문에서 전용 칸(암호화 칸 포함)으로 가는 질문들. 나머지는 answers(jsonb)로 간다. */
+const PARTICIPANT_COLUMNS = new Set(["name", "phone", "nick", "age", "exp", "terms", "privacy", "phoneBox", "photo"]);
 
 /** 사람이 못 보는 칸(honeypot)에 값이 있으면 봇이다. 성공한 것처럼 답하고 저장하지 않는다. */
 const isBot = (hp: unknown) => typeof hp === "string" && hp.trim() !== "";
@@ -49,11 +54,21 @@ export async function submitParticipant(code: string, raw: unknown, hp?: unknown
     if (!form || form.formKey !== "participant") return { error: "링크가 만료되었거나 올바르지 않습니다." };
     if (form.cancelled) return { error: "취소된 모임이라 더 받을 수 없습니다." };
 
-    const { answers, errors } = validateForm(PARTICIPANT_FORM, raw);
-    const first = PARTICIPANT_FORM.questions.find((q) => errors[q.id]);
+    // 지금 쓰는 양식(운영자가 고친 버전)으로 정리 · 검증한다. 화면이 보낸 양식은 믿지 않는다.
+    const loaded = await loadTemplate("participant");
+    const def: FormDef = { key: "participant", version: loaded.version, title: loaded.template.title, questions: flattenTemplate(loaded.template) };
+    const { answers, errors } = validateForm(def, raw);
+    const first = def.questions.find((q) => errors[q.id]);
     if (first) return { error: errors[first.id], field: first.id };
 
-    const { error } = await createAdminClient().rpc("submit_group_participant", {
+    // 이름 · 전화번호 · 닉네임 · 나이대 · 방수 · 약관은 전용 칸으로, 양식에 더한 질문의 답만 answers 로 보낸다.
+    const extras: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(answers)) {
+      if (PARTICIPANT_COLUMNS.has(k) || v === "" || (Array.isArray(v) && v.length === 0)) continue;
+      extras[k] = v;
+    }
+
+    const { error } = await createAdminClient().rpc("submit_group_participant_v2", {
       p_token: code,
       p_name: answers.name,
       p_phone: answers.phone,
@@ -64,7 +79,8 @@ export async function submitParticipant(code: string, raw: unknown, hp?: unknown
       p_consent_privacy: answers.privacy === true,
       p_consent_phone_box: answers.phoneBox === true,
       p_consent_photo: answers.photo === true,
-      p_template_version: PARTICIPANT_FORM.version,
+      p_answers: extras,
+      p_template_version: loaded.version,
       p_ip_hash: await requestIpHash(code),
     });
     if (error) return friendly(error.message);
@@ -120,20 +136,23 @@ export async function submitReview(code: string, raw: unknown, hp?: unknown): Pr
     if (!form || form.formKey !== "review") return { error: "링크가 만료되었거나 올바르지 않습니다." };
     if (form.cancelled) return { error: "취소된 모임이라 더 받을 수 없습니다." };
 
-    const { answers, errors } = validateForm(REVIEW_FORM, raw);
-    const first = REVIEW_FORM.questions.find((q) => errors[q.id]);
+    const loaded = await loadTemplate("review");
+    const def: FormDef = { key: "review", version: loaded.version, title: loaded.template.title, questions: flattenTemplate(loaded.template) };
+    const { answers, errors } = validateForm(def, raw);
+    const first = def.questions.find((q) => errors[q.id]);
     if (first) return { error: errors[first.id], field: first.id };
 
     // 별점은 따로 칸에 넣고, 나머지 답은 양식에 있는 열쇠만 모아 넘긴다.
-    const rest: Record<string, string> = {};
-    for (const q of REVIEW_FORM.questions) {
-      if (q.id !== "sat" && typeof answers[q.id] === "string" && answers[q.id] !== "") rest[q.id] = answers[q.id] as string;
+    const rest: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(answers)) {
+      if (k === "sat" || v === "" || (Array.isArray(v) && v.length === 0)) continue;
+      rest[k] = v;
     }
     const { error } = await createAdminClient().rpc("submit_group_review", {
       p_token: code,
       p_rating: Number(answers.sat),
       p_answers: rest,
-      p_template_version: REVIEW_FORM.version,
+      p_template_version: loaded.version,
       p_ip_hash: await requestIpHash(code),
     });
     if (error) return friendly(error.message);

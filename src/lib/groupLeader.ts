@@ -163,16 +163,18 @@ export async function loadLeaderResponse(inquiryId: string): Promise<LeaderRespo
 }
 
 /** 답만 읽는다(공개 폼에서 끝 4자리를 확인한 뒤 · 체크리스트 맞추기). 암호화 칸은 읽지 않는다. */
-export async function loadLeaderAnswers(inquiryId: string): Promise<{ answers: Answers; locked: boolean; editRequest: string | null } | null> {
+export async function loadLeaderAnswers(
+  inquiryId: string
+): Promise<{ answers: Answers; locked: boolean; editRequest: string | null; templateVersion: number } | null> {
   const { data, error } = await createAdminClient()
     .from("group_leader_responses")
-    .select("answers, locked, edit_request")
+    .select("answers, locked, edit_request, template_version")
     .eq("inquiry_id", inquiryId)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  const r = data as { answers: Answers; locked: boolean; edit_request: string | null };
-  return { answers: r.answers ?? {}, locked: r.locked, editRequest: r.edit_request };
+  const r = data as { answers: Answers; locked: boolean; edit_request: string | null; template_version: number };
+  return { answers: r.answers ?? {}, locked: r.locked, editRequest: r.edit_request, templateVersion: r.template_version };
 }
 
 /**

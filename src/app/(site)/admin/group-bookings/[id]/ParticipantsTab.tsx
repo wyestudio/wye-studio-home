@@ -31,6 +31,8 @@ export type ParticipantView = {
   edited: boolean;
   /** 낸 지(고친 지) 한 시간이 안 됐다. */
   recent: boolean;
+  /** 양식에 더한 질문의 답 — 서버가 글로 바꿔 넘긴다(질문 이름 · 답). */
+  extras: { label: string; value: string }[];
 };
 
 // 명찰 색 견본 — 색만으로 가르지 않게 항상 색 이름을 같이 적는다. 값은 명찰 제작기(TIER_META)의 색과 같다.
@@ -180,6 +182,11 @@ export function ParticipantsTab({
                     {p.name} <span className="font-normal text-muted">· {p.nick}</span>
                   </p>
                   <p className="text-body-sm text-muted">{p.ageBand}</p>
+                  {p.extras.map((x) => (
+                    <p key={x.label} className="break-words text-body-sm text-muted">
+                      {x.label}: <span className="text-foreground">{x.value}</span>
+                    </p>
+                  ))}
                 </div>
                 <div className="flex items-center gap-2 md:w-48">
                   <span aria-hidden className="h-4 w-4 shrink-0 rounded-md border border-line" style={{ background: SWATCH[nametagTier(p.count, mode)] }} />
