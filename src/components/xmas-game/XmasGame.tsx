@@ -111,9 +111,12 @@ export default function XmasGame() {
   /*
     시작하기 전에 받아 두는 닉네임(2026-11-27 대표님) — 적어 두면 판이 끝나는 순간 랭킹에 저절로 오른다.
     끝난 뒤에만 물었더니 닉네임 넣는 것을 잊고 창을 닫아 "등록이 안 됐다" 고 아쉬워하는 손님이 있었다.
-    비워 둬도 게임은 된다 — 그때는 예전처럼 결과 화면에서 넣을 수 있다.
+    **적어야 시작할 수 있다**(같은 날 대표님 — 비워 두고 시작할 수 있게 했더니 "막아 달라" 고 하셨다).
+    이미 랭킹에 있는 사람(닉네임이 서버에 있다)에게는 묻지 않는다.
   */
   const [nick, setNick] = useState(savedNickname);
+  const [nickError, setNickError] = useState("");
+  const nickInput = useRef<HTMLInputElement>(null);
   const nickRef = useRef(nick);
   useEffect(() => {
     nickRef.current = nick;
@@ -176,8 +179,26 @@ export default function XmasGame() {
   }, [game, music]);
 
   const replay = () => game.reset();
+  /** 게임 방법 카드의 「게임 시작」 — 닉네임이 비었으면 시작하지 않고 칸으로 보낸다. */
+  function beginWithNick() {
+    const name = nick.trim();
+    if (name.length < 1 || name.length > 10) {
+      setNickError("닉네임을 입력해 주세요. (10자 이내)");
+      nickInput.current?.focus();
+      return;
+    }
+    setNickError("");
+    game.begin();
+  }
+  // 머리의 재시작 버튼 — 여기로도 닉네임 없이 시작할 수 없다. 랭킹에 없고 닉네임도 비었으면 게임 방법 카드로 돌려보낸다
   const restart = () => {
     game.reset();
+    const name = nick.trim();
+    if (!(board ?? lobby)?.me && (name.length < 1 || name.length > 10)) {
+      setShowRules(false);
+      setNickError("닉네임을 입력해 주세요. (10자 이내)");
+      return;
+    }
     game.begin();
   };
 
@@ -557,22 +578,39 @@ export default function XmasGame() {
               {!home?.me && (
                 <div className={s.preNick}>
                   <input
+                    ref={nickInput}
                     className="text-input font-semibold"
                     value={nick}
-                    onChange={(e) => setNick(e.target.value)}
+                    onChange={(e) => {
+                      setNick(e.target.value);
+                      if (nickError) setNickError("");
+                    }}
+                    onKeyDown={(e) => {
+                      if (isSubmitKey(e)) {
+                        e.preventDefault();
+                        beginWithNick();
+                      }
+                    }}
+                    aria-invalid={nickError ? true : undefined}
                     maxLength={10}
                     aria-label="랭킹에 올릴 닉네임"
                     placeholder="닉네임 (10자 이내)"
                     autoComplete="off"
                     enterKeyHint="done"
                   />
-                  <p className={`${s.muted} text-label`}>
-                    적어 두면 게임이 끝날 때 랭킹에 자동으로 올라가요. 닉네임은 랭킹에 공개돼요.
-                  </p>
+                  {nickError ? (
+                    <p role="alert" className={`${s.warn} text-label font-semibold`}>
+                      {nickError}
+                    </p>
+                  ) : (
+                    <p className={`${s.muted} text-label`}>
+                      게임이 끝나면 이 닉네임으로 랭킹에 자동으로 올라가요. 닉네임은 랭킹에 공개돼요.
+                    </p>
+                  )}
                 </div>
               )}
               {/* 자동으로 초점을 주지 않는다 — 창이 뜨자마자 누르지도 않은 버튼에 테두리가 둘러져 있으면 고장처럼 보인다 */}
-              <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={game.begin}>
+              <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={home?.me ? game.begin : beginWithNick}>
                 게임 시작
               </button>
             </section>
