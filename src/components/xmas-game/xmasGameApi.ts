@@ -82,21 +82,37 @@ async function rpc<T>(fn: string, body: Record<string, unknown>): Promise<T | nu
   }
 }
 
-/** 판을 시작한다. 번호를 못 받으면(null) 그 판은 랭킹 · 선물 없이 진행된다. */
-export async function startRun(page: string): Promise<string | null> {
+/**
+ * 판을 시작한다 — 번호와, 서버가 정한 20라운드 문 패(0 눈사람 · 1 루돌프 · 2 산타 · 3 글자 든 산타).
+ * 점수는 서버가 이 문 패와 누른 기록으로 다시 센다(supabase/migrations/20261127055335_xmas_game_server_check.sql).
+ * 못 받으면(null) 그 판은 랭킹 · 선물 없이 진행된다.
+ */
+export type Run = { id: string; decks: number[][] };
+
+export async function startRun(page: string): Promise<Run | null> {
   const args = { p_player: playerId(), p_page: page };
   // 한 번 놓쳤다고 한 판이 통째로 기록 없이 가지 않게 한 번만 더 해 본다
-  return (await rpc<string>("xmas_game_start", args)) ?? (await rpc<string>("xmas_game_start", args));
+  const run = (await rpc<Run>("xmas_game_start2", args)) ?? (await rpc<Run>("xmas_game_start2", args));
+  return run && typeof run.id === "string" && Array.isArray(run.decks) ? run : null;
 }
+
+/** 라운드 하나의 기록 — o: 문이 열린 시각들(문 패 순서), h: [몇 번째 문, 누른 시각]들. ms, 라운드 시작 기준. */
+export type RoundLog = { o: number[]; h: [number, number][] };
 
 /** 지금 랭킹과 내 자리. 판을 시작할 때 읽어 두었다가, 끝났을 때 순위가 올랐는지 견준다. */
 export function fetchBoard(): Promise<Board | null> {
   return rpc<Board>("xmas_game_board", { p_player: playerId() });
 }
 
-/** 점수를 남기고 랭킹을 받는다. round 는 마친 라운드(5~20). */
-export function submitScore(run: string, round: number, score: number, combo: number): Promise<Board | null> {
-  return rpc<Board>("xmas_game_submit", { p_run: run, p_player: playerId(), p_round: round, p_score: score, p_combo: combo });
+/** 누른 기록을 남기고 랭킹을 받는다. round 는 마친 라운드(5~20), log 는 1라운드부터 그 라운드까지. 점수는 서버가 센다. */
+export function submitRun(run: string, round: number, log: RoundLog[]): Promise<Board | null> {
+  return rpc<Board>("xmas_game_submit2", { p_run: run, p_player: playerId(), p_round: round, p_log: log });
+}
+
+/** 공유하고 재도전 — 떨어진 라운드의 새 문 패. 서버가 안 주면 null(그 라운드 기록은 랭킹에 안 올라간다). */
+export async function retryDeck(run: string, round: number): Promise<number[] | null> {
+  const deck = await rpc<number[]>("xmas_game_retry", { p_run: run, p_player: playerId(), p_round: round });
+  return Array.isArray(deck) ? deck : null;
 }
 
 /** 닉네임을 등록하고(바꾸고) 랭킹을 받는다. ok 가 false 면 등록되지 않았다. */

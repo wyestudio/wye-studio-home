@@ -162,3 +162,26 @@ export function savedGiftCode(): string | null {
 
 /** 'ABCDEF' → 'ABC-DEF'. 읽어 주거나 받아 적기 쉽게 반으로 끊는다. */
 export const formatGiftCode = (code: string) => `${code.slice(0, 3)}-${code.slice(3)}`;
+
+/*
+  닉네임 규칙(2026-11-27 대표님) — 서버(xmas_game_name)와 같은 목록이다. 한쪽만 고치면 "화면은 된다는데 등록이 안 되는" 이름이 생긴다.
+    - 일반 띄어쓰기는 된다. 공백만 넣은 이름은 안 된다(여러 칸은 한 칸으로 줄이고 앞뒤는 자른다).
+    - 보이지 않는 글자 · 띄어쓰기처럼 보이는 글자는 안 된다: 제어 문자 · 줄바꿈 · 폭 없는 공백 · 글자 방향 바꾸기 ·
+      한글 채움 문자(U+3164 · U+115F · U+1160 · U+FFA0) · 점자 빈칸(U+2800) · 전각 공백(U+3000) · 이음표 같은 것들.
+    - 위험한 글자는 안 된다: < > " ' ` \
+  ⚠️ 글자를 직접 적지 않고 \u 로 적는다 — 보이지 않는 글자는 복사하다 사라진다.
+*/
+const NICK_FORBIDDEN =
+  /[\u0000-\u001F\u007F-\u009F\u00A0\u00AD\u034F\u061C\u115F\u1160\u1680\u17B4\u17B5\u180E\u2000-\u200F\u2028-\u202F\u205F-\u206F\u2800\u3000\u3164\uFE00-\uFE0F\uFEFF\uFFA0<>"'`\\]/;
+
+/** 서버가 저장할 모양 — 여러 칸 띄어쓰기를 한 칸으로, 앞뒤 공백은 자른다. */
+export const cleanNickname = (name: string) => name.replace(/ +/g, " ").trim();
+
+/** 닉네임이 안 되는 이유. 되면 null. */
+export function nicknameError(name: string): string | null {
+  if (NICK_FORBIDDEN.test(name)) return "닉네임에 쓸 수 없는 글자가 있어요.";
+  // 글자 수는 서버(char_length)처럼 센다 — 이모지를 두 글자로 세지 않게
+  const length = [...cleanNickname(name)].length;
+  if (length < 1 || length > 10) return "닉네임을 입력해 주세요. (10자 이내)";
+  return null;
+}

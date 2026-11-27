@@ -1,5 +1,6 @@
 import type { Kind } from "./xmasGameArt";
 import type { GameMusic } from "./xmasGameAudio";
+import type { RoundLog } from "./xmasGameApi";
 import { XMAS_GIFT_GOAL } from "./xmasGameShared";
 
 /**
@@ -15,9 +16,12 @@ import { XMAS_GIFT_GOAL } from "./xmasGameShared";
  * 화면(React)과는 view 한 덩어리로만 이야기한다 — 바뀔 때마다 새 객체를 만들어 알린다.
  * 서버(랭킹 · 선물 코드)는 모른다. 판이 시작되고 끝나는 순간만 onEvent 로 알린다.
  *
- * ⚠️ ROUNDS 의 n(문 수) · 라운드 수 · 선물 점수(XMAS_GIFT_GOAL)를 바꾸면 DB 의 xmas_game_submit(v_max · 라운드 범위) ·
- *    xmas_game_claim(35)을 같이 고친다 — 어긋나면 정상 점수가 "나올 수 없는 값" 으로 버려진다. maxScoreThrough() 로 확인한다.
- *    show · gap(속도)만 바꾸는 것은 DB 와 상관없다.
+ * ⚠️ 점수는 서버가 다시 센다(2026-11-27 대표님 — 개발자도구로 점수를 고쳐 보내는 것을 막으려고). 문 패는 서버가 정해 주고
+ *    (setDecks), 화면은 "언제 무엇을 눌렀나" 만 보낸다(GameEvent 의 log). 서버는 문이 열리는 간격이 show · gap 보다 짧거나
+ *    문이 열리고 0.1초 안에 누른 기록을 받지 않는다(supabase/migrations/20261127055335_xmas_game_server_check.sql).
+ * ⚠️ 그래서 ROUNDS 의 n · show · gap, 라운드 수, 통과선(BONUS_PASS_RATE), 누른 문이 닫히는 시간(tap 의 390 · 0.7),
+ *    선물 점수(XMAS_GIFT_GOAL)를 바꾸면 DB 의 xmas_game_round_spec · xmas_game_make_deck · xmas_game_submit2 ·
+ *    xmas_game_claim(35)을 같이 고친다 — 어긋나면 정상 손님의 기록이 "있을 수 없는 기록" 으로 버려진다.
  *
  * 속도와 통과선을 이렇게 둔 이유(2026-11-26 대표님)
  *   - **라운드가 진행될수록 반드시 빨라진다.** 한 번이라도 느려지면 안 된다 — 성공률이 떨어지는 것보다 이게 먼저다.
@@ -65,7 +69,8 @@ const KINDS: Kind[] = ["snow", "deer", "santa"];
 const BEST_KEY = "wye.advent.personalBest.v1";
 
 export type Card = { kind: Kind; letter?: string };
-export type Shown = { card: Card; hit: boolean };
+/** idx: 그 라운드 문 패에서 몇 번째 문인가 — 누른 기록에 싣는다 */
+export type Shown = { card: Card; hit: boolean; idx: number };
 export type Phase = "rules" | "countdown" | "play" | "fail" | "charge" | "puzzle" | "result";
 
 export type GameView = {
@@ -106,12 +111,20 @@ export type GameView = {
   record: boolean;
 };
 
+/** 라운드를 마친 이벤트에 같이 싣는 것 */
+type Played = {
+  /** 1라운드부터 마친 라운드까지의 누른 기록 — 서버가 이것으로 점수를 다시 센다 */
+  log: RoundLog[];
+  /** 서버가 정한 문 패로 한 판인가. 아니면(문 패를 못 받았다) 기록을 보내지 않는다 */
+  ranked: boolean;
+};
+
 export type GameEvent =
   | { type: "start" }
   /** 다섯 라운드를 마쳤다. passed 면 정답 화면으로 간다 */
-  | { type: "five"; points: number; peak: number; passed: boolean }
+  | ({ type: "five"; points: number; peak: number; passed: boolean } & Played)
   /** 이어하기가 끝났다(탈락했거나 마지막 라운드를 깼다) */
-  | { type: "final"; round: number; points: number; peak: number };
+  | ({ type: "final"; round: number; points: number; peak: number } & Played);
 
 function shuffle<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -121,16 +134,28 @@ function shuffle<T>(arr: T[]): T[] {
   return arr;
 }
 
-/** 한 라운드의 패. 눈사람 · 루돌프 · 산타를 고루 섞고, 글자 든 산타 한 장을 맨 앞뒤가 아닌 곳에 끼운다. */
-function makeDeck(r: number): Card[] {
-  const cards: Card[] = Array.from({ length: ROUNDS[r].n - 1 }, (_, i) => ({ kind: KINDS[i % 3] }));
+/*
+  문 패 — 숫자로 적는다: 0 눈사람 · 1 루돌프 · 2 산타 · 3 글자 든 산타(1~5라운드). 나오는 순서대로.
+  판의 문 패는 **서버가 정해 준다**(xmas_game_start2) — 점수를 서버가 다시 세려면 누가 언제 나왔는지 서버가 알아야 한다.
+  아래 makeDeck 은 서버에서 문 패를 못 받았을 때 쓰는 것이다(그 판은 랭킹에 안 올라간다). 짜는 법은 DB 의 xmas_game_make_deck 과 같다.
+*/
+export type Deck = number[];
+
+/** 한 라운드의 패. 눈사람 · 루돌프 · 산타를 고루 섞고, 산타 하나(1~5라운드는 글자 든 산타)를 맨 앞뒤가 아닌 곳에 끼운다. */
+function makeDeck(r: number): Deck {
+  const cards: Deck = Array.from({ length: ROUNDS[r].n - 1 }, (_, i) => i % 3);
   shuffle(cards);
-  cards.splice(2 + Math.floor(Math.random() * (cards.length - 3)), 0, { kind: "santa", letter: LETTERS[r] });
+  cards.splice(2 + Math.floor(Math.random() * (cards.length - 3)), 0, r < GIFT_ROUNDS ? 3 : 2);
   return cards;
 }
 
-const scorable = (cards: Card[]) => cards.filter((c) => c.kind !== "santa").length;
-const threshold = (cards: Card[]) => Math.ceil(scorable(cards) * BONUS_PASS_RATE);
+const toCard = (code: number, r: number): Card =>
+  code === 3 ? { kind: "santa", letter: LETTERS[r] } : { kind: KINDS[code] ?? "santa" };
+const scorable = (deck: Deck) => deck.filter((c) => c === 0 || c === 1).length;
+const threshold = (deck: Deck) => Math.ceil(scorable(deck) * BONUS_PASS_RATE);
+/** 서버가 준 문 패가 이 게임의 라운드 짜임(문 수)과 맞는가 */
+const validDeck = (deck: unknown, r: number): deck is Deck =>
+  Array.isArray(deck) && deck.length === ROUNDS[r].n && deck.every((c) => c === 0 || c === 1 || c === 2 || c === 3);
 
 /** round 라운드(1부터)까지 낼 수 있는 가장 높은 점수. DB 의 v_max 와 맞는지 볼 때 쓴다. */
 export function maxScoreThrough(round: number): number {
@@ -148,8 +173,15 @@ export function createGame(music: GameMusic) {
   // 판이 시작되고 끝나는 순간을 듣는 쪽(화면). 화면이 바뀔 때마다 갈아 끼운다
   let onEvent: (e: GameEvent) => void = () => {};
   let r = 0;
-  let deck: Card[] = [];
-  let decks: Card[][] = [];
+  let deck: Deck = [];
+  let decks: Deck[] = [];
+  // 이번 라운드에서 다음에 열 문(문 패의 몇 번째) · 라운드가 시작된 시각 · 누른 기록
+  let cursor = 0;
+  let roundT0 = 0;
+  let log: RoundLog[] = [];
+  // 서버가 정한 문 패로 하고 있는가 — 1라운드가 시작되기 전에 받아야 한다
+  let ranked = false;
+  let started = false;
   let last = -1;
   let roundStart = 0;
   let best = 0;
@@ -235,6 +267,9 @@ export function createGame(music: GameMusic) {
     last = -1;
     roundStart = 0;
     decks = ROUNDS.map((_, i) => makeDeck(i));
+    log = [];
+    ranked = false;
+    started = false;
     retried.clear();
     set({
       failedRound: null,
@@ -287,7 +322,11 @@ export function createGame(music: GameMusic) {
   }
 
   function startRound() {
+    started = true;
     deck = decks[r];
+    cursor = 0;
+    roundT0 = performance.now();
+    log[r] = { o: [], h: [] };
     set({
       phase: "play",
       swingMs: Math.round(ROUNDS[r].show * 0.14),
@@ -297,16 +336,18 @@ export function createGame(music: GameMusic) {
   }
 
   function spawn() {
-    const card = deck.pop();
-    if (!card) {
+    if (cursor >= deck.length) {
       finishRound();
       return;
     }
+    const idx = cursor++;
+    const card = toCard(deck[idx], r);
+    log[r].o.push(Math.round(performance.now() - roundT0));
     // 방금 열린 문은 피한다
     const pos = (last + 1 + Math.floor(Math.random() * (last < 0 ? 25 : 24))) % 25;
     last = pos;
     const tiles = view.tiles.slice();
-    tiles[pos] = { card, hit: false };
+    tiles[pos] = { card, hit: false, idx };
     set({ tiles, openPos: pos });
     schedule(hide, ROUNDS[r].show);
   }
@@ -324,11 +365,12 @@ export function createGame(music: GameMusic) {
     const shown = view.tiles[pos];
     if (!shown || shown.hit) return;
     const { card } = shown;
+    log[r].h.push([shown.idx, Math.round(performance.now() - roundT0)]);
     const santa = card.kind === "santa";
     const combo = santa ? 0 : view.combo + 1;
     music.hit(card.kind, combo);
     const tiles = view.tiles.slice();
-    tiles[pos] = { card, hit: true };
+    tiles[pos] = { card, hit: true, idx: shown.idx };
     set({
       tiles,
       combo,
@@ -339,6 +381,11 @@ export function createGame(music: GameMusic) {
     });
     // 글자 든 산타는 눌러도 원래 시간만큼 보여 준다(글자를 읽어야 한다). 나머지는 금방 닫는다
     schedule(hide, card.letter ? Math.max(390, due - performance.now()) : Math.min(390, Math.round(ROUNDS[r].show * 0.7)));
+  }
+
+  /** 1라운드부터 rounds 라운드까지의 누른 기록(복사본) */
+  function record(rounds: number) {
+    return { log: log.slice(0, rounds).map((l) => ({ o: [...l.o], h: l.h.map(([i, t]) => [i, t] as [number, number]) })), ranked };
   }
 
   function finishRound() {
@@ -358,7 +405,7 @@ export function createGame(music: GameMusic) {
         failedRound: passed ? null : r + 1,
         retryOpen: !passed && !retried.has(r),
       });
-      onEvent({ type: "final", round: r + 1, points: view.points, peak: view.peakCombo });
+      onEvent({ type: "final", round: r + 1, points: view.points, peak: view.peakCombo, ...record(r + 1) });
       return;
     }
     if (r < GIFT_ROUNDS - 1) {
@@ -368,7 +415,7 @@ export function createGame(music: GameMusic) {
     }
     music.stop();
     const passed = view.points >= view.goal;
-    onEvent({ type: "five", points: view.points, peak: view.peakCombo, passed });
+    onEvent({ type: "five", points: view.points, peak: view.peakCombo, passed, ...record(GIFT_ROUNDS) });
     if (!passed) {
       music.cue("result");
       set({ phase: "fail" });
@@ -396,6 +443,15 @@ export function createGame(music: GameMusic) {
     },
     /** 처음(게임 방법)으로. */
     reset,
+    /**
+     * 서버가 정한 문 패 — 판을 시작하며 받는다(xmas_game_start2). 1라운드가 열리기 전(카운트다운 동안)에 와야 쓴다.
+     * 늦게 오거나 짜임이 안 맞으면 버리고, 그 판은 이 브라우저에서 짠 문 패로 하되 랭킹에 올리지 않는다.
+     */
+    setDecks(server: unknown) {
+      if (started || !Array.isArray(server) || server.length !== ROUNDS.length || !server.every((d, i) => validDeck(d, i))) return;
+      decks = server.map((d) => [...d]);
+      ranked = true;
+    },
     /** 1라운드 시작. 누른 직후에 불러야 소리가 난다. */
     begin() {
       onEvent({ type: "start" });
@@ -428,10 +484,16 @@ export function createGame(music: GameMusic) {
      * 이어 간다(라운드를 시작할 때의 점수로 되돌린다). 문 패는 새로 섞는다. 같은 라운드는 한 판에 한 번 —
      * 재도전에서 또 떨어지면 끝이다. 그 라운드를 넘기고 다음 라운드에서 떨어지면 거기서 다시 한 번 할 수 있다.
      */
-    retryRound(): boolean {
+    retryRound(serverDeck?: Deck | null): boolean {
       if (view.phase !== "result" || view.failedRound !== r + 1 || retried.has(r)) return false;
       retried.add(r);
-      decks[r] = makeDeck(r);
+      // 서버가 새 문 패를 줬으면 그것으로. 못 받았으면 여기서 짜고, 그 뒤 기록은 랭킹에 안 올린다
+      if (validDeck(serverDeck, r)) {
+        decks[r] = serverDeck;
+      } else {
+        decks[r] = makeDeck(r);
+        ranked = false;
+      }
       last = -1;
       set({
         ...scored(roundStart),
