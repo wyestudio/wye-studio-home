@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Select } from "@/components/ui/Select";
+import { AdminBadge, adminButtonClass } from "@/components/admin/ui";
 import { ignoreCandidate, publishCandidate, resetCandidate } from "./actions";
 
 export type CandidateView = {
@@ -47,9 +48,7 @@ export function CandidateCard({
 
   return (
     <div
-      className={`flex flex-col gap-3 rounded-xl border p-4 sm:flex-row ${
-        c.status === "new" ? "border-border bg-panel" : "border-border/50 bg-panel/40"
-      }`}
+      className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-4 sm:flex-row"
     >
       {/* 그림은 네이버 카드에만 있다. 인스타는 임베드가 원본을 그리므로 여기선 빈칸이다. */}
       <div className="h-28 w-full shrink-0 overflow-hidden rounded-lg bg-fill sm:w-44">
@@ -58,29 +57,21 @@ export function CandidateCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt="" className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-micro text-muted">
+          <div className="flex h-full items-center justify-center text-body-sm text-muted">
             {c.channel === "instagram" ? "인스타 임베드" : "썸네일 없음"}
           </div>
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex flex-wrap items-center gap-2 text-micro text-muted">
-          <span
-            className={`rounded px-1.5 py-0.5 font-semibold ${
-              c.channel === "naver" ? "bg-success-soft text-success" : "bg-brand-soft text-brand"
-            }`}
-          >
-            {c.channel === "naver" ? "네이버" : "인스타"}
-          </span>
+        <div className="mb-1 flex flex-wrap items-center gap-2 text-body-sm text-muted">
+          <AdminBadge tone={c.channel === "naver" ? "done" : "progress"}>{c.channel === "naver" ? "네이버" : "인스타"}</AdminBadge>
           {c.author && <span>{c.author}</span>}
-          {c.posted_at && <span>{c.posted_at.replace(/-/g, ".")}</span>}
+          {c.posted_at && <span className="tabular-nums">{c.posted_at.replace(/-/g, ".")}</span>}
           {c.status === "published" && (
-            <span className="font-semibold text-success">
-              실림{c.published_theme_slug ? ` · ${c.published_theme_slug}` : ""}
-            </span>
+            <AdminBadge tone="done">실림{c.published_theme_slug ? ` · ${c.published_theme_slug}` : ""}</AdminBadge>
           )}
-          {c.status === "ignored" && <span className="font-semibold text-muted">관련없음</span>}
+          {c.status === "ignored" && <AdminBadge>관련없음</AdminBadge>}
         </div>
 
         <a
@@ -109,7 +100,7 @@ export function CandidateCard({
                 type="button"
                 disabled={pending || !themeSlug}
                 onClick={() => run(() => publishCandidate({ id: c.id, themeSlug }))}
-                className="rounded-lg bg-brand px-3 py-1.5 text-body-sm font-semibold text-brand-foreground disabled:opacity-40"
+                className={adminButtonClass("primary")}
               >
                 후기 등록
               </button>
@@ -117,7 +108,7 @@ export function CandidateCard({
                 type="button"
                 disabled={pending}
                 onClick={() => run(() => ignoreCandidate(c.id))}
-                className="rounded-lg border border-border px-3 py-1.5 text-body-sm text-muted disabled:opacity-40"
+                className={adminButtonClass("secondary")}
               >
                 관련없음
               </button>
@@ -127,17 +118,21 @@ export function CandidateCard({
               type="button"
               disabled={pending}
               onClick={() => run(() => resetCandidate(c.id))}
-              className="rounded-lg border border-border px-3 py-1.5 text-body-sm text-muted disabled:opacity-40"
+              className={adminButtonClass("secondary")}
             >
               되돌리기
             </button>
           )}
-          {pending && <span className="text-micro text-muted">처리 중…</span>}
-          {message && <span className="text-micro text-muted">{message}</span>}
+          {pending && <span className="text-body-sm text-muted">처리 중…</span>}
+          {message && (
+            <span role="status" className="text-body-sm text-muted">
+              {message}
+            </span>
+          )}
         </div>
 
         {c.status === "published" && (
-          <p className="mt-2 text-micro text-muted">
+          <p className="mt-2 text-body-sm text-wait">
             ⚠️ 되돌려도 테마의 후기 블록에서 자동으로 빠지지 않습니다. 빼려면 테마 편집에서
             해당 줄을 지워주세요.
           </p>

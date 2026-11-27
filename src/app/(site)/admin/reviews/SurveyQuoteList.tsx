@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Select } from "@/components/ui/Select";
+import { AdminBadge, AdminEmpty, adminButtonClass } from "@/components/admin/ui";
 import type { SurveyQuote } from "@/lib/reviewRating";
 import { setSurveyQuote } from "./actions";
 
@@ -92,15 +93,16 @@ export function SurveyQuoteList({
             key={key}
             type="button"
             onClick={() => setFilter(key)}
-            className={`rounded-md px-2.5 py-1 text-body-sm ${
-              filter === key ? "bg-glow text-glow-foreground" : "text-foreground hover:bg-muted/20"
+            aria-pressed={filter === key}
+            className={`min-h-11 rounded-lg px-3 text-body-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+              filter === key ? "bg-foreground text-background" : "text-muted hover:bg-fill hover:text-foreground"
             }`}
           >
             {label}
           </button>
         ))}
         {shortCount > 0 && (
-          <label className="ml-auto flex items-center gap-1.5 text-micro text-muted">
+          <label className="flex min-h-11 cursor-pointer items-center gap-1.5 text-body-sm text-muted md:ml-auto">
             <input
               type="checkbox"
               checked={showShort}
@@ -111,10 +113,14 @@ export function SurveyQuoteList({
         )}
       </div>
 
-      {message && <p className="mb-2 text-micro text-muted">{message}</p>}
+      {message && (
+        <p role="status" className="mb-2 text-body-sm text-muted">
+          {message}
+        </p>
+      )}
 
       {list.length === 0 ? (
-        <p className="py-4 text-body-sm text-muted">해당하는 답이 없습니다.</p>
+        <AdminEmpty title="해당하는 답이 없어요" hint="위에서 「전체」 를 누르거나 짧은 답 보기를 켜 보세요." />
       ) : (
         <ul className="flex flex-col gap-2">
           {list.map((q) => {
@@ -122,25 +128,25 @@ export function SurveyQuoteList({
             return (
               <li
                 key={q.text}
-                className={`flex items-start gap-3 rounded-xl border p-3 ${
-                  isOn ? "border-success/40 bg-success-soft/40" : "border-border bg-panel"
+                className={`flex items-start gap-3 rounded-xl border p-4 ${
+                  isOn ? "border-confirm bg-confirm-soft" : "border-border bg-surface"
                 }`}
               >
                 <div className="min-w-0 flex-1">
                   <p className="whitespace-pre-line text-body-sm text-foreground">{q.text}</p>
-                  <p className="mt-1 text-micro text-muted">
-                    {q.date ?? "날짜 없음"} · {q.question}
+                  <p className="mt-1 flex flex-wrap items-center gap-1.5 text-body-sm text-muted">
+                    {/* 색만으로 가르지 않는다 — 실린 글에는 글자 배지를 붙인다 */}
+                    {isOn && <AdminBadge tone="done">실림</AdminBadge>}
+                    <span>
+                      {q.date ?? "날짜 없음"} · {q.question}
+                    </span>
                   </p>
                 </div>
                 <button
                   type="button"
                   disabled={busy !== null}
                   onClick={() => toggle(q)}
-                  className={`shrink-0 rounded-lg px-3 py-1.5 text-body-sm font-semibold disabled:opacity-40 ${
-                    isOn
-                      ? "border border-border text-muted"
-                      : "bg-brand text-brand-foreground"
-                  }`}
+                  className={`${adminButtonClass(isOn ? "secondary" : "primary")} shrink-0`}
                 >
                   {busy === q.text ? "처리 중…" : isOn ? "삭제" : "등록"}
                 </button>
