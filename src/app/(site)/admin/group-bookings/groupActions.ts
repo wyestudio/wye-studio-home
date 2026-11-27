@@ -35,6 +35,9 @@ import { cleanText, cleanValue, isVisible, otherError, pickedOther, questionErro
 import { syncEventChecklist } from "@/lib/groupLeader";
 import { TEAM_MAX, TEAM_NAME_MAX, TEAM_SLOGAN_MAX, isNametagMode, nametagColor, type Team } from "@/lib/groupTeams";
 import { loadNametagMode, loadTeamPeople } from "@/lib/groupPeople";
+import { REPORT_FILE, buildReportFill, cleanReportState, reportTeams, type ReportFill, type ReportState, type ReportTeam } from "@/lib/groupReport";
+import { loadSavedTeams } from "@/lib/groupPeople";
+import { reconcileTeams, suggestTeams } from "@/lib/groupTeams";
 import { NAMETAG_BUCKET, NAMETAG_FILE, cleanNametagState, nametagRoster, type NametagPerson, type NametagState } from "@/lib/groupNametag";
 import { charCount, cleanLine } from "@/lib/textClean";
 
@@ -1376,6 +1379,82 @@ export async function saveNametagState(input: { id: string; state: unknown }): P
       .upsert({ inquiry_id: input.id, state, updated_at: new Date().toISOString() }, { onConflict: "inquiry_id" });
     if (error) return { error: error.message };
     return { success: true, message: `명찰 ${state.people.length}개를 저장했습니다.` };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+// ── 플레이 리포트 ────────────────────────────────────────────────
+
+export type ReportOpen = {
+  /** 리포트 틀 파일의 임시 주소(5분). */
+  url: string;
+  docId: string;
+  group: string;
+  /** 저장해 둔 내용(글자 · 팀 · 점수). 없으면 null — fill 로 새로 채운다. */
+  saved: ReportState | null;
+  fill: ReportFill;
+  /** 지금의 팀 편성 — 「팀 편성 다시 가져오기」 에 쓴다. */
+  teamsNow: ReportTeam[];
+  /** 팀 편성이 저장돼 있는가(아니면 추천 편성이다). */
+  teamsSaved: boolean;
+};
+
+/**
+ * 「리포트 열기」 — 틀 파일의 임시 주소와 채울 값을 돌려준다. 팀원은 닉네임만 싣는다(이름 · 연락처 없음).
+ * 일시 · 모임명 · 인원 · 플레이 타임 · 팀은 단체 정보와 팀 편성에서 온다. 모두 리포트에서 고칠 수 있다.
+ */
+export async function openReport(input: { id: string }): Promise<ReportOpen | { error: string }> {
+  try {
+    const { supabase, group } = await open(input.id);
+    const [signed, people, savedTeams, savedRes] = await Promise.all([
+      supabase.storage.from(NAMETAG_BUCKET).createSignedUrl(REPORT_FILE, 300),
+      loadTeamPeople(input.id),
+      loadSavedTeams(input.id),
+      supabase.from("group_reports").select("state").eq("inquiry_id", input.id).maybeSingle(),
+    ]);
+    if (signed.error || !signed.data?.signedUrl) {
+      console.error("[group] 리포트 틀 임시 주소 실패", signed.error?.message);
+      return { error: "리포트 틀 파일을 찾지 못했습니다. 파일이 저장소(admin-tools)에 올라가 있는지 확인해주세요." };
+    }
+    if (savedRes.error) return { error: savedRes.error.message };
+    const teams = savedTeams ? reconcileTeams(savedTeams, people).teams : people.length ? suggestTeams(people) : [];
+    const sch = scheduleOf(group);
+    const title = group.display_name ?? group.group_name ?? "";
+    return {
+      url: signed.data.signedUrl,
+      docId: `wye-${input.id}`,
+      group: title || "단체 모임",
+      saved: cleanReportState((savedRes.data as { state?: unknown } | null)?.state),
+      fill: buildReportFill({
+        title,
+        date: sch.date,
+        time: sch.time,
+        headcount: group.headcount,
+        icebreaking: toSettlementOptions(group.options).icebreaking,
+        teams,
+        people,
+      }),
+      teamsNow: reportTeams(teams, people),
+      teamsSaved: !!savedTeams,
+    };
+  } catch (err) {
+    return toActionError(err, "리포트를 열지 못했습니다.");
+  }
+}
+
+/** 리포트에 적은 내용(글자 · 팀 · 점수 · 꾸밈)을 단체별로 저장한다. 사진은 저장하지 않는다 — cleanReportState 가 걸러낸다. */
+export async function saveReportState(input: { id: string; state: unknown }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    const state = cleanReportState(input.state);
+    if (!state) return { error: "저장할 내용을 읽지 못했습니다." };
+    const { error } = await supabase
+      .from("group_reports")
+      .upsert({ inquiry_id: input.id, state, updated_at: new Date().toISOString() }, { onConflict: "inquiry_id" });
+    if (error) return { error: error.message };
+    refresh(input.id);
+    return { success: true, message: "글자 · 팀 · 점수를 저장했습니다. 사진은 저장되지 않습니다." };
   } catch (err) {
     return toActionError(err, "저장에 실패했습니다.");
   }

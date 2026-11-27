@@ -42,6 +42,7 @@ import { loadLeaderAnswers, loadLeaderResponse } from "@/lib/groupLeader";
 import { loadNametagMode, loadParticipants, loadSavedTeams, loadTeamPeople } from "@/lib/groupPeople";
 import { ParticipantsTab } from "./ParticipantsTab";
 import { TeamsTab } from "./TeamsTab";
+import { ReportTab } from "./ReportTab";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,7 @@ export default async function AdminGroupBookingDetailPage({
   const sp = await searchParams;
   // 들어온 목록(조건 포함) · 홈 달력 날짜로 돌아간다 — adminBack.ts
   const back = safeBack(sp.back, "/group-bookings");
-  const TABS = ["overview", "money", "forms", "people", "teams"] as const;
+  const TABS = ["overview", "money", "forms", "people", "teams", "report"] as const;
   const tab = TABS.find((t) => t === sp.tab) ?? "overview";
 
   const loaded = await loadGroup(id);
@@ -113,6 +114,11 @@ export default async function AdminGroupBookingDetailPage({
   // 참가자 탭 — 명단(전화번호는 가린 값)과 명찰 색 기준. 팀 편성 탭 — 닉네임 · 방수와 저장된 편성 · 모임장 요청.
   const peopleData = tab === "people" ? await Promise.all([loadParticipants(id), loadNametagMode(id)]) : null;
   const teamsData = tab === "teams" ? await Promise.all([loadTeamPeople(id), loadSavedTeams(id), loadLeaderAnswers(id)]) : null;
+  // 리포트 탭 — 저장해 둔 내용이 있는지만 본다(내용은 열 때 읽는다).
+  const reportSavedAt =
+    tab === "report"
+      ? ((await createAdminClient().from("group_reports").select("updated_at").eq("inquiry_id", id).maybeSingle()).data as { updated_at: string } | null)?.updated_at ?? null
+      : null;
   if (tab === "forms") {
     // 폼 링크 셋(없으면 이때 만든다)과 현황. 참가자는 수만, 후기는 건수와 평균 별점만 읽는다.
     const admin = createAdminClient();
@@ -228,6 +234,7 @@ export default async function AdminGroupBookingDetailPage({
           { key: "forms", label: "설문 · 문자", href: self("forms") },
           { key: "people", label: "참가자", href: self("people") },
           { key: "teams", label: "팀 편성", href: self("teams") },
+          { key: "report", label: "리포트", href: self("report") },
         ]}
       />
 
@@ -266,6 +273,8 @@ export default async function AdminGroupBookingDetailPage({
               : null
           }
         />
+      ) : tab === "report" ? (
+        <ReportTab id={id} cancelled={cancelled} savedAt={reportSavedAt ? formatDateTimeFull(reportSavedAt) : null} />
       ) : tab === "forms" ? (
         <MessagesTab id={id} messages={messages} links={links} />
       ) : tab === "money" ? (
