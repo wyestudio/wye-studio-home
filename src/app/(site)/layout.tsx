@@ -14,7 +14,8 @@ import { AttributionTracker } from "@/components/AttributionTracker";
 import { VisitTracker } from "@/components/analytics/VisitTracker";
 import "../globals.css";
 import "../season.css";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { ADMIN_THEME_COLOR, ADMIN_THEME_COOKIE, parseAdminTheme } from "@/components/admin/adminTheme";
 import { isAdminHost, isProductionHost } from "@/lib/hosts";
 import { getSiteSkin } from "@/lib/siteSeason";
 import type { SiteSkin } from "@/lib/season";
@@ -130,6 +131,11 @@ const THEME_COLOR: Record<SiteSkin | "default", string> = {
 
 /** colorScheme: 체크박스·스크롤바·자동완성 같은 브라우저 기본 부품을 어두운 화면용으로 그린다. */
 export async function generateViewport(): Promise<Viewport> {
+  // 관리자는 색이 따로다(admin.css) — 고른 모드(라이트 기본 · 다크)에 맞춘다.
+  if (await onAdminHost()) {
+    const theme = parseAdminTheme((await cookies()).get(ADMIN_THEME_COOKIE)?.value);
+    return { themeColor: ADMIN_THEME_COLOR[theme], colorScheme: theme };
+  }
   const skin = await currentSkin();
   return { themeColor: THEME_COLOR[skin ?? "default"], colorScheme: "dark" };
 }
@@ -237,14 +243,19 @@ try{var v=localStorage.getItem("wye_vid");if(v){window.clarity("set","wye_vid",v
         <CopyProtectionProvider>
           <SeasonProvider skin={skin}>
             <MascotSelectionProvider>
-              <StarfieldCanvas />
+              {/*
+                관리자 호스트(admin.*)에서는 고객용 장식 · 머리 · 바닥을 그리지 않는다(2026-11-27 대표님).
+                관리자는 자기 틀(admin/layout.tsx 의 AdminShell — 왼쪽 메뉴)을 쓴다.
+                ⚠️ 고객 화면 쪽 가지는 예전과 한 글자도 다르지 않아야 한다.
+              */}
+              {!admin && <StarfieldCanvas />}
               {/* 시즌 배경 장식 — 고객 화면 전체. 스킨이 없으면(어드민 포함) 아예 그리지 않는다. */}
               {skin && <SeasonBackdrop />}
-              <MascotCursor />
+              {!admin && <MascotCursor />}
               <TestEnvBanner />
-              <Header admin={admin} />
+              {!admin && <Header />}
               <main className="flex-1">{children}</main>
-              <Footer />
+              {!admin && <Footer />}
             </MascotSelectionProvider>
           </SeasonProvider>
         </CopyProtectionProvider>

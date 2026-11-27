@@ -17,7 +17,8 @@ export function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={isPending}
-      className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors text-body-sm font-semibold"
+      // 왼쪽 메뉴 맨 아래에 놓인다. 자주 누르는 버튼이 아니라 조용하게 둔다(2026-11-27 관리자 개편 — 예전엔 빨간 버튼이었다).
+      className="min-h-11 w-full rounded-lg border border-border px-4 text-body-sm font-semibold text-foreground transition-colors hover:bg-fill disabled:opacity-50"
     >
       {isPending ? "로그아웃 중..." : "로그아웃"}
     </button>
