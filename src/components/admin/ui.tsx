@@ -221,3 +221,50 @@ export function AdminTabs({
     </div>
   );
 }
+
+/**
+ * 화면 안에서 바로 바뀌는 탭 — 주소 링크가 아니라 버튼이라 서버를 다시 부르지 않는다.
+ * 적던 글 · 고른 대상이 탭을 오가도 남아야 하는 화면(광고 문자)에 쓴다. 모양은 AdminTabs 와 같다.
+ * 어느 탭인지는 부르는 쪽(클라이언트 컴포넌트)이 기억한다.
+ */
+export function AdminTabButtons<K extends string>({
+  label,
+  tabs,
+  current,
+  onSelect,
+}: {
+  /** 화면낭독기가 읽는 탭 묶음 이름 */
+  label: string;
+  tabs: { key: K; label: string; count?: number }[];
+  current: K;
+  onSelect: (key: K) => void;
+}) {
+  return (
+    <div className="mb-4 overflow-x-auto border-b border-border [scrollbar-width:none]">
+      <div role="tablist" aria-label={label} className="flex min-w-max gap-1">
+        {tabs.map((t) => {
+          const active = t.key === current;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => onSelect(t.key)}
+              className={`-mb-px flex min-h-11 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-label font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                active ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"
+              }`}
+            >
+              {t.label}
+              {t.count != null && (
+                <span className={`rounded-full px-1.5 text-micro ${active ? "bg-foreground text-background" : "bg-fill-strong text-muted"}`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

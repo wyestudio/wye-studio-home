@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AdminCard, AdminEmpty, adminButtonClass, adminInputClass } from "@/components/admin/ui";
 import { formatPhoneDigits, formatPhoneInput } from "@/lib/phone";
 import type { MarketingOptout } from "@/lib/marketingSmsServer";
 import { addOptout, removeOptout } from "./actions";
-
-const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 /**
  * 수신거부 목록.
@@ -46,76 +45,82 @@ export function OptoutPanel({ optouts }: { optouts: MarketingOptout[] }) {
   }
 
   return (
-    <section className="rounded-lg border border-border p-4">
-      <h2 className="text-h3 font-semibold">수신거부 목록</h2>
-      <p className="mb-3 mt-1 text-micro text-muted">
-        카카오톡·전화로 거부를 받았거나 솔라피 080 거부 내역을 옮길 때 등록합니다. 등록된 번호는
-        광고 문자 대상에서 자동으로 빠집니다.
-      </p>
+    <div className="space-y-4">
+      <AdminCard title="수신거부 등록">
+        <p className="mb-4 text-body-sm text-muted">
+          카카오톡·전화로 거부를 받았거나 솔라피 080 거부 내역을 옮길 때 등록합니다. 등록된 번호는
+          광고 문자 대상에서 자동으로 빠집니다.
+        </p>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <div>
-          <label htmlFor="optout-phone" className="mb-1 block text-micro text-muted">
-            휴대폰 번호
-          </label>
-          <input
-            id="optout-phone"
-            inputMode="numeric"
-            value={phone}
-            onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-            placeholder="010-0000-0000"
-            className={field}
-          />
+        <div className="flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="md:w-48">
+            <label htmlFor="optout-phone" className="mb-1.5 block text-label font-semibold text-foreground">
+              휴대폰 번호
+            </label>
+            <input
+              id="optout-phone"
+              inputMode="numeric"
+              value={phone}
+              onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+              placeholder="010-0000-0000"
+              className={adminInputClass}
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <label htmlFor="optout-note" className="mb-1.5 block text-label font-semibold text-foreground">
+              메모(선택)
+            </label>
+            <input
+              id="optout-note"
+              value={note}
+              maxLength={200}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="예: 9/20 카카오톡으로 거부 요청"
+              className={adminInputClass}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={add}
+            disabled={busy || phone.replace(/\D/g, "").length < 10}
+            className={`${adminButtonClass("primary")} whitespace-nowrap`}
+          >
+            거부 등록
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <label htmlFor="optout-note" className="mb-1 block text-micro text-muted">
-            메모(선택)
-          </label>
-          <input
-            id="optout-note"
-            value={note}
-            maxLength={200}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="예: 9/20 카카오톡으로 거부 요청"
-            className={`${field} w-full`}
-          />
-        </div>
-        <button
-          onClick={add}
-          disabled={busy || phone.replace(/\D/g, "").length < 10}
-          className="rounded-md bg-glow px-4 py-2 text-body-sm font-semibold text-glow-foreground disabled:opacity-50"
-        >
-          거부 등록
-        </button>
-      </div>
 
-      {error && <p className="mt-2 rounded-md bg-red-500/10 px-3 py-2 text-body-sm text-red-400">{error}</p>}
+        {error && (
+          <p role="alert" className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-body-sm text-danger">
+            {error}
+          </p>
+        )}
+      </AdminCard>
 
       {optouts.length === 0 ? (
-        <p className="mt-4 text-body-sm text-muted">등록된 번호가 없습니다.</p>
+        <AdminEmpty title="등록된 번호가 없어요" hint="080 수신거부는 솔라피가 받습니다. 직접 받은 거부만 위에서 등록합니다." />
       ) : (
-        <ul className="mt-4 divide-y divide-border/40 text-body-sm">
+        <ul className="rounded-xl border border-border bg-surface text-body-sm">
           {optouts.map((o) => (
-            <li key={o.phoneHash} className="flex flex-wrap items-center justify-between gap-2 py-2">
-              <span>
-                <span className="tabular-nums">{formatPhoneDigits(o.phone)}</span>
-                {o.note && <span className="ml-2 text-micro text-muted">{o.note}</span>}
-                <span className="ml-2 text-micro text-muted">
+            <li key={o.phoneHash} className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-4 py-2 last:border-0">
+              <span className="min-w-0">
+                <span className="font-semibold tabular-nums text-foreground">{formatPhoneDigits(o.phone)}</span>
+                <span className="ml-2 tabular-nums text-muted">
                   {new Date(o.createdAt).toLocaleDateString("ko-KR", { timeZone: "Asia/Seoul" })}
                 </span>
+                {o.note && <span className="block break-words text-muted">{o.note}</span>}
               </span>
               {pendingRemove === o.phoneHash ? (
-                <span className="flex gap-2 text-micro">
-                  <span className="text-muted">다시 광고를 받게 됩니다.</span>
-                  <button onClick={() => remove(o.phoneHash)} disabled={busy} className="text-red-400">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className="text-wait">다시 광고를 받게 됩니다.</span>
+                  <button type="button" onClick={() => remove(o.phoneHash)} disabled={busy} className={adminButtonClass("danger")}>
                     해제
                   </button>
-                  <button onClick={() => setPendingRemove(null)} className="text-muted">
+                  <button type="button" onClick={() => setPendingRemove(null)} className={adminButtonClass("secondary")}>
                     취소
                   </button>
                 </span>
               ) : (
-                <button onClick={() => setPendingRemove(o.phoneHash)} className="text-micro text-muted">
+                <button type="button" onClick={() => setPendingRemove(o.phoneHash)} className={adminButtonClass("secondary")}>
                   해제
                 </button>
               )}
@@ -123,6 +128,6 @@ export function OptoutPanel({ optouts }: { optouts: MarketingOptout[] }) {
           ))}
         </ul>
       )}
-    </section>
+    </div>
   );
 }
