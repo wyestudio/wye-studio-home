@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { GROUP_KINDS } from "@/lib/groupBooking";
-import { LEADER_BASE, LEADER_QUESTIONS, LEADER_SECOND, leaderFormDef } from "@/lib/groupForms/leaderSchema";
+import { leaderFormDef } from "@/lib/groupForms/leaderSchema";
 import { OTHER, otherKey, type Question } from "@/lib/groupForms/schema";
 import type { Answers } from "@/lib/groupForms/validate";
 import type { LeaderPrefill } from "@/lib/groupLeader";
@@ -35,7 +35,16 @@ const linkButton =
 const inputClass =
   "w-full rounded-lg border border-line bg-surface px-4 py-3 text-input text-foreground placeholder:text-muted focus:border-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand";
 
-export function LeaderForm({ code, prefill }: { code: string; prefill: LeaderPrefill }) {
+export function LeaderForm({
+  code,
+  prefill,
+  parts,
+}: {
+  code: string;
+  prefill: LeaderPrefill;
+  /** 지금 쓰는 양식의 세 갈래(서버가 읽어 넘긴다) — 기본 정보 · 2순위 일정 · 그 앞뒤의 나머지 질문. */
+  parts: { base: Question[]; second: Question[]; before: Question[]; after: Question[] };
+}) {
   const [view, setView] = useState<View>(prefill.state === "new" ? "confirm" : "gate");
   const [hp, setHp] = useState("");
   // 다시 물어볼 항목(「수정」 을 누른 것).
@@ -69,16 +78,15 @@ export function LeaderForm({ code, prefill }: { code: string; prefill: LeaderPre
 
   const questions = (): Question[] => {
     const tomorrow = addDays(kstToday(), 1);
-    const base = LEADER_BASE.filter((q) => {
+    const base = parts.base.filter((q) => {
       if (q.id === "date" || q.id === "time") return !prefill.fixed && asks("schedule");
       if (q.id === "leaderName") return needName;
       if (q.id === "phone") return needPhone;
       return asks(q.id as BaseId);
     }).map((q) => (q.type === "date" ? { ...q, minDate: tomorrow } : q));
-    // 2순위 일정은 미확정 단체에만, 「모임 성격」 묶음 다음에 묻는다.
-    const cut = LEADER_QUESTIONS.findIndex((q) => q.id === "level");
-    const second = prefill.fixed ? [] : LEADER_SECOND.map((q) => (q.type === "date" ? { ...q, minDate: tomorrow } : q));
-    return [...base, ...LEADER_QUESTIONS.slice(0, cut), ...second, ...LEADER_QUESTIONS.slice(cut)];
+    // 2순위 일정은 미확정 단체에만, 양식에서 그 묶음이 놓인 자리에 묻는다.
+    const second = prefill.fixed ? [] : parts.second.map((q) => (q.type === "date" ? { ...q, minDate: tomorrow } : q));
+    return [...base, ...parts.before, ...second, ...parts.after];
   };
 
   const initial = (): Answers => {

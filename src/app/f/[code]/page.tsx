@@ -2,6 +2,9 @@ import Image from "next/image";
 import { dateLabel } from "@/lib/groupPricing";
 import { loadParticipantStatus, resolveForm } from "@/lib/groupFormLinks";
 import { loadLeaderPrefill } from "@/lib/groupLeader";
+import type { FormDef } from "@/lib/groupForms/schema";
+import { flattenTemplate, leaderParts } from "@/lib/groupForms/template";
+import { loadTemplate } from "@/lib/groupFormTemplates";
 import { LeaderForm } from "./LeaderForm";
 import { ParticipantForm } from "./ParticipantForm";
 import { ReviewForm } from "./ReviewForm";
@@ -34,13 +37,17 @@ export default async function GroupFormPage({ params }: { params: Promise<{ code
     return <Notice title="취소된 모임이에요">이 모임은 취소되어 설문을 받지 않아요.</Notice>;
   }
 
+  // 지금 쓰는 양식(운영자가 「단체 도구 › 설문 양식」 에서 고친 버전). 문구 · 선택지는 전부 고객에게 보이는 값이다.
+  const loaded = await loadTemplate(form.formKey);
+  const def: FormDef = { key: form.formKey, version: loaded.version, title: loaded.template.title, questions: flattenTemplate(loaded.template) };
+
   if (form.formKey === "participant") {
     const status = await loadParticipantStatus(form.inquiryId);
     const when = form.date ? `${dateLabel(form.date)}${form.time ? ` ${form.time}` : ""}${form.fixed ? "" : " (예정)"}` : "";
-    return <ParticipantForm code={code} groupName={form.groupName} when={when} headcount={form.headcount} initialStatus={status} />;
+    return <ParticipantForm code={code} groupName={form.groupName} when={when} headcount={form.headcount} initialStatus={status} def={def} />;
   }
   if (form.formKey === "review") {
-    return <ReviewForm code={code} groupName={form.groupName} />;
+    return <ReviewForm code={code} groupName={form.groupName} def={def} />;
   }
   const leader = await loadLeaderPrefill(form.inquiryId);
   if (!leader) {
@@ -50,7 +57,7 @@ export default async function GroupFormPage({ params }: { params: Promise<{ code
       </Notice>
     );
   }
-  return <LeaderForm code={code} prefill={leader.prefill} />;
+  return <LeaderForm code={code} prefill={leader.prefill} parts={leaderParts(loaded.template)} />;
 }
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {

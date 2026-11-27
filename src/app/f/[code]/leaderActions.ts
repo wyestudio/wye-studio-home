@@ -2,7 +2,9 @@
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requestIpHash, resolveForm } from "@/lib/groupFormLinks";
-import { LEADER_BASE, LEADER_QUESTIONS, LEADER_SECOND, LEADER_VERSION, leaderFormDef } from "@/lib/groupForms/leaderSchema";
+import { leaderFormDef } from "@/lib/groupForms/leaderSchema";
+import { flattenTemplate, leaderParts } from "@/lib/groupForms/template";
+import { loadTemplate, loadTemplateVersion } from "@/lib/groupFormTemplates";
 import { buildPending, consultItems, kindCodeOf, summaryRows, type SummaryRow } from "@/lib/groupForms/leaderForm";
 import { OTHER, otherKey, type Question } from "@/lib/groupForms/schema";
 import { charLen, cleanMultiline, validateForm, type Answers } from "@/lib/groupForms/validate";
@@ -89,7 +91,10 @@ export async function submitLeader(code: string, raw: unknown, hp?: unknown, las
     const needPhone = prefill.state === "new" && !prefill.phoneMasked;
 
     const sameSchedule = String(src.date ?? "") === now.date && String(src.time ?? "") === now.time;
-    const base: Question[] = LEADER_BASE.flatMap((q): Question[] => {
+    // 지금 쓰는 양식(운영자가 고친 버전)으로 정리 · 검증한다.
+    const tpl = await loadTemplate("leader");
+    const parts = leaderParts(tpl.template);
+    const base: Question[] = parts.base.flatMap((q): Question[] => {
       // 확정된 단체의 일정은 받지 않는다.
       // 견적 때의 일시를 그대로 둔 경우에는 날짜 · 회차 규칙을 다시 따지지 않는다(운영자가 넣은 예외 시간일 수 있다).
       if (q.id === "date") return now.fixed ? [] : [{ ...q, minDate: sameSchedule ? undefined : tomorrow }];
@@ -98,8 +103,8 @@ export async function submitLeader(code: string, raw: unknown, hp?: unknown, las
       if (q.id === "phone") return needPhone || sentPhone ? [q] : [];
       return [q];
     });
-    const second: Question[] = now.fixed ? [] : LEADER_SECOND.map((q) => (q.type === "date" ? { ...q, minDate: tomorrow } : q));
-    const def = leaderFormDef([...base, ...second, ...LEADER_QUESTIONS]);
+    const second: Question[] = now.fixed ? [] : parts.second.map((q) => (q.type === "date" ? { ...q, minDate: tomorrow } : q));
+    const def = leaderFormDef([...base, ...parts.before, ...second, ...parts.after]);
 
     const { answers, errors } = validateForm(def, src);
     const first = def.questions.find((q) => errors[q.id]);
@@ -136,7 +141,7 @@ export async function submitLeader(code: string, raw: unknown, hp?: unknown, las
       p_display_name: String(answers.display ?? ""),
       p_welcome_text: String(answers.welcome ?? ""),
       p_pending: pending,
-      p_template_version: LEADER_VERSION,
+      p_template_version: tpl.version,
       p_ip_hash: await requestIpHash(code),
     });
     if (error) return friendly(error.message);
@@ -185,7 +190,14 @@ export async function viewLeader(code: string, last4: string): Promise<LeaderVie
     if (v !== "ok") return v;
     const res = await loadLeaderAnswers(form.inquiryId);
     if (!res) return { error: VERIFY_MESSAGE.none };
-    return { rows: summaryRows(res.answers), locked: res.locked, editRequest: res.editRequest, answers: res.locked ? null : res.answers };
+    // 낸 답은 **그때의 양식**으로 읽는다 — 양식을 고친 뒤에도 문항 이름이 어긋나지 않게.
+    const then = await loadTemplateVersion("leader", res.templateVersion);
+    return {
+      rows: summaryRows(res.answers, flattenTemplate(then.template)),
+      locked: res.locked,
+      editRequest: res.editRequest,
+      answers: res.locked ? null : res.answers,
+    };
   } catch (err) {
     console.error("[group-form] 모임장 신청서 조회 오류", err);
     return { error: GENERIC };

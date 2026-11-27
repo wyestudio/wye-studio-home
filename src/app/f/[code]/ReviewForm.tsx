@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { REVIEW_FORM } from "@/lib/groupForms/schema";
+import type { FormDef } from "@/lib/groupForms/schema";
 import { FormFlow } from "./FormFlow";
 import { submitReview } from "./actions";
 
 /**
  * 모임 후기 설문(관리자 개편 docs/04 4장) — 익명. 이름 · 연락처를 받지 않는다. 한 사람이 여러 번 낼 수 있다.
  */
-export function ReviewForm({ code, groupName }: { code: string; groupName: string }) {
+export function ReviewForm({ code, groupName, def }: { code: string; groupName: string; def: FormDef }) {
   const [view, setView] = useState<"intro" | "form" | "done">("intro");
   const [hp, setHp] = useState("");
 
@@ -23,7 +23,7 @@ export function ReviewForm({ code, groupName }: { code: string; groupName: strin
           </label>
         </div>
         <FormFlow
-          def={REVIEW_FORM}
+          def={def}
           onExit={() => setView("intro")}
           onSubmit={async (answers) => {
             const res = await submitReview(code, answers, hp);
@@ -50,7 +50,7 @@ export function ReviewForm({ code, groupName }: { code: string; groupName: strin
       ) : (
         <>
           <h1 className="mt-1 text-h1 font-extrabold text-foreground">오늘 어떠셨나요?</h1>
-          <p className="mt-3 text-body text-muted">질문 6개 · 1분이면 끝나요. 이름과 연락처는 받지 않아요.</p>
+          <p className="mt-3 text-body text-muted">질문 {def.questions.filter((q) => q.type !== "agree" && !q.showIf).length}개 · 1분이면 끝나요. 이름과 연락처는 받지 않아요.</p>
           <p className="mt-1 text-body-sm text-muted">답변은 익명으로 홍보물에 인용될 수 있어요.</p>
           <button
             type="button"

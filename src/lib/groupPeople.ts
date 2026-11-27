@@ -24,6 +24,8 @@ export type ParticipantRow = {
   edited: boolean;
   /** 낸 지(고친 지) 한 시간이 안 됐다. */
   recent: boolean;
+  /** 양식에 더한 질문의 답(질문 id → 답). 없으면 빈 객체. */
+  answers: Record<string, unknown>;
 };
 
 type ViewRow = {
@@ -37,19 +39,21 @@ type ViewRow = {
   submitted_at: string;
   updated_at: string;
   edited: boolean;
+  answers: Record<string, unknown> | null;
 };
 
 /** 참가자 목록(낸 순서). 전화번호는 가린 값이다. */
 export async function loadParticipants(inquiryId: string): Promise<ParticipantRow[]> {
   const { data, error } = await createAdminClient()
     .from("admin_group_participants_view")
-    .select("id, name, phone, nickname, age_band, room_count, consent_photo, submitted_at, updated_at, edited")
+    .select("id, name, phone, nickname, age_band, room_count, consent_photo, submitted_at, updated_at, edited, answers")
     .eq("inquiry_id", inquiryId)
     .order("submitted_at", { ascending: true });
   if (error) throw new Error(error.message);
   const now = Date.now();
   return ((data ?? []) as ViewRow[]).map((r) => ({
     recent: now - new Date(r.updated_at).getTime() < 3_600_000,
+    answers: r.answers ?? {},
     id: r.id,
     name: r.name,
     phoneMasked: maskContact("phone", r.phone),

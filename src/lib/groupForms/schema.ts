@@ -118,6 +118,8 @@ export const PARTICIPANT_FORM: FormDef = {
       type: "radio",
       required: true,
       options: ["만 16~18세", "만 19~24세", "25~29세", "30~39세", "40~49세", "만 50세 이상"],
+      // DB 의 나이대 칸(20자 · 필수)에 들어가는 값이라 잠근다.
+      locked: true,
     },
     {
       id: "exp",
@@ -176,6 +178,8 @@ export const PARTICIPANT_FORM: FormDef = {
       ],
       type: "agree",
       required: false,
+      // DB 의 사진 홍보 동의 칸에 들어가는 값이라 잠근다(선택 항목인 것도 바꾸지 못한다).
+      locked: true,
     },
   ],
 };

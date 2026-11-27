@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
-import { PARTICIPANT_FORM } from "@/lib/groupForms/schema";
+import type { FormDef } from "@/lib/groupForms/schema";
 import type { Answers } from "@/lib/groupForms/validate";
 import type { ParticipantStatus } from "@/lib/groupFormLinks";
 import { FormFlow } from "./FormFlow";
@@ -18,7 +18,8 @@ import { checkNickname, refreshStatus, submitParticipant } from "./actions";
  * 넣는다고 그 사람의 답을 돌려주지 않는다 — 같은 번호로 다시 내면 조용히 덮어쓸 뿐이다.
  */
 
-type Mine = { name: string; phone: string; nick: string; age: string; exp: string; photo: boolean };
+/** 이 기기에 기억해 두는 내 답 — 필수 동의(다시 받는다)를 뺀 나머지. 양식에 더한 질문의 답도 같이 둔다. */
+type Mine = Answers & { name: string; phone: string; nick: string };
 
 const storeKey = (code: string) => `wye-group-form:${code}`;
 
@@ -44,7 +45,10 @@ export function ParticipantForm({
   when,
   headcount,
   initialStatus,
+  def,
 }: {
+  /** 지금 쓰는 양식(서버가 읽어 넘긴다). */
+  def: FormDef;
   code: string;
   groupName: string;
   /** '12월 3일 (목) 15:00' 처럼 서버가 만든 일시 문구. 날짜가 없으면 빈 글. */
@@ -86,7 +90,7 @@ export function ParticipantForm({
           </label>
         </div>
         <FormFlow
-          def={PARTICIPANT_FORM}
+          def={def}
           initial={mine ? { ...mine } : undefined}
           onExit={() => setView("status")}
           checkBeforeNext={async (q, value) => {
@@ -99,13 +103,13 @@ export function ParticipantForm({
             const res = await submitParticipant(code, answers, hp);
             if ("ok" in res) {
               try {
+                // 필수 동의는 기억하지 않는다 — 고칠 때 다시 동의받는다. 선택 동의(사진 홍보)는 기억한다.
+                const required = new Set(def.questions.filter((q) => q.type === "agree" && q.required).map((q) => q.id));
                 const keep: Mine = {
+                  ...Object.fromEntries(Object.entries(answers).filter(([k]) => !required.has(k))),
                   name: String(answers.name ?? ""),
                   phone: String(answers.phone ?? ""),
                   nick: String(answers.nick ?? ""),
-                  age: String(answers.age ?? ""),
-                  exp: String(answers.exp ?? ""),
-                  photo: answers.photo === true,
                 };
                 window.localStorage.setItem(storeKey(code), JSON.stringify(keep));
                 window.dispatchEvent(new StorageEvent("storage"));
@@ -217,7 +221,9 @@ export function ParticipantForm({
       >
         {mine ? "내 답변 수정" : "설문 작성하기"}
       </button>
-      <p className="mt-3 text-center text-body-sm text-muted">질문 5개와 약관 확인 · 1분이면 끝나요.</p>
+      <p className="mt-3 text-center text-body-sm text-muted">
+        질문 {def.questions.filter((q) => q.type !== "agree" && !q.showIf).length}개와 약관 확인 · 1분이면 끝나요.
+      </p>
     </div>
   );
 }

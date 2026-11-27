@@ -28,7 +28,9 @@ import {
   type Adjustment,
 } from "@/lib/groupSettlement";
 import { GROUP_STAGES, effectiveStage, isConfirmed, optionMinutes, scheduleOf, stageIndex, stageLabel, toSettlementOptions } from "@/lib/groupStage";
-import { LEADER_QUESTIONS, LEADER_SECOND } from "@/lib/groupForms/leaderSchema";
+import { flattenTemplate } from "@/lib/groupForms/template";
+import { loadTemplate, loadTemplateVersion } from "@/lib/groupFormTemplates";
+import { answerText } from "@/lib/groupForms/leaderForm";
 import { PENDING_KEYS, parsePending, type PendingItem } from "@/lib/groupForms/leaderForm";
 import { otherKey } from "@/lib/groupForms/schema";
 import { cleanText, cleanValue, isVisible, otherError, pickedOther, questionError, type Answers } from "@/lib/groupForms/validate";
@@ -936,16 +938,19 @@ export async function removeChecklistItem(input: { id: string; itemId: string })
 // ── 모임장 신청서 ────────────────────────────────────────────────
 
 /** 신청서 한 줄을 읽는다(암호화 칸은 읽지 않는다). 없으면 예외. */
-async function leaderRow(supabase: Db, id: string): Promise<{ answers: Answers; pending: PendingItem[]; locked: boolean; edit_request: string | null }> {
+async function leaderRow(
+  supabase: Db,
+  id: string
+): Promise<{ answers: Answers; pending: PendingItem[]; locked: boolean; edit_request: string | null; template_version: number }> {
   const { data, error } = await supabase
     .from("group_leader_responses")
-    .select("answers, pending, locked, edit_request")
+    .select("answers, pending, locked, edit_request, template_version")
     .eq("inquiry_id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("아직 신청서가 없습니다.");
-  const r = data as { answers: Answers; pending: unknown; locked: boolean; edit_request: string | null };
-  return { answers: r.answers ?? {}, pending: parsePending(r.pending), locked: r.locked, edit_request: r.edit_request };
+  const r = data as { answers: Answers; pending: unknown; locked: boolean; edit_request: string | null; template_version: number };
+  return { answers: r.answers ?? {}, pending: parsePending(r.pending), locked: r.locked, edit_request: r.edit_request, template_version: r.template_version };
 }
 
 /**
@@ -1058,9 +1063,12 @@ export async function settleLeaderPending(input: { id: string; key: string; appl
 export async function saveLeaderAnswer(input: { id: string; questionId: string; value: unknown; other?: string }): Promise<ActionResult> {
   try {
     const { supabase } = await open(input.id);
-    const q = [...LEADER_SECOND, ...LEADER_QUESTIONS].find((x) => x.id === input.questionId);
-    if (!q) return { error: "고칠 수 없는 항목입니다." };
     const row = await leaderRow(supabase, input.id);
+    // 그 신청서를 낼 때의 양식으로 본다. 견적에서 온 값(기본 정보 묶음)은 여기서 고치지 않는다.
+    const then = await loadTemplateVersion("leader", row.template_version);
+    const editable = flattenTemplate(then.template, { skip: ["base"] });
+    const q = editable.find((x) => x.id === input.questionId);
+    if (!q) return { error: "고칠 수 없는 항목입니다." };
     const answers: Answers = { ...row.answers };
     if (!isVisible(q, answers)) return { error: "앞 문항의 답 때문에 지금은 해당하지 않는 항목입니다." };
 
@@ -1077,7 +1085,7 @@ export async function saveLeaderAnswer(input: { id: string; questionId: string; 
     if (v === "" || (Array.isArray(v) && v.length === 0)) delete answers[q.id];
     else answers[q.id] = v;
     // 이 답 때문에 더는 해당하지 않게 된 뒤 문항의 답은 지운다(예: 팀 편성을 바꾸면 「직접 구성 기준」).
-    for (const x of [...LEADER_SECOND, ...LEADER_QUESTIONS]) {
+    for (const x of editable) {
       if (!isVisible(x, answers)) {
         delete answers[x.id];
         delete answers[otherKey(x.id)];
@@ -1180,6 +1188,9 @@ export async function revealParticipantPhone(input: { id: string; participantId:
   }
 }
 
+/** 참가자 설문에서 전용 칸으로 저장되는 질문들. 나머지는 answers 에 있다. */
+const PARTICIPANT_FIXED = new Set(["name", "phone", "nick", "age", "exp", "terms", "privacy", "phoneBox", "photo"]);
+
 function dashedPhone(raw: string): string {
   const d = raw.replace(/\D/g, "");
   return d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : d;
@@ -1201,7 +1212,7 @@ export async function exportParticipantsCsv(input: { id: string }): Promise<{ cs
     const mode = await loadNametagMode(input.id);
     const { data, error } = await supabase
       .from("admin_group_participants_view")
-      .select("name, phone, nickname, age_band, room_count, consent_photo, submitted_at, edited")
+      .select("name, phone, nickname, age_band, room_count, consent_photo, submitted_at, edited, answers")
       .eq("inquiry_id", input.id)
       .order("submitted_at", { ascending: true });
     if (error) return { error: error.message };
@@ -1214,11 +1225,14 @@ export async function exportParticipantsCsv(input: { id: string }): Promise<{ cs
       consent_photo: boolean;
       submitted_at: string;
       edited: boolean;
+      answers: Answers | null;
     }[];
     if (rows.length === 0) return { error: "아직 참가자 설문 응답이 없습니다." };
+    // 양식에 더한 질문(전용 칸이 없는 질문)의 답도 칸으로 붙인다. 지금 양식의 질문 이름을 쓴다.
+    const extraQs = flattenTemplate((await loadTemplate("participant")).template).filter((q) => !PARTICIPANT_FIXED.has(q.id));
     const kst = (iso: string) => new Date(new Date(iso).getTime() + 9 * 3600 * 1000).toISOString().slice(0, 16).replace("T", " ");
     const lines = [
-      ["이름", "닉네임", "방탈출 횟수", "명찰 색", "나이대", "전화번호", "사진 홍보 동의", "제출 시각", "비고"],
+      ["이름", "닉네임", "방탈출 횟수", "명찰 색", "나이대", "전화번호", "사진 홍보 동의", "제출 시각", "비고", ...extraQs.map((q) => q.label)],
       ...rows.map((r) => [
         r.name,
         r.nickname,
@@ -1229,6 +1243,10 @@ export async function exportParticipantsCsv(input: { id: string }): Promise<{ cs
         r.consent_photo ? "동의" : "미동의",
         kst(r.submitted_at),
         r.edited ? "수정됨" : "",
+        ...extraQs.map((q) => {
+          const text = answerText(q, r.answers ?? {});
+          return text === "-" ? "" : text;
+        }),
       ]),
     ];
     await writeAuditLog({

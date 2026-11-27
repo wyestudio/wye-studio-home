@@ -9,7 +9,6 @@
 import { GROUP_KINDS } from "@/lib/groupBooking";
 import { OPTION, dateLabel, won } from "@/lib/groupPricing";
 import { OTHER, otherKey, type Question } from "@/lib/groupForms/schema";
-import { LEADER_ALL } from "@/lib/groupForms/leaderSchema";
 import { isVisible, type Answers } from "@/lib/groupForms/validate";
 
 /** 견적(또는 운영자 등록)에서 온 지금 값. */
@@ -141,9 +140,10 @@ export type SummaryRow = { id: string; section: string; label: string; value: st
 /**
  * 답 전체를 묶음 · 이름 · 값의 줄로. 조건에 걸려 묻지 않은 문항과 개인정보(이름 · 휴대폰 번호)는 뺀다.
  * 모임장에게 다시 보여줄 때(끝 4자리 확인 후)와 관리자의 「신청서 전체 보기」 가 같이 쓴다.
+ * @param questions 그 답을 낼 때의 양식(묶음 이름이 붙은 질문들 — flattenTemplate).
  */
-export function summaryRows(a: Answers): SummaryRow[] {
-  return LEADER_ALL.filter((q) => q.id !== "leaderName" && q.id !== "phone")
+export function summaryRows(a: Answers, questions: readonly Question[]): SummaryRow[] {
+  return questions.filter((q) => q.id !== "leaderName" && q.id !== "phone")
     .filter((q) => isVisible(q, a) && a[q.id] !== undefined && a[q.id] !== "")
     .map((q) => ({ id: q.id, section: q.section ?? "", label: q.label, value: answerText(q, a) }));
 }
