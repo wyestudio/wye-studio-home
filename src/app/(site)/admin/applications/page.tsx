@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminPage } from "@/components/admin/ui";
+import { AdminBadge, AdminEmpty, AdminPage, AdminTabs, adminButtonClass, adminInputClass, type AdminTone } from "@/components/admin/ui";
 import { Chevron } from "@/components/ui/Chevron";
 import { formatKrw, formatDateTimeFull, formatDateFull } from "@/lib/format";
 import { getInternalApplicationIds } from "@/lib/internalTraffic";
@@ -33,16 +33,29 @@ type Row = {
   total_count: number;
 };
 
-const STATUS_TAG: Record<string, { label: string; cls: string }> = {
-  confirmed: { label: "확정", cls: "bg-glow text-black" },
-  waiting: { label: "대기", cls: "bg-amber-400 text-black" },
-  cancelled: { label: "취소", cls: "bg-zinc-500 text-white" },
+// 색만으로 가르지 않는다 — 배지에는 항상 글자가 같이 있다.
+const STATUS_TAG: Record<string, { label: string; tone: AdminTone }> = {
+  confirmed: { label: "확정", tone: "progress" },
+  waiting: { label: "대기", tone: "warn" },
+  cancelled: { label: "취소", tone: "idle" },
 };
-const PAYMENT_TAG: Record<string, { label: string; cls: string }> = {
-  pending: { label: "입금 전", cls: "bg-amber-400 text-black" },
-  confirmed: { label: "입금 확인", cls: "bg-green-500 text-black" },
-  cancelled: { label: "취소", cls: "bg-fill-strong text-muted" },
+const PAYMENT_TAG: Record<string, { label: string; tone: AdminTone }> = {
+  pending: { label: "입금 전", tone: "warn" },
+  confirmed: { label: "입금 확인", tone: "done" },
+  cancelled: { label: "취소", tone: "idle" },
 };
+
+/**
+ * 상태 탭(관리자 개편 docs/01 5장 — 거르기는 탭으로). 새 주소를 만들지 않는다:
+ * 탭은 예전부터 쓰던 ?status= · ?payment= 를 그대로 쓴다(홈 할 일 · 슬랙 알림의 링크가 이 주소로 들어온다).
+ */
+const STATUS_TABS = [
+  { key: "all", label: "전체", status: "", payment: "" },
+  { key: "unpaid", label: "입금 대기", status: "confirmed", payment: "pending" },
+  { key: "confirmed", label: "확정", status: "confirmed", payment: "confirmed" },
+  { key: "waiting", label: "대기", status: "waiting", payment: "" },
+  { key: "cancelled", label: "취소", status: "cancelled", payment: "" },
+] as const;
 
 /** 표 머리를 눌러 정렬하는 칸과 처음 누를 때의 방향. 이름 · 회차는 앞에서부터, 나머지는 큰 것부터. */
 const SORT_KEYS: Record<string, { label: string; dir: SortDir }> = {
@@ -63,8 +76,6 @@ function maskPhone(phone: string | null): string {
   return d.length >= 4 ? `···${d.slice(-4)}` : "-";
 }
 
-const field = "w-full rounded-lg border border-border bg-background px-3 py-2 text-input";
-const tag = "rounded-md px-2 py-0.5 text-micro font-semibold";
 
 /**
  * 신청 목록 — 모든 회차의 신청을 한 곳에서 찾는다.
@@ -88,18 +99,27 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
 
   const supabase = createAdminClient();
 
-  const [rowsRes, themesRes, sessionRes] = await Promise.all([
+  // 상태 · 입금을 뺀 검색 조건 — 목록과 탭별 건수가 같은 조건을 쓴다.
+  const filters = {
+    p_query: v.q || null,
+    p_name: v.name || null,
+    p_phone: v.phone || null,
+    p_session_id: v.session || null,
+    p_theme_id: v.theme || null,
+    p_date_from: ymd(v.from),
+    p_date_to: ymd(v.to),
+    p_time: /^\d{2}:\d{2}$/.test(v.time) ? v.time : null,
+  };
+  // 지금 주소가 어느 탭인가. 탭에 없는 조합(예전 링크의 ?status=confirmed 만)이면 고른 탭이 없다.
+  const currentTab = STATUS_TABS.find((t) => t.status === v.status && t.payment === v.payment)?.key ?? "";
+  // 다른 탭의 건수 — 같은 검색 함수를 한 줄만 받아 total_count 를 읽는다(2026-11-27 대표님: 탭마다 건수 표시).
+  const otherTabs = STATUS_TABS.filter((t) => t.key !== currentTab);
+
+  const [rowsRes, themesRes, sessionRes, ...countRes] = await Promise.all([
     supabase.rpc("admin_search_applications_v2", {
-      p_query: v.q || null,
-      p_name: v.name || null,
-      p_phone: v.phone || null,
-      p_session_id: v.session || null,
-      p_theme_id: v.theme || null,
+      ...filters,
       p_status: v.status || null,
       p_payment: v.payment || null,
-      p_date_from: ymd(v.from),
-      p_date_to: ymd(v.to),
-      p_time: /^\d{2}:\d{2}$/.test(v.time) ? v.time : null,
       p_sort: `${sortKey}_${sortDir}`,
       p_limit: PAGE_SIZE,
       p_offset: (page - 1) * PAGE_SIZE,
@@ -109,6 +129,16 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
     v.session
       ? supabase.from("session_display").select("start_at, theme_name, theme_mode").eq("id", v.session).maybeSingle()
       : Promise.resolve({ data: null }),
+    ...otherTabs.map((t) =>
+      supabase.rpc("admin_search_applications_v2", {
+        ...filters,
+        p_status: t.status || null,
+        p_payment: t.payment || null,
+        p_sort: "created_desc",
+        p_limit: 1,
+        p_offset: 0,
+      })
+    ),
   ]);
 
   if (rowsRes.error) {
@@ -128,11 +158,14 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const themes = (themesRes.data ?? []) as { id: string; name: string; variant_label: string | null }[];
   const onlySession = sessionRes.data as { start_at: string; theme_name: string | null; theme_mode: string | null } | null;
-  const applied = FIELDS.filter((k) => k !== "sort" && k !== "dir" && v[k]).length;
+  // 상태 · 입금은 탭으로 고른다 — 「검색 조건」 의 적용 개수에는 넣지 않는다.
+  const applied = FIELDS.filter((k) => !["sort", "dir", "status", "payment"].includes(k) && v[k]).length;
 
-  const pageHref = (n: number, sort?: { key: string; dir: SortDir }) => {
+  const pageHref = (n: number, sort?: { key: string; dir: SortDir }, tab?: { status: string; payment: string }) => {
     const next = new URLSearchParams();
-    for (const k of FIELDS) if (v[k] && k !== "sort" && k !== "dir") next.set(k, v[k]);
+    for (const k of FIELDS) if (v[k] && k !== "sort" && k !== "dir" && !(tab && (k === "status" || k === "payment"))) next.set(k, v[k]);
+    if (tab?.status) next.set("status", tab.status);
+    if (tab?.payment) next.set("payment", tab.payment);
     const srt = sort ?? { key: sortKey, dir: sortDir };
     if (srt.key !== "created" || srt.dir !== "desc") {
       next.set("sort", srt.key);
@@ -148,31 +181,45 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
     dir: sortDir,
     href: pageHref(1, nextSort({ key: sortKey, dir: sortDir }, key, SORT_KEYS[key].dir)),
   });
+  // 탭 — 검색 조건과 정렬은 그대로 두고 상태만 바꾼다. 건수를 못 읽은 탭은 숫자를 비워 둔다(0 으로 속이지 않는다).
+  const tabs = STATUS_TABS.map((t) => {
+    const i = otherTabs.findIndex((o) => o.key === t.key);
+    const res = i >= 0 ? (countRes[i] as { data: { total_count: number }[] | null; error: unknown }) : null;
+    const count = t.key === currentTab ? total : res && !res.error ? Number(res.data?.[0]?.total_count ?? 0) : undefined;
+    return { key: t.key, label: t.label, href: pageHref(1, undefined, t), count };
+  });
+  // 한 건을 누르면 그 회차 화면의 그 신청 카드로 간다(처리 버튼은 거기 있다).
+  const rowHref = (r: Row) => `${withBack(`/sessions/${r.session_id}?app=${r.id}`, pageHref(page))}#app-${r.id}`;
 
   return (
-    <AdminPage title="신청 (파티 · 노말)" description="파티모드 신청과 노말모드 예약을 한 목록에서 찾습니다. 한 건을 누르면 그 회차의 신청 화면으로 갑니다.">
+    <AdminPage title="신청 (파티 · 노말)" description="파티모드 신청과 노말모드 예약을 한 목록에서 찾습니다. 한 건을 누르면 그 회차 화면의 그 신청으로 갑니다. 입금 확인 · 취소 · 수정은 거기서 합니다.">
       <>
 
         {/* ── 검색 조건 ── 조건이 걸려 있으면 펼쳐 둔다 */}
-        <details open={applied > 0 || undefined} className="group mb-5 rounded-xl border border-border">
+        <AdminTabs tabs={tabs} current={currentTab} />
+
+        <details open={applied > 0 || undefined} className="group mb-5 rounded-xl border border-border bg-surface">
           <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-body font-semibold [&::-webkit-details-marker]:hidden">
             검색 조건
-            {applied > 0 && <span className={`${tag} bg-glow text-black`}>{applied}개 적용</span>}
+            {applied > 0 && <AdminBadge tone="progress">{applied}개 적용</AdminBadge>}
             <Chevron dir="down" className="ml-auto h-4 w-4 text-muted transition-transform group-open:rotate-180" />
           </summary>
           <form action="/applications" className="grid grid-cols-2 gap-3 border-t border-border p-4 md:grid-cols-4">
             {v.session && <input type="hidden" name="session" value={v.session} />}
+            {/* 상태는 위의 탭으로 고른다 — 검색해도 지금 탭에 머문다 */}
+            {v.status && <input type="hidden" name="status" value={v.status} />}
+            {v.payment && <input type="hidden" name="payment" value={v.payment} />}
             <Labeled label="이름 (참여자 · 입금자)">
-              <input name="name" defaultValue={v.name} placeholder="예: 김하나" className={field} />
+              <input name="name" defaultValue={v.name} placeholder="예: 김하나" className={adminInputClass} />
             </Labeled>
             <Labeled label="전화번호">
-              <input name="phone" defaultValue={v.phone} inputMode="numeric" placeholder="뒤 4자리도 돼요" className={field} />
+              <input name="phone" defaultValue={v.phone} inputMode="numeric" placeholder="뒤 4자리도 돼요" className={adminInputClass} />
             </Labeled>
             <Labeled label="접수번호">
-              <input name="q" defaultValue={v.q} inputMode="numeric" placeholder="6자리" className={field} />
+              <input name="q" defaultValue={v.q} inputMode="numeric" placeholder="6자리" className={adminInputClass} />
             </Labeled>
             <Labeled label="테마 · 모드">
-              <select name="theme" defaultValue={v.theme} className={field}>
+              <select name="theme" defaultValue={v.theme} className={adminInputClass}>
                 <option value="">전체</option>
                 {themes.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -183,44 +230,22 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
               </select>
             </Labeled>
             <Labeled label="회차 날짜 (부터)">
-              <input type="date" name="from" defaultValue={v.from} className={field} />
+              <input type="date" name="from" defaultValue={v.from} className={adminInputClass} />
             </Labeled>
             <Labeled label="회차 날짜 (까지)">
-              <input type="date" name="to" defaultValue={v.to} className={field} />
+              <input type="date" name="to" defaultValue={v.to} className={adminInputClass} />
             </Labeled>
             <Labeled label="회차 시각">
-              <input type="time" name="time" defaultValue={v.time} className={field} />
-            </Labeled>
-            <Labeled label="신청 상태">
-              <select name="status" defaultValue={v.status} className={field}>
-                <option value="">전체</option>
-                <option value="confirmed">확정</option>
-                <option value="waiting">대기</option>
-                <option value="cancelled">취소</option>
-              </select>
-            </Labeled>
-            <Labeled label="입금">
-              <select name="payment" defaultValue={v.payment} className={field}>
-                <option value="">전체</option>
-                <option value="pending">입금 전</option>
-                <option value="confirmed">입금 확인</option>
-                <option value="cancelled">취소</option>
-              </select>
+              <input type="time" name="time" defaultValue={v.time} className={adminInputClass} />
             </Labeled>
             {/* 정렬은 표 머리로 고른다 — 검색해도 지금 정렬을 그대로 둔다 */}
             {v.sort && <input type="hidden" name="sort" value={v.sort} />}
             {v.dir && <input type="hidden" name="dir" value={v.dir} />}
             <div className="col-span-2 flex justify-end gap-2 border-t border-border pt-4 md:col-span-4">
-              <Link
-                href="/applications"
-                className="rounded-lg border border-border px-5 py-2.5 text-body-sm font-semibold text-muted hover:text-foreground"
-              >
+              <Link href="/applications" className={adminButtonClass("secondary")}>
                 초기화
               </Link>
-              <button
-                type="submit"
-                className="min-w-28 rounded-lg bg-glow px-6 py-2.5 text-body-sm font-semibold text-black"
-              >
+              <button type="submit" className={`${adminButtonClass("primary")} min-w-28`}>
                 검색
               </button>
             </div>
@@ -229,9 +254,9 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
 
         {onlySession && (
           <p className="mb-3 text-body-sm">
-            <span className={`${tag} bg-fill text-foreground`}>
+            <AdminBadge>
               이 회차만: {formatDateTimeFull(onlySession.start_at)} {onlySession.theme_mode ?? onlySession.theme_name}
-            </span>
+            </AdminBadge>
           </p>
         )}
 
@@ -241,9 +266,10 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
         </p>
 
         {rows.length === 0 ? (
-          <div className="rounded-lg border border-border py-16 text-center text-body-sm text-muted">
-            조건에 맞는 신청이 없습니다.
-          </div>
+          <AdminEmpty
+            title="조건에 맞는 신청이 없어요"
+            hint={applied > 0 ? "검색 조건을 줄이거나 「초기화」 를 눌러 보세요." : "다른 탭을 눌러 보세요."}
+          />
         ) : (
           <>
             {/* 휴대폰: 표 머리가 없어 정렬 칸을 한 줄로 둔다 */}
@@ -257,19 +283,14 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
               {rows.map((r) => (
                 <li key={r.id}>
                   <Link
-                    href={withBack(`/sessions/${r.session_id}`, pageHref(page))}
-                    className="flex items-center gap-3 rounded-xl border border-border p-4 hover:bg-fill-subtle"
+                    href={rowHref(r)}
+                    className="flex items-center gap-3 rounded-xl border border-border bg-surface p-4 hover:bg-fill-subtle"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className="text-body font-semibold">{r.representative_name ?? "-"}</span>
                         <span className="text-body-sm text-muted">{r.headcount}명</span>
-                        <span className={`${tag} ${STATUS_TAG[r.status].cls}`}>{STATUS_TAG[r.status].label}</span>
-                        {r.status !== "cancelled" && (
-                          <span className={`${tag} ${PAYMENT_TAG[r.payment_status].cls}`}>
-                            {PAYMENT_TAG[r.payment_status].label}
-                          </span>
-                        )}
+                        <StatusBadges r={r} />
                         {internalIds.has(r.id) && <TestBadge />}
                       </div>
                       <div className="mt-1 text-body-sm tabular-nums text-muted">
@@ -278,7 +299,11 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
                       <div className="mt-0.5 text-body-sm tabular-nums text-muted">
                         {r.confirmation_code} · {maskPhone(r.representative_phone)}
                         {r.amount_krw != null && ` · ${formatKrw(r.amount_krw)}`}
+                        {r.discount_krw != null && r.discount_krw > 0 && ` (쿠폰 −${formatKrw(r.discount_krw)})`}
                       </div>
+                      {r.depositor_name && r.depositor_name !== r.representative_name && (
+                        <div className="mt-0.5 text-body-sm text-wait">입금자 {r.depositor_name}</div>
+                      )}
                     </div>
                     <Chevron className="h-4 w-4 shrink-0 text-muted" />
                   </Link>
@@ -286,15 +311,14 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
               ))}
             </ul>
 
-            {/* 컴퓨터: 표 */}
-            <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
+            {/* 컴퓨터: 표 — 열은 6개(docs/01 5장 원칙 3). 접수번호 · 입금자는 신청자 칸 아래에 작게 둔다 */}
+            <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
               <table className="w-full text-body-sm">
                 <thead className="border-b border-border text-left text-label text-muted">
                   <tr>
-                    <th className="px-3 py-2.5">접수번호</th>
                     <th className="px-3 py-2.5"><SortLink {...sortProps("name")} /></th>
-                    <th className="px-3 py-2.5"><SortLink {...sortProps("headcount")} /></th>
                     <th className="px-3 py-2.5"><SortLink {...sortProps("session")} /></th>
+                    <th className="px-3 py-2.5"><SortLink {...sortProps("headcount")} /></th>
                     <th className="px-3 py-2.5">상태</th>
                     <th className="px-3 py-2.5 text-right"><SortLink {...sortProps("amount")} /></th>
                     <th className="px-3 py-2.5"><SortLink {...sortProps("created")} /></th>
@@ -303,36 +327,33 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
                 <tbody>
                   {rows.map((r) => (
                     <tr key={r.id} className="border-b border-border/50 last:border-0 hover:bg-fill-subtle">
-                      <td className="px-3 py-3 font-mono">
-                        {r.confirmation_code}
-                        {internalIds.has(r.id) && <TestBadge />}
-                      </td>
                       <td className="px-3 py-3">
-                        <span className="font-semibold">{r.representative_name ?? "-"}</span>
+                        <Link href={rowHref(r)} className="font-semibold text-foreground hover:underline">
+                          {r.representative_name ?? "-"}
+                        </Link>
                         <span className="ml-1.5 text-muted tabular-nums">{maskPhone(r.representative_phone)}</span>
+                        <span className="block text-muted tabular-nums">
+                          {r.confirmation_code}
+                          {internalIds.has(r.id) && <TestBadge />}
+                        </span>
                         {r.depositor_name && r.depositor_name !== r.representative_name && (
-                          <span className="block text-amber-400" title="입금자명이 신청자와 다릅니다">
+                          <span className="block text-wait" title="입금자명이 신청자와 다릅니다">
                             입금자 {r.depositor_name}
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-3">{r.headcount}명</td>
                       <td className="px-3 py-3">
-                        <Link href={withBack(`/sessions/${r.session_id}`, pageHref(page))} className="text-glow hover:underline">
+                        <Link href={rowHref(r)} className="text-glow hover:underline">
                           {formatDateTimeFull(r.session_start_at)}
                         </Link>
                         {(r.theme_mode ?? r.format_label) && (
                           <span className="block text-muted">{r.theme_mode ?? r.format_label}</span>
                         )}
                       </td>
+                      <td className="px-3 py-3 tabular-nums">{r.headcount}명</td>
                       <td className="px-3 py-3">
                         <span className="flex flex-wrap gap-1">
-                          <span className={`${tag} ${STATUS_TAG[r.status].cls}`}>{STATUS_TAG[r.status].label}</span>
-                          {r.status !== "cancelled" && (
-                            <span className={`${tag} ${PAYMENT_TAG[r.payment_status].cls}`}>
-                              {PAYMENT_TAG[r.payment_status].label}
-                            </span>
-                          )}
+                          <StatusBadges r={r} />
                         </span>
                       </td>
                       <td className="px-3 py-3 text-right tabular-nums">
@@ -360,12 +381,12 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
         {totalPages > 1 && (
           <div className="mt-4 flex justify-center gap-2">
             {page > 1 && (
-              <Link href={pageHref(page - 1)} className="rounded-lg border border-border px-4 py-2 text-body-sm">
+              <Link href={pageHref(page - 1)} className={adminButtonClass("secondary")}>
                 이전
               </Link>
             )}
             {page < totalPages && (
-              <Link href={pageHref(page + 1)} className="rounded-lg border border-border px-4 py-2 text-body-sm">
+              <Link href={pageHref(page + 1)} className={adminButtonClass("secondary")}>
                 다음
               </Link>
             )}
@@ -385,10 +406,22 @@ function Labeled({ label, children }: { label: string; children: React.ReactNode
   );
 }
 
+/** 신청 상태 + 입금 상태. 취소 건은 입금 배지를 붙이지 않는다. */
+function StatusBadges({ r }: { r: Row }) {
+  return (
+    <>
+      <AdminBadge tone={STATUS_TAG[r.status].tone}>{STATUS_TAG[r.status].label}</AdminBadge>
+      {r.status !== "cancelled" && (
+        <AdminBadge tone={PAYMENT_TAG[r.payment_status].tone}>{PAYMENT_TAG[r.payment_status].label}</AdminBadge>
+      )}
+    </>
+  );
+}
+
 function TestBadge() {
   return (
     <span
-      className="ml-1.5 rounded-md border border-amber-400/60 px-1 py-0.5 font-sans text-micro font-semibold text-amber-400"
+      className="ml-1.5 rounded-md border border-wait px-1 py-0.5 font-sans text-micro font-semibold text-wait"
       title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
     >
       테스트
