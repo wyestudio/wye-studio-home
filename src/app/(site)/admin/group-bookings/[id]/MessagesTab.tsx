@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminBadge, AdminCard, adminButtonClass } from "@/components/admin/ui";
@@ -37,6 +38,9 @@ export type FormLinkView = {
   stat: string;
   /** QR 그림 파일 이름(확장자 없이). */
   fileName: string;
+  /** 받은 답을 읽는 화면(후기 탭)으로 가는 길. 없으면 버튼을 내지 않는다. */
+  detailHref?: string;
+  detailLabel?: string;
 };
 
 export function MessagesTab({ id, messages, links }: { id: string; messages: MessageView[]; links: FormLinkView[] }) {
@@ -178,6 +182,11 @@ function FormLinkCard({ id, link }: { id: string; link: FormLinkView }) {
         >
           {pending ? "발급 중…" : "다시 발급"}
         </button>
+        {link.detailHref && (
+          <Link href={link.detailHref} className={adminButtonClass("secondary")}>
+            {link.detailLabel ?? "답변 보기"}
+          </Link>
+        )}
       </div>
       <div className="mt-1">
         <ActionNote note={note} />
