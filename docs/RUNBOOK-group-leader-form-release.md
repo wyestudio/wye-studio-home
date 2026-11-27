@@ -25,6 +25,7 @@
 2. `20261127040548_group_booking_admin.sql`
 3. `20261127052421_group_forms.sql`
 4. `20261127055357_group_leader_form.sql` ← 모임장 신청서
+5. `20261127062909_group_teams.sql` ← 팀 편성 · 명찰 상태(참가자 · 팀 편성 탭을 같이 올릴 때)
 
 적용 뒤 확인
 

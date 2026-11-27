@@ -38,7 +38,10 @@ import { MessagesTab, type FormLinkView, type MessageView } from "./MessagesTab"
 import { Checklist, OrganizerNameEditor, StageBackButton } from "./OverviewClient";
 import { ContactEditor, LeaderCard } from "./LeaderCard";
 import { consultItems } from "@/lib/groupForms/leaderForm";
-import { loadLeaderResponse } from "@/lib/groupLeader";
+import { loadLeaderAnswers, loadLeaderResponse } from "@/lib/groupLeader";
+import { loadNametagMode, loadParticipants, loadSavedTeams, loadTeamPeople } from "@/lib/groupPeople";
+import { ParticipantsTab } from "./ParticipantsTab";
+import { TeamsTab } from "./TeamsTab";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +68,8 @@ export default async function AdminGroupBookingDetailPage({
   const sp = await searchParams;
   // 들어온 목록(조건 포함) · 홈 달력 날짜로 돌아간다 — adminBack.ts
   const back = safeBack(sp.back, "/group-bookings");
-  const tab = sp.tab === "money" ? "money" : sp.tab === "forms" ? "forms" : "overview";
+  const TABS = ["overview", "money", "forms", "people", "teams"] as const;
+  const tab = TABS.find((t) => t === sp.tab) ?? "overview";
 
   const loaded = await loadGroup(id);
   if (!loaded) notFound();
@@ -106,6 +110,9 @@ export default async function AdminGroupBookingDetailPage({
   let links: FormLinkView[] = [];
   // 모임장 신청서 — 개요 탭에서만 읽는다(휴대폰 번호 · 새 담당자 이름은 가린 값으로 온다).
   const leader = tab === "overview" ? await loadLeaderResponse(id) : null;
+  // 참가자 탭 — 명단(전화번호는 가린 값)과 명찰 색 기준. 팀 편성 탭 — 닉네임 · 방수와 저장된 편성 · 모임장 요청.
+  const peopleData = tab === "people" ? await Promise.all([loadParticipants(id), loadNametagMode(id)]) : null;
+  const teamsData = tab === "teams" ? await Promise.all([loadTeamPeople(id), loadSavedTeams(id), loadLeaderAnswers(id)]) : null;
   if (tab === "forms") {
     // 폼 링크 셋(없으면 이때 만든다)과 현황. 참가자는 수만, 후기는 건수와 평균 별점만 읽는다.
     const admin = createAdminClient();
@@ -219,10 +226,47 @@ export default async function AdminGroupBookingDetailPage({
           { key: "overview", label: "개요", href: self("overview") },
           { key: "money", label: "금액", href: self("money") },
           { key: "forms", label: "설문 · 문자", href: self("forms") },
+          { key: "people", label: "참가자", href: self("people") },
+          { key: "teams", label: "팀 편성", href: self("teams") },
         ]}
       />
 
-      {tab === "forms" ? (
+      {tab === "people" && peopleData ? (
+        <ParticipantsTab
+          id={id}
+          cancelled={cancelled}
+          headcount={g.headcount}
+          mode={peopleData[1]}
+          teamsHref={self("teams")}
+          people={peopleData[0].map((p) => ({
+            id: p.id,
+            name: p.name,
+            phoneMasked: p.phoneMasked,
+            nick: p.nick,
+            ageBand: p.ageBand,
+            count: p.count,
+            photo: p.photo,
+            at: formatDateTimeFull(p.edited ? p.updatedAt : p.submittedAt),
+            edited: p.edited,
+            recent: p.recent,
+          }))}
+        />
+      ) : tab === "teams" && teamsData ? (
+        <TeamsTab
+          id={id}
+          cancelled={cancelled}
+          people={teamsData[0]}
+          saved={teamsData[1]}
+          leaderRequest={
+            teamsData[2]?.answers.team
+              ? {
+                  text: [teamsData[2].answers.team, teamsData[2].answers.teamHow].filter((v) => typeof v === "string" && v).join(" · "),
+                  custom: teamsData[2].answers.team === "직접 구성해서 전달",
+                }
+              : null
+          }
+        />
+      ) : tab === "forms" ? (
         <MessagesTab id={id} messages={messages} links={links} />
       ) : tab === "money" ? (
         <MoneyTab

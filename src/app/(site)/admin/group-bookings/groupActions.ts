@@ -33,6 +33,8 @@ import { PENDING_KEYS, parsePending, type PendingItem } from "@/lib/groupForms/l
 import { otherKey } from "@/lib/groupForms/schema";
 import { cleanText, cleanValue, isVisible, otherError, pickedOther, questionError, type Answers } from "@/lib/groupForms/validate";
 import { syncEventChecklist } from "@/lib/groupLeader";
+import { TEAM_MAX, TEAM_NAME_MAX, TEAM_SLOGAN_MAX, isNametagMode, nametagColor, type Team } from "@/lib/groupTeams";
+import { loadNametagMode } from "@/lib/groupPeople";
 import { charCount, cleanLine } from "@/lib/textClean";
 
 /**
@@ -1140,6 +1142,161 @@ export async function changeContact(input: { id: string; method: string; contact
     await writeAuditLog({ action: "group_booking.contact_changed", targetType: "group_booking_inquiry", targetId: input.id, summary: "단체 담당자 연락처 변경" });
     refresh(input.id);
     return { success: true, message: "연락처를 바꿨습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+// ── 참가자 · 팀 편성 ─────────────────────────────────────────────
+
+/** 참가자 한 명의 전화번호 보기 — 누를 때만 복호화해 내려준다. 누가 언제 봤는지 감사로그에 남긴다(값은 남기지 않는다). */
+export async function revealParticipantPhone(input: { id: string; participantId: string }): Promise<{ phone: string } | { error: string }> {
+  try {
+    const supabase = await requireAdmin();
+    if (!UUID.test(input.id) || !UUID.test(input.participantId)) return { error: "참가자를 찾을 수 없습니다." };
+    const { data, error } = await supabase
+      .from("admin_group_participants_view")
+      .select("phone")
+      .eq("inquiry_id", input.id)
+      .eq("id", input.participantId)
+      .maybeSingle();
+    if (error) return { error: error.message };
+    if (!data) return { error: "참가자를 찾을 수 없습니다." };
+    await writeAuditLog({
+      action: "group_booking.contact_viewed",
+      targetType: "group_booking_inquiry",
+      targetId: input.id,
+      summary: "단체 참가자 전화번호 보기",
+      detail: { participant: input.participantId },
+    });
+    return { phone: dashedPhone(String((data as { phone: string }).phone ?? "")) };
+  } catch (err) {
+    return toActionError(err, "번호를 불러오지 못했습니다.");
+  }
+}
+
+function dashedPhone(raw: string): string {
+  const d = raw.replace(/\D/g, "");
+  return d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : d;
+}
+
+/** CSV 한 칸 — 따옴표로 싸고, 수식으로 읽힐 수 있는 글자(= + - @)로 시작하면 앞에 작은따옴표를 붙인다. */
+function csvCell(v: string | number): string {
+  const s = String(v);
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+/**
+ * 참가자 명단 CSV — 엑셀에서 바로 열린다(맨 앞에 BOM). 이름 · 전화번호가 들어가는 파일이라 저장할 때마다 감사로그에 남긴다.
+ */
+export async function exportParticipantsCsv(input: { id: string }): Promise<{ csv: string; fileName: string } | { error: string }> {
+  try {
+    const { supabase, group } = await open(input.id);
+    const mode = await loadNametagMode(input.id);
+    const { data, error } = await supabase
+      .from("admin_group_participants_view")
+      .select("name, phone, nickname, age_band, room_count, consent_photo, submitted_at, edited")
+      .eq("inquiry_id", input.id)
+      .order("submitted_at", { ascending: true });
+    if (error) return { error: error.message };
+    const rows = (data ?? []) as {
+      name: string;
+      phone: string;
+      nickname: string;
+      age_band: string;
+      room_count: number;
+      consent_photo: boolean;
+      submitted_at: string;
+      edited: boolean;
+    }[];
+    if (rows.length === 0) return { error: "아직 참가자 설문 응답이 없습니다." };
+    const kst = (iso: string) => new Date(new Date(iso).getTime() + 9 * 3600 * 1000).toISOString().slice(0, 16).replace("T", " ");
+    const lines = [
+      ["이름", "닉네임", "방탈출 횟수", "명찰 색", "나이대", "전화번호", "사진 홍보 동의", "제출 시각", "비고"],
+      ...rows.map((r) => [
+        r.name,
+        r.nickname,
+        r.room_count,
+        nametagColor(r.room_count, mode),
+        r.age_band,
+        dashedPhone(r.phone),
+        r.consent_photo ? "동의" : "미동의",
+        kst(r.submitted_at),
+        r.edited ? "수정됨" : "",
+      ]),
+    ];
+    await writeAuditLog({
+      action: "group_booking.participants_exported",
+      targetType: "group_booking_inquiry",
+      targetId: input.id,
+      summary: `단체 참가자 명단 CSV 저장 (${rows.length}명)`,
+    });
+    const name = (group.group_name ?? "단체").replace(/[\\/:*?"<>|\s]+/g, "_");
+    return { csv: `\uFEFF${lines.map((l) => l.map(csvCell).join(",")).join("\r\n")}`, fileName: `${name}_참가자.csv` };
+  } catch (err) {
+    return toActionError(err, "명단을 만들지 못했습니다.");
+  }
+}
+
+/** 「닉네임 · 방수 복사」 를 눌렀다는 기록(값은 화면에 이미 있다 — 여기서는 기록만 남긴다). */
+export async function logParticipantsCopied(input: { id: string; count: number }): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    if (!UUID.test(input.id)) return { error: "단체를 찾을 수 없습니다." };
+    await writeAuditLog({
+      action: "group_booking.participants_copied",
+      targetType: "group_booking_inquiry",
+      targetId: input.id,
+      summary: `단체 참가자 닉네임 · 방수 복사 (${Math.max(0, Math.trunc(Number(input.count) || 0))}명)`,
+    });
+    return { success: true };
+  } catch (err) {
+    return toActionError(err, "기록하지 못했습니다.");
+  }
+}
+
+/** 명찰 색 기준(초심자 / 숙련자). 참가자 설문의 방수를 보고 운영자가 고른다. */
+export async function setNametagMode(input: { id: string; mode: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    if (!isNametagMode(input.mode)) return { error: "기준을 다시 골라주세요." };
+    const { error } = await supabase.from("group_booking_inquiries").update({ nametag_mode: input.mode }).eq("id", input.id);
+    if (error) return { error: error.message };
+    refresh(input.id);
+    return { success: true, message: `명찰 색 기준을 ${input.mode === "beginner" ? "초심자" : "숙련자"}로 바꿨습니다.` };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+/**
+ * 팀 편성 저장 — 팀 · 팀명 · 구호 · 팀원을 통째로 바꿔 넣는다. null 이면 편성을 지워 「추천 편성」 으로 돌아간다.
+ * 그 단체의 참가자가 아니거나 두 팀에 들어 있으면 DB 함수가 통째로 거절한다.
+ */
+export async function saveTeams(input: { id: string; teams: Team[] | null }): Promise<ActionResult> {
+  try {
+    const { supabase, group } = await open(input.id);
+    if (group.cancelled_at) return { error: "취소된 단체입니다." };
+    let payload: { name: string; slogan: string; members: string[] }[] | null = null;
+    if (input.teams) {
+      if (!Array.isArray(input.teams) || input.teams.length < 1 || input.teams.length > TEAM_MAX) return { error: `팀은 1~${TEAM_MAX}팀까지 둘 수 있습니다.` };
+      payload = [];
+      for (const t of input.teams) {
+        // 화면 · PPT 에 그대로 쓰는 값이라 기호는 막지 않는다. 보이지 않는 글자와 길이만 정리한다.
+        const name = cleanLine(t?.name ?? "");
+        const slogan = cleanLine(t?.slogan ?? "");
+        if (charCount(name) > TEAM_NAME_MAX) return { error: `팀명은 ${TEAM_NAME_MAX}자까지 쓸 수 있어요.` };
+        if (charCount(slogan) > TEAM_SLOGAN_MAX) return { error: `팀 구호는 ${TEAM_SLOGAN_MAX}자까지 쓸 수 있어요.` };
+        const members = Array.isArray(t?.members) ? t.members.map(String) : [];
+        if (members.some((m) => !UUID.test(m))) return { error: "참가자를 찾을 수 없습니다." };
+        payload.push({ name, slogan, members });
+      }
+    }
+    const { error } = await supabase.rpc("admin_save_group_teams", { p_inquiry_id: input.id, p_teams: payload });
+    if (error) return { error: error.message };
+    refresh(input.id);
+    return { success: true, message: payload ? "저장했습니다." : "추천 편성으로 되돌렸습니다." };
   } catch (err) {
     return toActionError(err, "저장에 실패했습니다.");
   }
