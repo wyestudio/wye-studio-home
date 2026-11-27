@@ -79,6 +79,86 @@ const shortId = (p: PlayerRow) => p.player_id.slice(0, 6);
 const TH = "px-2.5 py-2 font-semibold";
 const TD = "px-2.5 py-2";
 
+/* ── 페이지 넘김 ── */
+
+/**
+ * 목록 아래의 페이지 넘김(2026-11-27 대표님 — 운영 데이터가 많아 목록이 길다). 목록은 이미 다 받아 와 있어서
+ * 화면 안에서만 넘긴다(서버를 부르지 않는다). 번호는 지금 페이지 둘레만 보여 준다.
+ */
+export function usePaged<T>(items: T[], size: number) {
+  const [page, setPage] = useState(0);
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  // 목록이 줄어 지금 페이지가 없어졌으면 마지막 페이지로
+  const current = Math.min(page, pages - 1);
+  return {
+    page: current,
+    pages,
+    setPage,
+    slice: items.slice(current * size, current * size + size),
+    size,
+    total: items.length,
+  };
+}
+
+export function Pager({
+  page,
+  pages,
+  size,
+  total,
+  setPage,
+}: {
+  page: number;
+  pages: number;
+  size: number;
+  total: number;
+  setPage: (page: number) => void;
+}) {
+  if (pages <= 1) return null;
+  const from = Math.max(0, Math.min(page - 2, pages - 5));
+  const nums = Array.from({ length: Math.min(5, pages) }, (_, i) => from + i);
+  const BTN =
+    "min-w-8 rounded-md border px-2.5 py-1 text-label font-semibold tabular-nums transition-colors disabled:opacity-40";
+  return (
+    <nav
+      aria-label="페이지"
+      className="mt-3 flex flex-wrap items-center justify-between gap-2"
+    >
+      <span className="text-label text-muted tabular-nums">
+        {page * size + 1}–{Math.min(total, (page + 1) * size)} / {total}
+      </span>
+      <span className="flex flex-wrap items-center gap-1">
+        <button
+          type="button"
+          className={`${BTN} border-line text-muted hover:bg-fill`}
+          disabled={page === 0}
+          onClick={() => setPage(page - 1)}
+        >
+          이전
+        </button>
+        {nums.map((n) => (
+          <button
+            key={n}
+            type="button"
+            aria-current={n === page ? "page" : undefined}
+            onClick={() => setPage(n)}
+            className={`${BTN} ${n === page ? "border-glow bg-glow text-glow-foreground" : "border-line text-muted hover:bg-fill"}`}
+          >
+            {n + 1}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={`${BTN} border-line text-muted hover:bg-fill`}
+          disabled={page >= pages - 1}
+          onClick={() => setPage(page + 1)}
+        >
+          다음
+        </button>
+      </span>
+    </nav>
+  );
+}
+
 /* ── 전체 랭킹 ── */
 
 export function RankTable({
@@ -105,6 +185,8 @@ export function RankTable({
       .map((x) => ({ ...x, rank: null }));
     return [...shown, ...hidden];
   }, [players]);
+  // 한 페이지에 10명
+  const paged = usePaged(rows, 10);
 
   if (rows.length === 0)
     return (
@@ -113,73 +195,78 @@ export function RankTable({
       </p>
     );
   return (
-    <div className="overflow-x-auto rounded-lg border border-line">
-      <table className="w-full min-w-[760px] text-left text-body-sm">
-        <thead className="bg-fill text-label text-muted">
-          <tr>
-            <th className={TH}>순위</th>
-            <th className={TH}>닉네임</th>
-            <th className={`${TH} text-right`}>점수</th>
-            <th className={`${TH} text-right`}>라운드</th>
-            <th className={`${TH} text-right`}>최대 콤보</th>
-            <th
-              className={`${TH} text-right`}
-              title="이 기록을 낸 판이 그 사람의 몇 번째 판인가 / 지금까지 시작한 판"
-            >
-              몇 번째 판
-            </th>
-            <th
-              className={`${TH} text-right`}
-              title="이 기록을 낸 판에서 공유하고 재도전한 횟수"
-            >
-              재도전
-            </th>
-            <th className={TH}>기록 시각</th>
-            <th className={TH} />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ p, best, rank }) => (
-            <tr
-              key={p.player_id}
-              className={`border-t border-line-subtle tabular-nums ${p.hidden ? "text-disabled" : ""}`}
-            >
-              <td className={`${TD} font-semibold`}>
-                {rank ?? <span className="text-label font-normal">숨김</span>}
-              </td>
-              <td className={`${TD} font-semibold`}>{p.nickname}</td>
-              <td className={`${TD} text-right font-semibold`}>{best.score}</td>
-              <td className={`${TD} text-right`}>{best.round}</td>
-              <td className={`${TD} text-right`}>{best.max_combo}</td>
-              <td className={`${TD} text-right`}>
-                {best.n}번째{" "}
-                <span className="text-muted">/ {p.runs.length}판</span>
-              </td>
-              <td className={`${TD} text-right`}>
-                {best.retries > 0 ? (
-                  `${best.retries}번`
-                ) : (
-                  <span className="text-muted">0</span>
-                )}
-              </td>
-              <td className={`${TD} text-muted`}>
-                {best.finished_at ? shortKst(best.finished_at) : "-"}
-              </td>
-              <td className={`${TD} text-right`}>
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={() => onToggleHidden(p.player_id, !p.hidden)}
-                  className="rounded-md border border-line px-2.5 py-1 text-label font-semibold text-foreground transition-colors hover:bg-fill disabled:opacity-50"
-                >
-                  {p.hidden ? "다시 보이기" : "숨김"}
-                </button>
-              </td>
+    <>
+      <div className="overflow-x-auto rounded-lg border border-line">
+        <table className="w-full min-w-[760px] text-left text-body-sm">
+          <thead className="bg-fill text-label text-muted">
+            <tr>
+              <th className={TH}>순위</th>
+              <th className={TH}>닉네임</th>
+              <th className={`${TH} text-right`}>점수</th>
+              <th className={`${TH} text-right`}>라운드</th>
+              <th className={`${TH} text-right`}>최대 콤보</th>
+              <th
+                className={`${TH} text-right`}
+                title="이 기록을 낸 판이 그 사람의 몇 번째 판인가 / 지금까지 시작한 판"
+              >
+                몇 번째 판
+              </th>
+              <th
+                className={`${TH} text-right`}
+                title="이 기록을 낸 판에서 공유하고 재도전한 횟수"
+              >
+                재도전
+              </th>
+              <th className={TH}>기록 시각</th>
+              <th className={TH} />
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {paged.slice.map(({ p, best, rank }) => (
+              <tr
+                key={p.player_id}
+                className={`border-t border-line-subtle tabular-nums ${p.hidden ? "text-disabled" : ""}`}
+              >
+                <td className={`${TD} font-semibold`}>
+                  {rank ?? <span className="text-label font-normal">숨김</span>}
+                </td>
+                <td className={`${TD} font-semibold`}>{p.nickname}</td>
+                <td className={`${TD} text-right font-semibold`}>
+                  {best.score}
+                </td>
+                <td className={`${TD} text-right`}>{best.round}</td>
+                <td className={`${TD} text-right`}>{best.max_combo}</td>
+                <td className={`${TD} text-right`}>
+                  {best.n}번째{" "}
+                  <span className="text-muted">/ {p.runs.length}판</span>
+                </td>
+                <td className={`${TD} text-right`}>
+                  {best.retries > 0 ? (
+                    `${best.retries}번`
+                  ) : (
+                    <span className="text-muted">0</span>
+                  )}
+                </td>
+                <td className={`${TD} text-muted`}>
+                  {best.finished_at ? shortKst(best.finished_at) : "-"}
+                </td>
+                <td className={`${TD} text-right`}>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onToggleHidden(p.player_id, !p.hidden)}
+                    className="rounded-md border border-line px-2.5 py-1 text-label font-semibold text-foreground transition-colors hover:bg-fill disabled:opacity-50"
+                  >
+                    {p.hidden ? "다시 보이기" : "숨김"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pager {...paged} />
+    </>
   );
 }
 
@@ -338,6 +425,9 @@ export function PlayHistory({ players }: { players: PlayerRow[] }) {
     [players, sort],
   );
 
+  // 한 페이지에 10명
+  const paged = usePaged(list, 10);
+
   return (
     <div>
       <div className="mb-3 flex justify-end">
@@ -354,7 +444,7 @@ export function PlayHistory({ players }: { players: PlayerRow[] }) {
         </label>
       </div>
       <ul className="flex flex-col gap-2">
-        {list.map((p) => {
+        {paged.slice.map((p) => {
           const best = bestRun(p);
           const gift = p.runs.some((r) => r.gift);
           const retries = p.runs.reduce((a, r) => a + r.retries, 0);
@@ -468,6 +558,7 @@ export function PlayHistory({ players }: { players: PlayerRow[] }) {
           );
         })}
       </ul>
+      <Pager {...paged} />
       <p className="mt-2 text-label text-muted">
         「사람」 은 브라우저 하나입니다(같은 사람이 다른 기기 · 브라우저로 하면
         따로 셉니다). 줄을 누르면 판마다의 기록이 펼쳐집니다.
