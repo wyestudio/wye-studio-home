@@ -10,7 +10,9 @@ import { GroupEntryTracker } from "@/components/group/GroupEntryTracker";
 import { BrochureCard } from "@/components/group/BrochureViewer";
 import { GroupQuoteFlow } from "@/components/group/quote/GroupQuoteFlow";
 import { ProgramBuilder } from "@/components/group/quote/ProgramBuilder";
+import { XmasGameSection } from "@/components/xmas-game/XmasGameSection";
 import { GROUP_EVENT } from "@/lib/analytics";
+import { getSiteSkin } from "@/lib/siteSeason";
 import {
   GROUP_ACCENT,
   GROUP_HEADCOUNT_MAX,
@@ -239,7 +241,8 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
   // 주소의 값은 누구나 바꿀 수 있다 — 아는 진입 지점만 집계한다.
   const rawFrom = typeof params.from === "string" ? params.from : "";
   const entry = isGroupEntry(rawFrom) ? rawFrom : null;
-  const [closures, busySessions] = await Promise.all([getGroupClosures(), getGroupBusySlots()]);
+  // 스킨은 레이아웃도 읽는 30초 캐시 값이라 DB 를 한 번 더 부르지 않는다
+  const [closures, busySessions, skin] = await Promise.all([getGroupClosures(), getGroupBusySlots(), getSiteSkin()]);
   // 운영자가 시간 구간으로 막은 마감은 예약이 있는 시간과 같이 '겹치면 마감' 으로 본다. 종일 마감만 따로 넘긴다.
   const busy = [...busySessions, ...closureSlots(closures)];
   const dayClosures = closures.filter((c) => c.time == null);
@@ -355,6 +358,21 @@ export default async function GroupBookingPage({ searchParams }: PageProps<"/gro
           })}
         </div>
       </Block>
+
+      {/*
+        크리스마스 이벤트(미니게임) — 테마 상세와 같은 블록(2026-11-27 대표님). 스킨이 켜져 있을 때만, 스킨을 끄면 같이 사라진다.
+        단체 견적 내용(구성 · 타임테이블 · 혜택)을 먼저 읽게 그 뒤, 자주 묻는 질문 앞에 둔다.
+        게임은 새 창에서 열리고, 게임의 「돌아가기」 는 이 페이지의 #xmas-game 으로 돌아온다(gameHref 가 /group 을 실어 보낸다).
+      */}
+      {skin === "christmas" && (
+        <Block sectionKey="xmas_event" navLabel="크리스마스 이벤트">
+          <XmasGameSection themeLabel={GROUP_PAGE_LABEL} accent={GROUP_ACCENT}
+            align="left"
+            // 다른 블록의 제목 아래 간격(gap-5)과 같게
+            headingClassName="mb-5"
+          />
+        </Block>
+      )}
 
       <Block id="faq" sectionKey="faq" navLabel="자주 묻는 질문" className="flex flex-col gap-2">
         <SectionHeading eyebrow="FAQ" title="자주 묻는 질문" align="left" eyebrowColor={GROUP_ACCENT} />

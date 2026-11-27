@@ -62,7 +62,19 @@ const noop = () => () => {};
  *    지어 넣지 않는다.
  * ⚠️ 서버가 그릴 때는 주소 · 저장소를 모른다. 링크는 칸 없는 게임 주소로 그리고, 브라우저에서 지금 화면의 주소를 실어 채운다.
  */
-export function XmasGameSection({ themeLabel, accent }: { themeLabel: string; accent?: string }) {
+export function XmasGameSection({
+  themeLabel,
+  accent,
+  align = "center",
+  headingClassName = "mb-6 sm:mb-10",
+}: {
+  themeLabel: string;
+  accent?: string;
+  /** 소제목 · 제목 정렬 — 단체 예약 페이지는 다른 블록 제목이 전부 왼쪽이라 맞춘다(2026-11-27 대표님) */
+  align?: "center" | "left";
+  /** 제목과 판 사이 — 기본은 테마 상세의 다른 블록과 같은 값. 단체 예약 페이지는 그쪽 블록 간격(mb-5)을 넘긴다 */
+  headingClassName?: string;
+}) {
   const section = useRef<HTMLElement>(null);
   // 서버가 그릴 때는 저장소를 모른다 — 빈 값으로 그리고 브라우저에서 채운다
   const code = useSyncExternalStore(noop, savedGiftCode, () => null);
@@ -125,7 +137,8 @@ export function XmasGameSection({ themeLabel, accent }: { themeLabel: string; ac
           </span>
         }
         eyebrowColor={accent}
-        className="mb-6 sm:mb-10"
+        align={align}
+        className={headingClassName}
       />
 
       {/*

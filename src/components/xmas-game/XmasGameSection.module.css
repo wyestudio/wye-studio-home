@@ -17,6 +17,11 @@
 .section {
   /* 공유 링크 · 돌아가기로 내려왔을 때 붙어 있는 헤더 · 탭에 가리지 않게 */
   scroll-margin-top: 7rem;
+  /*
+    한 줄로 쌓을지는 화면 폭이 아니라 이 블록의 폭으로 정한다(아래 @container). 단체 예약 페이지는 데스크톱에서도
+    오른쪽에 견적 카드가 있어 이 블록이 550px 남짓이다 — 화면 폭으로 정하면 두 기둥이 끼어 글이 한 글자씩 꺾인다.
+  */
+  container-type: inline-size;
 }
 
 /*
@@ -285,7 +290,8 @@
   }
 }
 
-@media (max-width: 767px) {
+/* 블록 폭 727px = 테마 상세에서 화면 폭 767px(좌우 여백 20px 씩) — 상세 페이지는 예전 기준 그대로다 */
+@container (max-width: 727px) {
   .panel {
     --x-ground: 64px;
     padding: 32px 20px calc(var(--x-ground) + 16px);
