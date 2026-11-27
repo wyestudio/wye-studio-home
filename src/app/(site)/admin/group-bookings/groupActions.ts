@@ -34,7 +34,8 @@ import { otherKey } from "@/lib/groupForms/schema";
 import { cleanText, cleanValue, isVisible, otherError, pickedOther, questionError, type Answers } from "@/lib/groupForms/validate";
 import { syncEventChecklist } from "@/lib/groupLeader";
 import { TEAM_MAX, TEAM_NAME_MAX, TEAM_SLOGAN_MAX, isNametagMode, nametagColor, type Team } from "@/lib/groupTeams";
-import { loadNametagMode } from "@/lib/groupPeople";
+import { loadNametagMode, loadTeamPeople } from "@/lib/groupPeople";
+import { NAMETAG_BUCKET, NAMETAG_FILE, cleanNametagState, nametagRoster, type NametagPerson, type NametagState } from "@/lib/groupNametag";
 import { charCount, cleanLine } from "@/lib/textClean";
 
 /**
@@ -1297,6 +1298,84 @@ export async function saveTeams(input: { id: string; teams: Team[] | null }): Pr
     if (error) return { error: error.message };
     refresh(input.id);
     return { success: true, message: payload ? "저장했습니다." : "추천 편성으로 되돌렸습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+// ── 명찰 제작기 ──────────────────────────────────────────────────
+
+export type NametagOpen = {
+  /** 제작기 파일의 임시 주소(5분). 브라우저가 저장소에서 직접 받는다 — 서버를 지나지 않는다. */
+  url: string;
+  /** 파일이 바뀌면 달라지는 값. 브라우저가 받아 둔 파일을 다시 쓸지 정한다. */
+  version: string;
+  group: string;
+  mode: "beginner" | "experienced";
+  edition: "regular" | "christmas" | null;
+  people: NametagPerson[];
+  /** 저장해 둔 명찰을 불러왔는가. */
+  fromSaved: boolean;
+  /** 저장한 뒤 들어와 뒤에 더한 설문 응답 수. */
+  added: number;
+  surveyCount: number;
+};
+
+/**
+ * 「명찰 만들기」 — 제작기 파일의 임시 주소와 넘길 명단(닉네임 · 방수)을 돌려준다. 이름 · 연락처는 싣지 않는다.
+ * 파일은 비공개 버킷에 있어 이 주소 없이는 받을 수 없고, 주소는 5분 뒤에 죽는다.
+ */
+export async function openNametagMaker(input: { id: string; fresh?: boolean }): Promise<NametagOpen | { error: string }> {
+  try {
+    const { supabase, group } = await open(input.id);
+    const [signed, listed, survey, mode, savedRes] = await Promise.all([
+      supabase.storage.from(NAMETAG_BUCKET).createSignedUrl(NAMETAG_FILE, 300),
+      supabase.storage.from(NAMETAG_BUCKET).list("", { search: NAMETAG_FILE, limit: 5 }),
+      loadTeamPeople(input.id),
+      loadNametagMode(input.id),
+      supabase.from("group_nametag_states").select("state").eq("inquiry_id", input.id).maybeSingle(),
+    ]);
+    if (signed.error || !signed.data?.signedUrl) {
+      console.error("[group] 명찰 제작기 임시 주소 실패", signed.error?.message);
+      return { error: "명찰 제작기 파일을 찾지 못했습니다. 파일이 저장소(admin-tools)에 올라가 있는지 확인해주세요." };
+    }
+    if (savedRes.error) return { error: savedRes.error.message };
+    if (survey.length === 0) return { error: "아직 참가자 설문 응답이 없습니다." };
+    const file = (listed.data ?? []).find((f) => f.name === NAMETAG_FILE);
+    // 「설문 명단으로 다시 채우기」 는 저장해 둔 것을 쓰지 않는다(다시 저장하기 전까지 저장본은 그대로 있다).
+    const saved: NametagState | null = input.fresh ? null : cleanNametagState((savedRes.data as { state?: unknown } | null)?.state);
+    const roster = nametagRoster(saved, survey);
+    return {
+      url: signed.data.signedUrl,
+      version: file?.updated_at ?? file?.id ?? "unknown",
+      group: group.display_name ?? group.group_name ?? "단체 모임",
+      // 저장해 둔 것이 있으면 그때 고른 기준 · 에디션을, 없으면 참가자 탭에서 고른 기준을 쓴다.
+      mode: saved ? saved.experience : mode,
+      edition: saved ? saved.edition : null,
+      people: roster.people,
+      fromSaved: roster.fromSaved,
+      added: roster.added,
+      surveyCount: survey.length,
+    };
+  } catch (err) {
+    return toActionError(err, "명찰 제작기를 열지 못했습니다.");
+  }
+}
+
+/** 제작기에서 고친 내용(닉네임 · 방수 · 글자 위치 · 크기 · 에디션 · 기준)을 단체별로 저장한다. 설문 원본은 바꾸지 않는다. */
+export async function saveNametagState(input: { id: string; state: unknown }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    const state = cleanNametagState(input.state);
+    if (!state) return { error: "저장할 내용을 읽지 못했습니다." };
+    if (state.people.length === 0) return { error: "명찰이 하나도 없어 저장하지 않았습니다." };
+    // 지금 설문에 있는 닉네임을 같이 적어 둔다(서버가 채운다 — 화면이 보낸 값은 쓰지 않는다).
+    state.seen = (await loadTeamPeople(input.id)).map((p) => p.nick);
+    const { error } = await supabase
+      .from("group_nametag_states")
+      .upsert({ inquiry_id: input.id, state, updated_at: new Date().toISOString() }, { onConflict: "inquiry_id" });
+    if (error) return { error: error.message };
+    return { success: true, message: `명찰 ${state.people.length}개를 저장했습니다.` };
   } catch (err) {
     return toActionError(err, "저장에 실패했습니다.");
   }

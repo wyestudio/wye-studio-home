@@ -7,11 +7,12 @@ import { AdminBadge, AdminCard, AdminEmpty, AdminNotice, adminButtonClass } from
 import { NAMETAG_MODES, nametagColor, nametagTier, type NametagMode } from "@/lib/groupTeams";
 import { exportParticipantsCsv, logParticipantsCopied, revealParticipantPhone, saveHeadcount, setNametagMode } from "../groupActions";
 import { ActionNote, useGroupAction } from "./GroupDetailClient";
+import { NametagMaker } from "./NametagMaker";
 
 /**
  * 단체 상세 › 참가자 탭(관리자 개편 docs/02 9장).
  *
- * 현황(설문 n / 확정 m명) · 명찰 색 기준 · 목록 · 닉네임/방수 복사 · CSV 저장.
+ * 현황(설문 n / 확정 m명) · 명찰 색 기준 · 목록 · 닉네임/방수 복사 · CSV 저장 · 명찰 만들기(NametagMaker).
  * 설문은 정원을 넘어도 받는다 — 넘으면 「인원을 n명으로 수정」 으로 요금 구간과 잔금을 다시 계산한다(자동으로 올리지 않는다).
  *
  * ⚠️ 전화번호는 가린 값으로 온다. 「보기」 와 「CSV 저장」 은 누를 때마다 감사로그에 남는다.
@@ -120,9 +121,10 @@ export function ParticipantsTab({
             <button type="button" onClick={saveCsv} disabled={busy === "csv"} className={adminButtonClass("secondary")}>
               {busy === "csv" ? "만드는 중…" : "CSV 저장"}
             </button>
-            <Link href={teamsHref} className={adminButtonClass("primary")}>
+            <Link href={teamsHref} className={adminButtonClass("secondary")}>
               팀 편성
             </Link>
+            <NametagMaker id={id} />
           </div>
         )}
         <div className="mt-2">
