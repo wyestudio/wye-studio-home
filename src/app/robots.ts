@@ -37,6 +37,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         "/openyourdream",
         "/codename",
         "/internal",
+        // 단체 예약 공개 폼 — 주소가 곧 열쇠라 색인되면 안 된다. 페이지의 noindex · 응답 헤더로도 막는다.
+        "/f/",
       ],
     },
     sitemap: `${BASE_URL}/sitemap.xml`,

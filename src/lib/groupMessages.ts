@@ -1,5 +1,5 @@
 import "server-only";
-import { BANK_ACCOUNT } from "@/lib/bankAccount";
+import { BANK_ACCOUNT_LINE } from "@/lib/bankAccountPrivate";
 import type { AdjustmentRow, GroupRow } from "@/lib/groupAdmin";
 import { settlementFor } from "@/lib/groupAdmin";
 import { addDays, addMinutes, dateLabel } from "@/lib/groupPricing";
@@ -65,7 +65,7 @@ export function timeKo(hhmm: string): string {
 /** 추천 팀 수 — 올림(인원 ÷ 4), 최대 6팀(docs/02 10장). */
 export const teamCountFor = (headcount: number) => Math.min(6, Math.max(1, Math.ceil(headcount / 4)));
 
-/** 폼이 아직 없을 때 링크 자리에 넣는 글. 공개 폼(5단계)이 생기면 실제 주소로 바뀐다. */
+/** 링크를 아직 만들지 못했을 때 링크 자리에 넣는 글. */
 const FORM_LINK_PENDING = "(폼 링크 준비 중)";
 
 /**
@@ -79,6 +79,8 @@ export function renderGroupMessage(input: {
   adjustments: readonly AdjustmentRow[];
   today: string;
   leaderName: string;
+  /** 그 단체의 폼 주소. 아직 링크가 없으면 비워 둔다. */
+  urls?: { leader?: string; participant?: string; review?: string };
 }): string {
   const { group: g, today } = input;
   const s = settlementFor(g, input.adjustments, today);
@@ -104,11 +106,11 @@ export function renderGroupMessage(input: {
     deposit_suggest: won(depositSuggest(s.total)),
     deposit_paid: won(g.deposit_amount ?? 0),
     balance: won(s.balance),
-    // 계좌는 한 곳(bankAccount.ts)에서만 읽는다. 문구 · 코드에 계좌번호를 직접 적지 않는다.
-    bank_account: `${BANK_ACCOUNT.bankName} ${BANK_ACCOUNT.accountNumber} (예금주 ${BANK_ACCOUNT.accountHolder})`,
-    leader_form_url: FORM_LINK_PENDING,
-    participant_form_url: FORM_LINK_PENDING,
-    review_form_url: FORM_LINK_PENDING,
+    // 모임장 본인에게 가는 안내라 예금주 전체 이름을 적는다(2026-11-27 대표님). 문구 원본에는 계좌를 직접 적지 않는다.
+    bank_account: BANK_ACCOUNT_LINE,
+    leader_form_url: input.urls?.leader ?? FORM_LINK_PENDING,
+    participant_form_url: input.urls?.participant ?? FORM_LINK_PENDING,
+    review_form_url: input.urls?.review ?? FORM_LINK_PENDING,
     d7_date: dateLabel(addDays(date, -7)),
     team_count: String(teamCountFor(g.headcount)),
   };

@@ -5,6 +5,7 @@ import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard
 import { writeAuditLog } from "@/lib/auditLog";
 import { isContactMethod } from "@/lib/groupBooking";
 import { GROUP_CLOSURES_TAG } from "@/lib/groupClosures";
+import { ensureFormLinks, formUrl } from "@/lib/groupFormLinks";
 import { closeOverlappingSessions, closureLabel } from "@/lib/groupClosureOps";
 import {
   createChecklistIfMissing,
@@ -703,6 +704,37 @@ export async function revealContact(input: {
   }
 }
 
+// ── 폼 링크 ─────────────────────────────────────────────────────
+
+/** 그 단체의 폼 주소 셋(없으면 만든다). 안내 문자에 넣는다. */
+async function formUrls(id: string) {
+  const links = await ensureFormLinks(id);
+  return { leader: formUrl(links.leader), participant: formUrl(links.participant), review: formUrl(links.review) };
+}
+
+/**
+ * 폼 링크 다시 발급 — 이전 링크는 그 자리에서 무효가 된다(이미 보낸 문자 속 링크도 안 열린다).
+ * 링크가 엉뚱한 곳에 퍼졌을 때 쓴다. 누가 언제 했는지 감사로그에 남긴다.
+ */
+export async function reissueFormLink(input: { id: string; formKey: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    if (!["leader", "participant", "review"].includes(input.formKey)) return { error: "알 수 없는 폼입니다." };
+    const { error } = await supabase.rpc("admin_reissue_group_form_link", { p_inquiry_id: input.id, p_form_key: input.formKey });
+    if (error) return { error: error.message };
+    await writeAuditLog({
+      action: "group_booking.updated",
+      targetType: "group_booking_inquiry",
+      targetId: input.id,
+      summary: `단체 폼 링크 다시 발급 — ${input.formKey}`,
+    });
+    refresh(input.id);
+    return { success: true, message: "새 링크를 만들었습니다. 이전 링크는 더 이상 열리지 않습니다." };
+  } catch (err) {
+    return toActionError(err, "링크를 다시 만들지 못했습니다.");
+  }
+}
+
 // ── 안내 문자(복사 전용) · 단계 ──────────────────────────────────
 
 /**
@@ -727,6 +759,7 @@ export async function copyMessage(input: { id: string; kind: string }): Promise<
       adjustments,
       today,
       leaderName: group.organizer_name ?? "담당자",
+      urls: await formUrls(input.id),
     });
 
     const to = stageAfterCopy(input.kind, group, today);

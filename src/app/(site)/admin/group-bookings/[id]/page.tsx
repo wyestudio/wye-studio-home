@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull } from "@/lib/format";
 import { contactMethodLabel, groupKindLabel, preferredTimeLabel, repeatPlayerLabel, teamStyleLabel } from "@/lib/groupBooking";
 import { addMinutes, dateLabel, kstToday, won } from "@/lib/groupPricing";
+import { ensureFormLinks, formUrl } from "@/lib/groupFormLinks";
 import { groupRefund, isPayType, requiredDeposit } from "@/lib/groupSettlement";
 import { AdminBadge, AdminCard, AdminPage, AdminTabs, adminButtonClass, type AdminTone } from "@/components/admin/ui";
 import { daysLeftOf, loadGroup, loadGroupTemplates, settlementFor } from "@/lib/groupAdmin";
@@ -33,7 +34,7 @@ import {
 } from "@/lib/groupStage";
 import { ContactReveal, GroupNameEditor, HeadActions, MemoEditor } from "./GroupDetailClient";
 import { MoneyTab } from "./MoneyTab";
-import { MessagesTab, type MessageView } from "./MessagesTab";
+import { MessagesTab, type FormLinkView, type MessageView } from "./MessagesTab";
 import { Checklist, OrganizerNameEditor, StageBackButton } from "./OverviewClient";
 
 export const dynamic = "force-dynamic";
@@ -99,7 +100,24 @@ export default async function AdminGroupBookingDetailPage({
     : { tone: stage === "new" ? "warn" : stage === "contacted" ? "progress" : stage === "report" ? "idle" : "done", label: stageLabel(stage) };
   // 안내 문자 미리보기 — 설문 · 문자 탭을 볼 때만 만든다. 담당자 이름은 가린 채 넣는다.
   let messages: MessageView[] = [];
+  let links: FormLinkView[] = [];
   if (tab === "forms") {
+    // 폼 링크 셋(없으면 이때 만든다)과 현황. 참가자는 수만, 후기는 건수와 평균 별점만 읽는다.
+    const admin = createAdminClient();
+    const [tokens, partRes, reviewRes] = await Promise.all([
+      ensureFormLinks(id),
+      admin.from("group_participants").select("id", { count: "exact", head: true }).eq("inquiry_id", id),
+      admin.from("group_reviews").select("rating").eq("inquiry_id", id),
+    ]);
+    const urls = { leader: formUrl(tokens.leader), participant: formUrl(tokens.participant), review: formUrl(tokens.review) };
+    const ratings = ((reviewRes.data ?? []) as { rating: number }[]).map((r) => r.rating);
+    const avg = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null;
+    const file = (k: string) => `${(g.group_name ?? "단체").replace(/[\\/:*?"<>|\s]+/g, "_")}_${k}_QR`;
+    links = [
+      { key: "leader", label: "모임장용 신청서", url: urls.leader, stat: "폼 준비 중", fileName: file("모임장") },
+      { key: "participant", label: "참가자용 사전 설문", url: urls.participant, stat: `${partRes.count ?? 0} / ${g.headcount}명`, fileName: file("참가자") },
+      { key: "review", label: "모임 후기 설문", url: urls.review, stat: avg ? `${ratings.length}건 · 평균 ${avg}점` : "0건", fileName: file("후기") },
+    ];
     const templates = await loadGroupTemplates();
     messages = MESSAGE_KINDS.map((m) => {
       const key = templateKeyOf(m.kind, g.pay_type);
@@ -110,7 +128,7 @@ export default async function AdminGroupBookingDetailPage({
       return {
         kind: m.kind,
         label: m.label,
-        preview: blocked || !body ? null : renderGroupMessage({ kind: m.kind, body, group: g, adjustments, today, leaderName: previewName(g) }),
+        preview: blocked || !body ? null : renderGroupMessage({ kind: m.kind, body, group: g, adjustments, today, leaderName: previewName(g), urls }),
         blocked,
         copiedAt: copied ? formatDateTimeFull(copied) : null,
         nextStage: to ? stageLabel(to) : null,
@@ -197,7 +215,7 @@ export default async function AdminGroupBookingDetailPage({
       />
 
       {tab === "forms" ? (
-        <MessagesTab id={id} messages={messages} />
+        <MessagesTab id={id} messages={messages} links={links} />
       ) : tab === "money" ? (
         <MoneyTab
           id={id}
