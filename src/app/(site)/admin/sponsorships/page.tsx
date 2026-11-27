@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull } from "@/lib/format";
+import { AdminPage } from "@/components/admin/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -56,36 +56,29 @@ export default async function AdminSponsorshipsPage() {
 
   if (groupError || datingError) {
     return (
-      <div className="p-6">
-        <div className="text-red-500">
+      <AdminPage title="협찬 신청">
+        <p role="alert" className="text-body-sm text-danger">
           협찬 신청 목록을 불러올 수 없습니다: {groupError?.message || datingError?.message}
-        </div>
-      </div>
+        </p>
+      </AdminPage>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto">
-        <Link href="/" className="text-glow hover:underline mb-4 inline-block">
-          ← 돌아가기
-        </Link>
+    <AdminPage title="협찬 신청" description="크리에이터 협찬 신청서로 들어온 건입니다. 그룹 방탈출과 소개팅 방탈출을 따로 봅니다.">
 
-        <h1 className="text-h2 font-semibold mb-8">협찬 신청 목록</h1>
+      <section className="mb-12">
+        <h2 className="text-h3 font-semibold mb-3">그룹 방탈출 크리에이터 협찬 ({(groupApplications ?? []).length}건)</h2>
+        <GroupApplicationsTable applications={(groupApplications as GroupApplication[]) ?? []} />
+      </section>
 
-        <section className="mb-12">
-          <h2 className="text-h3 font-semibold mb-3">그룹 방탈출 크리에이터 협찬 ({(groupApplications ?? []).length}건)</h2>
-          <GroupApplicationsTable applications={(groupApplications as GroupApplication[]) ?? []} />
-        </section>
-
-        <section>
-          <h2 className="text-h3 font-semibold mb-3">
-            소개팅 방탈출 여성 크리에이터 협찬 ({(datingApplications ?? []).length}건)
-          </h2>
-          <DatingApplicationsTable applications={(datingApplications as DatingApplication[]) ?? []} />
-        </section>
-      </div>
-    </div>
+      <section>
+        <h2 className="text-h3 font-semibold mb-3">
+          소개팅 방탈출 여성 크리에이터 협찬 ({(datingApplications ?? []).length}건)
+        </h2>
+        <DatingApplicationsTable applications={(datingApplications as DatingApplication[]) ?? []} />
+      </section>
+    </AdminPage>
   );
 }
 
