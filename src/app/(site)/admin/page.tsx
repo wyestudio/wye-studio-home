@@ -70,7 +70,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
 
   if (sessionsRes.error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
           <div className="text-danger">세션 목록을 불러올 수 없습니다: {sessionsRes.error.message}</div>
         </div>

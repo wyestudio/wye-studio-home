@@ -1,6 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull } from "@/lib/format";
-import { AdminNav } from "@/components/admin/AdminNav";
 
 export const dynamic = "force-dynamic";
 
@@ -94,11 +93,9 @@ export default async function AuditLogPage() {
   const rows = (data ?? []) as AuditRow[];
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <AdminNav current="/audit" />
-
-        <h1 className="mb-1 text-h2 font-semibold">감사로그</h1>
+        <h1 className="mb-1 text-h2 font-extrabold text-foreground">감사로그</h1>
         <p className="mb-6 text-body-sm text-muted">
           어드민에서 실행한 되돌리기 어려운 작업의 기록입니다. 최근 {PAGE_SIZE}건까지 보여줍니다.
           {" "}
@@ -108,7 +105,7 @@ export default async function AuditLogPage() {
         </p>
 
         {error ? (
-          <div className="text-red-400">불러올 수 없습니다: {error.message}</div>
+          <div className="text-danger">불러올 수 없습니다: {error.message}</div>
         ) : rows.length === 0 ? (
           <div className="rounded-lg border border-border p-10 text-center">
             <p className="font-semibold">아직 기록이 없습니다.</p>

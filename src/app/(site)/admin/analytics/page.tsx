@@ -12,7 +12,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { AdminNav } from "@/components/admin/AdminNav";
 import type {
   TrafficSource,
   CampaignTraffic,
@@ -388,13 +387,11 @@ export default function AnalyticsDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <AdminNav current="/analytics" />
-
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="mb-1 text-h2 font-semibold">분석</h1>
+            <h1 className="mb-1 text-h2 font-extrabold text-foreground">분석</h1>
             <p className="text-body-sm text-muted">
               방문(GA4)과 신청·입금(우리 DB)을 같이 봅니다. 방문 수만 보면 장사가 되는지 알 수
               없어서, <strong className="text-foreground">방문 대비 신청 전환율</strong>을 가장
@@ -421,7 +418,7 @@ export default function AnalyticsDashboard() {
         {loading ? (
           <p className="py-20 text-center text-muted">분석 데이터를 불러오는 중…</p>
         ) : !data ? (
-          <p className="py-20 text-center text-red-400">데이터를 불러오지 못했습니다.</p>
+          <p className="py-20 text-center text-danger">데이터를 불러오지 못했습니다.</p>
         ) : (
           <>
             {/*

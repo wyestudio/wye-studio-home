@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { Chevron } from "@/components/ui/Chevron";
 import { withBack } from "@/lib/adminBack";
 import { CLARITY_URL, STAGE_LABEL, STAGE_TAG, ago, pageLabel, visitorTag } from "./visitLabels";
@@ -92,10 +91,9 @@ export default async function AdminVisitorsPage({ searchParams }: PageProps<"/ad
 
   if (rowsRes.error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
-          <AdminNav current="/visitors" />
-          <div className="text-red-400">방문 발자취를 불러올 수 없습니다: {rowsRes.error.message}</div>
+          <div className="text-danger">방문 발자취를 불러올 수 없습니다: {rowsRes.error.message}</div>
         </div>
       </div>
     );
@@ -122,13 +120,11 @@ export default async function AdminVisitorsPage({ searchParams }: PageProps<"/ad
   const who = (r: Row) => r.customer_name ?? visitorTag(r.visitor_id);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <AdminNav current="/visitors" />
-
         <header className="mb-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h1 className="text-h2 font-semibold">방문 발자취</h1>
+            <h1 className="text-h2 font-extrabold text-foreground">방문 발자취</h1>
             {CLARITY_URL && (
               <a
                 href={CLARITY_URL}

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { Chevron } from "@/components/ui/Chevron";
 import { withBack } from "@/lib/adminBack";
 import { CLARITY_URL, STAGE_LABEL, STAGE_TAG, ago, pageLabel, visitorTag } from "../visitors/visitLabels";
@@ -109,10 +108,9 @@ export default async function AdminInsightsPage({
 
   if (curRes.error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
-          <AdminNav current="/insights" />
-          <div className="text-red-400">방문 분석을 불러올 수 없습니다: {curRes.error.message}</div>
+          <div className="text-danger">방문 분석을 불러올 수 없습니다: {curRes.error.message}</div>
         </div>
       </div>
     );
@@ -153,15 +151,13 @@ export default async function AdminInsightsPage({
   const devices = (["mobile", "desktop"] as const).filter((d) => (o.by_device?.[d]?.visitors ?? 0) > 0);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <AdminNav current="/insights" />
-
         {/* ── 머리 · 기간 · 목차 ──
             ⚠️ 위에 고정하지 않는다 — 사이트 머리(72px)와 어드민 메뉴(120px)가 이미 고정이라 그 뒤로 숨는다 */}
         <header className="mb-5 border-b border-border pb-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-h2 font-semibold">방문 분석</h1>
+            <h1 className="text-h2 font-extrabold text-foreground">방문 분석</h1>
             <div className="flex gap-1 rounded-lg border border-border p-1">
               {PERIODS.map((p) => (
                 <Link

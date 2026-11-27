@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { CLARITY_URL, mascotName, pageLabel } from "../../visitors/visitLabels";
 import { Bar, Empty, Kpi, PERIODS, Panel, Section, duration, getNowMs, pct, windowOf } from "../parts";
 
@@ -87,10 +86,9 @@ export default async function AdminPageReport({
 
   if (repRes.error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
-          <AdminNav current="/insights" />
-          <div className="text-red-400">페이지 보고서를 불러올 수 없습니다: {repRes.error.message}</div>
+          <div className="text-danger">페이지 보고서를 불러올 수 없습니다: {repRes.error.message}</div>
         </div>
       </div>
     );
@@ -125,16 +123,14 @@ export default async function AdminPageReport({
   const formBase = Math.max(1, isGroup ? quoteStart : r.visitors);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <AdminNav current="/insights" />
-
         <header className="mb-5 border-b border-border pb-3">
           <Link href={backHref} className="text-body-sm text-glow hover:underline">
             ← 방문 분석
           </Link>
           <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-h2 font-semibold">페이지 보고서 · {label(path)}</h1>
+            <h1 className="text-h2 font-extrabold text-foreground">페이지 보고서 · {label(path)}</h1>
             <div className="flex gap-1 rounded-lg border border-border p-1">
               {PERIODS.map((p) => (
                 <Link

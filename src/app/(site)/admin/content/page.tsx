@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import { ContentManager } from "./ContentManager";
 import type { NoticeRow } from "./NoticeEditor";
 import type { FaqRow } from "./FaqEditor";
@@ -30,30 +30,28 @@ export default async function AdminContentPage() {
   const error = noticesRes.error ?? faqsRes.error;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/content" />
-
-        <header className="mb-5">
-          <h1 className="text-h2 font-semibold">공지 · FAQ</h1>
-          <p className="mt-1 text-body-sm text-muted">
+    <AdminPage
+      title="공지 · FAQ"
+      description={
+        <>
+          <span className="block">
             여기서 고치면 배포 없이 바로 사이트에 반영됩니다. 고객에게는{" "}
             <a href="/notice" className="text-glow underline" target="_blank" rel="noopener noreferrer">
               Notice 페이지
             </a>
             에 보여요.
-          </p>
-        </header>
-
-        {error ? (
-          <div className="text-red-400">불러올 수 없습니다: {error.message}</div>
-        ) : (
-          <ContentManager
-            notices={(noticesRes.data ?? []) as NoticeRow[]}
-            faqs={(faqsRes.data ?? []) as FaqRow[]}
-          />
-        )}
-      </div>
-    </div>
+          </span>
+        </>
+      }
+    >
+      {error ? (
+        <p role="alert" className="text-body-sm text-danger">불러올 수 없습니다: {error.message}</p>
+      ) : (
+        <ContentManager
+          notices={(noticesRes.data ?? []) as NoticeRow[]}
+          faqs={(faqsRes.data ?? []) as FaqRow[]}
+        />
+      )}
+    </AdminPage>
   );
 }

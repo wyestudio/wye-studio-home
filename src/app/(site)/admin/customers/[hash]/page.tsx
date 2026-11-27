@@ -120,7 +120,7 @@ export default async function AdminCustomerDetailPage({
   ];
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mx-auto max-w-3xl">
         <Link href={back} className="mb-4 inline-block text-body-sm text-glow hover:underline">
           ← {backLabel(back)}

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
 import { Chevron } from "@/components/ui/Chevron";
 import { formatKrw, formatDateFull } from "@/lib/format";
 import { withBack } from "@/lib/adminBack";
@@ -88,10 +87,9 @@ export default async function AdminCustomersPage({ searchParams }: PageProps<"/a
 
   if (rowsRes.error || retentionRes.error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
+      <div className="p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
-          <AdminNav current="/customers" />
-          <div className="text-red-400">
+          <div className="text-danger">
             고객 목록을 불러올 수 없습니다: {(rowsRes.error ?? retentionRes.error)?.message}
           </div>
         </div>
@@ -129,12 +127,10 @@ export default async function AdminCustomersPage({ searchParams }: PageProps<"/a
   const detailHref = (r: Row) => withBack(`/customers/${encodeURIComponent(r.phone_hash)}`, pageHref(page));
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
+    <div className="p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <AdminNav current="/customers" />
-
         <header className="mb-5">
-          <h1 className="text-h2 font-semibold">고객</h1>
+          <h1 className="text-h2 font-extrabold text-foreground">고객</h1>
           <p className="mt-1 text-body-sm text-muted">같은 전화번호를 한 사람으로 묶었습니다. 대표자 · 동행자를 똑같이 셉니다.</p>
         </header>
 

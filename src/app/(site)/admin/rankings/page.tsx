@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import { RankingEditor, type RankingRow, type RankingTheme } from "./RankingEditor";
 
 export const dynamic = "force-dynamic";
@@ -34,29 +34,27 @@ export default async function AdminRankingsPage({ searchParams }: PageProps<"/ad
   const error = themesRes.error ?? rowsRes.error;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/rankings" />
-
-        <header className="mb-6">
-          <h1 className="text-h2 font-semibold">랭킹</h1>
-          <p className="mt-1 text-body-sm text-muted">
+    <AdminPage
+      title="랭킹"
+      description={
+        <>
+          <span className="block">
             테마 상세의 <strong>이달의 랭킹</strong> 블록에 나가는 기록입니다. 저장하면 고객 화면에
             바로 반영됩니다. 부적절한 팀명이나 리허설 기록은 지우지 말고 <strong>숨김</strong>으로
             두세요.
-          </p>
-        </header>
-
-        {error ? (
-          <div className="text-red-400">랭킹을 불러올 수 없습니다: {error.message}</div>
-        ) : (
-          <RankingEditor
-            month={month}
-            themes={(themesRes.data ?? []) as RankingTheme[]}
-            rows={(rowsRes.data ?? []) as RankingRow[]}
-          />
-        )}
-      </div>
-    </div>
+          </span>
+        </>
+      }
+    >
+      {error ? (
+        <p role="alert" className="text-body-sm text-danger">랭킹을 불러올 수 없습니다: {error.message}</p>
+      ) : (
+        <RankingEditor
+          month={month}
+          themes={(themesRes.data ?? []) as RankingTheme[]}
+          rows={(rowsRes.data ?? []) as RankingRow[]}
+        />
+      )}
+    </AdminPage>
   );
 }

@@ -1,4 +1,4 @@
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchSurveyQuotes } from "@/lib/reviewRating";
 import { CandidateCard, type CandidateView } from "./CandidateCard";
@@ -67,71 +67,69 @@ export default async function AdminReviewsPage() {
   const newCount = byStatus("new").length;
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/reviews" />
-
-        <h1 className="mb-2 text-h2 font-semibold">후기 관리</h1>
-        <p className="mb-6 flex gap-4 text-body-sm">
+    <AdminPage
+      title="후기 관리"
+      description={
+        <span className="flex gap-4">
           <a href="#links" className="text-glow hover:underline">
             블로그·인스타 후기
           </a>
           <a href="#survey" className="text-glow hover:underline">
             설문 한줄 후기
           </a>
-        </p>
+        </span>
+      }
+    >
+    <h2 id="links" className="mb-2 scroll-mt-32 text-h3 font-semibold">
+      블로그·인스타 후기
+    </h2>
+    <p className="mb-8 text-body-sm text-muted">
+      볼 것 {newCount}건 · 실은 것 {byStatus("published").length}건 · 관련없음{" "}
+      {byStatus("ignored").length}건
+      <br />
+      <span className="text-micro">
+        네이버는 하루 한 번 자동으로 찾아옵니다. 관련없음으로 치운 글은 다시 뜨지 않습니다.
+      </span>
+    </p>
 
-        <h2 id="links" className="mb-2 scroll-mt-32 text-h3 font-semibold">
-          블로그·인스타 후기
-        </h2>
-        <p className="mb-8 text-body-sm text-muted">
-          볼 것 {newCount}건 · 실은 것 {byStatus("published").length}건 · 관련없음{" "}
-          {byStatus("ignored").length}건
-          <br />
-          <span className="text-micro">
-            네이버는 하루 한 번 자동으로 찾아옵니다. 관련없음으로 치운 글은 다시 뜨지 않습니다.
-          </span>
-        </p>
+    <UrlPasteBox />
 
-        <UrlPasteBox />
+    {rows.length === 0 ? (
+      <p className="py-4 text-muted">
+        아직 담긴 후보가 없습니다. 위에 주소를 붙여넣거나, 수집 크론이 돌면 쌓입니다.
+      </p>
+    ) : (
+      STATUS_ORDER.map((status) => {
+        const list = byStatus(status);
+        if (list.length === 0) return null;
+        return (
+          <section key={status} className="mb-8">
+            <h2 className="mb-3 text-body font-semibold">
+              {STATUS_LABEL[status]}{" "}
+              <span className="text-muted">{list.length}</span>
+            </h2>
+            <div className="flex flex-col gap-3">
+              {list.map((c) => (
+                <CandidateCard key={c.id} c={c} themes={themes} />
+              ))}
+            </div>
+          </section>
+        );
+      })
+    )}
 
-        {rows.length === 0 ? (
-          <p className="py-4 text-muted">
-            아직 담긴 후보가 없습니다. 위에 주소를 붙여넣거나, 수집 크론이 돌면 쌓입니다.
-          </p>
-        ) : (
-          STATUS_ORDER.map((status) => {
-            const list = byStatus(status);
-            if (list.length === 0) return null;
-            return (
-              <section key={status} className="mb-8">
-                <h2 className="mb-3 text-body font-semibold">
-                  {STATUS_LABEL[status]}{" "}
-                  <span className="text-muted">{list.length}</span>
-                </h2>
-                <div className="flex flex-col gap-3">
-                  {list.map((c) => (
-                    <CandidateCard key={c.id} c={c} themes={themes} />
-                  ))}
-                </div>
-              </section>
-            );
-          })
-        )}
-
-        <h2 id="survey" className="mb-2 mt-12 scroll-mt-32 text-h3 font-semibold">
-          설문 한줄 후기
-        </h2>
-        <p className="mb-4 text-body-sm text-muted">
-          설문 서술형 답에서 골라 테마 상세의 한줄 후기에 넣고 뺍니다. 새 응답은 자동으로 이
-          목록에 나타납니다. 5개 이상이면 상세 화면에서 자동으로 넘어가는 슬라이드가 됩니다.
-        </p>
-        {survey.ok ? (
-          <SurveyQuoteList quotes={survey.quotes} themes={quoteThemes} />
-        ) : (
-          <p className="text-body-sm text-danger">설문을 읽지 못했습니다: {survey.error}</p>
-        )}
-      </div>
-    </div>
+    <h2 id="survey" className="mb-2 mt-12 scroll-mt-32 text-h3 font-semibold">
+      설문 한줄 후기
+    </h2>
+    <p className="mb-4 text-body-sm text-muted">
+      설문 서술형 답에서 골라 테마 상세의 한줄 후기에 넣고 뺍니다. 새 응답은 자동으로 이
+      목록에 나타납니다. 5개 이상이면 상세 화면에서 자동으로 넘어가는 슬라이드가 됩니다.
+    </p>
+    {survey.ok ? (
+      <SurveyQuoteList quotes={survey.quotes} themes={quoteThemes} />
+    ) : (
+      <p className="text-body-sm text-danger">설문을 읽지 못했습니다: {survey.error}</p>
+    )}
+    </AdminPage>
   );
 }
