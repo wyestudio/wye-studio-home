@@ -174,7 +174,7 @@ export function ReportTab({ id, cancelled, savedAt }: { id: string; cancelled: b
               <p className={`text-body-sm ${phase === "error" ? "font-semibold text-danger" : "text-muted"}`} role="status" aria-live="polite">
                 {phase === "error" ? `열지 못했습니다 — ${status}` : status}
                 {phase === "ready" && info && (
-                  <> {info.saved ? "저장해 둔 내용을 불러왔어요(사진 제외)." : info.teamsSaved ? "팀 편성 탭의 편성을 넣었어요." : "추천 편성을 넣었어요 — 팀 편성을 고쳤다면 다시 가져오세요."}</>
+                  <> {info.saved ? "저장해 둔 내용을 불러왔어요(사진 제외)." : !info.teamsNow.length ? "참가자 설문 응답이 없어 팀은 비워 뒀어요." : info.teamsSaved ? "팀 편성 탭의 편성을 넣었어요." : "추천 편성을 넣었어요 — 팀 편성을 고쳤다면 다시 가져오세요."}</>
                 )}
               </p>
               {note && <p className={`text-body-sm ${note.ok ? "text-confirm" : "font-semibold text-danger"}`}>{note.text}</p>}

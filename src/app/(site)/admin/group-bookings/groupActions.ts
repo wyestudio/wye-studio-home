@@ -38,6 +38,7 @@ import { loadNametagMode, loadTeamPeople } from "@/lib/groupPeople";
 import { REPORT_FILE, buildReportFill, cleanReportState, reportTeams, type ReportFill, type ReportState, type ReportTeam } from "@/lib/groupReport";
 import { loadSavedTeams } from "@/lib/groupPeople";
 import { reconcileTeams, suggestTeams } from "@/lib/groupTeams";
+import { REPORT_DEFAULTS_KEY, cleanReportDefaults } from "@/lib/groupToolRules";
 import { NAMETAG_BUCKET, NAMETAG_FILE, cleanNametagState, nametagRoster, type NametagPerson, type NametagState } from "@/lib/groupNametag";
 import { charCount, cleanLine } from "@/lib/textClean";
 
@@ -1407,12 +1408,14 @@ export type ReportOpen = {
 export async function openReport(input: { id: string }): Promise<ReportOpen | { error: string }> {
   try {
     const { supabase, group } = await open(input.id);
-    const [signed, people, savedTeams, savedRes] = await Promise.all([
+    const [signed, people, savedTeams, savedRes, defaultsRow] = await Promise.all([
       supabase.storage.from(NAMETAG_BUCKET).createSignedUrl(REPORT_FILE, 300),
       loadTeamPeople(input.id),
       loadSavedTeams(input.id),
       supabase.from("group_reports").select("state").eq("inquiry_id", input.id).maybeSingle(),
+      supabase.from("site_settings").select("value").eq("key", REPORT_DEFAULTS_KEY).maybeSingle(),
     ]);
+    const defaultsRes = cleanReportDefaults((defaultsRow.data as { value?: unknown } | null)?.value);
     if (signed.error || !signed.data?.signedUrl) {
       console.error("[group] 리포트 틀 임시 주소 실패", signed.error?.message);
       return { error: "리포트 틀 파일을 찾지 못했습니다. 파일이 저장소(admin-tools)에 올라가 있는지 확인해주세요." };
@@ -1434,6 +1437,7 @@ export async function openReport(input: { id: string }): Promise<ReportOpen | { 
         icebreaking: toSettlementOptions(group.options).icebreaking,
         teams,
         people,
+        defaults: "value" in defaultsRes ? defaultsRes.value : undefined,
       }),
       teamsNow: reportTeams(teams, people),
       teamsSaved: !!savedTeams,
