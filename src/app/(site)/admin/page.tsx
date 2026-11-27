@@ -421,7 +421,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-h3 font-semibold text-foreground">일정</h2>
-          <Link href="/sessions" className="flex min-h-11 items-center text-body-sm text-glow underline">
+          <Link href="/sessions?tab=schedule" className="flex min-h-11 items-center text-body-sm text-glow underline">
             회차 편성
           </Link>
         </div>

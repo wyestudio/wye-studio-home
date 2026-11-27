@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { backLabel, safeBack } from "@/lib/adminBack";
+import { backLabel, safeBack, withBack } from "@/lib/adminBack";
+import { AdminBadge, AdminCard, AdminNotice, AdminTabs, adminButtonClass, type AdminTone } from "@/components/admin/ui";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatDateTimeFull, formatKrw } from "@/lib/format";
 import { DeactivateSessionButton } from "./DeactivateSessionButton";
@@ -83,7 +84,13 @@ function needsRefund(app: App): boolean {
   return Boolean(app.paid_at) || Boolean(app.refund_bank_name);
 }
 
-const tag = "rounded-md px-2 py-0.5 text-micro font-semibold";
+/** 상세 탭(관리자 개편 docs/01 5장 — 목록 → 상세 → 탭). 주소는 ?tab= 하나만 더한다. */
+const DETAIL_TABS = [
+  { key: "people", label: "신청자" },
+  { key: "sms", label: "문자" },
+  { key: "settings", label: "설정" },
+] as const;
+type DetailTab = (typeof DETAIL_TABS)[number]["key"];
 
 /** 목록 칸에 들어갈 짧은 경험 표기 — "0방 (경험 없음)" 은 칸에 비해 길다. */
 function experienceShort(range: ExperienceRange | null): string {
@@ -146,26 +153,22 @@ function AppCard({
         <span className="text-body">
           <ApplicationDetailDialog application={app} attendees={atts} />
         </span>
-        {app.status === "waiting" && <span className={`${tag} bg-amber-400 text-black`}>대기</span>}
+        {app.status === "waiting" && <AdminBadge tone="warn">대기</AdminBadge>}
         {!cancelled &&
-          (app.payment_status === "confirmed" ? (
-            <span className={`${tag} bg-green-500 text-black`}>입금 확인</span>
-          ) : (
-            <span className={`${tag} bg-amber-400 text-black`}>입금 전</span>
-          ))}
+          (app.payment_status === "confirmed" ? <AdminBadge tone="done">입금 확인</AdminBadge> : <AdminBadge tone="warn">입금 전</AdminBadge>)}
         {cancelled &&
           (app.refund_completed_at ? (
-            <span className={`${tag} bg-fill-strong text-muted`}>환불 완료</span>
+            <AdminBadge>환불 완료</AdminBadge>
           ) : needsRefund(app) ? (
-            <span className={`${tag} bg-red-500 text-white`}>환불 필요</span>
+            <AdminBadge tone="danger">환불 필요</AdminBadge>
           ) : (
-            <span className={`${tag} bg-fill-strong text-muted`} title="입금 전 취소라 돌려줄 금액이 없습니다">
-              환불 없음
+            <span title="입금 전 취소라 돌려줄 금액이 없습니다">
+              <AdminBadge>환불 없음</AdminBadge>
             </span>
           ))}
         {app.is_internal && (
           <span
-            className={`${tag} border border-amber-400/60 text-amber-400`}
+            className="rounded-md border border-wait px-2 py-0.5 text-micro font-semibold text-wait"
             title="테스트 기기(/internal)에서 넣은 신청 — 분석에서 빠집니다"
           >
             테스트
@@ -231,7 +234,7 @@ function AppCard({
                     {a.nickname && <span className="ml-1.5 font-normal text-muted">{a.nickname}</span>}
                     {/* 몇 번째 참여인가 — 운영자 전용(participationHistory.ts). 첫 참여면 안 붙인다. */}
                     {a.revisit && (
-                      <span className="ml-1.5 rounded-md bg-amber-500/15 px-1.5 py-0.5 text-micro font-normal text-amber-400">
+                      <span className="ml-1.5 rounded-md bg-wait-soft px-1.5 py-0.5 text-micro font-normal text-wait">
                         {a.revisit}
                       </span>
                     )}
@@ -272,6 +275,7 @@ export default async function AdminSessionDetailPage(props: {
   const back = safeBack(sp.back, "/");
   // 신청 목록에서 누른 건(?app=) — 화면 표시에만 쓴다(조회 조건이 아니다). 모양이 다르면 버린다.
   const focusId = typeof sp.app === "string" && /^[0-9a-f-]{36}$/i.test(sp.app) ? sp.app : "";
+  const tab: DetailTab = DETAIL_TABS.some((t) => t.key === sp.tab) ? (sp.tab as DetailTab) : "people";
   const supabase = createAdminClient();
 
   const { data: session } = await supabase
@@ -368,14 +372,27 @@ export default async function AdminSessionDetailPage(props: {
   const bookedPeople = confirmedApps.reduce((n, a) => n + attsOf(a.id).length, 0);
   const refundTodo = cancelledApps.filter((a) => needsRefund(a) && !a.refund_completed_at).length;
   const pendingOpen = session.opens_at && new Date(session.opens_at).getTime() > getNowMs();
-  const state =
+  const state: { label: string; tone: AdminTone } =
     session.status === "cancelled"
-      ? { label: "비활성화", cls: "bg-red-500 text-white" }
+      ? { label: "비활성화", tone: "danger" }
       : pendingOpen
-        ? { label: "공개 전", cls: "bg-amber-400 text-black" }
+        ? { label: "공개 전", tone: "warn" }
         : session.status === "open"
-          ? { label: "모집중", cls: "bg-glow text-black" }
-          : { label: "마감", cls: "bg-zinc-500 text-white" };
+          ? { label: "모집중", tone: "progress" }
+          : { label: "마감", tone: "idle" };
+  // 탭 주소 — 돌아갈 목록(back)은 지키고, 눌러 들어온 신청 표시(app)는 신청자 탭에서만 쓴다.
+  const tabHref = (key: DetailTab) => withBack(`/sessions/${session.id}${key === "people" ? "" : `?tab=${key}`}`, back);
+  const tabs = DETAIL_TABS.map((t) => ({
+    key: t.key,
+    label: t.label,
+    href: tabHref(t.key),
+    count: t.key === "people" ? confirmedApps.length + waitingApps.length : undefined,
+  }));
+  // 지금 할 일 — 입금 확인 전 신청과 환불할 건. 없으면 줄을 띄우지 않는다.
+  // 지난 회차의 입금 전 건은 할 일로 올리지 않는다(홈의 오늘 할 일과 같은 기준). 환불 대기는 지나도 남는다.
+  const isPast = new Date(session.start_at).getTime() < getNowMs();
+  const unpaidApps = isPast ? 0 : confirmedApps.filter((a) => a.payment_status !== "confirmed").length;
+  const todo = [unpaidApps > 0 ? `입금 확인 전 ${unpaidApps}건` : "", refundTodo > 0 ? `환불 필요 ${refundTodo}건` : ""].filter(Boolean);
   const cards = (apps: App[], showPromoted = false) => (
     <ul className="flex flex-col gap-3">
       {apps.map((app) => (
@@ -392,8 +409,8 @@ export default async function AdminSessionDetailPage(props: {
         </Link>
 
         {/* ── 회차 머리 ── 언제 · 무엇 · 지금 상태를 한눈에, 버튼은 한 줄로 */}
-        <header className="mb-8 rounded-xl border border-border p-4 md:p-5">
-          <p className="text-h2 font-semibold tabular-nums">{formatDateTimeFull(session.start_at)}</p>
+        <header className="mb-4 rounded-xl border border-border bg-surface p-4 md:p-5">
+          <h1 className="text-h2 font-extrabold tabular-nums text-foreground">{formatDateTimeFull(session.start_at)}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {/*
               ⚠️ 테마명·모드는 session_display 에서 읽는다. sessions 의 theme_name ·
@@ -405,9 +422,9 @@ export default async function AdminSessionDetailPage(props: {
             </span>
             {/* 테마명이 두 모드 모두 '바-ㅇ탈출' 이라, 모드 배지가 없으면 파티인지 노말인지 알 수 없다. */}
             {display?.theme_mode && (
-              <span className="rounded-md bg-muted/20 px-2 py-0.5 text-micro text-muted">{display.theme_mode}</span>
+              <AdminBadge>{display.theme_mode}</AdminBadge>
             )}
-            <span className={`${tag} ${state.cls}`}>{state.label}</span>
+            <AdminBadge tone={state.tone}>{state.label}</AdminBadge>
           </div>
           <p className="mt-2 text-body text-muted">
             {isNormal
@@ -424,15 +441,79 @@ export default async function AdminSessionDetailPage(props: {
                 label={formatDateTimeFull(session.start_at)}
                 size="md"
               />
-              <ManualApplyButton
-                sessionId={session.id}
-                isDatingSession={isDatingTheme(session.session_type)}
-                minAge={session.min_age ?? 16}
-              />
-              <SendReminderButton sessionId={session.id} />
             </div>
           )}
         </header>
+
+        {todo.length > 0 && (
+          <div className="mb-4">
+            <AdminNotice
+              title={`지금 할 일 — ${todo.join(" · ")}`}
+              actions={
+                tab !== "people" ? (
+                  <Link href={tabHref("people")} className={adminButtonClass("secondary")}>
+                    신청자 탭으로
+                  </Link>
+                ) : undefined
+              }
+            >
+              {tab === "people" && "아래 신청 카드의 「액션」 에서 입금 확인을, 취소 건에서 환불 완료를 처리합니다."}
+            </AdminNotice>
+          </div>
+        )}
+
+        <AdminTabs tabs={tabs} current={tab} />
+
+        {tab === "sms" && (
+          <AdminCard title="하루 전 안내 문자">
+            <p className="mb-4 text-body-sm text-muted">
+              이 회차 참여자에게 하루 전 안내 문자를 보냅니다. 누르면 발송 대상을 먼저 보여주고, 확인한 뒤에 발송합니다.
+            </p>
+            {session.status !== "cancelled" ? (
+              <SendReminderButton sessionId={session.id} />
+            ) : (
+              <p className="text-body-sm text-muted">비활성화한 회차라 문자를 보낼 수 없습니다.</p>
+            )}
+          </AdminCard>
+        )}
+
+        {tab === "settings" && (
+          <div className="flex flex-col gap-4">
+            <AdminCard title="회차 정보">
+              <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1.5 text-body-sm">
+                <dt className="text-muted">모집 상태</dt>
+                <dd>{state.label} — 열기 · 마감은 위 머리의 버튼으로 바꿉니다.</dd>
+                <dt className="text-muted">신청 공개</dt>
+                <dd className="tabular-nums">{session.opens_at ? formatDateTimeFull(session.opens_at) : "바로 공개"}</dd>
+                <dt className="text-muted">최소 연령</dt>
+                <dd>만 {session.min_age ?? 16}세 이상</dd>
+              </dl>
+            </AdminCard>
+            {/* 되돌리기 어려운 버튼은 설정 탭에 따로 둔다 — 자주 누르는 버튼 사이에 두면 잘못 누른다. */}
+            <AdminCard title="회차 비활성화">
+              {session.status !== "cancelled" ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-body-sm text-muted">최소 인원 미달 등으로 회차를 열지 않을 때 씁니다. 누르면 무엇이 일어나는지 먼저 보여줍니다.</p>
+                  <DeactivateSessionButton sessionId={session.id} />
+                </div>
+              ) : (
+                <p className="text-body-sm text-muted">이미 비활성화한 회차입니다.</p>
+              )}
+            </AdminCard>
+          </div>
+        )}
+
+        {tab === "people" && (
+          <>
+        {session.status !== "cancelled" && (
+          <div className="mb-4 flex justify-end">
+            <ManualApplyButton
+              sessionId={session.id}
+              isDatingSession={isDatingTheme(session.session_type)}
+              minAge={session.min_age ?? 16}
+            />
+          </div>
+        )}
 
         <AppSection title={isNormal ? "예약" : "확정"} count={confirmedApps.length}>
           {confirmedApps.length > 0 ? (
@@ -456,19 +537,14 @@ export default async function AdminSessionDetailPage(props: {
           <details open={refundTodo > 0 || cancelledApps.some((a) => a.id === focusId)} className="group mb-8">
             <summary className="mb-3 flex cursor-pointer list-none items-center gap-2 text-h3 font-semibold [&::-webkit-details-marker]:hidden">
               취소 <span className="text-muted">{cancelledApps.length}</span>
-              {refundTodo > 0 && <span className={`${tag} bg-red-500 text-white`}>환불 필요 {refundTodo}</span>}
+              {refundTodo > 0 && <AdminBadge tone="danger">환불 필요 {refundTodo}</AdminBadge>}
               <Chevron dir="down" className="h-4 w-4 text-muted transition-transform group-open:rotate-180" />
             </summary>
             {cards(cancelledApps)}
           </details>
         )}
 
-        {/* 되돌리기 어려운 버튼은 맨 아래로 — 자주 누르는 버튼 사이에 두면 잘못 누른다. */}
-        {session.status !== "cancelled" && (
-          <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-            <p className="text-micro text-muted">최소 인원 미달 등으로 회차를 열지 않을 때</p>
-            <DeactivateSessionButton sessionId={session.id} />
-          </div>
+          </>
         )}
       </div>
     </div>
