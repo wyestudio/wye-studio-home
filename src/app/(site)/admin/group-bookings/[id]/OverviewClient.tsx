@@ -201,7 +201,7 @@ export function OrganizerNameEditor({ id }: { id: string }) {
         );
       }}
     >
-      <AdminField label="새 담당자 이름" htmlFor="org-name" hint="연락처 변경은 모임장 신청서가 생기는 단계에 들어옵니다">
+      <AdminField label="새 담당자 이름" htmlFor="org-name">
         <input id="org-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} autoComplete="off" className={adminInputClass} />
       </AdminField>
       <div className="mt-2 flex flex-wrap gap-2">

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Chevron } from "@/components/ui/Chevron";
-import { SCALE_LABELS, type FormDef, type Question } from "@/lib/groupForms/schema";
-import { charLen, cleanValue, questionError, type Answers } from "@/lib/groupForms/validate";
+import { WEEKDAY_TIME_FIRST, WEEKDAY_TIME_LAST, WEEKEND_TIMES, isWeekend } from "@/lib/groupPricing";
+import { OTHER, SCALE_LABELS, otherKey, type FormDef, type Question } from "@/lib/groupForms/schema";
+import { charLen, cleanText, cleanValue, isVisible, otherError, pickedOther, questionError, type Answers } from "@/lib/groupForms/validate";
 
 /**
  * 한 화면에 한 질문씩 넘어가는 폼(관리자 개편 docs/04 1장 — 대표님: 정보가 한꺼번에 보이면 피한다. 토스처럼).
@@ -13,6 +14,8 @@ import { charLen, cleanValue, questionError, type Answers } from "@/lib/groupFor
  *   · 입력형은 값이 들어가야 「다음」 이 켜진다. 선택 문항은 비어 있으면 「건너뛰기」.
  *   · 짧은 입력이 이어지면 방금 쓴 답이 위에 작게 쌓인다(이름 → 전화번호 → 닉네임).
  *   · 동의 문항은 한 화면에 모은다 — 「모두 동의하기」 와 개별 체크.
+ *   · 조건 문항은 앞 답에 따라 나타나거나 빠지고, 진행 숫자도 그에 맞게 바뀐다.
+ *   · 중요한 설명은 요약 몇 줄만 회색 상자로 보여주고 전문은 「자세히 보기」 로 펼친다.
  *   · 마지막 화면의 버튼만 「제출하기」. Enter 로 다음, 입력칸 자동 포커스, 글자 수 표시.
  *   · 입력 글자는 16px 이상(아이폰 확대 방지), 누르는 영역은 44px 이상.
  *
@@ -40,15 +43,21 @@ export function FormFlow({
   /** 첫 질문에서 뒤로 가면 불린다(폼의 첫 화면으로). */
   onExit: () => void;
   /** 다음으로 넘어가기 전에 서버에 물어볼 것(예: 닉네임 중복). 문제가 있으면 안내 문구를 돌려준다. */
-  checkBeforeNext?: (q: Question, value: string) => Promise<string | null>;
+  checkBeforeNext?: (q: Question, value: string, answers: Answers) => Promise<string | null>;
 }) {
-  const agrees = def.questions.filter((q) => q.type === "agree");
-  const steps: Step[] = [
-    ...def.questions.filter((q) => q.type !== "agree").map((q): Step => ({ kind: "question", q })),
-    ...(agrees.length ? [{ kind: "agree", qs: agrees } as Step] : []),
-  ];
+  // 지금 답으로 보이는 화면들. 조건 문항은 앞 답에 따라 나타나거나 빠진다.
+  const stepsFor = (a: Answers): Step[] => {
+    const visible = def.questions.filter((q) => isVisible(q, a));
+    const agrees = visible.filter((q) => q.type === "agree");
+    return [
+      ...visible.filter((q) => q.type !== "agree").map((q): Step => ({ kind: "question", q })),
+      ...(agrees.length ? [{ kind: "agree", qs: agrees } as Step] : []),
+    ];
+  };
   const [answers, setAnswers] = useState<Answers>(initial ?? {});
-  const [i, setI] = useState(0);
+  const steps = stepsFor(answers);
+  const [rawI, setI] = useState(0);
+  const i = Math.min(rawI, steps.length - 1);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
@@ -69,7 +78,7 @@ export function FormFlow({
 
   const go = (n: number) => {
     setError("");
-    setI(Math.max(0, Math.min(steps.length - 1, n)));
+    setI(Math.max(0, n));
   };
 
   const submit = async (final: Answers) => {
@@ -94,11 +103,17 @@ export function FormFlow({
       if (miss) return setError("필수 항목에 동의가 필요해요.");
     } else {
       const v = cleaned(step.q, cur);
-      const err = questionError(step.q, v);
+      const err = questionError(step.q, v, cur);
       if (err) return setError(err);
+      if (pickedOther(step.q, v)) {
+        const text = cleanText(cur[otherKey(step.q.id)]);
+        const otherErr = otherError(text);
+        if (otherErr) return setError(otherErr);
+        cur[otherKey(step.q.id)] = text;
+      }
       if (checkBeforeNext && typeof v === "string" && v !== "") {
         setBusy(true);
-        const problem = await checkBeforeNext(step.q, v);
+        const problem = await checkBeforeNext(step.q, v, cur);
         setBusy(false);
         if (problem) return setError(problem);
       }
@@ -106,7 +121,8 @@ export function FormFlow({
       cur[step.q.id] = v;
       setAnswers(cur);
     }
-    if (last) return submit({ ...cur });
+    // 방금 답으로 뒤 화면이 달라질 수 있다 — 바뀐 답으로 다시 센다.
+    if (i >= stepsFor(cur).length - 1) return submit({ ...cur });
     go(i + 1);
   };
 
@@ -125,7 +141,8 @@ export function FormFlow({
   const value = step.kind === "question" ? answers[step.q.id] : undefined;
   const filled = step.kind === "question" ? !(value == null || value === "" || (Array.isArray(value) && value.length === 0)) : true;
   const optional = step.kind === "question" && !step.q.required;
-  const autoAdvance = step.kind === "question" && step.q.type === "radio";
+  // 하나 고르기는 고르는 즉시 넘어간다. 이미 답이 있거나(뒤로 왔을 때) 「기타」 를 골라 직접 적어야 하면 버튼을 보여준다.
+  const autoAdvance = step.kind === "question" && isPickOne(step.q, answers) && !filled;
 
   return (
     <div>
@@ -173,12 +190,14 @@ export function FormFlow({
         }}
       >
         {step.kind === "agree" ? (
-          <AgreeStep qs={step.qs} answers={answers} set={set} titleRef={titleRef} />
+          <AgreeStep qs={step.qs} answers={answers} set={set} titleRef={titleRef} title={def.agreeTitle} all={def.agreeAll !== false} />
         ) : (
           <QuestionStep
             q={step.q}
             value={value}
+            answers={answers}
             set={(v) => set(step.q.id, v)}
+            setOther={(v) => set(otherKey(step.q.id), v)}
             inputRef={inputRef}
             titleRef={titleRef}
             error={error}
@@ -187,7 +206,8 @@ export function FormFlow({
               const cur = { ...answers, [step.q.id]: v };
               setAnswers(cur);
               setError("");
-              window.setTimeout(() => void next(cur), 160);
+              // 「기타」 는 직접 적어야 해서 넘어가지 않는다.
+              if (!(step.q.other && v === OTHER)) window.setTimeout(() => void next(cur), 160);
             }}
           />
         )}
@@ -198,9 +218,9 @@ export function FormFlow({
           </p>
         )}
 
-        {autoAdvance ? (
-          <p className="mt-4 text-body-sm text-muted">하나를 고르면 다음으로 넘어가요.</p>
-        ) : (
+        {autoAdvance && <p className="mt-4 text-body-sm text-muted">하나를 고르면 다음으로 넘어가요.</p>}
+        {/* 고르는 즉시 넘어가는 화면에는 버튼이 없다 — 다만 선택 문항은 「건너뛰기」 가 있어야 지나갈 수 있다. */}
+        {(!autoAdvance || optional) && (
           <button
             type="submit"
             disabled={busy || (!filled && !optional)}
@@ -218,6 +238,17 @@ function cleaned(q: Question, a: Answers) {
   return cleanValue(q, a[q.id]);
 }
 
+/** 주말 날짜와 짝인 시간 질문은 정해진 회차 셋 중에서 고른다. */
+function weekendTime(q: Question, a: Answers): boolean {
+  const date = q.type === "time" && q.dateOf ? String(a[q.dateOf] ?? "") : "";
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && isWeekend(date);
+}
+
+/** 고르는 즉시 넘어가는 화면인가. */
+function isPickOne(q: Question, a: Answers): boolean {
+  return q.type === "radio" || weekendTime(q, a);
+}
+
 function displayValue(q: Question, v: Answers[string] | undefined): string {
   if (v == null || v === "") return "-";
   if (q.type === "tel") {
@@ -233,7 +264,9 @@ const inputClass =
 function QuestionStep({
   q,
   value,
+  answers,
   set,
+  setOther,
   onPick,
   inputRef,
   titleRef,
@@ -241,7 +274,9 @@ function QuestionStep({
 }: {
   q: Question;
   value: Answers[string] | undefined;
+  answers: Answers;
   set: (v: Answers[string]) => void;
+  setOther: (v: string) => void;
   onPick: (v: string) => void;
   inputRef: React.RefObject<(HTMLInputElement & HTMLTextAreaElement) | null>;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
@@ -251,11 +286,22 @@ function QuestionStep({
   const text = typeof value === "string" ? value : value == null ? "" : String(value);
   const describedBy = [q.help ? `${id}-help` : "", error ? "form-error" : ""].filter(Boolean).join(" ") || undefined;
   const max = q.width != null ? undefined : (q.max ?? (q.type === "textarea" ? 1000 : 100));
+  const slots = weekendTime(q, answers);
+  const options = slots ? (WEEKEND_TIMES as readonly string[]) : (q.options ?? []);
+  const picks = Array.isArray(value) ? value : [];
+  const other = pickedOther(q, value);
+  const otherText = typeof answers[otherKey(q.id)] === "string" ? (answers[otherKey(q.id)] as string) : "";
+  const toggle = (opt: string) => {
+    if (picks.includes(opt)) return set(picks.filter((x) => x !== opt));
+    // 「없음」 은 혼자만 골라진다 — 고르면 나머지가 풀리고, 다른 것을 고르면 「없음」 이 풀린다.
+    if (q.none && opt === q.none) return set([opt]);
+    set([...picks.filter((x) => x !== q.none), opt]);
+  };
 
   return (
     <div>
       <h2 ref={titleRef} tabIndex={-1} className="text-h2 font-extrabold text-foreground focus:outline-none">
-        <label htmlFor={q.type === "radio" || q.type === "scale" || q.type === "checkbox" ? undefined : id}>{q.ask ?? q.label}</label>
+        <label htmlFor={q.type === "radio" || q.type === "scale" || q.type === "checkbox" || slots ? undefined : id}>{q.ask ?? q.label}</label>
         {!q.required && <span className="ml-2 align-middle text-body-sm font-normal text-muted">선택</span>}
       </h2>
       {q.help && (
@@ -263,16 +309,49 @@ function QuestionStep({
           {q.help}
         </p>
       )}
+      {q.type === "checkbox" && <p className="mt-2 text-body-sm text-muted">여러 개 고를 수 있어요.</p>}
+      {q.sum && (
+        <ul className="mt-3 flex flex-col gap-1 rounded-lg bg-fill p-3 text-body-sm text-foreground">
+          {q.sum.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      )}
+      {q.detail && (
+        <details className="mt-1">
+          <summary className="flex min-h-11 cursor-pointer items-center text-body-sm text-glow underline">자세히 보기</summary>
+          <p className="whitespace-pre-line rounded-lg border border-border bg-surface p-3 text-body-sm text-muted">{q.detail}</p>
+        </details>
+      )}
 
       <div className="mt-5">
-        {q.type === "radio" && (
+        {q.type === "checkbox" && (
+          <div role="group" aria-label={q.ask ?? q.label} className="flex flex-col gap-2">
+            {options.map((opt) => {
+              const on = picks.includes(opt);
+              return (
+                <label
+                  key={opt}
+                  className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-4 py-2 text-body transition-colors ${
+                    on ? "border-brand bg-brand-soft font-semibold text-foreground" : "border-line bg-surface text-foreground hover:bg-fill"
+                  }`}
+                >
+                  <input type="checkbox" checked={on} onChange={() => toggle(opt)} className="h-5 w-5 shrink-0" />
+                  {opt}
+                </label>
+              );
+            })}
+          </div>
+        )}
+
+        {(q.type === "radio" || slots) && (
           <div role="radiogroup" aria-label={q.ask ?? q.label} className="flex flex-col gap-2">
-            {(q.options ?? []).map((opt) => {
+            {options.map((opt) => {
               const on = value === opt;
               return (
                 <label
                   key={opt}
-                  className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-4 text-body transition-colors ${
+                  className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border px-4 py-2 text-body transition-colors ${
                     on ? "border-brand bg-brand-soft font-semibold text-foreground" : "border-line bg-surface text-foreground hover:bg-fill"
                   }`}
                 >
@@ -281,6 +360,24 @@ function QuestionStep({
                 </label>
               );
             })}
+          </div>
+        )}
+
+        {other && (
+          <div className="mt-3">
+            <label htmlFor={`${id}-other`} className="text-body-sm font-semibold text-foreground">
+              기타 내용
+            </label>
+            <input
+              id={`${id}-other`}
+              type="text"
+              value={otherText}
+              onChange={(e) => setOther(e.target.value)}
+              maxLength={100}
+              placeholder="직접 적어주세요 (2~50자)"
+              aria-invalid={!!error}
+              className={`${inputClass} mt-1`}
+            />
           </div>
         )}
 
@@ -301,7 +398,7 @@ function QuestionStep({
           />
         )}
 
-        {(q.type === "text" || q.type === "tel" || q.type === "number" || q.type === "date" || q.type === "time") && (
+        {(q.type === "text" || q.type === "tel" || q.type === "number" || q.type === "date" || (q.type === "time" && !slots)) && (
           <input
             id={id}
             ref={inputRef}
@@ -311,6 +408,8 @@ function QuestionStep({
             value={text}
             onChange={(e) => set(q.type === "number" ? e.target.value.replace(/[^\d]/g, "").slice(0, 6) : e.target.value)}
             maxLength={q.type === "tel" ? 13 : q.width != null ? 24 : (max ?? 100) * 2}
+            min={q.type === "date" ? q.minDate : q.type === "time" ? WEEKDAY_TIME_FIRST : undefined}
+            max={q.type === "time" ? WEEKDAY_TIME_LAST : undefined}
             placeholder={q.type === "tel" ? "010-0000-0000" : q.ph}
             autoComplete={q.kind === "name" ? "name" : q.type === "tel" ? "tel" : "off"}
             aria-invalid={!!error}
@@ -384,26 +483,33 @@ function AgreeStep({
   answers,
   set,
   titleRef,
+  title,
+  all: showAll,
 }: {
   qs: Question[];
   answers: Answers;
   set: (id: string, v: boolean) => void;
   titleRef: React.RefObject<HTMLHeadingElement | null>;
+  title?: string;
+  all: boolean;
 }) {
   const all = qs.every((q) => answers[q.id] === true);
   return (
     <div>
       <h2 ref={titleRef} tabIndex={-1} className="text-h2 font-extrabold text-foreground focus:outline-none">
-        약관을 확인해주세요
+        {title ?? "약관을 확인해주세요"}
       </h2>
-      <label className="mt-5 flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-line bg-surface px-4 text-body font-semibold text-foreground">
-        {/* 선택 항목까지 한 번에 체크한다(2026-11-27 대표님). 아래에서 하나씩 풀 수 있다. */}
-        <input type="checkbox" checked={all} onChange={(e) => qs.forEach((q) => set(q.id, e.target.checked))} className="h-5 w-5 shrink-0" />
-        모두 동의하기
-      </label>
+      {showAll && (
+        <label className="mt-5 flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-line bg-surface px-4 text-body font-semibold text-foreground">
+          {/* 선택 항목까지 한 번에 체크한다(2026-11-27 대표님). 아래에서 하나씩 풀 수 있다. */}
+          <input type="checkbox" checked={all} onChange={(e) => qs.forEach((q) => set(q.id, e.target.checked))} className="h-5 w-5 shrink-0" />
+          모두 동의하기
+        </label>
+      )}
       <ul className="mt-3 flex flex-col gap-3">
         {qs.map((q) => (
           <li key={q.id} className="rounded-lg border border-border bg-surface p-4">
+            {q.ask && <p className="mb-2 text-body-sm font-semibold text-muted">{q.ask}</p>}
             <label className="flex min-h-11 cursor-pointer items-start gap-3 text-body text-foreground">
               <input
                 type="checkbox"

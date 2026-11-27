@@ -41,12 +41,44 @@ export type Question = {
   link?: { href: string; label: string };
   /** 시스템이 값을 쓰는 질문 — 문구는 고칠 수 있지만 삭제 · 유형 변경은 못 한다. */
   locked?: boolean;
+  /** 「기타」 를 고르면 직접 입력(2~50자)을 받는다. 값은 `<id>__other` 열쇠에 담는다. */
+  other?: boolean;
+  /** 여러 개 고르기에서 **혼자만** 골라지는 선택지(예: 「없음」). */
+  none?: string;
+  /** 앞 질문의 답에 따라 보이거나 빠진다. 가리키는 질문은 반드시 이 질문보다 앞에 있어야 한다. */
+  showIf?: ShowIf;
+  /** 시간 질문이 어느 날짜 질문과 짝인가 — 주말이면 정해진 회차만, 평일이면 09:30~21:30. */
+  dateOf?: string;
+  /** 날짜 질문의 가장 이른 날(YYYY-MM-DD). 화면이 그때그때 넣는다. */
+  minDate?: string;
+  /** 묶음 이름(관리자 화면에서 답을 묶어 보여줄 때 쓴다). */
+  section?: string;
 };
+
+export type ShowIf = {
+  id: string;
+  /** 그 답이 이 값일 때 */
+  is?: string;
+  /** 그 답이 이 중 하나일 때 */
+  in?: readonly string[];
+  /** 여러 개 고르기에서 이 값 말고 다른 것을 하나라도 골랐을 때 */
+  anyExcept?: string;
+  /** 그 답이 채워져 있을 때 */
+  filled?: true;
+};
+
+/** 「기타」 선택지의 글자 — 이 값을 고르면 직접 입력 칸이 열린다. */
+export const OTHER = "기타";
+export const otherKey = (id: string) => `${id}__other`;
 
 export type FormDef = {
   key: "leader" | "participant" | "review";
   version: number;
   title: string;
+  /** 동의 문항을 모은 마지막 화면의 제목. 없으면 「약관을 확인해주세요」. */
+  agreeTitle?: string;
+  /** 「모두 동의하기」 를 둘 것인가(기본 둔다). */
+  agreeAll?: boolean;
   questions: readonly Question[];
 };
 

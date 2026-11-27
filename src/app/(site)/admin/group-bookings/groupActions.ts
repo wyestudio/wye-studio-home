@@ -27,7 +27,12 @@ import {
   PAY_TYPES,
   type Adjustment,
 } from "@/lib/groupSettlement";
-import { GROUP_STAGES, effectiveStage, isConfirmed, scheduleOf, stageIndex, stageLabel } from "@/lib/groupStage";
+import { GROUP_STAGES, effectiveStage, isConfirmed, optionMinutes, scheduleOf, stageIndex, stageLabel, toSettlementOptions } from "@/lib/groupStage";
+import { LEADER_QUESTIONS, LEADER_SECOND } from "@/lib/groupForms/leaderSchema";
+import { PENDING_KEYS, parsePending, type PendingItem } from "@/lib/groupForms/leaderForm";
+import { otherKey } from "@/lib/groupForms/schema";
+import { cleanText, cleanValue, isVisible, otherError, pickedOther, questionError, type Answers } from "@/lib/groupForms/validate";
+import { syncEventChecklist } from "@/lib/groupLeader";
 import { charCount, cleanLine } from "@/lib/textClean";
 
 /**
@@ -918,5 +923,224 @@ export async function removeChecklistItem(input: { id: string; itemId: string })
     return { success: true, message: "항목을 삭제했습니다." };
   } catch (err) {
     return toActionError(err, "삭제에 실패했습니다.");
+  }
+}
+
+// ── 모임장 신청서 ────────────────────────────────────────────────
+
+/** 신청서 한 줄을 읽는다(암호화 칸은 읽지 않는다). 없으면 예외. */
+async function leaderRow(supabase: Db, id: string): Promise<{ answers: Answers; pending: PendingItem[]; locked: boolean; edit_request: string | null }> {
+  const { data, error } = await supabase
+    .from("group_leader_responses")
+    .select("answers, pending, locked, edit_request")
+    .eq("inquiry_id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("아직 신청서가 없습니다.");
+  const r = data as { answers: Answers; pending: unknown; locked: boolean; edit_request: string | null };
+  return { answers: r.answers ?? {}, pending: parsePending(r.pending), locked: r.locked, edit_request: r.edit_request };
+}
+
+/**
+ * 「수정 열어주기」 — 모임장이 신청서를 고쳐 다시 낼 수 있게 잠금을 푼다. 다시 내면 다시 잠긴다.
+ * 남아 있던 수정 요청은 처리된 것으로 본다.
+ */
+export async function unlockLeaderForm(input: { id: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    await leaderRow(supabase, input.id);
+    const { error } = await supabase
+      .from("group_leader_responses")
+      .update({ locked: false, edit_request: null, edit_requested_at: null, updated_at: new Date().toISOString() })
+      .eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    await addHistory(supabase, input.id, "info", "모임장 신청서 수정 열어주기");
+    await writeAuditLog({ action: "group_booking.leader_form_unlocked", targetType: "group_booking_inquiry", targetId: input.id, summary: "모임장 신청서 수정 열어주기" });
+    refresh(input.id);
+    return { success: true, message: "수정을 열었습니다. 모임장이 같은 링크에서 고쳐 다시 낼 수 있어요." };
+  } catch (err) {
+    return toActionError(err, "수정을 열지 못했습니다.");
+  }
+}
+
+/** 열어 둔 수정을 다시 잠근다(잘못 열었을 때). */
+export async function lockLeaderForm(input: { id: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    await leaderRow(supabase, input.id);
+    const { error } = await supabase.from("group_leader_responses").update({ locked: true }).eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    await addHistory(supabase, input.id, "info", "모임장 신청서 다시 잠금");
+    refresh(input.id);
+    return { success: true, message: "다시 잠갔습니다." };
+  } catch (err) {
+    return toActionError(err, "잠그지 못했습니다.");
+  }
+}
+
+/** 수정 요청 「처리 완료」 — 운영자가 직접 고쳤거나 연락해 정리했을 때. */
+export async function resolveLeaderEdit(input: { id: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    const row = await leaderRow(supabase, input.id);
+    if (!row.edit_request) return { error: "남아 있는 수정 요청이 없습니다." };
+    const { error } = await supabase.from("group_leader_responses").update({ edit_request: null, edit_requested_at: null }).eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    await addHistory(supabase, input.id, "info", "모임장 수정 요청 처리 완료");
+    refresh(input.id);
+    return { success: true, message: "처리 완료로 표시했습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+/**
+ * 「신청서와 다른 내용」 한 줄을 반영하거나(apply) 넘긴다(skip).
+ * 반영은 금액 탭 · 일정 수정과 **같은 길**로 한다 — 금액은 서버가 다시 계산하고 기록이 남는다.
+ */
+export async function settleLeaderPending(input: { id: string; key: string; apply: boolean }): Promise<ActionResult> {
+  try {
+    const { supabase, group } = await open(input.id);
+    if (!(PENDING_KEYS as readonly string[]).includes(input.key)) return { error: "항목을 찾을 수 없습니다." };
+    const row = await leaderRow(supabase, input.id);
+    const item = row.pending.find((p) => p.key === input.key);
+    if (!item) return { error: "이미 처리된 항목입니다." };
+
+    let message = "넘겼습니다. 지금 값을 그대로 둡니다.";
+    if (input.apply) {
+      const opt = toSettlementOptions(group.options);
+      let res: ActionResult;
+      if (item.key === "headcount") {
+        res = await saveHeadcount({ id: input.id, headcount: item.headcount });
+      } else if (item.key === "after_party") {
+        res = await saveOptions({ id: input.id, icebreaking: opt.icebreaking, character: opt.character, afterPartyHours: item.hours, cleanup: opt.cleanup });
+      } else if (item.key === "cleanup") {
+        if (item.cleanup && opt.afterPartyHours === 0) return { error: "정리 지원은 애프터파티가 있을 때만 넣을 수 있어요. 애프터파티를 먼저 반영해주세요." };
+        res = await saveOptions({ id: input.id, icebreaking: opt.icebreaking, character: opt.character, afterPartyHours: opt.afterPartyHours, cleanup: item.cleanup });
+      } else if (item.key === "schedule") {
+        if (group.deposit_paid_at) return { error: "이미 확정된 단체입니다. 일정은 「일정 수정」 으로 바꿔주세요." };
+        res = await rescheduleGroup({ id: input.id, date: item.date, time: item.time, minutes: optionMinutes(group.options), reason: "모임장 신청서 반영" });
+      } else {
+        const { error } = await supabase.rpc("admin_apply_group_leader_name", { p_inquiry_id: input.id });
+        res = error ? { error: error.message } : { success: true };
+        if (!error) {
+          await addHistory(supabase, input.id, "info", "담당자 이름 변경 (모임장 신청서 반영)");
+          await writeAuditLog({ action: "group_booking.updated", targetType: "group_booking_inquiry", targetId: input.id, summary: "단체 담당자 이름 변경(신청서 반영)" });
+        }
+      }
+      if ("error" in res) return res;
+      message = res.message && res.message !== "저장했습니다." ? `반영했습니다. ${res.message}` : "반영했습니다.";
+    }
+
+    const rest = row.pending.filter((p) => p.key !== input.key);
+    const { error } = await supabase.from("group_leader_responses").update({ pending: rest }).eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    if (!input.apply) await addHistory(supabase, input.id, "info", `신청서와 다른 내용 넘김 — ${item.label}`);
+    refresh(input.id);
+    return { success: true, message };
+  } catch (err) {
+    return toActionError(err, "처리하지 못했습니다.");
+  }
+}
+
+/**
+ * 운영자가 받은 신청서의 답 하나를 직접 고친다. 공개 폼과 **같은 검증**을 거친다.
+ * 고친 사람 · 시각을 남기고 감사로그에 기록한다. 견적에서 온 값(모임 이름 · 인원 · 일시 · 모임 성격)은 여기서 고치지 않는다 —
+ * 그 값은 단체 정보라 각자의 자리(모임 이름 수정 · 금액 탭 · 일정 수정)에서 고친다.
+ */
+export async function saveLeaderAnswer(input: { id: string; questionId: string; value: unknown; other?: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    const q = [...LEADER_SECOND, ...LEADER_QUESTIONS].find((x) => x.id === input.questionId);
+    if (!q) return { error: "고칠 수 없는 항목입니다." };
+    const row = await leaderRow(supabase, input.id);
+    const answers: Answers = { ...row.answers };
+    if (!isVisible(q, answers)) return { error: "앞 문항의 답 때문에 지금은 해당하지 않는 항목입니다." };
+
+    const v = cleanValue(q, input.value);
+    const bad = questionError(q, v, answers);
+    if (bad) return { error: bad };
+    delete answers[otherKey(q.id)];
+    if (pickedOther(q, v)) {
+      const text = cleanText(input.other);
+      const otherBad = otherError(text);
+      if (otherBad) return { error: otherBad };
+      answers[otherKey(q.id)] = text;
+    }
+    if (v === "" || (Array.isArray(v) && v.length === 0)) delete answers[q.id];
+    else answers[q.id] = v;
+    // 이 답 때문에 더는 해당하지 않게 된 뒤 문항의 답은 지운다(예: 팀 편성을 바꾸면 「직접 구성 기준」).
+    for (const x of [...LEADER_SECOND, ...LEADER_QUESTIONS]) {
+      if (!isVisible(x, answers)) {
+        delete answers[x.id];
+        delete answers[otherKey(x.id)];
+      }
+    }
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("group_leader_responses")
+      .update({ answers, admin_updated_by: "어드민", admin_updated_at: now, updated_at: now })
+      .eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    // 화면에 띄우는 값은 단체 정보에도 같이 둔다(리포트 · 팀 편성이 거기서 읽는다).
+    if (q.id === "display" && typeof v === "string" && v) {
+      await supabase.from("group_booking_inquiries").update({ display_name: v, updated_at: now }).eq("id", input.id);
+    }
+    if (q.id === "welcome") {
+      await supabase.from("group_booking_inquiries").update({ welcome_text: typeof v === "string" && v ? v : null, updated_at: now }).eq("id", input.id);
+    }
+    if (q.id === "event" || q.id === "eventDetail") {
+      try {
+        await syncEventChecklist(input.id);
+      } catch (err) {
+        console.error("[group] 이벤트 체크리스트 줄 맞추기 실패", err);
+      }
+    }
+    const summary = `모임장 신청서 직접 수정 — ${q.label.slice(0, 40)}`;
+    await addHistory(supabase, input.id, "info", summary);
+    await writeAuditLog({ action: "group_booking.leader_form_edited", targetType: "group_booking_inquiry", targetId: input.id, summary, detail: { question: q.id } });
+    refresh(input.id);
+    return { success: true, message: "저장했습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+/** 신청서의 휴대폰 번호 보기 — 누를 때만 복호화해 내려준다. 누가 언제 봤는지 감사로그에 남긴다. */
+export async function revealLeaderPhone(input: { id: string }): Promise<{ phone: string } | { error: string }> {
+  try {
+    const supabase = await requireAdmin();
+    if (!UUID.test(input.id)) return { error: "단체를 찾을 수 없습니다." };
+    const { data, error } = await supabase.from("admin_group_leader_responses_view").select("phone").eq("inquiry_id", input.id).maybeSingle();
+    if (error) return { error: error.message };
+    if (!data) return { error: "아직 신청서가 없습니다." };
+    await writeAuditLog({ action: "group_booking.contact_viewed", targetType: "group_booking_inquiry", targetId: input.id, summary: "모임장 신청서 휴대폰 번호 보기" });
+    const d = String((data as { phone: string }).phone ?? "").replace(/\D/g, "");
+    return { phone: d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3, 7)}-${d.slice(7)}` : d };
+  } catch (err) {
+    return toActionError(err, "번호를 불러오지 못했습니다.");
+  }
+}
+
+/** 담당자 연락처 변경. 암호화해 넣어야 해서 DB 함수를 거친다. 기록 · 감사로그에는 값을 남기지 않는다. */
+export async function changeContact(input: { id: string; method: string; contact: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    if (!isContactMethod(input.method)) return { error: "연락 방법을 골라주세요." };
+    const contact = cleanLine(input.contact);
+    if (charCount(contact) < 2 || charCount(contact) > 100) return { error: "연락처를 2~100자로 적어주세요." };
+    if ((input.method === "phone" || input.method === "sms") && !/^0\d{8,10}$/.test(contact.replace(/\D/g, ""))) {
+      return { error: "전화번호를 확인해주세요." };
+    }
+    if (input.method === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) return { error: "이메일 주소를 확인해주세요." };
+    const { error } = await supabase.rpc("admin_set_group_contact", { p_inquiry_id: input.id, p_contact_method: input.method, p_contact: contact });
+    if (error) return { error: error.message };
+    await addHistory(supabase, input.id, "info", "담당자 연락처 변경");
+    await writeAuditLog({ action: "group_booking.contact_changed", targetType: "group_booking_inquiry", targetId: input.id, summary: "단체 담당자 연락처 변경" });
+    refresh(input.id);
+    return { success: true, message: "연락처를 바꿨습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
   }
 }

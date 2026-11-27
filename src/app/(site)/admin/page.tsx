@@ -88,7 +88,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   // 「단체 막기」 를 띄울 회차 — 단체 예약을 받는 테마(파티모드)의 것만. 이미 막아 둔 회차는 켜진 상태로.
   const groupThemeIds = new Set(themes.filter((t) => GROUP_BOOKING_THEME_SLUGS.includes(t.slug)).map((t) => t.id));
   // 단체 일정 — 달력에 회차와 같이 놓는다. 막은 일정 표 하나에 세 갈래(직접 · 예약 확정 · 파티 회차)가 모인다.
-  const [{ data: closureRows }, { data: groupRows }, manualTodosRes, dismissalsRes, checklistRes] = await Promise.all([
+  const [{ data: closureRows }, { data: groupRows }, manualTodosRes, dismissalsRes, checklistRes, leaderRes] = await Promise.all([
     supabase.from("group_booking_closures").select("id, date, start_time, minutes, note, inquiry_id, session_id"),
     supabase
       .from("admin_group_booking_inquiries_view")
@@ -108,6 +108,8 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       .gte("done_at", new Date(getNowMs() - 3 * 86_400_000).toISOString()),
     // 단체 준비 체크리스트 중 아직 안 끝난 줄 — 행사 3일 전부터 할 일에 올린다.
     supabase.from("group_checklist_items").select("inquiry_id").is("done_at", null),
+    // 모임장 신청서 — 수정 요청과 「신청서와 다른 내용」 이 남은 단체(답 · 연락처는 읽지 않는다).
+    supabase.from("group_leader_responses").select("inquiry_id, edit_request, pending"),
   ]);
   type ClosureRow = DashboardClosure & { inquiry_id: string | null; session_id: string | null };
   const closureList = (closureRows ?? []) as ClosureRow[];
@@ -314,7 +316,12 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     countLine("count:group-new", 4, "단체", `새 견적 ${newInquiries}건`, "아직 연락 전인 단체 견적", "/group-bookings?tab=new");
 
   // 단체 — 지금 데이터로 알 수 있는 일을 건별로 올린다. 처리하면(입금 확인 · 문자 복사 · 체크) 저절로 사라진다.
-  // 신청서 · 참가자 설문에 달린 할 일은 공개 폼을 만드는 단계에 더한다.
+  const leaderByGroup = new Map(
+    ((leaderRes.data ?? []) as { inquiry_id: string; edit_request: string | null; pending: unknown }[]).map((r) => [
+      r.inquiry_id,
+      { editRequest: !!r.edit_request, pending: Array.isArray(r.pending) ? r.pending.length : 0 },
+    ])
+  );
   const undoneByGroup = new Map<string, number>();
   for (const c of (checklistRes.data ?? []) as { inquiry_id: string }[]) {
     undoneByGroup.set(c.inquiry_id, (undoneByGroup.get(c.inquiry_id) ?? 0) + 1);
@@ -329,6 +336,13 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     const when = left == null ? "" : left === 0 ? "오늘 행사" : left > 0 ? `행사 ${left}일 전` : `행사 ${-left}일 지남`;
     const line = (key: string, tab: HomeTodo["tab"], urgency: number, title: string, sub: string, href: string) =>
       todos.push({ key: `group:${g.id}:${key}`, tab, scope: "단체", title, sub, href, urgency, checkable: false, done: false, manualId: null });
+
+    // 모임장 신청서 — 수정 요청과 견적과 다른 내용. 처리하면(열어주기 · 처리 완료 · 반영 · 넘기기) 사라진다.
+    const leader = leaderByGroup.get(g.id);
+    if (leader?.editRequest) line("leader-edit", "check", 2, `모임장 수정 요청 · ${name}`, "신청서를 고쳐 달라는 요청이 왔어요", base);
+    if (leader && leader.pending > 0) {
+      line("leader-pending", "check", 3, `신청서와 다른 내용 ${leader.pending}건 · ${name}`, "반영하면 금액을 다시 계산해요", base);
+    }
 
     if (g.stage === "contacted" && !g.deposit_paid_at) {
       line("deposit", "check", 4, `예약금 입금 확인 · ${name}`, "견적 안내를 보냈고 입금을 기다리는 중", `${base}?tab=money`);

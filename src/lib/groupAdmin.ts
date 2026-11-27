@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { kstToday } from "@/lib/groupPricing";
 import { calcSettlement, daysBetween, type Adjustment, type AdjustReason, type Settlement } from "@/lib/groupSettlement";
+import { syncEventChecklist } from "@/lib/groupLeader";
 import { scheduleOf, toSettlementOptions, type GroupCore } from "@/lib/groupStage";
 
 /**
@@ -188,5 +189,11 @@ export async function createChecklistIfMissing(id: string): Promise<number> {
   if (rows.length === 0) return 0;
   const { error: insErr } = await supabase.from("group_checklist_items").insert(rows);
   if (insErr) throw new Error(insErr.message);
+  // 모임장 신청서에 이벤트가 적혀 있으면 `이벤트 준비: …` 줄을 같이 넣는다. 못 넣어도 체크리스트 만들기를 실패로 돌리지 않는다.
+  try {
+    await syncEventChecklist(id);
+  } catch (err) {
+    console.error("[group] 이벤트 체크리스트 줄 추가 실패", err);
+  }
   return rows.length;
 }

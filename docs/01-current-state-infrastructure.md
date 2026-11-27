@@ -154,6 +154,7 @@ Vercel Hobby는 약관상 비상업적 사용 대상이다. 이 사이트는 실
 | `SLACK_REFUND_WEBHOOK_URL` | Production and Preview | Aug 15 | 환불 알림 |
 | `SLACK_SPONSORSHIP_WEBHOOK_URL` | **Production only** | Aug 26 | 협찬 알림 |
 | `SLACK_UNPAID_WEBHOOK_URL` | Production and Preview | Sep 21 | 미입금 알림 (미설정 시 `SLACK_WEBHOOK_URL` 로 폴백) |
+| `SLACK_GROUP_LEADER_FORM_WEBHOOK_URL` | **Production only** (운영 반영 때 추가) | — | 단체 모임장 신청서 알림 (미설정 시 `SLACK_GROUP_BOOKING_WEBHOOK_URL` → `SLACK_WEBHOOK_URL` 로 폴백). 넣는 방법: `RUNBOOK-group-leader-form-release.md` |
 | `NEXT_PUBLIC_GTM_ID` | **All Environments** | Aug 11 | GTM |
 | `GA4_PROPERTY_ID` | Production and Preview | Aug 18 | 어드민 분석 |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Production and Preview | Aug 18 | 어드민 분석 |

@@ -40,6 +40,7 @@
 | [08-architecture-screens-and-admin.md](./08-architecture-screens-and-admin.md) | 설계(2) 공개 화면 · 라우팅 · 신청 폼 · 어드민 IA |
 | [09-implementation-roadmap.md](./09-implementation-roadmap.md) | **구현 로드맵 · 배포 전략** — Phase 0~8, 롤백 계획 |
 | [RUNBOOK-db-backup-restore.md](./RUNBOOK-db-backup-restore.md) | 운영 런북 — DB 백업 설정 · 복구 절차 |
+| [RUNBOOK-group-leader-form-release.md](./RUNBOOK-group-leader-form-release.md) | 운영 반영 안내 — 단체 모임장 신청서(DB 순서 · 슬랙 새 채널 · 환경변수 · 확인) |
 
 ### 반영 결과
 

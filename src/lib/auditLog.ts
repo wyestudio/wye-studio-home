@@ -83,6 +83,10 @@ export type AuditAction =
   | "group_booking.cancelled"
   | "group_booking.money_changed"
   | "group_booking.contact_viewed"
+  // 모임장 신청서 — 운영자가 답을 고치거나 수정을 열어 주거나 연락처를 바꾼 일
+  | "group_booking.leader_form_edited"
+  | "group_booking.leader_form_unlocked"
+  | "group_booking.contact_changed"
   // 후기 후보 (고객 화면에 남의 글을 싣는 결정이다 — 누가 넣고 뺐는지 남긴다)
   | "review_candidate.published"
   | "review_candidate.ignored"

@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { dateLabel } from "@/lib/groupPricing";
 import { loadParticipantStatus, resolveForm } from "@/lib/groupFormLinks";
+import { loadLeaderPrefill } from "@/lib/groupLeader";
+import { LeaderForm } from "./LeaderForm";
 import { ParticipantForm } from "./ParticipantForm";
 import { ReviewForm } from "./ReviewForm";
 
@@ -14,6 +16,7 @@ export const dynamic = "force-dynamic";
  * 주기적으로 다시 읽지 않는다.
  *
  * ⚠️ 브라우저로 내려가는 것은 모임명 · 일시 · 확정 인원 · 제출 인원 수 · (가린 이름 + 닉네임)뿐이다.
+ *    모임장 신청서는 견적에서 받은 값(모임명 · 인원 · 일시 · 모임 성격 · 옵션)과 **가린** 담당자만 — 낸 답은 끝 4자리 확인 뒤에만.
  * ⚠️ 없는 코드 · 무효가 된 코드 · 한 글자 틀린 코드는 전부 같은 화면이다 — 무엇이 틀렸는지 알려주지 않는다.
  */
 export default async function GroupFormPage({ params }: { params: Promise<{ code: string }> }) {
@@ -39,11 +42,15 @@ export default async function GroupFormPage({ params }: { params: Promise<{ code
   if (form.formKey === "review") {
     return <ReviewForm code={code} groupName={form.groupName} />;
   }
-  return (
-    <Notice title="모임장 신청서를 준비하고 있어요">
-      곧 이 주소에서 작성할 수 있어요. 급한 내용은 우주이스케이프 카카오톡 채널로 알려주세요.
-    </Notice>
-  );
+  const leader = await loadLeaderPrefill(form.inquiryId);
+  if (!leader) {
+    return (
+      <Notice title="링크가 만료되었거나 올바르지 않아요">
+        모임장이나 우주이스케이프 카카오톡 채널로 새 링크를 받아주세요.
+      </Notice>
+    );
+  }
+  return <LeaderForm code={code} prefill={leader.prefill} />;
 }
 
 function Notice({ title, children }: { title: string; children: React.ReactNode }) {

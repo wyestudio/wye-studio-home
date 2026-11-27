@@ -4,7 +4,8 @@
  *
  * ⚠️ 이 파일은 "use client" 화면도 import 한다 — 감출 값을 적지 않는다.
  */
-import type { FormDef, Question } from "@/lib/groupForms/schema";
+import { HHMM, ISO_DATE, WEEKEND_TIMES, WEEKDAY_TIME_FIRST, WEEKDAY_TIME_LAST, isWeekdayTime, isWeekend } from "@/lib/groupPricing";
+import { OTHER, otherKey, type FormDef, type Question } from "@/lib/groupForms/schema";
 
 // 제어 문자와 보이지 않는 문자. U+200D(이모지를 잇는 글자)는 지우지 않는다 — 지우면 이모지가 쪼개진다.
 const INVISIBLE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F​‌⁠﻿]/g;
@@ -41,6 +42,32 @@ export const NICKNAME_TOO_LONG = "조금 길어요. 한글 8자 · 영어 12자�
 
 export type Answers = Record<string, string | number | boolean | string[]>;
 
+/**
+ * 조건 문항이 지금 보이는가 — 앞 질문의 답으로 정한다. 화면(진행 숫자)과 서버(숨은 문항의 값 버리기)가 같이 쓴다.
+ */
+export function isVisible(q: Question, a: Answers): boolean {
+  const c = q.showIf;
+  if (!c) return true;
+  const v = a[c.id];
+  if (c.filled) return !(v == null || v === "" || (Array.isArray(v) && v.length === 0));
+  if (c.is != null) return v === c.is;
+  if (c.in) return typeof v === "string" && c.in.includes(v);
+  if (c.anyExcept != null) return Array.isArray(v) && v.some((x) => x !== c.anyExcept);
+  return true;
+}
+
+/** 「기타」 를 골랐는가(직접 입력이 필요한가). */
+export function pickedOther(q: Question, v: Answers[string] | undefined): boolean {
+  if (!q.other) return false;
+  return Array.isArray(v) ? v.includes(OTHER) : v === OTHER;
+}
+
+/** 「기타」 직접 입력의 오류 — 2~50자. */
+export function otherError(text: string): string | null {
+  const n = charLen(text);
+  return n < 2 || n > 50 ? "기타 내용을 2~50자로 적어주세요." : null;
+}
+
 /** 한 문항의 값을 정리한다. */
 export function cleanValue(q: Question, raw: unknown): string | number | boolean | string[] {
   switch (q.type) {
@@ -61,12 +88,14 @@ export function cleanValue(q: Question, raw: unknown): string | number | boolean
 }
 
 /** 한 문항의 오류 문구. 괜찮으면 null. 값은 cleanValue 를 거친 것이어야 한다. */
-export function questionError(q: Question, v: string | number | boolean | string[] | undefined): string | null {
+export function questionError(q: Question, v: string | number | boolean | string[] | undefined, all?: Answers): string | null {
   if (q.type === "agree") return q.required && v !== true ? "동의가 필요해요." : null;
   if (q.type === "checkbox") {
     const list = Array.isArray(v) ? v : [];
     if (q.required && list.length === 0) return "하나 이상 골라주세요.";
     if (list.some((x) => !(q.options ?? []).includes(x))) return "선택지를 다시 골라주세요.";
+    if (new Set(list).size !== list.length) return "선택지를 다시 골라주세요.";
+    if (q.none && list.includes(q.none) && list.length > 1) return `「${q.none}」 은 혼자만 고를 수 있어요.`;
     return null;
   }
   const empty = v == null || v === "";
@@ -78,6 +107,17 @@ export function questionError(q: Question, v: string | number | boolean | string
   if (q.type === "scale") {
     const n = Number(v);
     return Number.isInteger(n) && n >= 1 && n <= 5 ? null : "별점을 골라주세요.";
+  }
+  if (q.type === "date") return ISO_DATE.test(String(v)) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) ? (q.minDate && String(v) < q.minDate ? "내일 이후 날짜를 골라주세요." : null) : "날짜를 골라주세요.";
+  if (q.type === "time") {
+    const t = String(v);
+    if (!HHMM.test(t)) return "시간을 골라주세요.";
+    const date = q.dateOf && all ? String(all[q.dateOf] ?? "") : "";
+    if (ISO_DATE.test(date)) {
+      if (isWeekend(date)) return (WEEKEND_TIMES as readonly string[]).includes(t) ? null : `금 · 토 · 일은 ${WEEKEND_TIMES.join(" / ")} 중에서 골라주세요.`;
+      return isWeekdayTime(t) ? null : `평일은 ${WEEKDAY_TIME_FIRST}~${WEEKDAY_TIME_LAST} 사이로 골라주세요.`;
+    }
+    return null;
   }
   if (q.type === "tel") return /^010\d{8}$/.test(String(v)) ? null : "010으로 시작하는 11자리 번호를 입력해주세요.";
   if (q.type === "number") {
@@ -108,10 +148,18 @@ export function validateForm(def: FormDef, raw: unknown): { answers: Answers; er
   const answers: Answers = {};
   const errors: Record<string, string> = {};
   for (const q of def.questions) {
+    // 조건에 걸려 보이지 않는 문항의 값은 버린다(앞 문항의 정리된 답으로 판단한다).
+    if (!isVisible(q, answers)) continue;
     const v = cleanValue(q, src[q.id]);
-    const err = questionError(q, v);
+    const err = questionError(q, v, answers);
     if (err) errors[q.id] = err;
     answers[q.id] = v;
+    if (pickedOther(q, v)) {
+      const text = cleanText(src[otherKey(q.id)]);
+      const otherErr = otherError(text);
+      if (otherErr && !err) errors[q.id] = otherErr;
+      answers[otherKey(q.id)] = text;
+    }
   }
   return { answers, errors };
 }

@@ -36,6 +36,9 @@ import { ContactReveal, GroupNameEditor, HeadActions, MemoEditor } from "./Group
 import { MoneyTab } from "./MoneyTab";
 import { MessagesTab, type FormLinkView, type MessageView } from "./MessagesTab";
 import { Checklist, OrganizerNameEditor, StageBackButton } from "./OverviewClient";
+import { ContactEditor, LeaderCard } from "./LeaderCard";
+import { consultItems } from "@/lib/groupForms/leaderForm";
+import { loadLeaderResponse } from "@/lib/groupLeader";
 
 export const dynamic = "force-dynamic";
 
@@ -101,20 +104,25 @@ export default async function AdminGroupBookingDetailPage({
   // 안내 문자 미리보기 — 설문 · 문자 탭을 볼 때만 만든다. 담당자 이름은 가린 채 넣는다.
   let messages: MessageView[] = [];
   let links: FormLinkView[] = [];
+  // 모임장 신청서 — 개요 탭에서만 읽는다(휴대폰 번호 · 새 담당자 이름은 가린 값으로 온다).
+  const leader = tab === "overview" ? await loadLeaderResponse(id) : null;
   if (tab === "forms") {
     // 폼 링크 셋(없으면 이때 만든다)과 현황. 참가자는 수만, 후기는 건수와 평균 별점만 읽는다.
     const admin = createAdminClient();
-    const [tokens, partRes, reviewRes] = await Promise.all([
+    const [tokens, leaderRes, partRes, reviewRes] = await Promise.all([
       ensureFormLinks(id),
+      admin.from("group_leader_responses").select("submitted_at, locked, edit_request").eq("inquiry_id", id).maybeSingle(),
       admin.from("group_participants").select("id", { count: "exact", head: true }).eq("inquiry_id", id),
       admin.from("group_reviews").select("rating").eq("inquiry_id", id),
     ]);
     const urls = { leader: formUrl(tokens.leader), participant: formUrl(tokens.participant), review: formUrl(tokens.review) };
     const ratings = ((reviewRes.data ?? []) as { rating: number }[]).map((r) => r.rating);
     const avg = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null;
+    const lr = leaderRes.data as { submitted_at: string; locked: boolean; edit_request: string | null } | null;
+    const leaderStat = !lr ? "미제출" : lr.edit_request ? "제출 완료 · 수정 요청 있음" : lr.locked ? "제출 완료" : "수정 열어 둠";
     const file = (k: string) => `${(g.group_name ?? "단체").replace(/[\\/:*?"<>|\s]+/g, "_")}_${k}_QR`;
     links = [
-      { key: "leader", label: "모임장용 신청서", url: urls.leader, stat: "폼 준비 중", fileName: file("모임장") },
+      { key: "leader", label: "모임장용 신청서", url: urls.leader, stat: leaderStat, fileName: file("모임장") },
       { key: "participant", label: "참가자용 사전 설문", url: urls.participant, stat: `${partRes.count ?? 0} / ${g.headcount}명`, fileName: file("참가자") },
       { key: "review", label: "모임 후기 설문", url: urls.review, stat: avg ? `${ratings.length}건 · 평균 ${avg}점` : "0건", fileName: file("후기") },
     ];
@@ -273,12 +281,34 @@ export default async function AdminGroupBookingDetailPage({
           )}
 
           <AdminCard title="모임장 신청서">
-            <p className="text-body-sm text-foreground">아직 신청서가 없어요. 예약금이 들어오면 신청서 없이도 확정됩니다.</p>
-            <p className="mt-1 text-body-sm text-muted">신청서 받기 · 요약 · 수정 요청은 공개 폼을 만드는 단계에 들어옵니다.</p>
-            {confirmed && !cancelled && (
-              <Link href={self("forms")} className={`${adminButtonClass("secondary")} mt-3`}>
-                신청서 재촉 문자 보기
-              </Link>
+            {leader ? (
+              <LeaderCard
+                id={id}
+                cancelled={cancelled}
+                data={{
+                  answers: leader.answers,
+                  submittedAt: formatDateTimeFull(leader.submittedAt),
+                  submitCount: leader.submitCount,
+                  locked: leader.locked,
+                  phoneMasked: leader.phoneMasked,
+                  newLeaderMasked: leader.newLeaderMasked,
+                  editRequest: leader.editRequest,
+                  editRequestedAt: leader.editRequestedAt ? formatDateTimeFull(leader.editRequestedAt) : null,
+                  pending: leader.pending.map((p) => ({ key: p.key, label: p.label })),
+                  consult: consultItems(leader.answers),
+                  adminUpdatedAt: leader.adminUpdatedAt ? formatDateTimeFull(leader.adminUpdatedAt) : null,
+                }}
+              />
+            ) : (
+              <>
+                <p className="text-body-sm text-foreground">아직 신청서가 없어요. 예약금이 들어오면 신청서 없이도 확정됩니다.</p>
+                <p className="mt-1 text-body-sm text-muted">신청서 링크와 재촉 문자는 「설문 · 문자」 탭에 있어요.</p>
+                {!cancelled && (
+                  <Link href={self("forms")} className={`${adminButtonClass("secondary")} mt-3`}>
+                    {confirmed ? "신청서 재촉 문자 보기" : "신청서 링크 보기"}
+                  </Link>
+                )}
+              </>
             )}
           </AdminCard>
 
@@ -295,6 +325,7 @@ export default async function AdminGroupBookingDetailPage({
             <AdminCard title="담당자 · 연락">
               <ContactReveal id={id} maskedName={maskName(g.organizer_name)} maskedContact={maskedContact} methodLabel={contactMethodLabel(g.contact_method)} />
               {!cancelled && <OrganizerNameEditor id={id} />}
+              {!cancelled && <ContactEditor id={id} method={g.contact_method} />}
             </AdminCard>
 
             <AdminCard title="견적 신청 내용 (접수 시점)">
