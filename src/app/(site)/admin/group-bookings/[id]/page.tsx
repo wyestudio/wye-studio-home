@@ -50,6 +50,7 @@ import { flattenTemplate, leaderParts } from "@/lib/groupForms/template";
 import { loadTemplate, loadTemplateVersion } from "@/lib/groupFormTemplates";
 import { answerText } from "@/lib/groupForms/leaderForm";
 import type { Answers } from "@/lib/groupForms/validate";
+import { QUOTE_VARIANTS, isCompanyGroup, quoteVariantOf } from "@/lib/groupQuoteMessage";
 
 const PARTICIPANT_FIXED_IDS = ["name", "phone", "nick", "age", "exp", "terms", "privacy", "phoneBox", "photo"];
 
@@ -109,7 +110,8 @@ export default async function AdminGroupBookingDetailPage({
     label: refund ? `${refund.range} — ${refund.label}` : "행사 날짜가 없어 전액 환불",
     daysLeft: refund?.daysLeft ?? null,
   };
-  const required = requiredDeposit({ total: s.total, eventDate: sch.date ?? today, today, payType });
+  // 회사 워크숍은 행사 7일 이내여도 예약금 30% 만 받는다(2026-11-27 대표님 — groupSettlement.ts).
+  const required = requiredDeposit({ total: s.total, eventDate: sch.date ?? today, today, payType, company: isCompanyGroup(g.group_kind) });
   const todo = nextAction(g, today, left);
   const name = g.group_name ?? `${maskName(g.organizer_name)} 님`;
   const badge: { tone: AdminTone; label: string } = cancelled
@@ -166,20 +168,36 @@ export default async function AdminGroupBookingDetailPage({
       },
     ];
     const templates = await loadGroupTemplates();
+    // 견적 안내의 기본 양식 — 회사 워크숍이면 회사용, 아니면 일반용. 화면에서 눌러 바꿀 수 있다.
+    const defaultVariant = quoteVariantOf(g.group_kind);
     messages = MESSAGE_KINDS.map((m) => {
-      const key = templateKeyOf(m.kind, g.pay_type);
+      const key = templateKeyOf(m.kind, g.pay_type, defaultVariant);
       const body = templates.get(key);
       const blocked = messageBlockedReason(m.kind, g, today) ?? (body ? null : `문자 문구(${key})를 찾을 수 없습니다.`);
       const to = stageAfterCopy(m.kind, g, today);
       const copied = g.messages_copied?.[key];
+      const render = (text: string) => renderGroupMessage({ kind: m.kind, body: text, group: g, adjustments, today, leaderName: previewName(g), urls });
+      // 견적 안내만 양식이 둘이다 — 둘 다 미리 만들어 넘긴다(누를 때 서버를 다시 부르지 않게).
+      const variants =
+        m.kind === "quote" && !blocked
+          ? QUOTE_VARIANTS.flatMap((v) => {
+              const vKey = templateKeyOf("quote", g.pay_type, v.key);
+              const vBody = templates.get(vKey);
+              const vCopied = g.messages_copied?.[vKey];
+              return vBody ? [{ key: v.key, label: v.label, preview: render(vBody), copiedAt: vCopied ? formatDateTimeFull(vCopied) : null }] : [];
+            })
+          : undefined;
       return {
         kind: m.kind,
         label: m.label,
-        preview: blocked || !body ? null : renderGroupMessage({ kind: m.kind, body, group: g, adjustments, today, leaderName: previewName(g), urls }),
+        preview: blocked || !body ? null : render(body),
         blocked,
         copiedAt: copied ? formatDateTimeFull(copied) : null,
         nextStage: to ? stageLabel(to) : null,
         warning: m.kind === "quote" && !blocked ? fullPaymentNotice(g, adjustments, today) : null,
+        variants,
+        defaultVariant: variants ? defaultVariant : undefined,
+        variantNote: variants ? (isCompanyGroup(g.group_kind) ? "모임 성격이 회사 워크숍이라 회사용이 골라져 있어요." : "회사 워크숍이 아니라 일반용이 골라져 있어요.") : undefined,
       };
     });
   }

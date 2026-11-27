@@ -229,15 +229,17 @@ export const LATE_BOOKING_DAYS = 7;
  *   7일 이내 + 계좌이체               → **전액**(확정 인원 기준 전액 결제 시 확정)
  *   7일 이내 + 카드(잔금 카드 · 법인카드) → 예약금 30% 만 — 당일 현장에서 카드로 결제하기 때문이다
  *     (법인카드는 당일 예약금을 돌려주고 총액을 카드로 받는 경우가 많다)
+ *   7일 이내 + **회사 워크숍**          → 결제 방식과 상관없이 예약금 30% 만(2026-11-27 대표님) —
+ *     회사는 예약금을 넣고 당일에 돌려받은 뒤 전액 카드로 결제하는 경우가 많아, 평소와 같은 안내가 나간다
  *
  * 받은 돈은 어느 경우든 '예약금' 으로 기록한다. 전액을 받았으면 잔금이 0 이 된다.
  */
-export function requiredDeposit(input: { total: number; eventDate: string; today: string; payType: PayType }): {
+export function requiredDeposit(input: { total: number; eventDate: string; today: string; payType: PayType; company?: boolean }): {
   amount: number;
   full: boolean;
 } {
   const late = daysBetween(input.today, input.eventDate) <= LATE_BOOKING_DAYS;
-  if (late && input.payType === "transfer") return { amount: input.total, full: true };
+  if (late && input.payType === "transfer" && !input.company) return { amount: input.total, full: true };
   return { amount: depositSuggest(input.total), full: false };
 }
 

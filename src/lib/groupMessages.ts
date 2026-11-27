@@ -6,6 +6,7 @@ import { addDays, addMinutes, dateLabel } from "@/lib/groupPricing";
 import { depositSuggest, isPayType, requiredDeposit } from "@/lib/groupSettlement";
 import { effectiveStage, isConfirmed, maskName, scheduleOf, stageIndex, type GroupStage } from "@/lib/groupStage";
 import { renderTemplate, type TemplateBlocks, type TemplateVars } from "@/lib/messageTemplate";
+import { dateFull, dropBlock, isCompanyGroup, programHours, quoteTemplateKey, tidyBlankLines, type QuoteVariant } from "@/lib/groupQuoteMessage";
 
 /**
  * 단체 예약 안내 문자 — **복사 전용**(관리자 개편 docs/02 8장).
@@ -27,8 +28,12 @@ export const MESSAGE_KINDS = [
 export type MessageKind = (typeof MESSAGE_KINDS)[number]["kind"];
 export const isMessageKind = (v: string): v is MessageKind => MESSAGE_KINDS.some((m) => m.kind === v);
 
-/** 이 문자가 쓰는 sms_templates 키. 7일 전 안내는 결제 방식에 따라 셋 중 하나다. */
-export function templateKeyOf(kind: MessageKind, payType: string): string {
+/**
+ * 이 문자가 쓰는 sms_templates 키. 7일 전 안내는 결제 방식에 따라 셋 중 하나고,
+ * 견적 안내는 양식(일반용 · 회사용)에 따라 둘 중 하나다(groupQuoteMessage.ts).
+ */
+export function templateKeyOf(kind: MessageKind, payType: string, quoteVariant: QuoteVariant = "general"): string {
+  if (kind === "quote") return quoteTemplateKey(quoteVariant);
   if (kind !== "d7") return `group_${kind}`;
   return payType === "card_balance" ? "group_d7_card" : payType === "corp_card_full" ? "group_d7_corp_card" : "group_d7_transfer";
 }
@@ -96,6 +101,9 @@ export function renderGroupMessage(input: {
     leader_name: input.leaderName,
     group_name: g.display_name ?? g.group_name ?? "단체",
     event_date: dateLabel(date),
+    event_date_full: dateFull(date),
+    event_start: time,
+    program_hours: programHours(sch.minutes),
     event_time_ko: timeKo(time),
     event_range: `${time}~${addMinutes(time, sch.minutes)}`,
     arrive_time_ko: timeKo(arriveHHMM),
@@ -106,6 +114,7 @@ export function renderGroupMessage(input: {
     deposit_suggest: won(depositSuggest(s.total)),
     deposit_paid: won(g.deposit_amount ?? 0),
     balance: won(s.balance),
+    balance_suggest: won(Math.max(0, s.total - depositSuggest(s.total))),
     // 모임장 본인에게 가는 안내라 예금주 전체 이름을 적는다(2026-11-27 대표님). 문구 원본에는 계좌를 직접 적지 않는다.
     bank_account: BANK_ACCOUNT_LINE,
     leader_form_url: input.urls?.leader ?? FORM_LINK_PENDING,
@@ -114,12 +123,17 @@ export function renderGroupMessage(input: {
     d7_date: dateLabel(addDays(date, -7)),
     team_count: String(teamCountFor(g.headcount)),
   };
+  // 지금 확정하려면 전액을 받아야 하나 — 행사 7일 이내 + 계좌이체 + 회사가 아닌 단체(requiredDeposit).
+  const full = needsFullPayment(g, s.total, today);
   // 옵션 · 조정 줄. 할인은 '-68,800원' 처럼 적는다.
   const blocks: TemplateBlocks = {
     lines: [...s.optionLines, ...s.adjustmentLines].map((l) => ({
       label: l.label,
       amount: `${l.amount < 0 ? "-" : ""}${won(Math.abs(l.amount))}`,
     })),
+    // 조건 덩어리 — 줄이 하나면 한 번 나오고, 비어 있으면 통째로 빠진다.
+    deposit: full ? [] : [{}],
+    fullpay: full ? [{}] : [],
   };
 
   // 기본 프로그램 줄 — 요금표가 없거나(별도 상담) 학생 · 일반이 섞이면 '인원 × 1인 요금' 한 줄로 쓸 수 없다.
@@ -132,25 +146,32 @@ export function renderGroupMessage(input: {
     }
   }
   // 옵션 · 조정 줄이 하나도 없으면 블록 자리에 빈 줄이 남는다 — 줄바꿈까지 같이 지운다.
-  if (blocks.lines.length === 0) body = body.replace(/\{\{#lines\}\}[\s\S]*?\{\{\/lines\}\}\n?/, "");
+  if (blocks.lines.length === 0) body = dropBlock(body, "lines");
 
   // 임박 예약(행사 7일 이내) + 계좌이체는 예약금 30% 가 아니라 **전액** 입금 시 확정이다(2026-11-27 대표님).
-  // 기본 문구의 '30% 예약금' 문장을 전액 안내로 바꾼다. 운영자가 그 문장을 고쳐 둔 경우에는 못 바꾸므로
-  // 화면(fullPaymentNotice)이 따로 알려준다.
-  if (input.kind === "quote" && needsFullPayment(g, s.total, today)) {
+  // 새 문구는 {{#deposit}} · {{#fullpay}} 덩어리로 가른다. 덩어리가 없는 옛 문구는 '30% 예약금' 문장을 전액 안내로 바꾼다.
+  // 운영자가 그 문장을 고쳐 둔 경우에는 못 바꾸므로 화면(fullPaymentNotice)이 따로 알려준다.
+  if (input.kind === "quote" && full && !body.includes("{{#fullpay}}")) {
     body = body.replace(
       "예약 확정을 위해 총 이용 금액의 30%인 {{deposit_suggest}}을 아래 계좌로 입금 부탁드립니다.",
       "행사 7일 이내 예약은 전액 결제 시 확정됩니다. 총 이용 금액 {{total}}을 아래 계좌로 입금 부탁드립니다."
     );
   }
-  return renderTemplate(body, vars, blocks);
+  // 조건 덩어리가 빠진 자리에 남는 빈 줄을 정리한다.
+  return tidyBlankLines(renderTemplate(body, vars, blocks));
 }
 
-/** 지금 확정하려면 전액을 받아야 하나(행사 7일 이내 + 계좌이체). */
+/** 지금 확정하려면 전액을 받아야 하나(행사 7일 이내 + 계좌이체 + 회사가 아닌 단체). */
 function needsFullPayment(g: GroupRow, total: number, today: string): boolean {
   const date = scheduleOf(g).date;
   if (!date || g.deposit_paid_at != null) return false;
-  return requiredDeposit({ total, eventDate: date, today, payType: isPayType(g.pay_type) ? g.pay_type : "transfer" }).full;
+  return requiredDeposit({
+    total,
+    eventDate: date,
+    today,
+    payType: isPayType(g.pay_type) ? g.pay_type : "transfer",
+    company: isCompanyGroup(g.group_kind),
+  }).full;
 }
 
 /**
@@ -159,9 +180,16 @@ function needsFullPayment(g: GroupRow, total: number, today: string): boolean {
  */
 export function fullPaymentNotice(g: GroupRow, adjustments: readonly AdjustmentRow[], today: string): string | null {
   const total = settlementFor(g, adjustments, today).total;
-  return needsFullPayment(g, total, today)
-    ? `행사 7일 이내 예약이고 계좌이체라 전액(${won(total)}) 입금 시 확정입니다. 문구의 입금 안내가 전액으로 나왔는지 확인하고 보내세요.`
-    : null;
+  if (needsFullPayment(g, total, today)) {
+    return `행사 7일 이내 예약이고 계좌이체라 전액(${won(total)}) 입금 시 확정입니다. 문구의 입금 안내가 전액으로 나왔는지 확인하고 보내세요.`;
+  }
+  // 회사 워크숍은 7일 이내여도 평소처럼 예약금 30% 로 안내한다 — 전액이 아닌 이유를 한 줄 알린다.
+  const date = scheduleOf(g).date;
+  if (date && g.deposit_paid_at == null && isCompanyGroup(g.group_kind) && (g.pay_type ?? "transfer") === "transfer") {
+    const other = requiredDeposit({ total, eventDate: date, today, payType: "transfer", company: false });
+    if (other.full) return `행사 7일 이내 예약이지만 회사 워크숍이라 예약금 30%(${won(depositSuggest(total))})로 안내합니다.`;
+  }
+  return null;
 }
 
 /** 미리보기에 넣는 가린 이름. */

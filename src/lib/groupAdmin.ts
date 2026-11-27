@@ -1,4 +1,5 @@
 import "server-only";
+import { QUOTE_DEFAULT_BODY, quoteTemplateKey } from "@/lib/groupQuoteMessage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { kstToday } from "@/lib/groupPricing";
 import { calcSettlement, daysBetween, type Adjustment, type AdjustReason, type Settlement } from "@/lib/groupSettlement";
@@ -171,7 +172,12 @@ export async function loadGroup(
 export async function loadGroupTemplates(): Promise<Map<string, string>> {
   const { data, error } = await createAdminClient().from("sms_templates").select("key, body").like("key", "group_%");
   if (error) throw new Error(error.message);
-  return new Map(((data ?? []) as { key: string; body: string }[]).map((r) => [r.key, r.body]));
+  const map = new Map(((data ?? []) as { key: string; body: string }[]).map((r) => [r.key, r.body]));
+  // 회사용 견적 문구 줄이 아직 없는 DB(마이그레이션 전)에서도 문자 탭이 막히지 않게 기본 문구를 쓴다.
+  // 줄이 생기면 그 줄(운영자가 고친 문구)이 이긴다.
+  const companyKey = quoteTemplateKey("company");
+  if (!map.has(companyKey)) map.set(companyKey, QUOTE_DEFAULT_BODY.company);
+  return map;
 }
 
 /**

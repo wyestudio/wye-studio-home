@@ -20,7 +20,7 @@ export default async function GroupMessagesPage() {
     .order("key", { ascending: true });
 
   // 단계 순서대로 보여준다(키 순서가 아니라 쓰는 순서).
-  const ORDER = ["group_quote", "group_nudge", "group_deposit", "group_d7_transfer", "group_d7_card", "group_d7_corp_card", "group_d1", "group_report"];
+  const ORDER = ["group_quote", "group_quote_company", "group_nudge", "group_deposit", "group_d7_transfer", "group_d7_card", "group_d7_corp_card", "group_d1", "group_report"];
   const rows = ((data ?? []) as { key: string; label: string; body: string; placeholders: string[] | null; updated_at: string }[])
     .slice()
     .sort((a, b) => (ORDER.indexOf(a.key) + 100) % 100 - ((ORDER.indexOf(b.key) + 100) % 100) || a.key.localeCompare(b.key));
@@ -53,8 +53,15 @@ export default async function GroupMessagesPage() {
                 계좌는 문구에 직접 적지 말고 <code>{"{{bank_account}}"}</code> 를 쓰세요.
               </li>
               <li>
-                견적 안내의 「• 방탈출: … = …」 줄과 「예약 확정을 위해 총 이용 금액의 30%인 …」 문장은 단체 상황(별도 상담가 · 학생 단체 · 7일 이내 전액 입금)에
-                따라 자동으로 바뀝니다. 이 두 문장의 글자를 고치면 자동 바꿈이 동작하지 않습니다.
+                견적 안내는 양식이 둘입니다 — <strong>일반용</strong>과 <strong>회사용</strong>. 모임 성격이 회사 워크숍이면 회사용이 자동으로 골라지고, 단체 화면의
+                문자 탭에서 눌러 바꿀 수 있습니다.
+              </li>
+              <li>
+                견적 안내의 「• 방탈출: … = …」 줄은 단체 상황(별도 상담가 · 학생 단체)에 따라 자동으로 바뀝니다. 이 줄의 글자를 고치면 자동 바꿈이 동작하지 않습니다.
+              </li>
+              <li>
+                <code>{"{{#deposit}} … {{/deposit}}"}</code> 안은 예약금 30% 로 안내할 때만, <code>{"{{#fullpay}} … {{/fullpay}}"}</code> 안은 전액 입금으로 안내할
+                때만 나옵니다(행사 7일 이내 + 계좌이체 + 회사가 아닌 단체). 아래 미리보기에는 두 덩어리가 같이 보입니다.
               </li>
             </ul>
           </AdminNotice>
