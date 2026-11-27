@@ -13,7 +13,7 @@ export default async function SmsTemplatesPage() {
       .from("sms_templates")
       .select("key, label, body, placeholders, updated_at")
       // 단체 예약 안내 문구(group_*)는 여기 넣지 않는다 — 발송하는 문자가 아니라 복사해서 쓰는 문구다.
-      // 이 화면의 "발송 시 치환됩니다" 안내와 맞지 않아, 단체 도구의 안내 문자 화면에서 따로 고친다(관리자 개편).
+      // 이 화면의 "발송 시 치환됩니다" 안내와 맞지 않아, 단체 도구 › 안내 문자 템플릿(/group-tools/messages)에서 따로 고친다.
       .not("key", "like", "group_%")
       .order("label", { ascending: true }),
     loadPreviewThemes(),
@@ -38,6 +38,13 @@ export default async function SmsTemplatesPage() {
           <h1 className="text-h2 font-semibold mb-2">문자 포맷 관리</h1>
           <p className="text-muted">
             본문에 {"{{변수}}"} 형태로 플레이스홀더를 넣으면 발송 시 실제 값으로 치환됩니다. 변경사항은 저장 즉시 다음 발송부터 적용됩니다.
+          </p>
+          <p className="mt-1 text-body-sm text-muted">
+            단체 예약 안내 문구(견적 안내 · 7일 전 안내 등)는{" "}
+            <Link href="/group-tools/messages" className="text-glow underline">
+              단체 도구 › 안내 문자 템플릿
+            </Link>
+            에 있습니다.
           </p>
         </div>
 

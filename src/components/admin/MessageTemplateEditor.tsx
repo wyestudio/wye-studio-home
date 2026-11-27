@@ -28,6 +28,8 @@ export function MessageTemplateEditor({
   examples,
   blockExamples = {},
   blockHints = [],
+  previewNote = "실제 발송 예시 (위에서 고른 테마의 실제 값 기준)",
+  blockNote = "인원수만큼 반복되는 블록입니다. 블록 안에 원하는 항목만 골라 쓰세요.",
   onSave,
 }: {
   templateKey: string;
@@ -40,6 +42,10 @@ export function MessageTemplateEditor({
   /** 미리보기에서 반복 블록을 채울 샘플 행 */
   blockExamples?: TemplateBlocks;
   blockHints?: BlockHint[];
+  /** 미리보기 위의 설명. 테마 값으로 그리지 않는 화면(단체 안내 문구)은 바꿔 넣는다. */
+  previewNote?: string;
+  /** 반복 블록 안내. */
+  blockNote?: string;
   onSave: (key: string, body: string) => Promise<{ error?: string; success?: true }>;
 }) {
   const [body, setBody] = useState(initialBody);
@@ -90,7 +96,7 @@ export function MessageTemplateEditor({
       {blockHints.length > 0 && (
         <div className="mb-3 rounded-md border border-border/60 bg-surface/40 p-3">
           <p className="text-micro text-muted">
-            인원수만큼 반복되는 블록입니다. 블록 안에 원하는 항목만 골라 쓰세요.
+            {blockNote}
           </p>
           {blockHints.map((b) => (
             <div key={b.name} className="mt-2">
@@ -133,7 +139,7 @@ export function MessageTemplateEditor({
         </div>
 
         <div>
-          <p className="text-micro text-muted mb-1.5">실제 발송 예시 (위에서 고른 테마의 실제 값 기준)</p>
+          <p className="text-micro text-muted mb-1.5">{previewNote}</p>
           <div className="h-[calc(100%-1.375rem)] min-h-[280px] whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-body-sm text-foreground">
             {preview}
           </div>

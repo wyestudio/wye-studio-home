@@ -7,8 +7,7 @@
  * ⚠️ admin 서브도메인(admin.wouldyouescape.com)에서는 proxy.ts 가
  *    "/xxx" → "/admin/xxx" 로 rewrite 하므로, 링크는 /admin 접두사 없이 쓴다.
  * ⚠️ 화면이 아직 없는 메뉴는 넣지 않는다(눌러도 아무것도 없는 메뉴를 만들지 않는다).
- *    날짜 막기 · 단체 도구(설문 양식 · 안내 문자 템플릿 · 체크리스트 양식 · 플레이 리포트)는
- *    그 화면을 만드는 단계에 더한다.
+ *    날짜 막기 · 단체 도구의 설문 양식은 그 화면을 만드는 단계에 더한다.
  */
 export type AdminMenuItem = { href: string; label: string };
 export type AdminMenuGroup = { label: string; items: AdminMenuItem[] };
@@ -22,6 +21,15 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
       { href: "/group-bookings", label: "단체 예약" },
       { href: "/applications", label: "신청 (파티 · 노말)" },
       { href: "/sessions", label: "회차" },
+    ],
+  },
+  {
+    // 단체 예약에 쓰는 원본들 — 여기서 고치면 앞으로 만드는 것부터 적용된다.
+    label: "단체 도구",
+    items: [
+      { href: "/group-tools/messages", label: "안내 문자 템플릿" },
+      { href: "/group-tools/checklist", label: "체크리스트 양식" },
+      { href: "/group-tools/report", label: "플레이 리포트" },
     ],
   },
   {
@@ -65,7 +73,7 @@ export const ADMIN_MENU: AdminMenuGroup[] = [
     ],
   },
   {
-    // 일반 문자 템플릿은 설정에 둔다. 단체용 안내 문자는 「단체 도구」 가 생길 때 같은 화면의 탭으로 더한다(2026-11-27 대표님)
+    // 일반 문자 템플릿은 설정에 둔다. 단체용 안내 문자는 「단체 도구 › 안내 문자 템플릿」 에 있다(2026-11-27 대표님)
     label: "설정",
     items: [
       { href: "/sms-templates", label: "문자 템플릿" },

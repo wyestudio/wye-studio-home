@@ -58,20 +58,24 @@ export function buildReportFill(input: {
   icebreaking: boolean;
   teams: readonly Team[];
   people: readonly TeamPerson[];
+  /** 단체 도구 › 플레이 리포트에서 고친 기본값. 없으면 이 파일의 기본값. */
+  defaults?: { host: string; kicker: string; sub: string; place: string; msg: string; games: readonly string[] };
 }): ReportFill {
+  const d = input.defaults;
   const play = BASE_MINUTES - (input.icebreaking ? 0 : OPTION.icebreaking.minutes);
   const texts: Record<string, string> = {
     ...REPORT_DEFAULT_TEXTS,
+    ...(d ? { kicker: d.kicker, sub: d.sub, v2: d.place, msg: d.msg } : {}),
     // 모임 이름이 아직 없으면 이름 자리를 비워 둔다('단체 모임 단체모임' 처럼 겹치지 않게).
     brandKo: input.title ? `우주이스케이프 x ${input.title}` : "우주이스케이프",
     title: input.title ? `${input.title} 단체모임` : "단체모임",
-    v3: REPORT_HOST,
+    v3: d ? d.host : REPORT_HOST,
     s1v: `${input.headcount}명`,
     s4v: `${play}분`,
   };
   const when = reportDateText(input.date, input.time, play);
   if (when) texts.v1 = when;
-  return { texts, games: REPORT_DEFAULT_GAMES.map((name) => ({ name })), teams: reportTeams(input.teams, input.people) };
+  return { texts, games: (d?.games.length ? d.games : REPORT_DEFAULT_GAMES).map((name) => ({ name })), teams: reportTeams(input.teams, input.people) };
 }
 
 /** 팀 편성 → 리포트의 팀(팀명 · 팀원 닉네임 · 구호). 이름 · 연락처는 쓰지 않는다. */
