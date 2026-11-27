@@ -102,7 +102,10 @@ function AppCard({
   atts,
   session,
   showPromoted,
+  focused,
 }: {
+  /** 신청 목록에서 이 건을 눌러 들어왔다 — 테두리로 표시한다. */
+  focused: boolean;
   app: App;
   atts: Att[];
   session: { id: string; min_age: number | null };
@@ -134,7 +137,10 @@ function AppCard({
     ]);
   }
   return (
-    <li className="overflow-hidden rounded-xl border border-border">
+    <li
+      id={`app-${app.id}`}
+      className={`scroll-mt-20 overflow-hidden rounded-xl border ${focused ? "border-brand ring-2 ring-brand" : "border-border"}`}
+    >
       {/* ── 신청 건 머리: 접수번호 · 상태 · 액션 ── */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-fill-subtle px-4 py-3">
         <span className="text-body">
@@ -262,7 +268,10 @@ export default async function AdminSessionDetailPage(props: {
 }) {
   const params = await props.params;
   // 들어온 목록(조건 포함)으로 돌아간다 — adminBack.ts
-  const back = safeBack((await props.searchParams).back, "/");
+  const sp = await props.searchParams;
+  const back = safeBack(sp.back, "/");
+  // 신청 목록에서 누른 건(?app=) — 화면 표시에만 쓴다(조회 조건이 아니다). 모양이 다르면 버린다.
+  const focusId = typeof sp.app === "string" && /^[0-9a-f-]{36}$/i.test(sp.app) ? sp.app : "";
   const supabase = createAdminClient();
 
   const { data: session } = await supabase
@@ -370,7 +379,7 @@ export default async function AdminSessionDetailPage(props: {
   const cards = (apps: App[], showPromoted = false) => (
     <ul className="flex flex-col gap-3">
       {apps.map((app) => (
-        <AppCard key={app.id} app={app} atts={attsOf(app.id)} session={session} showPromoted={showPromoted} />
+        <AppCard key={app.id} app={app} atts={attsOf(app.id)} session={session} showPromoted={showPromoted} focused={app.id === focusId} />
       ))}
     </ul>
   );
@@ -444,7 +453,7 @@ export default async function AdminSessionDetailPage(props: {
 
         {cancelledApps.length > 0 && (
           // 취소는 접어 둔다. 환불할 건이 남아 있으면 펼쳐 둔다.
-          <details open={refundTodo > 0} className="group mb-8">
+          <details open={refundTodo > 0 || cancelledApps.some((a) => a.id === focusId)} className="group mb-8">
             <summary className="mb-3 flex cursor-pointer list-none items-center gap-2 text-h3 font-semibold [&::-webkit-details-marker]:hidden">
               취소 <span className="text-muted">{cancelledApps.length}</span>
               {refundTodo > 0 && <span className={`${tag} bg-red-500 text-white`}>환불 필요 {refundTodo}</span>}
