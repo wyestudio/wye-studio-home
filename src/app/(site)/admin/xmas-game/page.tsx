@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { XmasGameAdmin, type GameFunnel, type GameStats, type GiftRow, type RankRow } from "./XmasGameAdmin";
+import { XmasGameAdmin, type GameFunnel, type GameOverview, type GameStats, type GiftRow, type RankRow } from "./XmasGameAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +9,11 @@ const RANK_LIMIT = 100;
 
 /**
  * 크리스마스 게임 「산타의 어드벤트 캘린더」 — 현장에서 선물 코드를 확인하고, 랭킹의 닉네임을 살핀다.
- * 표와 함수는 supabase/migrations/20261126062217_xmas_game.sql.
+ * 표와 함수는 supabase/migrations/20261126062217_xmas_game.sql, 사람별 · 라운드별 집계는 20261127063948_xmas_game_admin_overview.sql.
  */
 export default async function AdminXmasGamePage() {
   const supabase = createAdminClient();
-  const [startedRes, finishedRes, giftsRes, ranksRes, statsRes, funnelRes] = await Promise.all([
+  const [startedRes, finishedRes, giftsRes, ranksRes, statsRes, funnelRes, overviewRes] = await Promise.all([
     supabase.from("xmas_game_runs").select("id", { count: "exact", head: true }),
     supabase.from("xmas_game_runs").select("id", { count: "exact", head: true }).gte("round", 5),
     supabase
@@ -36,6 +36,8 @@ export default async function AdminXmasGamePage() {
     supabase.rpc("xmas_game_stats"),
     // 참여 현황 — 방문 발자취에서 사람 수로 센다. 이것도 실패하면 칸만 빠진다
     supabase.rpc("xmas_game_funnel"),
+    // 사람별 시도 · 결과와 라운드별 도달 · 멈춤(랭킹에 등록 안 한 사람까지). 실패하면 그 칸만 빠진다
+    supabase.rpc("xmas_game_admin"),
   ]);
   const error = startedRes.error ?? finishedRes.error ?? giftsRes.error ?? ranksRes.error;
 
@@ -72,6 +74,7 @@ export default async function AdminXmasGamePage() {
             ranks={ranks}
             stats={statsRes.error ? null : (statsRes.data as GameStats)}
             funnel={funnelRes.error ? null : (funnelRes.data as GameFunnel)}
+            overview={overviewRes.error ? null : (overviewRes.data as GameOverview)}
           />
         )}
       </div>
