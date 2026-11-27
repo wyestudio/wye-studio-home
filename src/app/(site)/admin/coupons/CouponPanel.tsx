@@ -7,6 +7,7 @@ import { issueCoupons, importIssuedHandles } from "./actions";
 import { formatCouponCode } from "@/lib/coupon";
 import { formatKrw, formatDateFull } from "@/lib/format";
 import { toCsv, downloadCsv, kstStamp, parseCsv, readCsvFile, findIssueColumns } from "@/lib/csv";
+import { AdminBadge, AdminEmpty, adminButtonClass } from "@/components/admin/ui";
 
 const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
@@ -62,10 +63,13 @@ export function CouponPanel({
   campaigns,
   coupons,
   themes,
+  emptyTitle = "아직 만든 쿠폰이 없어요",
 }: {
   campaigns: CampaignRow[];
   coupons: CouponRow[];
   themes: { id: string; name: string }[];
+  /** 이 탭에 쿠폰이 없을 때의 문구. */
+  emptyTitle?: string;
 }) {
   const router = useRouter();
   const [openId, setOpenId] = useState<string | null>(null);
@@ -155,9 +159,9 @@ export function CouponPanel({
             setAdding((v) => !v);
             setOpenId(null);
           }}
-          className="rounded-md border border-border px-3 py-1.5 text-body-sm"
+          className={adminButtonClass(adding ? "secondary" : "primary")}
         >
-          {adding ? "취소" : "+ 쿠폰 종류 등록"}
+          {adding ? "취소" : "쿠폰 종류 등록"}
         </button>
       </div>
 
@@ -168,32 +172,28 @@ export function CouponPanel({
       )}
 
       {campaigns.length === 0 ? (
-        <div className="rounded-lg border border-border py-16 text-center text-body-sm text-muted">
-          아직 만든 쿠폰이 없습니다.
-        </div>
+        <AdminEmpty title={emptyTitle} />
       ) : (
         <div className="flex flex-col gap-3">
           {campaigns.map((c) => {
             const mine = coupons.filter((x) => x.campaign_id === c.id);
             const used = mine.filter((x) => x.used_at).length;
             return (
-              <div key={c.id} className="rounded-lg border border-border">
+              <div key={c.id} className="rounded-xl border border-border bg-surface">
                 <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div className="min-w-0">
-                    <p className="font-semibold">
+                    <p className="flex flex-wrap items-center gap-2 font-semibold text-foreground">
                       {c.name}
-                      {!c.is_active && <span className="ml-2 text-micro text-amber-400">중지됨</span>}
-                      {c.restrict_to_issued_phone && (
-                        <span className="ml-2 text-micro text-muted">본인 전용</span>
-                      )}
+                      {!c.is_active && <AdminBadge tone="warn">중지됨</AdminBadge>}
+                      {c.restrict_to_issued_phone && <AdminBadge>본인 전용</AdminBadge>}
                     </p>
                     <p className="mt-0.5 text-micro text-muted">
                       {discountLabel(c)} · {periodLabel(c)}
                       {c.stackable && <span className="ml-1.5 text-glow">· 중복 사용 가능</span>}
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <p className="text-body-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="mr-2 text-body-sm">
                       <strong>{mine.length}</strong>장 발급
                       <span className="ml-2 text-muted">
                         {used}장 사용 · {mine.length - used}장 남음
@@ -205,7 +205,7 @@ export function CouponPanel({
                         setOpenId(null);
                         setIssued(null);
                       }}
-                      className="rounded-md border border-border px-3 py-1.5 text-micro"
+                      className={adminButtonClass("secondary")}
                     >
                       코드
                     </button>
@@ -214,7 +214,7 @@ export function CouponPanel({
                         setOpenId(openId === c.id ? null : c.id);
                         setCodesFor(null);
                       }}
-                      className="rounded-md border border-border px-3 py-1.5 text-micro"
+                      className={adminButtonClass("secondary")}
                     >
                       수정
                     </button>

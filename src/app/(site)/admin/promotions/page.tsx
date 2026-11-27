@@ -4,6 +4,11 @@ import { PromotionEditor, type PromotionRow, type ThemeOption } from "./Promotio
 
 export const dynamic = "force-dynamic";
 
+/** 현재 시각. 렌더 함수 밖으로 빼 purity 규칙을 지킨다. */
+function getNowIso(): string {
+  return new Date().toISOString();
+}
+
 export default async function AdminPromotionsPage() {
   const supabase = createAdminClient();
 
@@ -73,7 +78,7 @@ export default async function AdminPromotionsPage() {
       {error ? (
         <p role="alert" className="text-body-sm text-danger">프로모션을 불러올 수 없습니다: {error.message}</p>
       ) : (
-        <PromotionEditor promotions={promotions} themes={themes} />
+        <PromotionEditor promotions={promotions} themes={themes} nowIso={getNowIso()} />
       )}
     </AdminPage>
   );

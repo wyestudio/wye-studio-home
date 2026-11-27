@@ -9,6 +9,7 @@ import {
   type PromotionTierInput,
 } from "./actions";
 import { discountPercent } from "@/lib/promotion";
+import { AdminBadge, AdminEmpty, adminButtonClass } from "@/components/admin/ui";
 
 /**
  * 프로모션(얼리버드) 편집.
@@ -114,14 +115,34 @@ function baseUnitPrice(theme: ThemeOption | undefined, headcount: number): numbe
   return matched ? matched.unit_price_krw : null;
 }
 
+/**
+ * 지금 돌아가고 있는 프로모션인가 — 켜져 있고, 접수 종료 시각과 대상 회차 기간이 아직 지나지 않았다.
+ * ⚠️ 목록을 두 탭으로 가르는 데만 쓴다. 실제 할인 적용 여부는 서버(DB)가 따로 판단한다.
+ */
+function isRunning(p: PromotionRow, nowIso: string): boolean {
+  if (!p.is_active) return false;
+  const nowMs = Date.parse(nowIso);
+  if (p.applies_until && Date.parse(p.applies_until) <= nowMs) return false;
+  const todayKst = new Date(nowMs + 9 * 3_600_000).toISOString().slice(0, 10);
+  if (p.session_to && p.session_to < todayKst) return false;
+  return true;
+}
+
 export function PromotionEditor({
   promotions,
   themes,
+  nowIso,
 }: {
   promotions: PromotionRow[];
   themes: ThemeOption[];
+  /** 서버가 화면을 그린 시각 — 진행 중 / 끝남을 가르는 기준. */
+  nowIso: string;
 }) {
   const [editing, setEditing] = useState<PromotionInput | null>(null);
+  const [tab, setTab] = useState<"running" | "ended">("running");
+  const running = promotions.filter((p) => isRunning(p, nowIso));
+  const ended = promotions.filter((p) => !isRunning(p, nowIso));
+  const shown = tab === "running" ? running : ended;
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -180,27 +201,55 @@ export function PromotionEditor({
   return (
     <div className="space-y-6">
       {message && (
-        <div
-          className={`rounded-md border px-3 py-2 text-body-sm ${
-            message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
+        <p
+          role={message.kind === "ok" ? "status" : "alert"}
+          className={`rounded-lg border px-3 py-2 text-body-sm ${
+            message.kind === "ok" ? "border-confirm bg-confirm-soft text-confirm" : "border-danger bg-danger-soft text-danger"
           }`}
         >
           {message.text}
+        </p>
+      )}
+
+      {/* 편집 중에는 목록 · 탭 · 「등록」 버튼을 숨긴다 — 목록 → 한 건 편집. */}
+      {!editing && (
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border">
+          <div role="tablist" aria-label="프로모션 상태" className="flex gap-1">
+            {(
+              [
+                ["running", "진행 중", running.length],
+                ["ended", "꺼짐 · 끝남", ended.length],
+              ] as const
+            ).map(([key, text, n]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={tab === key}
+                onClick={() => setTab(key)}
+                className={`-mb-px flex min-h-11 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-label font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                  tab === key ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"
+                }`}
+              >
+                {text}
+                <span className={`rounded-full px-1.5 text-micro ${tab === key ? "bg-foreground text-background" : "bg-fill-strong text-muted"}`}>{n}</span>
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={() => setEditing(emptyInput())} className={`${adminButtonClass("primary")} mb-2`}>
+            프로모션 등록
+          </button>
         </div>
       )}
 
-      <div className="flex justify-end">
-        <button
-          onClick={() => setEditing(emptyInput())}
-          className="rounded-md bg-glow px-3 py-2 text-body-sm text-white"
-        >
-          + 프로모션 등록
-        </button>
-      </div>
-
       {editing && (
-        <div className="space-y-4 rounded-lg border border-border p-4">
-          <h2 className="font-semibold">{editing.id ? "프로모션 수정" : "새 프로모션"}</h2>
+        <div className="space-y-4 rounded-xl border border-border bg-surface p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setEditing(null)} className="min-h-11 text-body-sm text-glow hover:underline">
+              ← 프로모션 목록
+            </button>
+            <h2 className="text-h3 font-semibold text-foreground">{editing.id ? `${editing.name || "프로모션"} 수정` : "새 프로모션"}</h2>
+          </div>
 
           <div className={section}>
             <h3 className="text-body-sm font-semibold">기본</h3>
@@ -466,48 +515,45 @@ export function PromotionEditor({
           </div>
 
           <div className="flex gap-2">
-            <button
-              onClick={submit}
-              disabled={pending}
-              className="rounded-md bg-glow px-4 py-2 text-body-sm text-white disabled:opacity-50"
-            >
+            <button type="button" onClick={submit} disabled={pending} className={adminButtonClass("primary")}>
               {pending ? "저장 중…" : "저장"}
             </button>
-            <button
-              onClick={() => setEditing(null)}
-              className="rounded-md border border-border px-4 py-2 text-body-sm"
-            >
+            <button type="button" onClick={() => setEditing(null)} className={adminButtonClass("secondary")}>
               취소
             </button>
           </div>
         </div>
       )}
 
+      {!editing && (
       <div className="space-y-2">
-        {promotions.length === 0 && (
-          <p className="rounded-lg border border-border p-6 text-center text-body-sm text-muted">
-            등록된 프로모션이 없습니다.
-          </p>
+        {shown.length === 0 && (
+          <AdminEmpty
+            title={tab === "running" ? "지금 진행 중인 프로모션이 없어요" : "꺼졌거나 끝난 프로모션이 없어요"}
+            hint={
+              promotions.length === 0
+                ? "「프로모션 등록」 으로 첫 프로모션을 만드세요."
+                : tab === "running"
+                  ? "「꺼짐 · 끝남」 탭에서 프로모션을 켜거나 새로 등록하세요."
+                  : undefined
+            }
+          />
         )}
-        {promotions.map((p) => (
+        {shown.map((p) => (
           <div
             key={p.id}
-            className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-4"
+            className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-4"
           >
             <span
               className="h-3 w-3 shrink-0 rounded-full"
               style={{ backgroundColor: p.accent_color }}
             />
             <div className="min-w-0 flex-1">
-              <p className="font-semibold">
-                {p.name}{" "}
-                <span
-                  className={`ml-1 rounded-md px-1.5 py-0.5 text-micro ${
-                    p.is_active ? "bg-glow text-white" : "bg-muted/20 text-muted"
-                  }`}
-                >
-                  {p.is_active ? "켜짐" : "꺼짐"}
-                </span>
+              <p className="flex flex-wrap items-center gap-2 font-semibold text-foreground">
+                {p.name}
+                <AdminBadge tone={p.is_active ? "done" : "idle"}>{p.is_active ? "켜짐" : "꺼짐"}</AdminBadge>
+                {/* 켜져 있는데 기간이 지난 것 — 켜짐 배지만 보면 돌아가는 줄 안다. */}
+                {p.is_active && !isRunning(p, nowIso) && <AdminBadge tone="warn">기간 지남</AdminBadge>}
               </p>
               <p className="mt-1 text-micro text-muted">
                 회차 {p.session_from ?? "제한 없음"} ~ {p.session_to ?? "제한 없음"} · 진행일{" "}
@@ -516,29 +562,19 @@ export function PromotionEditor({
                 금액 구간 {p.tiers.length}개
               </p>
             </div>
-            <button
-              onClick={() => toggle(p.id, !p.is_active, p.name)}
-              disabled={pending}
-              className="rounded-md border border-border px-3 py-1.5 text-micro disabled:opacity-50"
-            >
+            <button type="button" onClick={() => toggle(p.id, !p.is_active, p.name)} disabled={pending} className={adminButtonClass("secondary")}>
               {p.is_active ? "끄기" : "켜기"}
             </button>
-            <button
-              onClick={() => setEditing(toInput(p))}
-              className="rounded-md border border-border px-3 py-1.5 text-micro"
-            >
+            <button type="button" onClick={() => setEditing(toInput(p))} className={adminButtonClass("secondary")}>
               수정
             </button>
-            <button
-              onClick={() => remove(p.id, p.name)}
-              disabled={pending}
-              className="rounded-md border border-red-500/50 px-3 py-1.5 text-micro text-red-400 disabled:opacity-50"
-            >
+            <button type="button" onClick={() => remove(p.id, p.name)} disabled={pending} className={adminButtonClass("danger")}>
               삭제
             </button>
           </div>
         ))}
       </div>
+      )}
     </div>
   );
 }
