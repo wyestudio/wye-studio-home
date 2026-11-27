@@ -4,6 +4,18 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/adminGuard";
 import { redeemGift, restoreGift, setPlayerHidden } from "./actions";
+import {
+  FunnelBars,
+  OutcomeBar,
+  Panel,
+  PlayerTable,
+  RatioCards,
+  RoundChart,
+  ScoreChart,
+  type GameOverview,
+} from "./XmasGameCharts";
+
+export type { GameOverview } from "./XmasGameCharts";
 
 export type GiftRow = {
   id: string;
@@ -70,7 +82,8 @@ const FUNNEL_ROWS: [keyof FunnelNumbers, string, string][] = [
 ];
 
 /** "12명 중 9명" 을 "75%" 로. 아무도 없으면 값을 모른다는 뜻으로 '-' 를 쓴다. */
-const percent = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : "-");
+const percent = (part: number, whole: number) =>
+  whole > 0 ? `${Math.round((part / whole) * 100)}%` : "-";
 
 const KST = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -84,13 +97,28 @@ const kstDateTime = (iso: string) => KST.format(new Date(iso));
 
 /** 손님 화면과 같은 모양(ABC-DEF)으로 보여 준다. */
 const showCode = (code: string) => `${code.slice(0, 3)}-${code.slice(3)}`;
-const normalizeCode = (raw: string) => raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+const normalizeCode = (raw: string) =>
+  raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-const BUTTON = "rounded-md border px-3 py-1.5 text-label font-semibold transition-colors disabled:opacity-50";
+const BUTTON =
+  "rounded-md border px-3 py-1.5 text-label font-semibold transition-colors disabled:opacity-50";
+
+/** 아래쪽 탭 — 첫눈에 보는 것부터 */
+const TABS = [
+  { key: "overview", label: "한눈에 보기" },
+  { key: "players", label: "참여자" },
+  { key: "gifts", label: "선물 코드" },
+  { key: "ranks", label: "랭킹" },
+] as const;
+type Tab = (typeof TABS)[number]["key"];
 
 /**
- * 크리스마스 게임 어드민 — 위에서부터 요약 · 선물 코드 확인(현장용) · 코드 목록 · 랭킹 · 참여 현황 · 난이도 확인.
- * 현장에서는 휴대폰으로 연다. 코드 확인 칸을 맨 위에 크게 둔다.
+ * 크리스마스 게임 어드민(2026-11-27 다시 짬 — 대표님: "랭킹에 등록 안 한 사람까지 몇 번 했는지, 라운드별 도달 · 실패를
+ * 차트와 표로 첫눈에").
+ *   위   요약 숫자 · 선물 코드 확인(현장에서 휴대폰으로 연다 — 늘 맨 위)
+ *   탭   한눈에 보기(판 결과 · 라운드별 도달 · 5라운드 점수 분포 · 참여 단계 · 난이도) / 참여자(모든 사람의 시도 · 결과) /
+ *        선물 코드 목록 / 랭킹(숨김)
+ * 탭은 화면 안에서만 바뀐다(서버를 부르지 않는다).
  */
 export function XmasGameAdmin({
   started,
@@ -99,6 +127,7 @@ export function XmasGameAdmin({
   ranks,
   stats,
   funnel,
+  overview,
 }: {
   started: number;
   finished: number;
@@ -106,7 +135,9 @@ export function XmasGameAdmin({
   ranks: RankRow[];
   stats: GameStats | null;
   funnel: GameFunnel | null;
+  overview: GameOverview | null;
 }) {
+  const [tab, setTab] = useState<Tab>("overview");
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -132,28 +163,60 @@ export function XmasGameAdmin({
   }
 
   const code = normalizeCode(query);
-  const match = code.length === 6 ? gifts.find((g) => g.gift_code === code) ?? null : null;
+  const match =
+    code.length === 6
+      ? (gifts.find((g) => g.gift_code === code) ?? null)
+      : null;
   const redeemed = gifts.filter((g) => g.gift_redeemed_at).length;
 
   return (
     <div className="flex flex-col gap-8">
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[
-          ["시작한 판", started],
-          ["5라운드 완료", finished],
-          ["선물 코드 발급", gifts.length],
-          ["수령 처리", redeemed],
-        ].map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-line bg-fill-subtle px-4 py-3">
+        {(
+          [
+            [
+              "참여한 사람",
+              overview ? overview.players.length : "-",
+              overview
+                ? `랭킹 등록 ${overview.players.filter((p) => p.nickname).length}명`
+                : "",
+            ],
+            ["시작한 판", started, ""],
+            [
+              "5라운드 완료",
+              finished,
+              `시작한 판의 ${percent(finished, started)}`,
+            ],
+            [
+              "선물 코드",
+              gifts.length,
+              `수령 ${redeemed} · 미수령 ${gifts.length - redeemed}`,
+            ],
+          ] as [string, number | string, string][]
+        ).map(([label, value, sub]) => (
+          <div
+            key={label}
+            className="rounded-lg border border-line bg-fill-subtle px-4 py-3"
+          >
             <dt className="text-label text-muted">{label}</dt>
-            <dd className="mt-1 text-h2 font-extrabold tabular-nums">{value}</dd>
+            <dd className="mt-1 text-h2 font-extrabold tabular-nums">
+              {value}
+            </dd>
+            {sub && (
+              <dd className="mt-0.5 text-label text-muted tabular-nums">
+                {sub}
+              </dd>
+            )}
           </div>
         ))}
       </dl>
 
       <section className="rounded-xl border border-line bg-fill-subtle p-4 md:p-5">
         <h2 className="text-h3 font-semibold">선물 코드 확인</h2>
-        <p className="mt-1 text-body-sm text-muted">손님 화면의 코드 6자리를 입력하세요. 줄표와 대소문자는 가리지 않습니다.</p>
+        <p className="mt-1 text-body-sm text-muted">
+          손님 화면의 코드 6자리를 입력하세요. 줄표와 대소문자는 가리지
+          않습니다.
+        </p>
         <input
           value={query}
           onChange={(e) => {
@@ -172,16 +235,19 @@ export function XmasGameAdmin({
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {!match ? (
               <p className="text-body font-semibold text-red-400">
-                없는 코드입니다. 방금 받은 코드라면 화면을 새로고침한 뒤 다시 입력하세요.
+                없는 코드입니다. 방금 받은 코드라면 화면을 새로고침한 뒤 다시
+                입력하세요.
               </p>
             ) : match.gift_redeemed_at ? (
               <p className="text-body font-semibold text-red-400">
-                이미 수령 처리된 코드입니다 ({kstDateTime(match.gift_redeemed_at)}).
+                이미 수령 처리된 코드입니다 (
+                {kstDateTime(match.gift_redeemed_at)}).
               </p>
             ) : (
               <>
                 <p className="text-body font-semibold text-confirm">
-                  받을 수 있는 코드입니다 ({kstDateTime(match.gift_issued_at)} 발급 · {match.score5 ?? "-"}점).
+                  받을 수 있는 코드입니다 ({kstDateTime(match.gift_issued_at)}{" "}
+                  발급 · {match.score5 ?? "-"}점).
                 </p>
                 <button
                   type="button"
@@ -199,181 +265,258 @@ export function XmasGameAdmin({
         {notice && <p className="mt-3 text-body-sm text-confirm">{notice}</p>}
       </section>
 
-      <section>
-        <h2 className="mb-3 text-h3 font-semibold">선물 코드 목록</h2>
-        {gifts.length === 0 ? (
-          <p className="text-body-sm text-muted">아직 발급된 코드가 없습니다.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-line">
-            <table className="w-full min-w-[560px] text-left text-body-sm">
-              <thead className="bg-fill text-label text-muted">
-                <tr>
-                  <th className="px-3 py-2 font-semibold">코드</th>
-                  <th className="px-3 py-2 font-semibold">발급</th>
-                  <th className="px-3 py-2 font-semibold">점수</th>
-                  <th className="px-3 py-2 font-semibold">닉네임</th>
-                  <th className="px-3 py-2 font-semibold">상태</th>
-                  <th className="px-3 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {gifts.map((g) => (
-                  <tr key={g.id} className="border-t border-line-subtle">
-                    <td className="px-3 py-2 font-mono font-semibold tracking-wider">{showCode(g.gift_code)}</td>
-                    <td className="px-3 py-2 tabular-nums text-muted">{kstDateTime(g.gift_issued_at)}</td>
-                    <td className="px-3 py-2 tabular-nums">{g.score5 ?? "-"}</td>
-                    <td className="px-3 py-2">{g.nickname ?? <span className="text-muted">-</span>}</td>
-                    <td className="px-3 py-2">
-                      {g.gift_redeemed_at ? (
-                        <span className="text-muted">수령 {kstDateTime(g.gift_redeemed_at)}</span>
-                      ) : (
-                        <span className="text-confirm">미수령</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {g.gift_redeemed_at ? (
-                        <button
-                          type="button"
-                          disabled={pending}
-                          onClick={() => run(() => restoreGift(g.gift_code))}
-                          className={`${BUTTON} border-line text-muted hover:bg-fill`}
-                        >
-                          되돌리기
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={pending}
-                          onClick={() => run(() => redeemGift(g.gift_code))}
-                          className={`${BUTTON} border-glow/50 text-glow hover:bg-glow/10`}
-                        >
-                          지급 처리
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      <nav
+        role="tablist"
+        aria-label="크리스마스 게임 보기"
+        className="-mb-4 flex gap-1 overflow-x-auto border-b border-line"
+      >
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={`-mb-px shrink-0 border-b-2 px-4 py-2.5 text-body-sm font-semibold transition-colors ${
+              tab === t.key
+                ? "border-glow text-foreground"
+                : "border-transparent text-muted hover:text-foreground"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
 
-      <section>
-        <h2 className="mb-1 text-h3 font-semibold">랭킹</h2>
-        <p className="mb-3 text-body-sm text-muted">
-          사람마다 가장 좋은 기록 하나입니다(위에서 {ranks.length}명). 숨기면 그 사람의 기록 전부가 고객 화면
-          랭킹에서 빠집니다.
-        </p>
-        {ranks.length === 0 ? (
-          <p className="text-body-sm text-muted">아직 등록된 기록이 없습니다.</p>
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-line">
-            <table className="w-full min-w-[520px] text-left text-body-sm">
-              <thead className="bg-fill text-label text-muted">
-                <tr>
-                  <th className="px-3 py-2 font-semibold">#</th>
-                  <th className="px-3 py-2 font-semibold">닉네임</th>
-                  <th className="px-3 py-2 font-semibold">점수</th>
-                  <th className="px-3 py-2 font-semibold">라운드</th>
-                  <th className="px-3 py-2 font-semibold">최대 콤보</th>
-                  <th className="px-3 py-2 font-semibold">기록 시각</th>
-                  <th className="px-3 py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {ranks.map((r, i) => (
-                  <tr key={r.id} className={`border-t border-line-subtle ${r.hidden ? "text-disabled" : ""}`}>
-                    <td className="px-3 py-2 tabular-nums text-muted">{i + 1}</td>
-                    <td className="px-3 py-2 font-semibold">
-                      {r.nickname}
-                      {r.hidden && <span className="ml-2 text-label font-normal text-muted">숨김</span>}
-                    </td>
-                    <td className="px-3 py-2 tabular-nums">{r.score}</td>
-                    <td className="px-3 py-2 tabular-nums">{r.round}</td>
-                    <td className="px-3 py-2 tabular-nums">{r.max_combo}</td>
-                    <td className="px-3 py-2 tabular-nums text-muted">{kstDateTime(r.finished_at)}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button
-                        type="button"
-                        disabled={pending}
-                        onClick={() => run(() => setPlayerHidden(r.player_id, !r.hidden))}
-                        className={`${BUTTON} border-line text-foreground hover:bg-fill`}
-                      >
-                        {r.hidden ? "다시 보이기" : "숨김"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {tab === "overview" && (
+        <div className="flex flex-col gap-4">
+          {overview ? (
+            <>
+              <Panel
+                title="판은 어떻게 끝났나"
+                desc={`시작한 판 ${overview.total_runs}개를 결과별로 나눴습니다. 막대에 마우스를 올리면 숫자가 보입니다.`}
+              >
+                <OutcomeBar overview={overview} />
+              </Panel>
+              <Panel
+                title="라운드별 도달 · 멈춤"
+                desc={`막대 하나가 그 라운드까지 닿은 판입니다. 6라운드부터는 이어하기(통과 게이지)이고, 공유하고 재도전은 지금까지 ${overview.retries}번입니다.`}
+              >
+                <RoundChart overview={overview} />
+              </Panel>
+              <Panel
+                title="5라운드 점수 분포"
+                desc="5라운드를 마친 판의 점수입니다. 점선이 선물 기준(35점)입니다."
+              >
+                <ScoreChart overview={overview} />
+              </Panel>
+            </>
+          ) : (
+            <p className="text-body-sm text-red-400">
+              판 집계를 불러오지 못했습니다.
+            </p>
+          )}
+          {funnel && (
+            <Panel
+              title="참여 단계"
+              desc="사람(브라우저) 수입니다. 우리 기기는 뺀 숫자가 기준이고, 막대는 가장 많은 줄 대비입니다. 방문 기록은 60일 뒤 지워집니다."
+            >
+              <FunnelBars
+                rows={FUNNEL_ROWS.map(([key, label, note]) => ({
+                  label,
+                  note,
+                  value: funnel.guests[key],
+                  extra: funnel.everyone[key],
+                }))}
+              />
+            </Panel>
+          )}
+          {stats && (
+            <Panel
+              title="난이도 확인"
+              desc="사람 기준입니다. 처음 잡은 목표는 세 판 안에 선물 점수 통과 80%, 이어하기 17라운드 이상 10%, 20라운드 도달 5%입니다."
+            >
+              <RatioCards
+                items={[
+                  {
+                    label: "세 판 안에 선물 점수 통과",
+                    part: stats.passed3,
+                    whole: stats.players,
+                    who: "5라운드를 마친",
+                  },
+                  {
+                    label: "17라운드 이상",
+                    part: stats.r17,
+                    whole: stats.bonus,
+                    who: "이어하기를 한",
+                  },
+                  {
+                    label: "20라운드 도달",
+                    part: stats.r20,
+                    whole: stats.bonus,
+                    who: "이어하기를 한",
+                  },
+                ]}
+              />
+            </Panel>
+          )}
+        </div>
+      )}
 
-      {/*
-        참여 현황 — 몇 명이 보고, 누르고, 하고, 공유했나. 방문 발자취에서 센다(판 기록과는 다른 번호라 위쪽 숫자와
-        딱 맞지는 않는다 — 위는 "판", 여기는 "사람"). 손님 숫자가 기준이고 우리 기기를 넣은 숫자는 옆에 흐리게 둔다.
-      */}
-      {funnel && (
-        <section>
-          <h2 className="mb-1 text-h3 font-semibold">참여 현황</h2>
-          <p className="mb-3 text-body-sm text-muted">
-            사람(브라우저) 수입니다. 우리 기기는 뺀 숫자가 기준이고, 넣은 숫자를 옆에 적었습니다. 방문 기록은 60일
-            뒤 지워져서 그 뒤에는 이 표가 비워집니다.
+      {tab === "players" &&
+        (overview ? (
+          <Panel
+            title="참여자"
+            desc="랭킹에 등록하지 않은 사람까지 모두입니다. 위 단추로 골라 보고, 정렬을 바꿀 수 있습니다."
+          >
+            <PlayerTable players={overview.players} />
+          </Panel>
+        ) : (
+          <p className="text-body-sm text-red-400">
+            참여자 집계를 불러오지 못했습니다.
           </p>
-          <div className="overflow-x-auto rounded-lg border border-line">
-            <table className="w-full min-w-[520px] text-left text-body-sm">
-              <thead className="bg-fill text-label text-muted">
-                <tr>
-                  <th className="px-3 py-2 font-semibold">단계</th>
-                  <th className="px-3 py-2 text-right font-semibold">손님</th>
-                  <th className="px-3 py-2 text-right font-semibold">우리 기기 포함</th>
-                </tr>
-              </thead>
-              <tbody>
-                {FUNNEL_ROWS.map(([key, label, note]) => (
-                  <tr key={key} className="border-t border-line-subtle">
-                    <td className="px-3 py-2">
-                      <span className="font-semibold">{label}</span>
-                      {note && <span className="ml-2 text-label text-muted">{note}</span>}
-                    </td>
-                    <td className="px-3 py-2 text-right font-semibold tabular-nums">{funnel.guests[key]}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-muted">{funnel.everyone[key]}</td>
+        ))}
+
+      {tab === "gifts" && (
+        <section>
+          <h2 className="mb-3 text-h3 font-semibold">선물 코드 목록</h2>
+          {gifts.length === 0 ? (
+            <p className="text-body-sm text-muted">
+              아직 발급된 코드가 없습니다.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-line">
+              <table className="w-full min-w-[560px] text-left text-body-sm">
+                <thead className="bg-fill text-label text-muted">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">코드</th>
+                    <th className="px-3 py-2 font-semibold">발급</th>
+                    <th className="px-3 py-2 font-semibold">점수</th>
+                    <th className="px-3 py-2 font-semibold">닉네임</th>
+                    <th className="px-3 py-2 font-semibold">상태</th>
+                    <th className="px-3 py-2" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {gifts.map((g) => (
+                    <tr key={g.id} className="border-t border-line-subtle">
+                      <td className="px-3 py-2 font-mono font-semibold tracking-wider">
+                        {showCode(g.gift_code)}
+                      </td>
+                      <td className="px-3 py-2 tabular-nums text-muted">
+                        {kstDateTime(g.gift_issued_at)}
+                      </td>
+                      <td className="px-3 py-2 tabular-nums">
+                        {g.score5 ?? "-"}
+                      </td>
+                      <td className="px-3 py-2">
+                        {g.nickname ?? <span className="text-muted">-</span>}
+                      </td>
+                      <td className="px-3 py-2">
+                        {g.gift_redeemed_at ? (
+                          <span className="text-muted">
+                            수령 {kstDateTime(g.gift_redeemed_at)}
+                          </span>
+                        ) : (
+                          <span className="text-confirm">미수령</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        {g.gift_redeemed_at ? (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() => run(() => restoreGift(g.gift_code))}
+                            className={`${BUTTON} border-line text-muted hover:bg-fill`}
+                          >
+                            되돌리기
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={pending}
+                            onClick={() => run(() => redeemGift(g.gift_code))}
+                            className={`${BUTTON} border-glow/50 text-glow hover:bg-glow/10`}
+                          >
+                            지급 처리
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
 
-      {/*
-        난이도가 목표대로 가는지 — 속도 · 통과선은 대표님의 일곱 판에 맞춘 어림이라, 손님 기록이 쌓이면 여기서 확인하고
-        xmasGameEngine.ts 의 show · BONUS_PASS_RATE 를 고친다. 맨 아래에 둔다(현장에서 여는 화면이라 위쪽은 코드 확인이 차지한다).
-      */}
-      {stats && (
+      {tab === "ranks" && (
         <section>
-          <h2 className="mb-1 text-h3 font-semibold">난이도 확인</h2>
+          <h2 className="mb-1 text-h3 font-semibold">랭킹</h2>
           <p className="mb-3 text-body-sm text-muted">
-            사람(브라우저) 기준입니다. 처음 잡은 목표는 세 판 안에 선물 점수 통과 80%, 이어하기 17라운드 이상 10%,
-            20라운드 도달 5%입니다. 인원이 적을 때는 한두 명에 크게 움직입니다.
+            사람마다 가장 좋은 기록 하나입니다(위에서 {ranks.length}명). 숨기면
+            그 사람의 기록 전부가 고객 화면 랭킹에서 빠집니다.
           </p>
-          <dl className="grid grid-cols-1 gap-3 md:grid-cols-3">
-            {[
-              ["세 판 안에 선물 점수 통과", stats.passed3, stats.players, "5라운드를 마친"],
-              ["17라운드 이상", stats.r17, stats.bonus, "이어하기를 한"],
-              ["20라운드 도달", stats.r20, stats.bonus, "이어하기를 한"],
-            ].map(([label, part, whole, who]) => (
-              <div key={label} className="rounded-lg border border-line bg-fill-subtle px-4 py-3">
-                <dt className="text-label text-muted">{label}</dt>
-                <dd className="mt-1 text-h2 font-extrabold tabular-nums">{percent(Number(part), Number(whole))}</dd>
-                <dd className="mt-1 text-label text-muted tabular-nums">
-                  {who} {whole}명 중 {part}명
-                </dd>
-              </div>
-            ))}
-          </dl>
+          {ranks.length === 0 ? (
+            <p className="text-body-sm text-muted">
+              아직 등록된 기록이 없습니다.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-line">
+              <table className="w-full min-w-[520px] text-left text-body-sm">
+                <thead className="bg-fill text-label text-muted">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">#</th>
+                    <th className="px-3 py-2 font-semibold">닉네임</th>
+                    <th className="px-3 py-2 font-semibold">점수</th>
+                    <th className="px-3 py-2 font-semibold">라운드</th>
+                    <th className="px-3 py-2 font-semibold">최대 콤보</th>
+                    <th className="px-3 py-2 font-semibold">기록 시각</th>
+                    <th className="px-3 py-2" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {ranks.map((r, i) => (
+                    <tr
+                      key={r.id}
+                      className={`border-t border-line-subtle ${r.hidden ? "text-disabled" : ""}`}
+                    >
+                      <td className="px-3 py-2 tabular-nums text-muted">
+                        {i + 1}
+                      </td>
+                      <td className="px-3 py-2 font-semibold">
+                        {r.nickname}
+                        {r.hidden && (
+                          <span className="ml-2 text-label font-normal text-muted">
+                            숨김
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 tabular-nums">{r.score}</td>
+                      <td className="px-3 py-2 tabular-nums">{r.round}</td>
+                      <td className="px-3 py-2 tabular-nums">{r.max_combo}</td>
+                      <td className="px-3 py-2 tabular-nums text-muted">
+                        {kstDateTime(r.finished_at)}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() =>
+                            run(() => setPlayerHidden(r.player_id, !r.hidden))
+                          }
+                          className={`${BUTTON} border-line text-foreground hover:bg-fill`}
+                        >
+                          {r.hidden ? "다시 보이기" : "숨김"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
     </div>
