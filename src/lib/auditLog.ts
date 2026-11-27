@@ -83,7 +83,11 @@ export type AuditAction =
   // 광고 문자 (정보통신망법 — 누구에게 언제 보냈는지, 거부를 언제 받았는지 남긴다)
   | "marketing_sms.sent"
   | "marketing_optout.added"
-  | "marketing_optout.removed";
+  | "marketing_optout.removed"
+  // 크리스마스 게임 (선물은 코드 하나에 한 번이다 — 누가 언제 지급 처리했는지 남긴다)
+  | "xmas_game.gift_redeemed"
+  | "xmas_game.gift_restored"
+  | "xmas_game.hidden";
 
 export type AuditTargetType =
   | "application"
@@ -106,7 +110,8 @@ export type AuditTargetType =
   | "popup"
   | "ranking"
   | "group_booking_inquiry"
-  | "group_booking_closure";
+  | "group_booking_closure"
+  | "xmas_game";
 
 /** 요청한 브라우저의 IP·UA. 공유 계정이라 이거라도 남겨야 구분이 된다. */
 async function requestContext(): Promise<{ ip: string | null; ua: string | null }> {

@@ -50,6 +50,7 @@ export const ADMIN_MENU: { label: string; items: { href: string; label: string }
       { href: "/reviews", label: "후기" },
       { href: "/popups", label: "접속 팝업" },
       { href: "/season", label: "시즌 스킨" },
+      { href: "/xmas-game", label: "크리스마스 게임" },
       { href: "/rankings", label: "랭킹" },
     ],
   },

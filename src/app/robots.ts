@@ -26,6 +26,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       // /internal은 우리 기기를 분석에서 빼는 스위치 — 운영자만 쓴다.
       // /codename은 외부 게시물 링크로만 도달하는 이벤트 답안 제출 화면 —
       // sitemap.ts에도 넣지 않는다(문제를 안 본 사람이 검색으로 먼저 닿으면 곤란).
+      // ⚠️ /santa-calendar(크리스마스 게임)는 여기서 막지 않는다 — 공유 링크로 닿는 화면이라, 막으면 인스타 DM
+      // 같은 곳이 공유 카드를 읽어 가지 못한다. 색인은 그 페이지의 noindex 가 막는다.
       disallow: [
         "/login",
         "/signup",

@@ -1,5 +1,5 @@
 /*
-  시즌 스킨 (2026-10-21, 할로윈).
+  시즌 스킨 (2026-10-21 할로윈, 2026-11-20 크리스마스).
 
   켜고 끄는 건 어드민 > 시즌 스킨이다. 켜지면 루트 레이아웃이 <html data-season="halloween">
   을 달고, 이 파일의 규칙이 전부 그 표시를 조건으로 걸린다. **표시가 없으면 이 파일은
@@ -7,6 +7,10 @@
 
   수치는 승인 시안(wouldyouescape-halloween-claude 패키지의 halloween-reference.css ·
   ASSET-MAP.md)을 따랐다. 로고 모자는 우리 로고 크기가 시안과 달라 비율(%)로 옮겼다.
+
+  크리스마스는 할로윈과 **같은 자리**(로고 모자 · 버튼 옆 · 제목 옆 · 포스터)를 쓰고 그림만
+  바꾼다(SeasonArt 의 CHRISTMAS_SWAP). 자리 규칙(.season-hat-- 등)은 두 스킨이 같이 쓰고,
+  색과 크리스마스에서만 다른 크기는 맨 아래 「크리스마스」 칸에서 덮는다.
 
   ⚠️ 이 파일은 Tailwind 레이어 **밖**에 있다. 같은 요소에 Tailwind 클래스가 있어도 여기
      규칙이 이긴다(레이어 밖 > 레이어 안). 장식 요소에만 쓰는 이름(season-*)을 겨냥할 것.
@@ -17,7 +21,7 @@
 /* ── 켜고 끄기 ───────────────────────────────────────────────────────────── */
 
 /* 꺼져 있으면 장식은 아예 없는 것처럼. 켜지면 요소 자신의 display(Tailwind 포함)를 쓴다. */
-html:not([data-season="halloween"]) :is(.season-art, .season-only) {
+html:not([data-season]) :is(.season-art, .season-only) {
   display: none !important;
 }
 
@@ -30,6 +34,14 @@ html:not([data-season="halloween"]) :is(.season-art, .season-only) {
   pointer-events: none;
   user-select: none;
   max-width: none;
+}
+
+/* 일러스트 파일로 된 장식(크리스마스) — 그림은 요소의 CSS 배경이다(SeasonArt.tsx). 칸 안에 다 보이게 맞춘다. */
+.season-pic {
+  display: inline-block;
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 /* ── 색 ──────────────────────────────────────────────────────────────────── */
@@ -1163,4 +1175,663 @@ body:has(.apply-cta-bar) :is(.season-bd-ground, .season-bd-pumpkin) {
 /* 단체 예약 페이지(/group)에서는 유령을 숨긴다 — 오른쪽 가장자리의 스위치·버튼을 가린다. */
 body:has(.group-quote-flow) .season-egg {
   display: none;
+}
+
+/* ══ 크리스마스 (2026-11-20) ═══════════════════════════════════════════════ */
+
+/*
+  색 — 눈 내리는 밤의 남색 위에 흰 눈. 포인트는 **옅은 하늘색**(2026-11-27 최종 시안 — 대표님이 빨간 스킨 색 대신
+  시안 색을 사이트 전체에 쓰기로 골랐다). 버튼 글자는 사이트 기본값(짙은 남색)을 그대로 쓴다 — 밝은 바탕이라 흰 글자가 안 읽힌다.
+  ⚠️ 포인트를 금빛 · 주황으로 두지 않는다 — 할로윈 스킨의 주황과 같아 보인다(2026-11-25 대표님).
+     금빛 · 빨강은 전구 · 방울 · 리본 · 포스터 테두리 같은 장식 그림 안에서만 쓴다.
+  판 · 테두리(--surface · --panel …)는 이 남색 바탕에 맞춘 값이다. 모드 색(파티 민트 · 노말 시안)은 그대로 둔다.
+*/
+html[data-season="christmas"] {
+  --background: #09112c;
+  --background-deep: #09112c;
+  --surface: #10162a;
+  --foreground: #f4f8fe;
+  --muted: #a9bfdd;
+  --border: #2e3552;
+  --brand: #9fc2f5;
+  --brand-soft: #9fc2f526;
+  --glow: #cfe2ff;
+  --star: #f4f8fe;
+  --glass-border: #e8eeff22;
+  --panel: #141a2c;
+  --panel-raised: #1a2238;
+  --panel-border: #343a55;
+  --surface-glass-from: #182038e8;
+  --surface-glass-to: #0d1224e8;
+  --orbit-ring: #bed6ff4d;
+}
+
+html[data-season="christmas"] .site-header {
+  border-bottom: 1px solid #ffffff14;
+}
+
+html[data-season="christmas"] .site-header:not([data-home]) {
+  background-color: #0a0f22d9;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+html[data-season="christmas"] .site-header:not([data-home]) > div {
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/*
+  산타 모자 — 로고(행성) 머리 위에 눌러 씌운다. 그림(xmas-santa-hat-logo.webp)은 **이 로고에 맞춰 따로 그린 것**이라
+  털 띠 아랫선이 로고 윗선을 따라 휜다(2026-11-27 대표님). 기성 모자 그림을 얹었을 때는 크기 · 자리를 어떻게 맞춰도
+  "앞에 붙인 것 같다" 였다.
+  ⚠️ 수치는 원본 캔버스(로고와 같은 비율)에서 모자가 놓인 자리 그대로다 — 왼쪽 32.1%, 위 −14.2%(모자가 로고 위로 솟는다), 폭 58.3%. 돌리지 않는다.
+     그림을 바꾸면 이 세 값을 새 그림의 자리로 다시 잰다.
+*/
+html[data-season="christmas"] :is(.season-hat--header, .season-hat--hero) {
+  width: 58.3%;
+  /* 정수리가 아니라 살짝 오른쪽으로 치우쳐 쓴 그림이다(왼쪽 w 가 드러난다). 그린 자리 그대로 둔다 — 코드에서 옆으로
+     옮기거나 기울이면 털 띠가 로고 윗선과 어긋나 글자를 가린다(둘 다 해 봤다 — 2026-11-27 대표님) */
+  left: 32.1%;
+  top: -14.2%;
+  transform: none;
+}
+
+/* YES 옆 선물 — 반짝임은 빨갛게 */
+@keyframes xmas-cta-idle {
+  0%,
+  100% {
+    opacity: 0.8;
+    filter: drop-shadow(0 0 6px rgb(255 96 96 / 0)) drop-shadow(0 0 16px rgb(255 96 96 / 0))
+      drop-shadow(0 0 30px rgb(255 96 96 / 0));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 6px rgb(255 96 96 / 0.95)) drop-shadow(0 0 16px rgb(255 96 96 / 0.6))
+      drop-shadow(0 0 30px rgb(255 96 96 / 0.35));
+  }
+}
+
+html[data-season="christmas"] .hero-cta-label-default {
+  animation-name: xmas-cta-idle;
+}
+
+html[data-season="christmas"] .season-cta-pumpkin {
+  transform: rotate(-6deg);
+}
+
+html[data-season="christmas"] .season-cta:hover .season-cta-pumpkin {
+  transform: rotate(4deg) translateY(-2px);
+}
+
+/* 'Planets to Escape' 옆 — 박쥐 자리의 방울 */
+html[data-season="christmas"] .season-title-bat {
+  width: 38px;
+  height: 36px;
+  left: -48px;
+  top: -12px;
+  transform: rotate(-12deg);
+}
+
+/* 제목 옆 — 유령 자리의 루돌프 */
+html[data-season="christmas"] .season-heading-ghost {
+  width: 40px;
+  height: 40px;
+  top: -14px;
+  transform: rotate(10deg);
+}
+
+/* 포스터 — 빨간 테두리, 왼쪽 위 호랑가시 하나, 오른쪽 위 빨간 CHRISTMAS EDITION 태그 */
+html[data-season="christmas"] .season-poster-frame {
+  border-color: #d8454c;
+  box-shadow: 0 0 0 4px #e5484d12, 0 10px 40px #04060f80;
+}
+
+html[data-season="christmas"] .season-poster-frame:hover {
+  border-color: #ff7b7b;
+}
+
+html[data-season="christmas"] .season-poster-web {
+  left: 6px;
+  top: 6px;
+  width: 52px;
+  height: 46px;
+  opacity: 1;
+  transform: rotate(-14deg);
+  filter: drop-shadow(0 2px 3px #0009);
+}
+
+html[data-season="christmas"] .season-poster-tag {
+  border-color: #ed6b71;
+  background: #ad263d;
+  color: #fff4d6;
+  text-shadow: 0 1px 1px rgb(60 0 10 / 0.5);
+}
+
+/* 금별은 빨간 바탕에서 그대로 보인다 — 할로윈처럼 하얗게 칠하지 않는다. */
+html[data-season="christmas"] .season-poster-tag-spark {
+  filter: none;
+}
+
+html[data-season="christmas"] .season-poster-decor--compact .season-poster-web {
+  width: 30px;
+  height: 27px;
+  left: 3px;
+  top: 3px;
+}
+
+/*
+  포스터 위에 쌓인 눈 — 칸 폭에 맞춰 옆으로 늘인다(SeasonArt 의 fit="none").
+  포스터 칸이 overflow-hidden 이라 칸 밖으로 얹지 못한다 — 안쪽 맨 위에 붙인다.
+*/
+.season-poster-snow {
+  position: absolute;
+  z-index: 4;
+  left: 0;
+  top: -2px;
+  width: 100%;
+  height: 24px;
+  filter: drop-shadow(0 2px 2px rgb(4 6 15 / 0.35));
+}
+
+.season-poster-decor--compact .season-poster-snow {
+  height: 13px;
+}
+
+/* 태그는 눈 아래로 내린다 — 그대로 두면 눈 끝자락에 걸친다 */
+html[data-season="christmas"] .season-poster-tag {
+  top: 20px;
+}
+
+/* 공지 강조 — 제목에 '크리스마스'가 든 공지 */
+html[data-season="christmas"] [data-season-highlight] {
+  background: linear-gradient(90deg, #d94c551a, #0f5b4b1f);
+  box-shadow: inset 3px 0 #e5484d;
+}
+
+html[data-season="christmas"] [data-season-highlight] button {
+  color: #ffc4c4;
+}
+
+/* 자주 묻는 질문 — 네이비 유리 + 초록 테두리, 열면 빨간 띠. 질문 앞 호랑가시 */
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) {
+  background:
+    linear-gradient(120deg, transparent 62%, rgb(225 235 255 / 0.06) 78%, rgb(225 235 255 / 0.06) 84%, transparent 100%),
+    linear-gradient(160deg, rgb(30 40 78 / 0.55), rgb(10 14 32 / 0.7));
+  border-color: rgb(63 180 134 / 0.32);
+  box-shadow:
+    inset 0 1px 0 rgb(232 238 255 / 0.1),
+    0 0 20px -8px rgb(63 180 134 / 0.3),
+    0 20px 45px rgb(0 0 0 / 0.4);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row):hover {
+  border-color: rgb(63 180 134 / 0.75);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row)::after {
+  background-image: linear-gradient(120deg, transparent 46%, rgb(232 238 255 / 0.3) 50%, transparent 54%);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row):is([open], :has(> button[aria-expanded="true"])) {
+  border-color: rgb(63 180 134 / 0.6);
+  box-shadow:
+    inset 3px 0 #e5484d,
+    0 0 24px -6px rgb(229 72 77 / 0.35),
+    0 20px 45px rgb(0 0 0 / 0.4);
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) > :is(button, summary) > span:first-child::before {
+  content: "";
+  display: inline-block;
+  width: 1.15em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.12em;
+  background: url("/season/christmas/xmas-holly.webp") center / contain no-repeat;
+}
+
+html[data-season="christmas"] .season-faq :is(.hud-panel, .faq-row) > :is(button, summary) > span:last-child {
+  color: #ff7b7b;
+}
+
+/* 테마 상세 블록 카드 · '참여 전 확인' 번호(산타 · 루돌프 · 리스 · 방울) */
+html[data-season="christmas"] .season-card {
+  background: linear-gradient(160deg, rgb(30 40 78 / 0.45), rgb(10 14 32 / 0.6));
+  border-color: rgb(63 180 134 / 0.24);
+  box-shadow: inset 0 1px 0 rgb(232 238 255 / 0.07);
+}
+
+html[data-season="christmas"] .season-callout-badge {
+  background: rgb(229 72 77 / 0.14);
+  box-shadow: 0 0 14px -4px rgb(229 72 77 / 0.5);
+}
+
+html[data-season="christmas"] .season-callout-num {
+  display: none;
+}
+
+/* ── 크리스마스 장면(ChristmasBackdrop.tsx · xmas/xmasSceneEngine.ts) ── */
+
+/*
+  겹 순서(뒤에서 앞으로): 하늘(-20) → 사이트의 별빛(-10) → 장면(-5, .season-backdrop) → 사이트 콘텐츠 → 앞 겹(25).
+  자리 · 크기는 엔진이 화면 크기에서 계산해 요소에 직접 넣는다. 여기는 겹 순서와 움직임만 담는다.
+  --sy 는 홈에서 스크롤한 만큼(0→1) — 엔진이 넣는다. 홈 밖에서는 늘 0 이다.
+*/
+.xmas-sc-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
+  background: linear-gradient(180deg, #060b1f 0%, #09112c 60%);
+}
+
+/* 사이트의 별빛은 그대로 두되 눌러 둔다 — 또렷하면 내리는 눈과 섞여 지저분하다 */
+html[data-season="christmas"] .site-starfield {
+  opacity: 0.55;
+}
+
+.xmas-sc,
+.xmas-sc-front {
+  --sy: 0;
+}
+
+/*
+  앞 겹 — 눈덩이와 캐릭터 손잡이가 사이트 글보다 위에 떠서 눌린다. 그것들만 누를 수 있고 나머지는 통과시킨다.
+  하단 고정 버튼 막대(z-30) · 헤더(z-50) · 팝업(z-60)보다는 아래다.
+*/
+.xmas-sc-front {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 홈 — 히어로를 지나면 앞 겹을 먼저 감추고(뒤 장면의 글자 위에 눈덩이가 남지 않게) 눌리지 않게 한다 */
+.xmas-sc-front.xmas-sc--home {
+  opacity: calc(1 - var(--sy) * 2.2);
+}
+
+.xmas-sc-off * {
+  pointer-events: none !important;
+}
+
+.xmas-sc-layer {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+
+/* 땅(언덕 · 요소) — 홈에서 스크롤하면 가라앉으며 흐려진다 */
+.xmas-sc-ground {
+  position: absolute;
+  inset: 0;
+  transform: translateY(calc(var(--sy) * 26%));
+  opacity: calc(1 - var(--sy) * 0.5);
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.5s;
+}
+
+/* 하늘 쪽(달 · 썰매) */
+.xmas-sc-skyart {
+  position: absolute;
+  inset: 0;
+  opacity: calc(1 - var(--sy) * 0.72);
+  transition: opacity 0.5s;
+}
+
+/* 히어로를 지나면 장면을 하늘색으로 눌러 뒤 장면(행성 · 인스타 · 공지)의 글자를 살린다 */
+.xmas-sc-dim {
+  position: absolute;
+  inset: 0;
+  background: #09112c;
+  opacity: calc(var(--sy) * 0.5);
+  transition: opacity 0.5s;
+}
+
+.xmas-sc-pt,
+.xmas-sc-bg {
+  position: absolute;
+}
+
+/* 그림 위에 얹는 빛 · 연기 */
+.xmas-sc-pt > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.xmas-sc-char,
+.xmas-sc-float {
+  width: 100%;
+  height: 100%;
+}
+
+.xmas-sc-sleigh {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  transform-origin: 50% 50%;
+}
+
+.xmas-sc-snow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 우쥬 — 전구 줄에 걸린 채 떠다닌다. 손길에 흔들리는 것은 그 안의 그림이다(엔진) */
+.xmas-sc-float {
+  animation: xmas-sc-float 8s ease-in-out infinite;
+}
+
+@keyframes xmas-sc-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(6px, -10px);
+  }
+}
+
+/* 홈 밖의 케이프 — 고리를 중심으로 잔잔히 흔들린다(홈에서는 엔진이 손길에 맞춰 돌린다) */
+.xmas-sc-swing {
+  animation: xmas-sc-swing 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes xmas-sc-swing {
+  from {
+    transform: rotate(-7deg);
+  }
+  to {
+    transform: rotate(7deg);
+  }
+}
+
+/* 전구 빛 — 세 무리가 번갈아 깜빡인다(무리마다 1.1초씩 어긋난다) */
+.xmas-sc-glow {
+  animation: xmas-sc-glow 3.3s ease-in-out infinite;
+}
+
+@keyframes xmas-sc-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.1;
+  }
+}
+
+/* 가로등 · 랜턴의 등불 */
+.xmas-sc-bulb {
+  animation: xmas-sc-bulb 3.5s ease-in-out infinite;
+}
+
+@keyframes xmas-sc-bulb {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 굴뚝 연기 — 원 세 개가 차례로 오르며 사라진다 */
+.xmas-sc-smoke circle {
+  fill: rgb(255 255 255 / 0.35);
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: xmas-sc-smoke 5s linear infinite;
+}
+
+.xmas-sc-smoke circle:nth-child(2) {
+  animation-delay: -1.7s;
+}
+
+.xmas-sc-smoke circle:nth-child(3) {
+  animation-delay: -3.4s;
+}
+
+@keyframes xmas-sc-smoke {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate(16px, -44px) scale(1.7);
+    opacity: 0;
+  }
+}
+
+/* ── 눈덩이 굴리기 ── */
+.xmas-sc-baby {
+  position: absolute;
+  transform-origin: 50% 100%;
+}
+
+.xmas-sc-baby > div,
+.xmas-sc-ball > div {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* 아기 눈사람이 생길 때 — 눌렸다 튀어 오른다 */
+.xmas-sc-pop {
+  animation: xmas-sc-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes xmas-sc-pop {
+  0% {
+    transform: scale(0.55, 0.3);
+  }
+  60% {
+    transform: scale(1.06, 1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/*
+  너무 많아지면 먼저 만든 것부터 녹는다 — 눈밭 속으로 천천히 가라앉고, 발치에 눈 웅덩이가 퍼졌다 스민다.
+  통째로 납작하게 줄였더니 "가판대가 뒤로 넘어가는 것 같다 · 그림이 축소되는 게 뻔히 보인다" 였다(2026-11-27 대표님).
+  가라앉는 만큼 아래를 잘라(clip-path) 땅 선 밑으로는 안 보이게 한다 — 두 값(translateY · inset 아래)은 늘 같아야 한다.
+  ⚠️ 시간(1.5초)은 엔진이 요소를 치우는 시간과 같다(xmasSceneEngine.ts 의 make).
+*/
+.xmas-sc-melt > div {
+  transform-origin: 50% 100%;
+  animation: xmas-sc-melt 1.5s cubic-bezier(0.5, 0, 0.8, 0.6) forwards;
+}
+
+@keyframes xmas-sc-melt {
+  0% {
+    transform: translateY(0) scaleX(1);
+    clip-path: inset(0 -20% 0 -20%);
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(78%) scaleX(1.1);
+    clip-path: inset(0 -20% 78% -20%);
+    opacity: 0;
+  }
+}
+
+.xmas-sc-melt::after {
+  content: "";
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  bottom: -4%;
+  height: 16%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.9), rgb(232 240 255 / 0.5) 70%, transparent);
+  animation: xmas-sc-puddle 1.5s ease-out forwards;
+}
+
+@keyframes xmas-sc-puddle {
+  0% {
+    transform: scaleX(0.3);
+    opacity: 0;
+  }
+  55% {
+    transform: scaleX(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: scaleX(1.45);
+    opacity: 0;
+  }
+}
+
+/* touch-action: none — 휴대폰에서 끌 때 화면이 같이 스크롤되지 않게 */
+.xmas-sc-ball,
+.xmas-sc-hit {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.xmas-sc-ball {
+  left: 0;
+  top: 0;
+}
+
+/* 휴대폰에서는 눈덩이가 15px 남짓이다 — 누를 수 있는 범위를 둘레로 14px 넓힌다 */
+.xmas-sc-ball::after {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border-radius: 9999px;
+}
+
+.xmas-sc-grab {
+  cursor: grabbing;
+}
+
+.xmas-sc-in {
+  animation: xmas-sc-in 0.45s ease-out both;
+}
+
+@keyframes xmas-sc-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 이스의 썰매 손잡이 — 엔진이 썰매와 같은 자리로 옮긴다 */
+.xmas-sc-hit--sleigh {
+  left: 0;
+  top: 0;
+  transform-origin: 50% 50%;
+}
+
+/*
+  홈 밖 — 배경은 화면에 고정이라 본문이 늘 그 위로 지나간다. 장면을 낮추고(엔진) 통째로 연하게 누른다.
+  눈덩이 · 아기 눈사람(앞 겹)은 누르지 않는다 — 눌러야 하는 것이라 또렷해야 한다.
+*/
+.xmas-sc.xmas-sc--page .xmas-sc-ground {
+  opacity: 0.45;
+  /*
+    가운데(본문이 지나가는 자리)는 더 눌러 언덕 윤곽만 남기고, 좌우 끝의 트리 · 집은 그대로 둔다
+    (2026-11-27 대표님 — "가장자리만 + 연하게"). 눈 언덕이 밝아서 가운데까지 같은 밝기면 그 위 글자가 묻힌다.
+  */
+  -webkit-mask-image: linear-gradient(90deg, #000 0, #000 9%, rgb(0 0 0 / 0.38) 26%, rgb(0 0 0 / 0.38) 74%, #000 91%, #000 100%);
+  mask-image: linear-gradient(90deg, #000 0, #000 9%, rgb(0 0 0 / 0.38) 26%, rgb(0 0 0 / 0.38) 74%, #000 91%, #000 100%);
+}
+
+/* 홈 밖의 달 — 본문 뒤에 비치므로 흐리게 */
+.xmas-sc.xmas-sc--page .xmas-sc-moon {
+  opacity: 0.3;
+}
+
+/* 좁은 화면은 본문이 화면 폭을 다 쓴다 — 가장자리랄 것이 없으니 통째로 더 누른다 */
+@media (max-width: 767px) {
+  .xmas-sc.xmas-sc--page .xmas-sc-ground {
+    opacity: 0.3;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* 홈의 SCROLL 표시 — 글자가 흰 눈길 위에 놓인다. 짙은 남색으로 바꾸고 흰 글자용 그림자를 뗀다 */
+html[data-season="christmas"] :has(> .scroll-cue-rail) > span:first-child {
+  color: #16294a !important;
+  text-shadow: none !important;
+}
+
+/* 푸터 — 화면 맨 아래에서 풍경(언덕 · 마을) 위에 놓인다. 어둡게 깔아 글자가 읽히게 한다. */
+html[data-season="christmas"] .site-footer {
+  background: rgb(7 12 32 / 0.84);
+}
+
+/*
+  하단 고정 버튼 막대 위로 바닥(언덕 · 눈덩이)을 올린다 — 수치는 할로윈과 같은 막대 실측값(위 「하단 고정 버튼 막대」).
+  막대가 거의 불투명이라 그대로 두면 눈덩이가 막대에 가려 눌리지 않는다.
+*/
+@media (max-width: 639px) {
+  body:has(.mobile-cta-bar) .xmas-sc-floor {
+    translate: 0 -79px;
+  }
+}
+
+body:has(.apply-cta-bar) .xmas-sc-floor {
+  translate: 0 -88px;
+}
+
+@media (min-width: 1024px) {
+  body:has(.apply-cta-bar) .xmas-sc-floor {
+    translate: 0 -95px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 스크롤해도 풍경을 움직이지 않는다 — 밝기만 낮춘다. 깜빡임 · 연기 · 흔들림도 멈춘다(눈은 엔진이 안 그린다) */
+  .xmas-sc-ground {
+    transform: none;
+    transition: opacity 0.5s;
+  }
+
+  .xmas-sc-float,
+  .xmas-sc-swing,
+  .xmas-sc-glow,
+  .xmas-sc-bulb,
+  .xmas-sc-smoke circle,
+  .xmas-sc-pop,
+  .xmas-sc-in {
+    animation: none;
+  }
+
+  .xmas-sc-smoke circle {
+    opacity: 0.4;
+  }
+
+  html[data-season="christmas"] .hero-cta-label-default {
+    animation: none;
+    filter: drop-shadow(0 0 5px rgb(255 96 96 / 0.55));
+  }
 }

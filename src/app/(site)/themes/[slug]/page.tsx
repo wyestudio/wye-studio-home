@@ -51,6 +51,7 @@ import { ModeBox, modeHref, modeKey } from "./ModeBox";
 import { ModeHud } from "./ModeHud";
 import { getSiteSkin } from "@/lib/siteSeason";
 import { HalloweenEventSection } from "./HalloweenEventSection";
+import { XmasGameSection } from "@/components/xmas-game/XmasGameSection";
 import { HALLOWEEN_ACCENT } from "@/lib/season";
 import { PosterSeasonDecor, SeasonArt } from "@/components/season/SeasonArt";
 import { SectionViewTracker } from "./SectionViewTracker";
@@ -424,7 +425,9 @@ export default async function ThemeDetailPage({
        노말(파랑)을 색으로 가르는데, 파티가 주황이 되면 얼리버드 노랑과 헷갈린다.
     ⚠️ 노말모드(시안)는 그대로다. 모드를 색으로 구분하는 건 시즌에도 유지한다.
   */
-  const halloween = (await getSiteSkin()) === "halloween";
+  const skin = await getSiteSkin();
+  const halloween = skin === "halloween";
+  const christmas = skin === "christmas";
   const seasonAccent = halloween && theme.id === themeLevel.id ? HALLOWEEN_ACCENT : accent;
   const modeVariants = halloween
     ? variants.map((v) => (v.id === themeLevel.id ? { ...v, accent_color: HALLOWEEN_ACCENT } : v))
@@ -564,7 +567,7 @@ export default async function ThemeDetailPage({
                   때는 태그가 안 들어가 작은 쪽(compact)을 쓴다.
                 */}
                 {/* 시즌이 꺼지면 아예 안 그린다 — 장식 글자가 페이지 데이터에 남아 AI 가 시즌 상품으로 읽었다 */}
-                {halloween && themeLevel.hero_image_path && (
+                {skin && themeLevel.hero_image_path && (
                   <>
                     <span className={synopsis ? "sm:hidden" : ""}>
                       <PosterSeasonDecor compact />
@@ -710,6 +713,17 @@ export default async function ThemeDetailPage({
       {halloween && base.slug === "baotalchul" && (
         <div className={`mx-auto w-full max-w-4xl ${SCREEN_SECTION}`}>
           <HalloweenEventSection />
+        </div>
+      )}
+
+      {/*
+        ── 크리스마스 이벤트(미니게임) ── 할로윈 이벤트와 같은 자리. 스킨이 켜져 있으면 모든 테마에 붙는다
+        (2026-11-26 대표님). 여기서는 안내와 「게임 참여하기」 만 그린다 — 게임은 새 창(/santa-calendar)에서
+        열리고, 판 기록 · 랭킹은 브라우저가 Supabase 로 바로 보낸다(이 페이지의 서버 렌더가 늘지 않는다).
+      */}
+      {christmas && (
+        <div className={`mx-auto w-full max-w-4xl ${SCREEN_SECTION}`}>
+          <XmasGameSection themeLabel={theme.name} accent={seasonAccent} />
         </div>
       )}
 

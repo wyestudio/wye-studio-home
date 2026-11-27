@@ -124,6 +124,45 @@ const HALLOWEEN_MASCOTS: Record<MascotId, MascotMeta> = {
   kape: { ...MASCOTS.kape, ...HALLOWEEN_ART.kape },
 };
 
+/*
+  시즌 스킨(크리스마스) — 최종 시안의 크리스마스판 그림(2026-11-27 대표님).
+    우쥬 — 전구 줄에 감긴 모습 · 이스 — 썰매를 탄 모습 · 케이프 — 트리의 구슬 오너먼트
+  홈에서는 캐릭터가 궤도를 돌지 않고 배경 장면 안에 있다(ChristmasBackdrop.tsx). 거기서 누르면 커서 캐릭터가
+  이 그림으로 바뀐다. 그림은 장면과 같은 폴더(public/season/christmas/scene/)에 있다.
+*/
+const CHRISTMAS_ART: Record<MascotId, MascotArt> = {
+  woodju: {
+    orbitSrc: "/season/christmas/scene/woodju.png",
+    orbitWidth: 92,
+    orbitHeight: 83,
+    cursorSrc: "/season/christmas/scene/woodju.png",
+    cursorWidth: 46,
+    cursorHeight: 42,
+  },
+  is: {
+    orbitSrc: "/season/christmas/scene/is.png",
+    orbitWidth: 80,
+    orbitHeight: 74,
+    cursorSrc: "/season/christmas/scene/is.png",
+    cursorWidth: 46,
+    cursorHeight: 43,
+  },
+  kape: {
+    orbitSrc: "/season/christmas/scene/kape.png",
+    orbitWidth: 62,
+    orbitHeight: 80,
+    cursorSrc: "/season/christmas/scene/kape.png",
+    cursorWidth: 36,
+    cursorHeight: 47,
+  },
+};
+
+const CHRISTMAS_MASCOTS: Record<MascotId, MascotMeta> = {
+  woodju: { ...MASCOTS.woodju, ...CHRISTMAS_ART.woodju },
+  is: { ...MASCOTS.is, ...CHRISTMAS_ART.is },
+  kape: { ...MASCOTS.kape, ...CHRISTMAS_ART.kape },
+};
+
 /**
  * 홈 자유이동(MascotFreeRoam)에서 마스코트마다 다르게 움직이는 방식.
  *   top · bottom — 돌아다닐 세로 띠(화면 높이 대비, 마스코트 중심 기준). 없으면 어디든.
@@ -160,5 +199,7 @@ export const HALLOWEEN_ROAM: Partial<Record<MascotId, RoamStyle>> = {
 
 /** 지금 스킨에 맞는 마스코트 목록. 스킨이 없으면 원래 것. */
 export function mascotsForSkin(skin: SiteSkin | null): Record<MascotId, MascotMeta> {
-  return skin === "halloween" ? HALLOWEEN_MASCOTS : MASCOTS;
+  if (skin === "halloween") return HALLOWEEN_MASCOTS;
+  if (skin === "christmas") return CHRISTMAS_MASCOTS;
+  return MASCOTS;
 }

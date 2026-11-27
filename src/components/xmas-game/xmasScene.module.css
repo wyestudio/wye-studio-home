@@ -1,0 +1,116 @@
+/*
+  「산타의 어드벤트 캘린더」 의 색과 배경 — 게임 화면(XmasGame)과 상세 페이지의 이벤트 블록(XmasGameSection)이 같이 쓴다.
+
+  .theme  색 · 글꼴 이름표. 이 두 화면의 CSS 는 색을 직접 적지 않고 여기 이름으로만 칠한다 —
+          한 곳만 고치면 게임 화면과 상세 페이지가 같이 바뀐다.
+  .scene  배경: 짙은 솔잎색 밤 + 흩날리는 눈 + 아래쪽 눈 언덕과 나무 두 그루(2026-11-26 대표님 —
+          "초록 바탕에 점 격자" 를 걷어내고 깔끔한 크리스마스 풍경으로).
+  .falling 눈이 천천히 내린다. 게임 화면에만 붙인다(상세 페이지는 사이트 배경에 이미 눈이 내린다).
+
+  ⚠️ 눈은 격자가 아니다 — 크기 · 밝기 · 간격이 제각각인 눈송이를 난수로 찍은 장을 되풀이한다.
+     규칙적으로 찍으면 다시 "점 격자" 가 된다(.scene::before 머리말).
+  ⚠️ 그림은 파일이 아니라 이 안에 적어 넣은 SVG 다(내려받는 것이 없다). SVG 안의 색은 이름표를 못 써서 직접 적혀 있다 —
+     눈 #fff, 뒤 언덕 #9fc4b3, 앞 언덕 #fff6dc, 나무 #2f7a5c. 이름표를 바꾸면 여기도 맞춘다.
+*/
+.theme {
+  --x-pine: #0f3d33;
+  --x-pine-light: #1a5745;
+  --x-pine-deep: #0a2a23;
+  --x-pine-veil: #06201acc;
+  --x-snow: #fff6dc;
+  --x-snow-dim: #cfe3d6;
+  --x-snow-glass: #ffffff1f;
+  --x-snow-line: #ffffff47;
+  --x-paper: #fff9e8;
+  --x-paper-shade: #f3ead2;
+  --x-paper-white: #fff;
+  --x-paper-edge: #e3cf9c;
+  --x-paper-lip: #b79d62;
+  --x-ink: #153e35;
+  --x-ink-soft: #47635a;
+  --x-ink-mute: #5d7268;
+  --x-red: #c8372f;
+  --x-red-lip: #8c211b;
+  --x-green: #1f5a47;
+  --x-green-lip: #123a2e;
+  --x-leaf: #23784f;
+  --x-leaf-lip: #175638;
+  --x-mint: #e4eedc;
+  --x-gold: #f1b74c;
+  --x-gold-lip: #b9862a;
+  --x-gold-soft: #fff3cc;
+  --x-gold-edge: #d0a94e;
+  --x-gold-ink: #7a5c14;
+  --x-shadow: #00000059;
+  --x-door: radial-gradient(ellipse at bottom, #769383, #243f36);
+  /* 닫힌 문 세 장의 색(달력의 일곱 색 가운데 셋) — 상세 페이지의 달력 조각이 쓴다 */
+  --x-door-rose: #efb0a1;
+  --x-door-rose-ink: #713d32;
+  --x-door-sun: #f1c56c;
+  --x-door-sun-ink: #704b27;
+  --x-door-pine: #226052;
+  /* 상세 페이지 블록 제목의 "크리스마스" 글자색 — 사이트의 어두운 남색 바탕 위라 판 안의 빨강 · 초록보다 밝다 */
+  --x-title-red: #ff6f61;
+  --x-title-green: #4fd39a;
+  /* 제목 · 숫자 · 버튼의 글꼴(주아). 게임 화면의 레이아웃이 싣는다 — 안 실린 곳(상세 페이지)에서는 사이트 글꼴로 떨어진다 */
+  --x-display: var(--font-jua, var(--font-sans)), var(--font-sans);
+}
+
+.scene {
+  position: relative;
+  overflow: clip;
+  isolation: isolate;
+  color: var(--x-snow);
+  background: linear-gradient(180deg, var(--x-pine-light) 0, var(--x-pine) 42%, var(--x-pine-deep) 100%);
+}
+
+/*
+  눈 — 두 장을 겹쳐 되풀이한다: 잔 눈송이 26개가 흩어진 큰 장(600px)과, 흐릿하고 큰 눈송이 5개의 작은 장(450×300).
+  두 장의 크기가 달라 되풀이가 눈에 잘 안 띈다. 눈송이 자리는 난수로 찍었다 — 손으로 고르게 놓으면 격자로 보인다.
+  내릴 때 이음매가 안 보이게 위로 600px 더 깔아 두고 딱 그만큼 내린다(작은 장의 높이 300 은 600 의 약수여야 한다).
+*/
+.scene::before {
+  content: "";
+  position: absolute;
+  inset: -600px 0 0;
+  z-index: -1;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600' fill='%23fff'%3E%3Ccircle cx='196' cy='94' r='1.0' opacity='0.45'/%3E%3Ccircle cx='221' cy='40' r='1.0' opacity='0.42'/%3E%3Ccircle cx='47' cy='59' r='3.0' opacity='0.46'/%3E%3Ccircle cx='563' cy='376' r='1.2' opacity='0.41'/%3E%3Ccircle cx='580' cy='33' r='1.1' opacity='0.33'/%3E%3Ccircle cx='75' cy='187' r='1.1' opacity='0.46'/%3E%3Ccircle cx='116' cy='63' r='1.2' opacity='0.48'/%3E%3Ccircle cx='297' cy='318' r='2.3' opacity='0.58'/%3E%3Ccircle cx='218' cy='152' r='1.3' opacity='0.36'/%3E%3Ccircle cx='343' cy='314' r='2.5' opacity='0.37'/%3E%3Ccircle cx='582' cy='75' r='3.1' opacity='0.39'/%3E%3Ccircle cx='554' cy='253' r='1.3' opacity='0.46'/%3E%3Ccircle cx='520' cy='190' r='2.4' opacity='0.47'/%3E%3Ccircle cx='274' cy='499' r='2.3' opacity='0.49'/%3E%3Ccircle cx='41' cy='418' r='3.2' opacity='0.40'/%3E%3Ccircle cx='399' cy='19' r='3.3' opacity='0.48'/%3E%3Ccircle cx='296' cy='134' r='2.0' opacity='0.36'/%3E%3Ccircle cx='235' cy='518' r='1.1' opacity='0.41'/%3E%3Ccircle cx='169' cy='86' r='3.8' opacity='0.37'/%3E%3Ccircle cx='250' cy='216' r='3.9' opacity='0.33'/%3E%3Ccircle cx='109' cy='142' r='1.0' opacity='0.55'/%3E%3Ccircle cx='113' cy='171' r='1.2' opacity='0.40'/%3E%3Ccircle cx='339' cy='566' r='1.2' opacity='0.56'/%3E%3Ccircle cx='565' cy='406' r='3.3' opacity='0.41'/%3E%3Ccircle cx='289' cy='241' r='1.0' opacity='0.35'/%3E%3Ccircle cx='101' cy='205' r='1.1' opacity='0.46'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='450' height='300' fill='%23fff'%3E%3Ccircle cx='78' cy='204' r='5.0' opacity='0.14'/%3E%3Ccircle cx='353' cy='238' r='4.0' opacity='0.14'/%3E%3Ccircle cx='7' cy='112' r='5.2' opacity='0.18'/%3E%3Ccircle cx='107' cy='73' r='3.9' opacity='0.20'/%3E%3Ccircle cx='343' cy='123' r='5.2' opacity='0.15'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.falling::before {
+  animation: snowfall 36s linear infinite;
+}
+
+@keyframes snowfall {
+  to {
+    transform: translateY(600px);
+  }
+}
+
+/* 눈 언덕 두 겹과 나무 두 그루 — 화면 맨 아래 */
+.scene::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  z-index: -1;
+  height: var(--x-ground, clamp(56px, 11vh, 120px));
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0 95C200 55 380 60 560 88S900 120 1200 70V120H0Z' fill='%23fff6dc'/%3E%3C/svg%3E")
+      bottom / 100% 100% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80'%3E%3Crect x='26' y='62' width='8' height='16' fill='%23855535'/%3E%3Cpath d='M30 4 12 30h9L8 50h10L4 68h52L42 50h10L39 30h9Z' fill='%232f7a5c'/%3E%3Cpath d='M30 4 21 17q9 5 18 0ZM18 34q12 6 24 0l-3-4H21ZM13 54q17 7 34 0l-5-4H18Z' fill='%23fff6dc'/%3E%3C/svg%3E")
+      left 6% top 8% / auto 62% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 80'%3E%3Crect x='26' y='62' width='8' height='16' fill='%23855535'/%3E%3Cpath d='M30 4 12 30h9L8 50h10L4 68h52L42 50h10L39 30h9Z' fill='%232f7a5c'/%3E%3Cpath d='M30 4 21 17q9 5 18 0ZM18 34q12 6 24 0l-3-4H21ZM13 54q17 7 34 0l-5-4H18Z' fill='%23fff6dc'/%3E%3C/svg%3E")
+      right 9% top 0 / auto 48% no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0 70C150 20 300 20 450 60S750 110 900 55S1100 20 1200 50V120H0Z' fill='%239fc4b3'/%3E%3C/svg%3E")
+      bottom / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .falling::before {
+    animation: none;
+  }
+}

@@ -1,9 +1,12 @@
 /*
-  시즌 장식 그림의 SVG 내용 — public/season/halloween/*.svg 를 그대로 옮겨 둔 것이다.
+  시즌 장식 그림의 SVG 내용.
   SeasonArt 가 <img> 로 불러오지 않고 페이지 안에 직접 그린다(이유는 SeasonArt.tsx).
 
-  ⚠️ 그림을 바꾸면 public 의 파일과 여기를 같이 고친다. 파일은 승인 시안 원본이고,
-     화면이 실제로 그리는 것은 이쪽이다.
+  할로윈 — public/season/halloween/*.svg 를 그대로 옮겨 둔 것이다.
+    ⚠️ 그림을 바꾸면 public 의 파일과 여기를 같이 고친다. 파일은 승인 시안 원본이고,
+       화면이 실제로 그리는 것은 이쪽이다.
+  크리스마스 — scripts/season/gen-christmas-art.mjs 가 맨 아래 칸을 통째로 다시 쓴다.
+    ⚠️ 손으로 고치지 않는다. 일러스트(src 가 있는 칸)는 public/season/christmas/xmas-*.webp 가 원본이다.
 */
 import type { SeasonArtName } from "@/components/season/SeasonArt";
 
@@ -12,6 +15,8 @@ type ArtSvg = {
   /** <svg> 에 붙어 있던 속성. 안쪽 도형이 currentColor 로 이 색을 쓴다. */
   attrs: { fill?: string; color?: string; stroke?: string; strokeWidth?: string };
   inner: string;
+  /** 일러스트 파일 주소. 있으면 SVG 대신 이 파일을 CSS 배경으로 깐다(viewBox 는 비율만 알려 준다). */
+  src?: string;
 };
 
 export const SEASON_ART_SVGS: Record<SeasonArtName, ArtSvg> = {
@@ -64,5 +69,58 @@ export const SEASON_ART_SVGS: Record<SeasonArtName, ArtSvg> = {
     viewBox: "0 0 32 32",
     attrs: {  },
     inner: "<path d=\"M16 1Q17 14 31 16Q17 18 16 31Q14 18 1 16Q14 14 16 1Z\" fill=\"#ffbd61\"/>",
+  },
+  // ── 크리스마스 — scripts/season/gen-christmas-art.mjs 가 쓴다. 손으로 고치지 않는다 ──
+  "xmas-santa-hat": {
+    viewBox: "0 0 312 220",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-santa-hat.webp",
+  },
+  "xmas-santa-hat-logo": {
+    viewBox: "0 0 640 356",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-santa-hat-logo.webp",
+  },
+  "xmas-gift": {
+    viewBox: "0 0 229 246",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-gift.webp",
+  },
+  "xmas-holly": {
+    viewBox: "0 0 300 226",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-holly.webp",
+  },
+  "xmas-wreath": {
+    viewBox: "0 0 302 328",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-wreath.webp",
+  },
+  "xmas-bells": {
+    viewBox: "0 0 286 226",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-bells.webp",
+  },
+  "xmas-rudolph": {
+    viewBox: "0 0 273 292",
+    attrs: {  },
+    inner: "",
+    src: "/season/christmas/xmas-rudolph.webp",
+  },
+  "xmas-sparkle": {
+    viewBox: "0 0 32 32",
+    attrs: {  },
+    inner: "<path d=\"M16 1Q17 14 31 16Q17 18 16 31Q14 18 1 16Q14 14 16 1Z\" fill=\"#ffe6ab\"/>",
+  },
+  "xmas-snowcap": {
+    viewBox: "0 0 400 40",
+    attrs: {  },
+    inner: "<path d=\"M0 14Q0 2 12 2H388Q400 2 400 14V20q-9.1 8.2 -18.2 0.8q-9.1 -4.1 -18.2 -0.8q-9.1 14.8 -18.2 1.5q-9.1 -7.4 -18.2 -1.5q-9.1 10.2 -18.2 1q-9.1 -5.1 -18.2 -1q-9.1 15.7 -18.2 1.6q-9.1 -7.9 -18.2 -1.6q-9.1 14.2 -18.2 1.4q-9.1 -7.1 -18.2 -1.4q-9.1 12.3 -18.2 1.2q-9.1 -6.1 -18.2 -1.2q-9.1 17.5 -18.2 1.7q-9.1 -8.7 -18.2 -1.7q-9.1 9.3 -18.2 0.9q-9.1 -4.7 -18.2 -0.9q-9.1 13.1 -18.2 1.3q-9.1 -6.5 -18.2 -1.3q-9.1 6.8 -18.2 0.7q-9.1 -3.4 -18.2 -0.7q-9.1 13.2 -18.2 1.3q-9.1 -6.6 -18.2 -1.3Z\" fill=\"#bcc7f3\" transform=\"translate(0 3)\"/><path d=\"M0 14Q0 2 12 2H388Q400 2 400 14V20q-9.1 8.2 -18.2 0.8q-9.1 -4.1 -18.2 -0.8q-9.1 14.8 -18.2 1.5q-9.1 -7.4 -18.2 -1.5q-9.1 10.2 -18.2 1q-9.1 -5.1 -18.2 -1q-9.1 15.7 -18.2 1.6q-9.1 -7.9 -18.2 -1.6q-9.1 14.2 -18.2 1.4q-9.1 -7.1 -18.2 -1.4q-9.1 12.3 -18.2 1.2q-9.1 -6.1 -18.2 -1.2q-9.1 17.5 -18.2 1.7q-9.1 -8.7 -18.2 -1.7q-9.1 9.3 -18.2 0.9q-9.1 -4.7 -18.2 -0.9q-9.1 13.1 -18.2 1.3q-9.1 -6.5 -18.2 -1.3q-9.1 6.8 -18.2 0.7q-9.1 -3.4 -18.2 -0.7q-9.1 13.2 -18.2 1.3q-9.1 -6.6 -18.2 -1.3Z\" fill=\"#f1f4ff\"/>",
   },
 };

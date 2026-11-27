@@ -8,8 +8,8 @@ export function SectionHeading({
   titleDecor,
 }: {
   eyebrow: string;
-  /** 비우면 eyebrow 만 보인다. 제목이 군더더기인 화면에서 쓴다. */
-  title?: string;
+  /** 비우면 eyebrow 만 보인다. 제목이 군더더기인 화면에서 쓴다. 글자에 색 · 그림을 넣는 자리는 요소로 넘긴다. */
+  title?: React.ReactNode;
   align?: "center" | "left";
   className?: string;
   eyebrowColor?: string;

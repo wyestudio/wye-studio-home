@@ -125,6 +125,7 @@ const CLARITY_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 const THEME_COLOR: Record<SiteSkin | "default", string> = {
   default: "#04070d",
   halloween: "#190d2b",
+  christmas: "#090d20",
 };
 
 /** colorScheme: 체크박스·스크롤바·자동완성 같은 브라우저 기본 부품을 어두운 화면용으로 그린다. */

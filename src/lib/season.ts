@@ -1,13 +1,13 @@
 /**
- * 시즌 스킨 — 기간 동안만 사이트에 씌우는 장식(할로윈 등).
+ * 시즌 스킨 — 기간 동안만 사이트에 씌우는 장식(할로윈 · 크리스마스).
  *
  * 켜고 끄는 건 어드민 > 시즌 스킨이다(site_settings 'site.season', 읽기는 siteSeason.ts).
- * 켜지면 루트 레이아웃이 <html data-season="halloween"> 을 달고, 장식과 색은 전부
+ * 켜지면 루트 레이아웃이 <html data-season="halloween|christmas"> 를 달고, 장식과 색은 전부
  * season.css 가 그 표시를 보고 바꾼다. 꺼지면 표시가 없어 원래 화면 그대로다.
  *
  * ⚠️ 이 파일은 클라이언트에서도 읽는다. 감출 값을 두지 않는다.
  */
-export const SITE_SKINS = ["halloween"] as const;
+export const SITE_SKINS = ["halloween", "christmas"] as const;
 export type SiteSkin = (typeof SITE_SKINS)[number];
 
 export function isSiteSkin(v: unknown): v is SiteSkin {
@@ -16,6 +16,7 @@ export function isSiteSkin(v: unknown): v is SiteSkin {
 
 export const SITE_SKIN_LABELS: Record<SiteSkin, string> = {
   halloween: "할로윈",
+  christmas: "크리스마스",
 };
 
 /**

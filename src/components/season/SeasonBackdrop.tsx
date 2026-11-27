@@ -1,8 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { SeasonArt } from "@/components/season/SeasonArt";
 import { GhostEasterEgg } from "@/components/season/GhostEasterEgg";
+import { useSiteSkin } from "@/components/season/SeasonContext";
+
+/*
+  크리스마스 배경은 코드가 커서(배치 계산 · 눈덩이 굴리기) 따로 떼어 둔다 — 크리스마스일 때만 받는다.
+  서버는 빈 칸만 내려보내고, 장면은 브라우저가 화면 크기를 보고 채운다(ChristmasBackdrop.tsx).
+*/
+const ChristmasBackdrop = dynamic(() =>
+  import("@/components/season/ChristmasBackdrop").then((m) => m.ChristmasBackdrop),
+);
 
 /**
  * 화면 가장자리 배경 장식 — 달 · 박쥐 · 거미줄 · 성 실루엣 · 호박 · 유령 · 별.
@@ -14,6 +24,7 @@ import { GhostEasterEgg } from "@/components/season/GhostEasterEgg";
  */
 export function SeasonBackdrop() {
   const isHome = usePathname() === "/";
+  if (useSiteSkin() === "christmas") return <ChristmasBackdrop isHome={isHome} />;
   return (
     <>
       <div

@@ -1,0 +1,1555 @@
+/*
+  「산타의 어드벤트 캘린더」 게임 화면.
+
+  달력(문 25칸)과 캐릭터는 승인 시안(2026-11-26) 그대로다. 그 둘레 — 점수판 · 안내 · 결과 — 는 게임 화면답게
+  짰다(같은 날 대표님): 버튼은 아래에 턱이 있는 두툼한 모양, 점수 · 콤보는 누를 때마다 튄다.
+  기준은 대표님이 고른 「게임 방법」 카드다 — 다른 카드 · 머리 · 점수판을 그 카드의 결에 맞춘다.
+
+  색 · 배경 · 표시용 글꼴은 xmasScene.module.css 의 이름표(--x-*)로만 쓴다. 여기에 색을 직접 적지 않는다.
+  글자 크기 · 굵기는 컴포넌트의 text-* · font-* 토큰이 맡고, 여기는 배치와 판 위 숫자 · 제목(문 번호 · 점수 ·
+  카운트다운 · 콤보 · 카드 제목)만 정한다. 판 위 숫자는 화면 크기를 따라 커져야 해서 clamp 로 직접 적는다.
+
+  지키는 것(2026-11-26 대표님 지적에서)
+  - 간격은 4의 배수만 쓴다(4 · 8 · 12 · 16 · 24 · 32). 다닥다닥 붙이지 않는다 — 카드 안 덩어리 사이는 24.
+  - 글자 · 칸을 이유 없이 기울이거나 돌리지 않는다. 도는 것은 문(여닫이)과 색종이뿐이다.
+  - 카드 안에 또 카드를 넣지 않는다. 카드 안은 선과 여백으로 가른다(「게임 방법」 의 세 줄은 대표님이 고른 예외).
+  - 알약 모양은 누르는 것(버튼)에만 쓴다.
+
+  ⚠️ 높이는 --vh(주소창을 뺀 높이)로 잰다. 100vh 로 재면 휴대폰에서 판 아래가 주소창에 잘린다.
+  ⚠️ 달력의 폭은 높이에서 거꾸로 잰다(.stage) — 위의 점수판 높이가 바뀌면 그 숫자도 같이 고친다.
+     안 그러면 휴대폰에서 달력 아래가 화면 밖으로 나간다.
+  ⚠️ 표시용 글꼴(주아)은 굵기가 하나다. .display 를 붙인 곳에는 font-extrabold 를 같이 쓰지 않는다.
+*/
+.root {
+  --vh: 100vh;
+  /* 달력 바로 위 콤보 자리 */
+  --hud: 48px;
+  display: flex;
+  flex-direction: column;
+  min-height: var(--vh);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+@supports (height: 100svh) {
+  .root {
+    --vh: 100svh;
+  }
+}
+
+.root button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.root button:disabled {
+  cursor: default;
+}
+
+.root :is(button, input):focus-visible {
+  outline: 3px solid var(--x-gold);
+  outline-offset: 2px;
+}
+
+/*
+  턱이 있는 버튼의 초점 테두리 — outline 은 버튼 몸통만 두르고 아래 턱(box-shadow)은 빼놓아서, 테두리가 턱에 걸쳐
+  어긋나 보인다(2026-11-26 대표님). 턱까지 감싸는 테두리를 따로 그린다: 사방 3px 띄우고 아래는 턱 4px 만큼 더.
+*/
+.btn,
+.back {
+  position: relative;
+}
+
+.root :is(.btn, .back):focus-visible {
+  outline: none;
+}
+
+:is(.btn, .back):focus-visible::after {
+  content: "";
+  position: absolute;
+  inset: -6px -6px -10px;
+  border: 3px solid var(--x-gold);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.back:focus-visible::after {
+  border-radius: 9999px;
+}
+
+/* 종이색 버튼은 2px 테두리가 있어 그만큼 더 나간다 */
+.btnPaper:focus-visible::after {
+  inset: -8px -8px -12px;
+}
+
+/* 제목 · 숫자 · 버튼 — 주아. 굵기가 하나뿐이라 브라우저가 억지로 굵게 그리지 못하게 막는다 */
+.display {
+  font-family: var(--x-display);
+  font-weight: 400;
+  font-synthesis: none;
+}
+
+/* ── 버튼: 아래에 턱이 있고, 누르면 그만큼 내려앉는다 ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  color: var(--x-paper);
+  background: var(--x-red);
+  box-shadow: 0 4px 0 var(--x-red-lip);
+  font-family: var(--x-display);
+  font-size: 18px;
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.2;
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
+}
+
+.btn:active {
+  box-shadow: 0 1px 0 var(--x-red-lip);
+  transform: translateY(3px);
+}
+
+/* 못 누르는 동안(제출 중 · 등록 중) — 흐리게만 하지 않고 색 · 턱 · 커서를 같이 바꾼다 */
+.btn:disabled {
+  border-color: transparent;
+  color: var(--x-paper-shade);
+  background: var(--x-ink-mute);
+  box-shadow: 0 4px 0 var(--x-ink-soft);
+  transform: none;
+}
+
+.btnGreen {
+  background: var(--x-green);
+  box-shadow: 0 4px 0 var(--x-green-lip);
+}
+
+.btnGreen:active {
+  box-shadow: 0 1px 0 var(--x-green-lip);
+}
+
+.btnPaper {
+  border: 2px solid var(--x-paper-edge);
+  color: var(--x-ink);
+  background: var(--x-paper-white);
+  box-shadow: 0 4px 0 var(--x-paper-edge);
+}
+
+.btnPaper:active {
+  box-shadow: 0 1px 0 var(--x-paper-edge);
+}
+
+.btnBig {
+  width: 100%;
+  min-height: 60px;
+  font-size: 20px;
+}
+
+/* ── 맨 위: 돌아가기 · 이름 · 재시작 · 소리 ── */
+.top {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  width: min(1120px, calc(100% - 32px));
+  margin: 16px auto 0;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 4px;
+  min-height: 48px;
+  padding: 0 20px 0 12px;
+  border-radius: 9999px;
+  color: var(--x-ink);
+  background: var(--x-paper);
+  box-shadow: 0 4px 0 var(--x-paper-lip);
+  font-family: var(--x-display);
+  font-size: 18px;
+  font-weight: 400;
+  font-synthesis: none;
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
+}
+
+.back:active {
+  box-shadow: 0 1px 0 var(--x-paper-lip);
+  transform: translateY(3px);
+}
+
+/* 게임의 이름 — 머리 한가운데에 표시용 글꼴로 */
+.wordmark {
+  font-size: clamp(20px, 2.2vw, 28px);
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tools {
+  display: flex;
+  justify-self: end;
+  gap: 8px;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--x-snow-line);
+  border-radius: 9999px;
+  color: var(--x-snow);
+  background: var(--x-snow-glass);
+}
+
+.tool:active {
+  background: var(--x-snow-line);
+}
+
+/* ── 본문: 점수판 + 달력. 세로 화면은 위아래, 가로 화면은 좌우 ── */
+.game {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  width: min(1120px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 16px 0;
+}
+
+.hud {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  max-width: 520px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 56px;
+  padding: 8px 16px;
+  border-radius: 16px;
+  color: var(--x-ink);
+  background: var(--x-paper);
+  box-shadow: 0 4px 0 var(--x-shadow);
+}
+
+.statLabel {
+  color: var(--x-ink-mute);
+}
+
+.statValue {
+  font-size: 32px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.statValue small {
+  color: var(--x-ink-mute);
+  font-size: 16px;
+}
+
+.statScore {
+  color: var(--x-paper);
+  background: var(--x-red);
+}
+
+.statScore .statLabel {
+  color: var(--x-gold-soft);
+}
+
+.bump {
+  display: inline-block;
+  transform-origin: 100% 60%;
+  animation: bump 0.22s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+
+@keyframes bump {
+  from {
+    transform: scale(1.35);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* 라운드 칸 아래의 진행 줄 — 끝낸 라운드는 채우고, 지금 라운드는 깜빡인다 */
+.pips {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  left: 16px;
+  display: flex;
+  gap: 4px;
+}
+
+.pips i {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--x-paper-edge);
+}
+
+.pipsMany {
+  gap: 2px;
+}
+
+.pips .pipDone {
+  background: var(--x-green);
+}
+
+.pips .pipNow {
+  background: var(--x-red);
+  animation: blink 0.9s ease-in-out infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.stat:has(.pips) {
+  padding-bottom: 16px;
+}
+
+/* 선물 게이지 — 끝에 선물이 걸려 있고, 다 차면 선물이 뛴다 */
+.goal {
+  position: relative;
+  padding-right: 48px;
+}
+
+.goalText {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.goalCount {
+  color: var(--x-snow-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.track {
+  height: 16px;
+  overflow: hidden;
+  border: 2px solid var(--x-shadow);
+  border-radius: 8px;
+  background: var(--x-pine-deep);
+}
+
+.trackBig {
+  height: 24px;
+  border-color: var(--x-paper-edge);
+  border-radius: 12px;
+  background: var(--x-paper-shade);
+}
+
+.fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background:
+    repeating-linear-gradient(115deg, var(--x-snow-line) 0 8px, transparent 8px 16px),
+    var(--x-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.22s ease;
+}
+
+/* 선물 점수를 넘겼을 때 — 게이지가 끝까지 차오르는 것을 한 번 보여 준다 */
+.fillCharge {
+  animation: charge 1s ease-in-out both;
+}
+
+@keyframes charge {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.goalGift {
+  position: absolute;
+  right: 0;
+  bottom: -4px;
+  width: 40px;
+  filter: drop-shadow(0 2px 0 var(--x-shadow));
+}
+
+.goalGift svg {
+  display: block;
+  width: 100%;
+}
+
+.goalFull .goalGift {
+  animation: hop 0.6s ease-in-out infinite;
+}
+
+@keyframes hop {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* 점수 규칙 — 그림 옆에 점수만. 칸으로 가두지 않는다 */
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--x-snow);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.legend li > span[aria-hidden] {
+  display: block;
+  width: 28px;
+}
+
+.legend svg {
+  display: block;
+  width: 100%;
+}
+
+.legendBad {
+  color: var(--x-gold);
+}
+
+.stage {
+  /* 248px = 위 막대 64 + 점수판 146 + 위아래 여백 32 + 달력 턱 6. 달력이 화면 높이를 넘지 않게 폭을 높이에서 거꾸로 잰다 */
+  width: min(100%, max(248px, calc(var(--vh) - 248px - var(--hud))));
+}
+
+/* ── 콤보: 칸 안이 아니라 판 위에 크게. 오를 때마다 튀고, 끊기면 떨어져 사라진다 ── */
+.comboSlot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: var(--hud);
+  padding-bottom: 4px;
+  pointer-events: none;
+}
+
+.combo {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--x-snow-dim);
+  font-family: var(--x-display);
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 3px 0 var(--x-shadow);
+  transform-origin: 50% 100%;
+  animation: comboPop 0.24s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.combo > span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.combo b {
+  font-size: clamp(34px, 5.6vh, 44px);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.combo i {
+  font-size: 18px;
+  font-style: normal;
+}
+
+/* 5 · 10 · 20 에 닿는 순간 옆에 붙는 한마디 */
+.combo em {
+  color: var(--x-gold);
+  font-size: 20px;
+  font-style: normal;
+}
+
+.comboWarm {
+  color: var(--x-gold);
+}
+
+.comboHot,
+.comboFire {
+  color: var(--x-gold-soft);
+}
+
+.comboFire {
+  text-shadow:
+    0 3px 0 var(--x-shadow),
+    0 0 16px var(--x-gold);
+}
+
+.comboFire b {
+  font-size: clamp(38px, 6.2vh, 52px);
+}
+
+.comboBreak {
+  opacity: 0.6;
+  animation: comboBreak 0.45s ease-out both;
+}
+
+@keyframes comboPop {
+  0% {
+    transform: translateY(4px) scale(0.6);
+  }
+  55% {
+    transform: translateY(-2px) scale(1.18);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes comboBreak {
+  0% {
+    opacity: 0.6;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* ── 달력: 6×5 칸에 문 25장(다섯 장은 두 칸). 승인 시안 그대로 ── */
+.board {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: clamp(3px, 0.55vw, 8px);
+  width: 100%;
+  aspect-ratio: 1;
+  padding: clamp(7px, 1vw, 13px);
+  border: 3px solid var(--x-paper-edge);
+  border-radius: 16px;
+  background: var(--x-paper);
+  box-shadow:
+    0 6px 0 var(--x-paper-lip),
+    0 16px 32px var(--x-shadow);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 산타를 눌렀다 — 판이 좌우로 한 번 흔들린다(돌지는 않는다) */
+.shakeA {
+  animation: shakeA 0.28s ease-in-out;
+}
+
+.shakeB {
+  animation: shakeB 0.28s ease-in-out;
+}
+
+@keyframes shakeA {
+  20% {
+    transform: translateX(-6px);
+  }
+  45% {
+    transform: translateX(5px);
+  }
+  70% {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes shakeB {
+  20% {
+    transform: translateX(-6px);
+  }
+  45% {
+    transform: translateX(5px);
+  }
+  70% {
+    transform: translateX(-3px);
+  }
+}
+
+.tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--x-door);
+  perspective: 500px;
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.door {
+  position: absolute;
+  inset: 0;
+  color: var(--ink);
+  background: var(--bg);
+  transform-origin: left;
+  transition: transform var(--swing, 0.16s) ease-in;
+  pointer-events: none;
+  backface-visibility: hidden;
+}
+
+.open .door {
+  transform: rotateY(-101deg);
+}
+
+.num {
+  position: absolute;
+  top: 3%;
+  left: 8%;
+  font-size: clamp(17px, 4vw, 32px);
+  font-weight: 800;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.art {
+  position: absolute;
+  right: 0;
+  bottom: 1%;
+  width: 80%;
+  height: 77%;
+}
+
+.art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wide .art {
+  right: 3%;
+  width: 67%;
+  height: 90%;
+}
+
+.spark {
+  position: absolute;
+  bottom: 11%;
+  left: 9%;
+  width: clamp(9px, 1.1vw, 16px);
+  opacity: 0.65;
+  fill: currentColor;
+}
+
+.target {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.char {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.char svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 1px var(--x-shadow));
+}
+
+.open .target {
+  animation: rise var(--swing, 0.16s) ease-out;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(35%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* 누른 자리에서 튀어 오르는 점수 */
+.pop {
+  position: absolute;
+  top: 4%;
+  right: 3%;
+  padding: 2px 8px;
+  border: 2px solid var(--x-paper-white);
+  border-radius: 9999px;
+  color: var(--x-paper-white);
+  background: var(--x-leaf);
+  font-family: var(--x-display);
+  font-size: clamp(13px, 1.7vw, 20px);
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: pop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+.popBad {
+  background: var(--x-red);
+  font-size: clamp(11px, 1.4vw, 17px);
+}
+
+@keyframes pop {
+  0% {
+    opacity: 0;
+    transform: translateY(60%) scale(0.5);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-8%) scale(1.15);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── 덮개: 게임 방법 · 카운트다운 · 결과 ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  padding: 16px;
+  background: var(--x-pine-veil);
+}
+
+.card {
+  position: relative;
+  width: min(440px, 100%);
+  margin: 16px 0;
+  padding: 40px 32px 32px;
+  border: 3px solid var(--x-paper-edge);
+  border-radius: 20px;
+  color: var(--x-ink);
+  background: var(--x-paper);
+  box-shadow:
+    0 6px 0 var(--x-paper-lip),
+    0 16px 40px var(--x-shadow);
+  /* 사이트는 어두운 화면(color-scheme: dark)이다 — 여기서 되돌리지 않으면 입력칸이 어둡게 그려진다 */
+  color-scheme: light;
+  text-align: center;
+}
+
+.cardTitle {
+  margin: 0 0 16px;
+  font-size: 28px;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+/* 카드 위에 걸친 이름표 — 「게임 방법」 카드의 것. 제목과 다른 말을 할 때만 단다 */
+.ribbon {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  color: var(--x-paper);
+  background: var(--x-red);
+  box-shadow: 0 3px 0 var(--x-red-lip);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+/* 한글 이름표는 자간을 벌리지 않는다 — 벌리면 글자가 따로 논다 */
+.ribbonKo {
+  letter-spacing: 0;
+}
+
+.callout {
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  color: var(--x-green);
+  background: var(--x-mint);
+  /* 두 줄이 되면 마지막 줄에 낱말 하나만 떨어지지 않게 고르게 나눈다 */
+  text-wrap: balance;
+  word-break: keep-all;
+}
+
+/* 게임 방법 — 그림 · 한 줄 · 점수(대표님이 고른 모양. 간격만 4 배수로 맞췄다) */
+.howto {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.howto li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: var(--x-paper-shade);
+}
+
+.howtoArt {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  justify-content: center;
+  width: 80px;
+}
+
+.howtoArt > span {
+  display: block;
+  width: 44px;
+}
+
+.howtoArt > span + span {
+  margin-left: -8px;
+}
+
+.howtoArt svg {
+  display: block;
+  width: 100%;
+}
+
+.howtoText {
+  flex: 1;
+  min-width: 0;
+  color: var(--x-ink-soft);
+  line-height: 1.4;
+}
+
+.howtoText strong {
+  display: block;
+  color: var(--x-ink);
+}
+
+.point {
+  flex: none;
+  min-width: 48px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  color: var(--x-paper-white);
+  background: var(--x-leaf);
+  box-shadow: 0 3px 0 var(--x-leaf-lip);
+  font-size: 20px;
+  text-align: center;
+}
+
+.pointBad {
+  background: var(--x-red);
+  box-shadow: 0 3px 0 var(--x-red-lip);
+}
+
+/* 목표 — 이 게임에서 얻는 것 */
+.mission {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 12px;
+  border: 2px dashed var(--x-gold-edge);
+  border-radius: 16px;
+  background: var(--x-gold-soft);
+  line-height: 1.4;
+  text-align: left;
+}
+
+.mission > span:first-child {
+  flex: none;
+  width: 48px;
+}
+
+.mission svg {
+  display: block;
+  width: 100%;
+}
+
+.counter {
+  color: var(--x-snow);
+  font-family: var(--x-display);
+  font-size: clamp(72px, 18vw, 168px);
+  font-weight: 400;
+  font-synthesis: none;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 6px 0 var(--x-shadow);
+  animation: arrive 0.2s ease-out;
+}
+
+/* 'ROUND 3' · '6라운드 통과!' — 숫자보다 작게. 한 줄에 들어가야 한다 */
+.counterRound {
+  font-size: clamp(40px, 9.5vw, 96px);
+  white-space: nowrap;
+}
+
+/* 결과의 큰 점수 */
+.bigScore {
+  display: block;
+  color: var(--x-red);
+  font-size: 88px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.bigScore small {
+  margin-left: 4px;
+  font-size: 32px;
+}
+
+/* 점수 옆 기록 두 칸 — 이름은 작게, 값은 표시용 글꼴로. 가운데 선 하나로만 가른다 */
+.facts {
+  display: grid;
+  grid-auto-columns: 1fr;
+  grid-auto-flow: column;
+  margin: 16px 0 0;
+}
+
+.facts > div {
+  padding: 0 12px;
+}
+
+.facts > div + div {
+  border-left: 1px solid var(--x-paper-edge);
+}
+
+.facts dt {
+  color: var(--x-ink-mute);
+}
+
+.facts dd {
+  margin: 4px 0 0;
+  font-size: 24px;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--x-ink-mute);
+}
+
+.warn {
+  min-height: 1.5em;
+  margin: 8px 0 0;
+  color: var(--x-red-lip);
+}
+
+.santaGift svg {
+  display: block;
+  height: min(128px, 20vh);
+  margin: 0 auto 12px;
+}
+
+.answerLine,
+.nickLine {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.answerLine {
+  margin-top: 24px;
+}
+
+.answerLine input,
+.nickLine input {
+  flex: 1;
+  /* 입력칸의 기본 폭(스무 글자쯤)이 카드의 최소 폭이 되지 않게 0 에서 늘린다 — 안 그러면 375px 휴대폰에서 카드가 화면보다 넓어진다 */
+  width: 0;
+  min-width: 0;
+  padding: 12px;
+  border: 2px solid var(--x-paper-edge);
+  border-radius: 12px;
+  color: var(--x-ink);
+  background: var(--x-paper-white);
+}
+
+.answerLine input {
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.answerLine input::placeholder,
+.nickLine input::placeholder {
+  color: var(--x-ink-mute);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.answerLine .btn,
+.nickLine .btn {
+  flex: none;
+  padding: 12px 16px;
+  white-space: nowrap;
+}
+
+/* 카드 아래 버튼들 — 위 덩어리와 24 띄운다 */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 8px;
+  margin-top: 24px;
+}
+
+.actions .btn {
+  flex: 1 1 120px;
+}
+
+.actions .btnWide {
+  flex-basis: 100%;
+}
+
+.next {
+  margin-top: 24px;
+}
+
+.next p {
+  margin: 12px 0 0;
+}
+
+.celebrate {
+  animation: arrive 0.45s cubic-bezier(0.2, 1.7, 0.5, 1);
+}
+
+.burst > i {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  width: 8px;
+  height: 12px;
+  background: var(--color);
+  pointer-events: none;
+  animation: scatter 0.85s ease-out forwards;
+}
+
+/* 색종이가 사방으로 퍼진다 — 방향을 주려고 돌리는 것이라 남긴다 */
+@keyframes scatter {
+  from {
+    opacity: 1;
+    transform: rotate(var(--a)) translateY(-18px);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(-155px) rotate(50deg);
+  }
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0.25;
+    transform: scale(0.78);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.resultTitle {
+  color: var(--x-red);
+}
+
+/* 선물 코드 — 양옆이 파인 교환권 */
+.ticket {
+  position: relative;
+  margin-top: 24px;
+  padding: 20px 16px;
+  border: 2px dashed var(--x-gold-edge);
+  border-radius: 16px;
+  background: var(--x-gold-soft);
+}
+
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: var(--x-paper);
+  transform: translateY(-50%);
+}
+
+.ticket::before {
+  left: -12px;
+}
+
+.ticket::after {
+  right: -12px;
+}
+
+.ticket small {
+  display: block;
+  color: var(--x-gold-ink);
+}
+
+.ticket strong {
+  display: block;
+  margin: 4px 0 8px;
+  font-size: clamp(36px, 11vw, 44px);
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
+  /* 현장에서 길게 눌러 복사하거나 읽어 줄 수 있게 */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.ticket p {
+  margin: 0;
+  color: var(--x-ink-soft);
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+.ticket .btn {
+  margin-top: 16px;
+}
+
+/* ── 랭킹: 칸으로 가두지 않고 선 하나로 위와 가른다 ── */
+.rank {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--x-paper-edge);
+  text-align: left;
+}
+
+.rank > p:only-child {
+  margin: 0;
+  text-align: center;
+}
+
+.rankHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.rankHead strong {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.rankList {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 4px;
+}
+
+.rankRow + .rankRow {
+  border-top: 1px solid var(--x-paper-shade);
+}
+
+.rankRow b {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  color: var(--x-paper-white);
+  background: var(--x-ink-mute);
+  font-size: 16px;
+  line-height: 28px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.rankRow:nth-child(1) b {
+  color: var(--x-ink);
+  background: var(--x-gold);
+}
+
+.rankRow:nth-child(3) b {
+  background: var(--x-gold-ink);
+}
+
+.rankName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankScore {
+  flex: none;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.rankRound {
+  flex: none;
+  width: 64px;
+  color: var(--x-ink-mute);
+  text-align: right;
+}
+
+.rankMe {
+  margin: 0 -8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--x-mint);
+}
+
+.rankMe + .rankRow,
+.rankRow + .rankMe {
+  border-top-color: transparent;
+}
+
+/* 내 순위 — 순위는 크게, 이름과 최고 점수는 오른쪽에 두 줄로 */
+.rankMine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: var(--x-paper);
+  background: var(--x-green);
+}
+
+.rankMine b {
+  margin-left: 8px;
+  color: var(--x-gold);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.rankMine > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rankMine small {
+  display: block;
+  color: var(--x-snow-dim);
+}
+
+.rank .hint {
+  margin: 8px 0 0;
+}
+
+/* 기록이 올랐다 — 한 줄로 알리고, 내 줄이 아래에서 치고 올라와 금빛으로 한 번 빛난다 */
+.rankNews {
+  margin: 0 0 8px;
+  color: var(--x-red);
+  font-size: 20px;
+  line-height: 1.3;
+  text-align: center;
+  animation: arrive 0.4s cubic-bezier(0.2, 1.7, 0.5, 1) 0.9s both;
+}
+
+.rankUp {
+  position: relative;
+  z-index: 1;
+  animation:
+    climb 0.8s cubic-bezier(0.2, 1.3, 0.4, 1) 0.2s both,
+    glint 1.2s ease-out 0.9s;
+}
+
+@keyframes climb {
+  from {
+    opacity: 0.4;
+    transform: translateY(var(--climb, 52px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glint {
+  0% {
+    box-shadow: 0 0 0 0 var(--x-gold);
+  }
+  30% {
+    box-shadow: 0 0 0 6px var(--x-gold);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.record {
+  position: fixed;
+  top: max(80px, calc(env(safe-area-inset-top) + 80px));
+  left: 50%;
+  z-index: 7;
+  padding: 8px 20px;
+  border-radius: 12px;
+  color: var(--x-ink);
+  background: var(--x-gold);
+  box-shadow: 0 4px 0 var(--x-gold-lip);
+  font-size: 18px;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+/* ── 가로로 넓은 화면(컴퓨터 · 눕힌 태블릿): 점수판을 왼쪽에, 달력을 오른쪽에 ── */
+@media (orientation: landscape) and (min-width: 700px) {
+  .game {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(24px, 4vw, 64px);
+    padding: 8px 0 16px;
+  }
+
+  .hud {
+    flex: none;
+    gap: 16px;
+    width: clamp(220px, 26vw, 320px);
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .stat {
+    min-height: 88px;
+    padding: 12px 24px;
+  }
+
+  .stat:has(.pips) {
+    padding-bottom: 24px;
+  }
+
+  .statValue {
+    font-size: 48px;
+  }
+
+  .statValue small {
+    font-size: 24px;
+  }
+
+  .pips {
+    right: 24px;
+    bottom: 12px;
+    left: 24px;
+  }
+
+  .legend {
+    justify-content: flex-start;
+    margin-top: 8px;
+  }
+
+  .stage {
+    /* 104px = 위 막대 64 + 위아래 여백 24 + 달력 턱 · 여유 16 */
+    width: min(100%, calc((var(--vh) - 104px - var(--hud)) * 1.12));
+  }
+
+  .board {
+    aspect-ratio: 1.12;
+  }
+
+  .num {
+    font-size: clamp(18px, 2.6vw, 42px);
+  }
+}
+
+/* ── 눕힌 휴대폰: 높이가 모자라다. 점수판을 줄이고 달력을 넓게 ── */
+@media (orientation: landscape) and (max-height: 560px) {
+  .root {
+    --hud: 32px;
+  }
+
+  .top {
+    margin-top: 8px;
+  }
+
+  .back,
+  .tool {
+    min-height: 40px;
+    height: 40px;
+  }
+
+  .tool {
+    width: 40px;
+  }
+
+  .wordmark {
+    font-size: 20px;
+  }
+
+  .game {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 4px 0 8px;
+  }
+
+  .hud {
+    flex: none;
+    gap: 8px;
+    width: clamp(152px, 24vw, 220px);
+  }
+
+  .stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stat {
+    min-height: 48px;
+    padding: 4px 12px;
+  }
+
+  .stat:has(.pips) {
+    padding-bottom: 12px;
+  }
+
+  .statValue {
+    font-size: 28px;
+  }
+
+  .statValue small {
+    font-size: 16px;
+  }
+
+  .pips {
+    right: 12px;
+    bottom: 4px;
+    left: 12px;
+  }
+
+  .legend {
+    display: none;
+  }
+
+  .stage {
+    /* 76px = 위 막대 48 + 위아래 여백 12 + 달력 턱 · 여유 16 */
+    width: min(100%, calc((var(--vh) - 76px - var(--hud)) * 1.55));
+  }
+
+  .board {
+    gap: 3px;
+    aspect-ratio: 1.55;
+    padding: 5px;
+  }
+
+  .num {
+    font-size: 18px;
+  }
+
+  .combo b {
+    font-size: 24px;
+  }
+
+  .card {
+    padding: 28px 24px 16px;
+  }
+
+  .howto li {
+    min-height: 48px;
+    padding: 4px 12px;
+  }
+
+  .howtoArt > span {
+    width: 32px;
+  }
+
+  .santaGift svg {
+    height: 64px;
+  }
+}
+
+/* ── 휴대폰: 카드 안 좌우 여백을 줄이되 덩어리 사이 간격은 그대로 둔다 ── */
+@media (max-width: 480px) {
+  .card {
+    padding: 36px 16px 24px;
+  }
+
+  .top {
+    grid-template-columns: auto 1fr;
+  }
+
+  /* 좁은 화면의 머리에는 이름이 들어갈 자리가 없다 — 「게임 방법」 카드와 결과가 이름을 대신한다 */
+  .wordmark {
+    display: none;
+  }
+}
+
+/* 움직임을 줄여 달라는 설정 — 꾸밈만 끈다. 문이 열리고 닫히는 것은 게임 그 자체라 남긴다 */
+@media (prefers-reduced-motion: reduce) {
+  .combo,
+  .comboBreak,
+  .pop,
+  .bump,
+  .counter,
+  .celebrate,
+  .shakeA,
+  .shakeB,
+  .pips .pipNow,
+  .goalFull .goalGift,
+  .rankNews,
+  .rankUp,
+  .burst > i {
+    animation: none;
+  }
+
+  .comboBreak,
+  .burst > i {
+    opacity: 0;
+  }
+}

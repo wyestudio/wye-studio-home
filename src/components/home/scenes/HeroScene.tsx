@@ -29,7 +29,11 @@ export function HeroScene({
   const mascotProgress = clamp01((local - 0.7) / 0.3);
   const isMobile = useIsMobileViewport();
   // 할로윈 동안은 데스크톱도 모바일처럼 자유이동이다(움직임은 HALLOWEEN_ROAM).
-  const halloween = useSiteSkin() === "halloween";
+  const skin = useSiteSkin();
+  const halloween = skin === "halloween";
+  // 크리스마스 동안은 캐릭터가 궤도를 돌지 않는다 — 배경 장면 안에 각자 자리가 있다(우쥬는 전구 줄, 케이프는 트리,
+  // 이스는 썰매. ChristmasBackdrop.tsx). 누르면 커서 캐릭터로 고르는 것도 그쪽이 맡는다.
+  const christmas = skin === "christmas";
 
   const contentWrapperRef = useRef<HTMLDivElement>(null);
   const [contentRadius, setContentRadius] = useState(0);
@@ -93,7 +97,7 @@ export function HeroScene({
     <SceneShell local={local} reduceMotion={reduceMotion} index={index} isFirst={isFirst} isLast={isLast}>
       {/* 입체 별 — 다가오다가 스크롤해 벗어날 때 빨라진다. 모션 줄이기에서는 사이트 배경 별만 둔다. */}
       {!reduceMotion && <HeroWarp local={local} pointer={pointer} />}
-      {reduceMotion || (!isMobile && !halloween) ? (
+      {christmas ? null : reduceMotion || (!isMobile && !halloween) ? (
         <MascotOrbit progress={mascotProgress} reduceMotion={reduceMotion} minRadius={contentRadius} pointer={pointer} />
       ) : (
         <MascotFreeRoam
