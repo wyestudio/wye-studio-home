@@ -1,4 +1,4 @@
-import { AdminPage } from "@/components/admin/ui";
+import { AdminPage, AdminTabs } from "@/components/admin/ui";
 import { getSettlement, listSnapshots, COMMISSION_RATE } from "@/lib/settlement";
 import { SettlementPanel } from "./SettlementPanel";
 
@@ -47,20 +47,26 @@ export default async function SettlementPage({
         </>
       }
     >
+      {/* ① 기간 — 달을 고른다. 자료를 못 불러온 달에서도 다른 달로 옮길 수 있게 패널 밖에 둔다 */}
+      <AdminTabs
+        current={month}
+        tabs={CONTRACT_MONTHS.map((m) => ({ key: m, label: m.replace("-", "."), href: `/settlement?month=${m}` }))}
+      />
+
       {loadError || !data ? (
-        <div className="rounded-lg border border-red-500/40 bg-red-500/5 p-6">
-          <p className="font-semibold text-red-400">정산 자료를 불러오지 못했습니다.</p>
-          <p className="mt-1 text-body-sm text-muted">{loadError}</p>
-          <p className="mt-3 text-body-sm text-amber-300">
+        <div role="alert" className="rounded-xl border border-danger bg-danger-soft p-6">
+          <p className="text-body font-semibold text-danger">정산 자료를 불러오지 못했습니다.</p>
+          <p className="mt-1 text-body-sm text-foreground">{loadError}</p>
+          <p className="mt-3 text-body-sm font-semibold text-danger">
             ⚠️ 이 화면이 비어 있다고 해서 정산할 건이 없는 것이 아닙니다. 문제를 해결한 뒤 다시
             확인해주세요.
           </p>
         </div>
       ) : (
-        <SettlementPanel data={data} months={CONTRACT_MONTHS} snapshots={snapshots} />
+        <SettlementPanel data={data} snapshots={snapshots} />
       )}
 
-      <div className="mt-10 space-y-1.5 border-t border-border pt-6 text-micro text-muted">
+      <div className="mt-10 space-y-1.5 border-t border-border pt-6 text-body-sm text-muted">
         <p>
           · <strong className="text-foreground">정산 대상</strong>: 잼핏 쿠폰을 쓴 예약 중 입금이
           완료된 건. 쿠폰 없이 유입경로(utm)만 잼핏인 건은 대상이 아닙니다(제2조).
