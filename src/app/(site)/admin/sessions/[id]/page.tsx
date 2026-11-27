@@ -293,19 +293,20 @@ export default async function AdminSessionDetailPage(props: {
 
   if (!session) {
     return (
-      <div className="p-6">
-        <div className="text-red-500">세션을 찾을 수 없습니다.</div>
+      <div className="mx-auto w-full max-w-3xl p-4 md:p-6">
+        <p role="alert" className="text-body-sm text-danger">
+          회차를 찾을 수 없습니다.
+        </p>
       </div>
     );
   }
 
   if (applicationsError || attendeesError) {
     return (
-      <div className="p-6">
-        <div className="text-red-500">
-          신청자 목록을 불러올 수 없습니다:{" "}
-          {applicationsError?.message || attendeesError?.message}
-        </div>
+      <div className="mx-auto w-full max-w-3xl p-4 md:p-6">
+        <p role="alert" className="text-body-sm text-danger">
+          신청자 목록을 불러올 수 없습니다: {applicationsError?.message || attendeesError?.message}
+        </p>
       </div>
     );
   }
@@ -375,9 +376,9 @@ export default async function AdminSessionDetailPage(props: {
   );
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-3xl">
-        <Link href={back} className="mb-4 inline-block text-body-sm text-glow hover:underline">
+    <div className="mx-auto w-full max-w-3xl p-4 md:p-6">
+      <div>
+        <Link href={back} className="mb-4 inline-flex min-h-11 items-center text-body-sm text-glow hover:underline">
           ← {backLabel(back)}
         </Link>
 
