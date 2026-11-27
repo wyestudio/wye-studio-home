@@ -87,6 +87,9 @@ export type AuditAction =
   | "group_booking.leader_form_edited"
   | "group_booking.leader_form_unlocked"
   | "group_booking.contact_changed"
+  // 참가자 명단 — 이름 · 전화번호가 화면 밖으로 나가는 일
+  | "group_booking.participants_exported"
+  | "group_booking.participants_copied"
   // 후기 후보 (고객 화면에 남의 글을 싣는 결정이다 — 누가 넣고 뺐는지 남긴다)
   | "review_candidate.published"
   | "review_candidate.ignored"
