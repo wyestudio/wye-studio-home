@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminBadge, AdminCard, adminButtonClass } from "@/components/admin/ui";
-import { copyMessage } from "../groupActions";
+import { copyMessage, reissueFormLink } from "../groupActions";
+import { ActionNote, useGroupAction } from "./GroupDetailClient";
+import { FormQr } from "./FormQr";
 
 export type MessageView = {
   kind: string;
@@ -27,7 +29,17 @@ export type MessageView = {
  * ⚠️ **여기서 문자를 보내지 않는다.** 복사해서 카카오톡 채널에 붙여넣는다.
  * ⚠️ 미리보기의 담당자 이름은 가려져 있다. 「문자 복사」 를 누르면 전체 이름이 들어간 문구가 복사된다.
  */
-export function MessagesTab({ id, messages }: { id: string; messages: MessageView[] }) {
+export type FormLinkView = {
+  key: string;
+  label: string;
+  url: string;
+  /** '13 / 16명' · '4건 · 평균 4.5점' 처럼 서버가 만든 현황 한 줄. */
+  stat: string;
+  /** QR 그림 파일 이름(확장자 없이). */
+  fileName: string;
+};
+
+export function MessagesTab({ id, messages, links }: { id: string; messages: MessageView[]; links: FormLinkView[] }) {
   const router = useRouter();
   const firstOpen = messages.find((m) => !m.blocked && !m.copiedAt) ?? messages.find((m) => !m.blocked) ?? messages[0];
   const [kind, setKind] = useState(firstOpen.kind);
@@ -63,12 +75,11 @@ export function MessagesTab({ id, messages }: { id: string; messages: MessageVie
 
   return (
     <div className="flex flex-col gap-4">
-      <AdminCard title="폼 링크">
-        <p className="text-body-sm text-muted">
-          모임장 신청서 · 참가자 설문 · 후기 설문의 링크와 QR 은 공개 폼을 만드는 단계에 여기 들어옵니다. 그때까지 문자 속 링크 자리는
-          「(폼 링크 준비 중)」 으로 나옵니다.
-        </p>
-      </AdminCard>
+      <div className="grid gap-4 md:grid-cols-3">
+        {links.map((l) => (
+          <FormLinkCard key={l.key} id={id} link={l} />
+        ))}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
         <AdminCard title="안내 문자">
@@ -103,7 +114,7 @@ export function MessagesTab({ id, messages }: { id: string; messages: MessageVie
           ) : (
             <>
               {cur.warning && <p className="mb-3 rounded-lg border border-wait bg-wait-soft p-3 text-body-sm font-semibold text-wait">확인 — {cur.warning}</p>}
-              <pre className="max-h-[28rem] overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-background p-4 font-sans text-body-sm text-foreground" data-clarity-mask="true">
+              <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-background p-4 font-sans text-body-sm text-foreground" data-clarity-mask="true">
                 {cur.preview}
               </pre>
               <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -127,5 +138,50 @@ export function MessagesTab({ id, messages }: { id: string; messages: MessageVie
         </AdminCard>
       </div>
     </div>
+  );
+}
+
+/** 폼 하나의 링크 카드 — 주소 · QR · 「링크 복사」 · 「폼 열기」 · 「다시 발급」. */
+function FormLinkCard({ id, link }: { id: string; link: FormLinkView }) {
+  const { pending, note, run } = useGroupAction();
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link.url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <AdminCard title={link.label} aside={<span className="text-body-sm text-muted">{link.stat}</span>}>
+      <FormQr url={link.url} fileName={link.fileName} label={link.label} />
+      <p className="mt-3 break-all text-body-sm text-muted" data-clarity-mask="true">
+        {link.url}
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={copy} className={adminButtonClass("primary")}>
+          {copied ? "복사됨" : "링크 복사"}
+        </button>
+        <a href={link.url} target="_blank" rel="noopener noreferrer" className={adminButtonClass("secondary")}>
+          폼 열기
+        </a>
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() =>
+            window.confirm(`「${link.label}」 링크를 다시 발급할까요? 이전 링크와 QR 은 더 이상 열리지 않습니다. 이미 보낸 문자 속 링크도 안 열립니다.`) &&
+            run(() => reissueFormLink({ id, formKey: link.key }))
+          }
+          className={adminButtonClass("secondary")}
+        >
+          {pending ? "발급 중…" : "다시 발급"}
+        </button>
+      </div>
+      <div className="mt-1">
+        <ActionNote note={note} />
+      </div>
+    </AdminCard>
   );
 }

@@ -1,0 +1,40 @@
+/*
+  단체 예약 공개 폼(/f/…)의 색 — 밝은 화면.
+
+  관리자와 같은 방식이다(admin.css): 새 색 이름을 만들지 않고, 사이트가 쓰는 역할 이름의 값을
+  폼 범위(.form-shell 이 있는 문서)에서만 밝은 값으로 바꾼다. 공개 사이트의 다른 화면에는 걸리지 않는다.
+  값은 관리자 라이트 모드와 같다 — 고칠 때는 두 파일을 같이 본다.
+*/
+body:has(.form-shell) {
+  --background: #f5f6f8;
+  --background-deep: #eceef2;
+  --surface: #ffffff;
+  --panel: #ffffff;
+  --panel-raised: #f9fafb;
+  --panel-border: #e3e5ea;
+  --foreground: #1f2329;
+  --muted: #5f6673;
+  --border: #e3e5ea;
+  --brand: #2563eb;
+  --brand-soft: #dbe7ff;
+  --brand-foreground: #ffffff;
+  --glow: #2563eb;
+  --confirm: #15803d;
+  --confirm-soft: #dcfce7;
+  --wait: #b45309;
+  --wait-soft: #fef0c7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --fill-subtle: rgb(15 23 42 / 0.03);
+  --fill: rgb(15 23 42 / 0.05);
+  --fill-strong: rgb(15 23 42 / 0.1);
+  --line-subtle: rgb(15 23 42 / 0.08);
+  --line: rgb(15 23 42 / 0.16);
+  --line-strong: rgb(15 23 42 / 0.5);
+  --disabled: rgb(15 23 42 / 0.28);
+}
+
+/* 체크박스 · 날짜 입력 같은 브라우저 기본 부품도 밝게(globals.css 는 dark 로 고정) */
+html:has(.form-shell) {
+  color-scheme: light;
+}
