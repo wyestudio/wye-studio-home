@@ -30,6 +30,7 @@ import {
 import { GROUP_STAGES, effectiveStage, isConfirmed, optionMinutes, scheduleOf, stageIndex, stageLabel, toSettlementOptions } from "@/lib/groupStage";
 import { flattenTemplate } from "@/lib/groupForms/template";
 import { loadTemplate, loadTemplateVersion } from "@/lib/groupFormTemplates";
+import { isQuoteVariant, quoteVariantOf } from "@/lib/groupQuoteMessage";
 import { answerText } from "@/lib/groupForms/leaderForm";
 import { PENDING_KEYS, parsePending, type PendingItem } from "@/lib/groupForms/leaderForm";
 import { otherKey } from "@/lib/groupForms/schema";
@@ -756,13 +757,15 @@ export async function reissueFormLink(input: { id: string; formKey: string }): P
  *   견적 안내 → 연락 완료 · 7일 전 안내 → 7일 전 안내 · 하루 전 안내 → 하루 전 안내 · 리포트 전달 → 리포트 · 후기
  * ⚠️ **문자를 보내지 않는다.** 글자를 돌려줄 뿐이고, 붙여넣어 보내는 것은 운영자다.
  */
-export async function copyMessage(input: { id: string; kind: string }): Promise<{ text: string; note: string } | { error: string }> {
+export async function copyMessage(input: { id: string; kind: string; variant?: string }): Promise<{ text: string; note: string } | { error: string }> {
   try {
     const { supabase, group, adjustments, today } = await open(input.id);
     if (!isMessageKind(input.kind)) return { error: "알 수 없는 문자입니다." };
     const blocked = messageBlockedReason(input.kind, group, today);
     if (blocked) return { error: blocked };
-    const key = templateKeyOf(input.kind, group.pay_type);
+    // 견적 안내의 양식 — 화면에서 고른 것(일반용 · 회사용). 안 왔거나 모르는 값이면 모임 성격으로 고른다.
+    const variant = isQuoteVariant(input.variant) ? input.variant : quoteVariantOf(group.group_kind);
+    const key = templateKeyOf(input.kind, group.pay_type, variant);
     const body = (await loadGroupTemplates()).get(key);
     if (!body) return { error: `문자 문구(${key})를 찾을 수 없습니다.` };
 

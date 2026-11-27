@@ -21,6 +21,12 @@ export type MessageView = {
   nextStage: string | null;
   /** 보내기 전에 확인할 것(예: 임박 예약의 전액 입금). */
   warning: string | null;
+  /** 양식이 여럿인 문자(견적 안내 — 일반용 · 회사용). 양식마다 완성된 미리보기가 들어 있다. */
+  variants?: { key: string; label: string; preview: string; copiedAt: string | null }[];
+  /** 모임 성격으로 고른 기본 양식. */
+  defaultVariant?: string;
+  /** 왜 그 양식이 골라졌는지 한 줄. */
+  variantNote?: string;
 };
 
 /**
@@ -50,6 +56,11 @@ export function MessagesTab({ id, messages, links }: { id: string; messages: Mes
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const cur = messages.find((m) => m.kind === kind)!;
+  // 견적 안내의 양식 — 모임 성격으로 골라진 것에서 시작하고, 눌러서 바꾼다(화면 안에서만 — 서버를 부르지 않는다).
+  const [variant, setVariant] = useState(messages.find((m) => m.variants)?.defaultVariant ?? "");
+  const curVariant = cur.variants?.find((v) => v.key === variant) ?? cur.variants?.[0] ?? null;
+  const preview = curVariant ? curVariant.preview : cur.preview;
+  const copiedAt = curVariant ? curVariant.copiedAt : cur.copiedAt;
 
   const copy = async () => {
     setBusy(true);
@@ -58,7 +69,7 @@ export function MessagesTab({ id, messages, links }: { id: string; messages: Mes
       let result: { text: string; note: string } | null = null;
       // 사파리는 누른 직후에만 클립보드에 쓸 수 있다. 서버에서 문구를 받아오는 동안에도 권한이 유지되게
       // 「나중에 채워질 글」(Promise)로 넘긴다. 이 방식이 안 되는 브라우저는 받아온 뒤에 쓴다.
-      const text = copyMessage({ id, kind }).then((res) => {
+      const text = copyMessage({ id, kind, variant: curVariant?.key }).then((res) => {
         if ("error" in res) throw new Error(res.error);
         result = res;
         return res.text;
@@ -79,13 +90,14 @@ export function MessagesTab({ id, messages, links }: { id: string; messages: Mes
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {links.map((l) => (
           <FormLinkCard key={l.key} id={id} link={l} />
         ))}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
+      {/* grid-cols-1 — 좁은 화면에서 칸이 화면보다 넓어지지 않게(미리보기의 긴 주소가 페이지를 옆으로 밀었다) */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
         <AdminCard title="안내 문자">
           <div role="tablist" aria-label="문자 종류" aria-orientation="vertical" className="flex flex-col gap-1">
             {messages.map((m) => {
@@ -105,21 +117,53 @@ export function MessagesTab({ id, messages, links }: { id: string; messages: Mes
                   }`}
                 >
                   <span>{m.label}</span>
-                  {m.copiedAt ? <AdminBadge tone="done">복사됨</AdminBadge> : m.blocked ? <AdminBadge tone="idle">아직</AdminBadge> : null}
+                  {m.copiedAt || m.variants?.some((v) => v.copiedAt) ? (
+                    <AdminBadge tone="done">복사됨</AdminBadge>
+                  ) : m.blocked ? (
+                    <AdminBadge tone="idle">아직</AdminBadge>
+                  ) : null}
                 </button>
               );
             })}
           </div>
         </AdminCard>
 
-        <AdminCard title={cur.label} aside={cur.copiedAt ? <span className="text-body-sm text-muted">복사: {cur.copiedAt}</span> : undefined}>
+        <AdminCard title={cur.label} aside={copiedAt ? <span className="text-body-sm text-muted">복사: {copiedAt}</span> : undefined}>
           {cur.blocked ? (
             <p className="rounded-lg border border-dashed border-line p-6 text-center text-body-sm text-muted">{cur.blocked}</p>
           ) : (
             <>
+              {cur.variants && cur.variants.length > 1 && (
+                <div className="mb-3">
+                  <div role="group" aria-label="문자 양식" className="flex flex-wrap items-center gap-2">
+                    <span className="text-label font-semibold text-foreground">양식</span>
+                    {cur.variants.map((v) => {
+                      const on = v.key === curVariant?.key;
+                      return (
+                        <button
+                          key={v.key}
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setVariant(v.key);
+                            setNote(null);
+                          }}
+                          className={`min-h-11 rounded-lg border px-3 text-body-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                            on ? "border-foreground bg-foreground text-background" : "border-line bg-surface text-muted hover:bg-fill hover:text-foreground"
+                          }`}
+                        >
+                          {v.label}
+                          {v.key === cur.defaultVariant && <span className="ml-1 font-normal">(자동)</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {cur.variantNote && <p className="mt-1.5 text-body-sm text-muted">{cur.variantNote} 다른 양식으로 보내려면 눌러서 바꾸세요.</p>}
+                </div>
+              )}
               {cur.warning && <p className="mb-3 rounded-lg border border-wait bg-wait-soft p-3 text-body-sm font-semibold text-wait">확인 — {cur.warning}</p>}
               <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-background p-4 font-sans text-body-sm text-foreground" data-clarity-mask="true">
-                {cur.preview}
+                {preview}
               </pre>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <button type="button" disabled={busy} onClick={copy} className={adminButtonClass("primary")}>

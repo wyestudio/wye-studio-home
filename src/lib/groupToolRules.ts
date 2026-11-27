@@ -13,6 +13,9 @@ export const GROUP_PLACEHOLDERS: Record<string, { label: string; example: string
   leader_name: { label: "담당자 이름", example: "김서윤" },
   group_name: { label: "모임 이름(화면 표시 모임명이 먼저)", example: "방사모 12월 정모" },
   event_date: { label: "행사 날짜", example: "12월 5일 (토)" },
+  event_date_full: { label: "행사 날짜(연도까지)", example: "2026년 12월 5일 (토)" },
+  event_start: { label: "시작 시각(15:30)", example: "15:30" },
+  program_hours: { label: "프로그램 길이(약 3시간)", example: "약 3시간" },
   event_time_ko: { label: "시작 시각(오후 3시 30분)", example: "오후 3시 30분" },
   event_range: { label: "행사 시간(15:30~18:30)", example: "15:30~18:30" },
   arrive_time_ko: { label: "도착 시각(시작 15분 전)", example: "오후 3시 15분" },
@@ -23,6 +26,7 @@ export const GROUP_PLACEHOLDERS: Record<string, { label: string; example: string
   deposit_suggest: { label: "예약금 안내 금액(30%)", example: "236,000원" },
   deposit_paid: { label: "받은 예약금", example: "236,000원" },
   balance: { label: "잔금", example: "552,000원" },
+  balance_suggest: { label: "예약금 30% 를 내고 남는 금액(견적 안내용)", example: "552,000원" },
   bank_account: { label: "입금 계좌(예금주 포함) — 문구에 계좌를 직접 적지 말고 이 값을 쓴다", example: "(입금 계좌 · 예금주)" },
   leader_form_url: { label: "모임장 신청서 링크", example: "https://www.wouldyouescape.com/f/…" },
   participant_form_url: { label: "참가자 사전 설문 링크", example: "https://www.wouldyouescape.com/f/…" },
@@ -33,7 +37,13 @@ export const GROUP_PLACEHOLDERS: Record<string, { label: string; example: string
   label: { label: "옵션 · 조정 줄 이름(lines 블록 안)", example: "애프터파티 2시간" },
   amount: { label: "옵션 · 조정 줄 금액(lines 블록 안)", example: "100,000원" },
 };
-export const GROUP_BLOCKS = ["lines"] as const;
+/**
+ * 덩어리 `{{#이름}} … {{/이름}}`.
+ *   lines   — 옵션 · 조정 줄 수만큼 반복(없으면 통째로 빠진다)
+ *   deposit — 예약금 30% 로 안내할 때만 나온다
+ *   fullpay — 전액 입금으로 안내할 때만 나온다(행사 7일 이내 + 계좌이체 + 회사가 아닌 단체)
+ */
+export const GROUP_BLOCKS = ["lines", "deposit", "fullpay"] as const;
 
 /** 문구 저장 전 검사. 괜찮으면 null. 모르는 치환값이 있으면 문자에 {{이름}} 이 그대로 찍히므로 막는다. */
 export function groupMessageError(body: string): string | null {

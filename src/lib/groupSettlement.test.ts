@@ -132,6 +132,9 @@ test("임박 예약(7일 이내) — 계좌이체는 전액, 카드 방식은 �
   assert.deepEqual(requiredDeposit({ ...base, today: "2026-12-03", payType: "transfer" }), { amount: 629200, full: true }); // 7일 전
   assert.deepEqual(requiredDeposit({ ...base, today: "2026-12-05", payType: "card_balance" }), { amount: 189000, full: false });
   assert.deepEqual(requiredDeposit({ ...base, today: "2026-12-05", payType: "corp_card_full" }), { amount: 189000, full: false });
+  // 회사 워크숍은 7일 이내 · 계좌이체여도 예약금 30% 만(2026-11-27 대표님). 회사가 아니면 그대로 전액.
+  assert.deepEqual(requiredDeposit({ ...base, today: "2026-12-05", payType: "transfer", company: true }), { amount: 189000, full: false });
+  assert.deepEqual(requiredDeposit({ ...base, today: "2026-12-05", payType: "transfer", company: false }), { amount: 629200, full: true });
 });
 
 test("학생증 미확인 1인 차액 = 일반가 − 학생가 (평일 4,000 · 주말 2,000)", () => {
