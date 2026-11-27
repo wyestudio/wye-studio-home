@@ -1,60 +1,21 @@
 /*
-  크리스마스 게임 어드민의 차트 색 — dataviz 기본 팔레트(파랑 · 주황 · 청록 · 노랑 · 자홍 · 초록, 이 순서 고정).
-  다크(관리자 기본, 운영)와 라이트(관리자 라이트 모드 — admin.css 의 .admin-shell)를 따로 골랐다.
-  두 쪽 다 색약 구분 · 밝기 검사를 통과했다(validate_palette.js). 라이트의 주황 · 청록 · 노랑 · 자홍은 바탕과 대비가
-  3:1 아래라 — 차트마다 숫자를 적은 범례나 표를 같이 둔다(색만으로 읽게 하지 않는다).
+  크리스마스 게임 어드민의 차트 색. 막대는 한 가지 색(--s1 파랑)이고, 라운드 도달 차트에서 한 막대를 고르면
+  나머지는 흐리게(--dim) 둔다. 다크(관리자 기본, 운영)와 라이트(관리자 라이트 모드 — admin.css 의 .admin-shell)를 따로 골랐다.
+  숫자는 막대 색이 아니라 글자색으로 적는다(색만으로 읽게 하지 않는다).
 */
 .viz {
   --s1: #338ced;
-  --s2: #e76624;
-  --s3: #00a888;
-  --s4: #d28e05;
-  --s5: #e24d8b;
-  --s6: #0aac23;
+  --dim: rgb(255 255 255 / 0.16);
   --track: rgb(255 255 255 / 0.08);
 }
 
 :global(.admin-shell:not([data-admin-theme="dark"])) .viz {
   --s1: #257de0;
-  --s2: #f47230;
-  --s3: #00b894;
-  --s4: #f2a600;
-  --s5: #ee7fac;
-  --s6: #008a17;
+  --dim: rgb(0 0 0 / 0.12);
   --track: rgb(0 0 0 / 0.06);
 }
 
-/* 한 줄 100% 막대 — 조각 사이 2px 틈(바탕이 보이게), 양 끝만 둥글게 */
-.stack {
-  display: flex;
-  gap: 2px;
-  height: 28px;
-  overflow: hidden;
-  border-radius: 6px;
-  background: var(--track);
-}
-
-.stack > span {
-  min-width: 2px;
-  transition: opacity 0.15s;
-}
-
-.stack > span:hover {
-  opacity: 0.8;
-}
-
-/* 사람별 작은 막대(참여자 표) */
-.mini {
-  display: flex;
-  gap: 1px;
-  width: 72px;
-  height: 8px;
-  overflow: hidden;
-  border-radius: 4px;
-  background: var(--track);
-}
-
-/* 가로 막대(참여 단계 · 난이도) */
+/* 가로 막대(참여 단계) */
 .track {
   height: 10px;
   overflow: hidden;
@@ -66,18 +27,4 @@
   height: 100%;
   border-radius: 5px;
   background: var(--s1);
-}
-
-.swatch {
-  display: inline-block;
-  flex: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stack > span {
-    transition: none;
-  }
 }
