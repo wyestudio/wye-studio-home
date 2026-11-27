@@ -21,6 +21,8 @@ import { sessionPrepKey, type HomeTodo } from "@/lib/adminTodos";
 import { daysBetween } from "@/lib/groupSettlement";
 import { maskName } from "@/lib/groupStage";
 import { HomeTodos } from "./HomeTodos";
+import { HomeVisits, type VisitsToday } from "./HomeVisits";
+import { kstMidnight } from "./insights/parts";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,8 @@ const KST_YMD = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" });
  * 어드민 홈 — 오늘 할 일 + 월 달력(2026-11-27 관리자 개편 2단계. 예전 이름은 대시보드).
  *
  * 지표보다 "지금 내가 뭘 해야 하나" 를 위에 둔다. 매주 운영에서 실제로 필요한 건 그것이기 때문이다.
- * 지표는 홈에 두지 않는다(분석 메뉴). 설계 근거: docs/08-architecture-screens-and-admin.md §3-3
+ * 지표는 분석 메뉴에 있다(설계 근거: docs/08-architecture-screens-and-admin.md §3-3). 다만 **오늘 방문** 한 줄과
+ * 분석 화면 바로가기는 홈에 둔다(2026-11-27 대표님) — 할 일 아래에 작게, 숫자 네 개만.
  *
  * 예전의 「처리 대기」 카드 네 장(미매칭 입금 · 입금 확인 전 · 기한 넘김 · 환불 대기)은 오늘 할 일의 줄이 됐다.
  * ⚠️ **무엇을 세는지는 그대로다.** 아래 계산(지난 회차 제외, 환불 대기만 예외)을 바꾸지 않고 모양만 옮겼다.
@@ -81,6 +84,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   const sessions = (sessionsRes.data ?? []) as (SessionDisplayRow & {
     theme_id: string | null;
     start_at: string;
+    end_at?: string | null;
     status: string;
     opens_at: string | null;
   })[];
@@ -88,7 +92,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   // 「단체 막기」 를 띄울 회차 — 단체 예약을 받는 테마(파티모드)의 것만. 이미 막아 둔 회차는 켜진 상태로.
   const groupThemeIds = new Set(themes.filter((t) => GROUP_BOOKING_THEME_SLUGS.includes(t.slug)).map((t) => t.id));
   // 단체 일정 — 달력에 회차와 같이 놓는다. 막은 일정 표 하나에 세 갈래(직접 · 예약 확정 · 파티 회차)가 모인다.
-  const [{ data: closureRows }, { data: groupRows }, manualTodosRes, dismissalsRes, checklistRes, leaderRes] = await Promise.all([
+  const [{ data: closureRows }, { data: groupRows }, manualTodosRes, dismissalsRes, checklistRes, leaderRes, visitsRes] = await Promise.all([
     supabase.from("group_booking_closures").select("id, date, start_time, minutes, note, inquiry_id, session_id"),
     supabase
       .from("admin_group_booking_inquiries_view")
@@ -110,7 +114,14 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     supabase.from("group_checklist_items").select("inquiry_id").is("done_at", null),
     // 모임장 신청서 — 수정 요청과 「신청서와 다른 내용」 이 남은 단체(답 · 연락처는 읽지 않는다).
     supabase.from("group_leader_responses").select("inquiry_id, edit_request, pending"),
+    // 오늘 방문(한국 시간 0시 ~ 지금) — 방문 분석의 「오늘」 과 같은 함수 · 같은 구간이다. 우리 기기는 빠진다.
+    supabase.rpc("admin_visit_overview", {
+      p_since: new Date(kstMidnight(getNowMs())).toISOString(),
+      p_until: new Date(getNowMs()).toISOString(),
+    }),
   ]);
+  // 방문 숫자를 못 읽어도 홈은 떠야 한다 — 그 칸에만 알린다.
+  const visits = visitsRes.error ? null : ((visitsRes.data ?? null) as VisitsToday | null);
   type ClosureRow = DashboardClosure & { inquiry_id: string | null; session_id: string | null };
   const closureList = (closureRows ?? []) as ClosureRow[];
   const blockedSessions = new Set(closureList.filter((c) => c.session_id).map((c) => c.session_id!));
@@ -242,6 +253,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       id: s.id,
       theme_id: s.theme_id,
       start_at: s.start_at,
+      end_at: s.end_at ?? null,
       status: s.status,
       opens_at: s.opens_at,
       theme_name: s.theme_name,
@@ -416,6 +428,8 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
         </p>
       )}
       <HomeTodos todos={todos} />
+
+      <HomeVisits visits={visits} />
 
       {/* ── 일정 ── */}
       <section className="mt-8">
