@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminTabButtons, adminButtonClass } from "@/components/admin/ui";
+import { Chevron } from "@/components/ui/Chevron";
 import {
   Bar,
   Line,
@@ -178,7 +180,7 @@ function Kpi({
   const color =
     tone === "glow" ? "text-glow" : tone === "warn" ? "text-amber-400" : "text-foreground";
   return (
-    <div className="rounded-lg border border-border bg-background/50 p-4">
+    <div className="rounded-xl border border-border bg-surface p-4">
       <p className="text-micro text-muted">{label}</p>
       <p className={`mt-1 text-h2 font-semibold ${color}`}>{value}</p>
       {sub && <p className="mt-1 text-micro text-muted">{sub}</p>}
@@ -233,7 +235,20 @@ function Summary({ text }: { text: string }) {
   );
 }
 
+/**
+ * 지표 묶음 탭(2026-11-27 대표님 — 관리자 개편). 맨 위 숫자 다섯 개는 늘 보이고, 그 아래를 넷으로 나눈다.
+ * 예전에는 여덟 구역이 한 화면에 이어져 있었다(약 7화면 길이). 숫자 · 조회는 그대로다.
+ */
+type DashTab = "trend" | "drop" | "source" | "daily";
+const DASH_TABS: { key: DashTab; label: string }[] = [
+  { key: "trend", label: "추이" },
+  { key: "drop", label: "이탈" },
+  { key: "source", label: "유입" },
+  { key: "daily", label: "날짜별 숫자" },
+];
+
 export default function AnalyticsDashboard() {
+  const [tab, setTab] = useState<DashTab>("trend");
   const [data, setData] = useState<ApiPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState("weekly");
@@ -403,10 +418,12 @@ export default function AnalyticsDashboard() {
               <button
                 key={p.key}
                 onClick={() => changePeriod(p.key)}
-                className={`rounded-lg border px-3 py-2 text-body-sm font-semibold transition-all ${
+                type="button"
+                aria-pressed={period === p.key}
+                className={`min-h-11 rounded-lg border px-3 text-body-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                   period === p.key
-                    ? "border-glow bg-glow/10 text-foreground"
-                    : "border-border bg-background/50 text-muted hover:bg-muted/30 hover:text-foreground"
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-line bg-surface text-muted hover:bg-fill hover:text-foreground"
                 }`}
               >
                 {p.label}
@@ -427,8 +444,8 @@ export default function AnalyticsDashboard() {
               화면만 봐서는 빠진 줄 모르니 얼마나 뺐는지 알린다.
             */}
             {((data.testDeviceSessions ?? 0) > 0 || (data.internalApplications ?? 0) > 0) && (
-              <p className="mb-4 rounded-lg border border-amber-400/40 bg-amber-400/5 px-3 py-2 text-body-sm text-amber-300">
-                <span className="mr-1.5 rounded-md border border-amber-400/60 px-1 py-0.5 text-micro font-semibold">
+              <p className="mb-4 rounded-lg border border-wait bg-wait-soft px-3 py-2 text-body-sm text-wait">
+                <span className="mr-1.5 rounded-md border border-wait px-1 py-0.5 text-micro font-semibold">
                   테스트
                 </span>
                 테스트 기기 방문 {data.testDeviceSessions ?? 0}회, 신청 {data.internalApplications ?? 0}건은
@@ -462,8 +479,12 @@ export default function AnalyticsDashboard() {
               />
             </div>
 
+            <AdminTabButtons label="지표 묶음" tabs={DASH_TABS} current={tab} onSelect={setTab} />
+
+            {tab === "trend" && (
+              <>
             {/* ── 일별 추이 ── */}
-            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+            <div className="mb-8 rounded-xl border border-border bg-surface p-5">
               <h2 className="mb-1 text-h3 font-semibold">일별 추이</h2>
               <p className="mb-4 text-body-sm text-muted">
                 막대는 방문 수(왼쪽 축), 선은 신청·입금 건수(오른쪽 축)입니다. 홍보한 날 방문이
@@ -499,8 +520,13 @@ export default function AnalyticsDashboard() {
               )}
             </div>
 
+              </>
+            )}
+
+            {tab === "drop" && (
+              <>
             {/* ── 퍼널 ── */}
-            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+            <div className="mb-8 rounded-xl border border-border bg-surface p-5">
               <h2 className="mb-1 text-h3 font-semibold">어디서 떨어지나</h2>
               <p className="mb-4 text-body-sm text-muted">
                 앞 단계 대비 몇 명이 빠졌는지를 봅니다. 가장 크게 빠지는 칸이 지금 고쳐야 할
@@ -631,7 +657,7 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* ── 상세 페이지에서 어디까지 읽나 ── */}
-            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+            <div className="mb-8 rounded-xl border border-border bg-surface p-5">
               <h2 className="mb-1 text-h3 font-semibold">상세에서 어디까지 읽나</h2>
               <p className="mb-4 text-body-sm text-muted">
                 테마 상세의 블록이 화면에 들어온 세션 수입니다. 위에서 아래로 줄어드는 게
@@ -674,8 +700,13 @@ export default function AnalyticsDashboard() {
               </p>
             </div>
 
+              </>
+            )}
+
+            {tab === "source" && (
+              <>
             {/* ── 신청까지 온 유입경로 (우리 DB) ── */}
-            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+            <div className="mb-8 rounded-xl border border-border bg-surface p-5">
               <h2 className="mb-1 text-h3 font-semibold">어디서 들어와 신청까지 했나</h2>
               <p className="mb-3 text-body-sm text-muted">
                 아래 &lsquo;어디서 들어오나&rsquo;는 GA4 라 <strong className="text-foreground">방문</strong>까지만
@@ -687,7 +718,7 @@ export default function AnalyticsDashboard() {
                 <>
                   <Summary text={sourceApplySummary} />
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[520px] text-body-sm">
+                    <table className="w-full min-w-lg text-body-sm">
                       <thead className="border-b border-border text-left text-micro text-muted">
                         <tr>
                           <th className="py-2 pr-3">유입경로</th>
@@ -732,8 +763,9 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* ── 유입 ── */}
-            <div className="mb-8 grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-border bg-background/50 p-5">
+            {/* grid-cols-1 — 칸이 화면보다 넓어지지 않게(긴 주소가 페이지를 옆으로 밀었다) */}
+            <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-border bg-surface p-5">
                 <h2 className="mb-1 text-h3 font-semibold">어디서 들어오나</h2>
                 <p className="mb-3 text-body-sm text-muted">
                   어느 홍보가 사람을 데려오는지 비교할 때 씁니다.
@@ -773,7 +805,7 @@ export default function AnalyticsDashboard() {
                 )}
               </div>
 
-              <div className="rounded-lg border border-border bg-background/50 p-5">
+              <div className="rounded-xl border border-border bg-surface p-5">
                 <h2 className="mb-1 text-h3 font-semibold">첫 화면으로 뭘 보나</h2>
                 <p className="mb-3 text-body-sm text-muted">
                   방문자가 처음 도착한 페이지입니다. 광고·공유 링크가 어디로 보내고 있는지
@@ -816,7 +848,7 @@ export default function AnalyticsDashboard() {
             </div>
 
             {/* ── 캠페인별 유입 → 신청 ── */}
-            <div className="mb-8 rounded-lg border border-border bg-background/50 p-5">
+            <div className="mb-8 rounded-xl border border-border bg-surface p-5">
               <h2 className="mb-1 text-h3 font-semibold">어느 캠페인이 신청까지 오나</h2>
               <p className="mb-3 text-body-sm text-muted">
                 위 &lsquo;어디서 들어오나&rsquo; 는 채널까지만 봅니다. 같은 인스타그램이라도
@@ -831,7 +863,7 @@ export default function AnalyticsDashboard() {
                 <>
                   <Summary text={mergedSummary} />
                   <div className="overflow-x-auto">
-                    <table className="w-full min-w-[720px] text-body-sm">
+                    <table className="w-full min-w-3xl text-body-sm">
                       <thead className="border-b border-border text-left text-micro text-muted">
                         <tr>
                           <th className="py-2 pr-3">채널</th>
@@ -900,14 +932,19 @@ export default function AnalyticsDashboard() {
               )}
             </div>
 
+              </>
+            )}
+
+            {tab === "daily" && (
+              <>
             {/* ── 날짜별 표 ── */}
-            <div className="mb-8 overflow-x-auto rounded-lg border border-border bg-background/50 p-5">
+            <div className="mb-8 overflow-x-auto rounded-xl border border-border bg-surface p-5">
               <h2 className="mb-1 text-h3 font-semibold">날짜별 숫자</h2>
               <p className="mb-3 text-body-sm text-muted">
                 차트에서 튀는 날을 찾았을 때 정확한 숫자를 보는 표입니다. 입금·취소는 그 일이
                 <strong className="text-foreground"> 실제로 일어난 날</strong>에 셉니다(신청일이 아닙니다).
               </p>
-              <table className="w-full min-w-[520px] text-body-sm">
+              <table className="w-full min-w-lg text-body-sm">
                 <thead className="border-b border-border text-left text-micro text-muted">
                   <tr>
                     <th className="py-2 pr-3">날짜</th>
@@ -938,37 +975,45 @@ export default function AnalyticsDashboard() {
                 </tbody>
               </table>
             </div>
+              </>
+            )}
           </>
         )}
 
-        {/* 가이드 섹션 */}
-        <div className="mt-12 border-t border-border pt-8">
-          <h2 className="text-h2 font-semibold mb-2">이 대시보드에 없는 지표는 어디서 봐요?</h2>
+        {/* 가이드 섹션 — 덜 쓰는 것은 접는다(docs/01 5장 원칙 5) */}
+        <details className="group/guide mt-8 rounded-xl border border-border bg-surface">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 px-4 py-3 text-body font-semibold [&::-webkit-details-marker]:hidden">
+            <h2>이 대시보드에 없는 지표는 어디서 봐요?</h2>
+            <Chevron dir="down" className="ml-auto h-4 w-4 shrink-0 text-muted transition-transform group-open/guide:rotate-180" />
+          </summary>
+          <div className="border-t border-border p-4 md:p-5">
           <p className="text-body-sm text-muted mb-6">
             더 자세한 분석이 필요하면 Google Analytics에서 직접 확인할 수 있습니다. 왼쪽 항목을 선택하면 오른쪽에 단계별 설명이 나타납니다.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {/* 왼쪽: 지표 목록 */}
-            <div className="space-y-2">
+            <div className="space-y-2 md:col-span-1">
               {GUIDE_ITEMS.map((item) => (
                 <button
                   key={item.id}
+                  type="button"
+                  aria-pressed={selectedGuideId === item.id}
                   onClick={() => setSelectedGuideId(item.id)}
-                  className={`w-full text-left px-4 py-3 rounded-lg border transition-all ${
+                  className={`w-full rounded-lg border px-4 py-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                     selectedGuideId === item.id
-                      ? "border-glow bg-glow/10 text-foreground"
-                      : "border-border bg-background/50 text-muted hover:text-foreground hover:bg-muted/30"
+                      ? "border-line-strong bg-fill-strong text-foreground"
+                      : "border-border bg-surface text-muted hover:bg-fill hover:text-foreground"
                   }`}
                 >
                   <p className="font-semibold text-body-sm">{item.title}</p>
-                  <p className="text-micro text-muted/80 mt-1">{item.summary}</p>
+                  <p className="mt-1 text-body-sm text-muted">{item.summary}</p>
                 </button>
               ))}
             </div>
 
             {/* 오른쪽: 상세 내용 */}
-            <div className="border border-border rounded-lg p-6 bg-background/50">
+            <div className="rounded-lg border border-border bg-fill-subtle p-5 md:col-span-2">
               <h3 className="text-h3 font-semibold mb-3">{selectedGuide.title}</h3>
 
               <p className="text-body-sm text-muted mb-4">{selectedGuide.description}</p>
@@ -985,7 +1030,7 @@ export default function AnalyticsDashboard() {
                 </ol>
               </div>
 
-              <div className="mb-6 bg-muted/30 p-4 rounded-lg border border-border/50">
+              <div className="mb-6 rounded-lg border border-border bg-surface p-4">
                 <p className="text-body-sm font-semibold mb-2">예시로 보면</p>
                 <p className="text-body-sm text-muted">{selectedGuide.example}</p>
               </div>
@@ -994,15 +1039,17 @@ export default function AnalyticsDashboard() {
                 href={selectedGuide.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-block px-4 py-2 bg-glow text-glow-foreground rounded-lg hover:opacity-90 transition-opacity text-body-sm font-semibold"
+                className={adminButtonClass("primary")}
               >
-                Google Analytics 열기 →
+                Google Analytics 열기
+                <Chevron className="h-4 w-4" />
               </a>
             </div>
           </div>
-        </div>
+          </div>
+        </details>
 
-        <div className="mt-12 text-micro text-muted border-t border-border pt-6">
+        <div className="mt-8 border-t border-border pt-6 text-body-sm text-muted">
           <p>· 데이터 기준: {PERIODS.find((p) => p.key === period)?.label ?? period}</p>
           <p>· 업데이트: 5분 캐시 · 방문 수는 GA4, 신청·입금·매출은 우리 DB</p>
           <p>· GA4 측정 ID: G-EG7FHGECVK</p>
