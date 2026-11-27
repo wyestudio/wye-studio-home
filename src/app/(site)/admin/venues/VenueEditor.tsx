@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { AdminBadge, AdminEmpty, adminButtonClass } from "@/components/admin/ui";
 import type { Venue } from "@/types/catalog";
 import { saveVenue, deleteVenue, type VenueInput } from "./actions";
 
@@ -66,27 +67,33 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
   return (
     <div className="space-y-6">
       {message && (
-        <div
-          className={`rounded-md border px-3 py-2 text-body-sm ${
-            message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
+        <p
+          role={message.kind === "ok" ? "status" : "alert"}
+          className={`rounded-lg border px-3 py-2 text-body-sm ${
+            message.kind === "ok" ? "border-confirm bg-confirm-soft text-confirm" : "border-danger bg-danger-soft text-danger"
           }`}
         >
           {message.text}
+        </p>
+      )}
+
+      {/* 편집 중에는 목록과 「등록」 버튼을 숨긴다 — 목록 → 한 건 편집(테마 화면과 같다). */}
+      {!editing && (
+        <div className="flex justify-end">
+          <button type="button" onClick={() => setEditing({ ...EMPTY })} className={adminButtonClass("primary")}>
+            장소 등록
+          </button>
         </div>
       )}
 
-      <div className="flex justify-end">
-        <button
-          onClick={() => setEditing({ ...EMPTY })}
-          className="rounded-md bg-glow px-3 py-2 text-body-sm text-glow-foreground"
-        >
-          + 장소 등록
-        </button>
-      </div>
-
       {editing && (
-        <div className="rounded-lg border border-border p-4 space-y-4">
-          <h2 className="font-semibold">{editing.id ? "장소 수정" : "새 장소"}</h2>
+        <div className="space-y-4 rounded-xl border border-border bg-surface p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setEditing(null)} className="min-h-11 text-body-sm text-glow hover:underline">
+              ← 장소 목록
+            </button>
+            <h2 className="text-h3 font-semibold text-foreground">{editing.id ? `${editing.name || "장소"} 수정` : "새 장소"}</h2>
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
@@ -177,59 +184,45 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
           </label>
 
           {message?.kind === "err" && (
-            <div className="rounded-md border border-red-500 px-3 py-2 text-body-sm text-red-400">
+            <p role="alert" className="rounded-lg border border-danger bg-danger-soft px-3 py-2 text-body-sm text-danger">
               {message.text}
-            </div>
+            </p>
           )}
 
           <div className="flex gap-2">
-            <button
-              onClick={submit}
-              disabled={pending}
-              className="rounded-md bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50"
-            >
+            <button type="button" onClick={submit} disabled={pending} className={adminButtonClass("primary")}>
               {pending ? "저장 중…" : "저장"}
             </button>
-            <button
-              onClick={() => setEditing(null)}
-              className="rounded-md border border-border px-4 py-2 text-body-sm"
-            >
+            <button type="button" onClick={() => setEditing(null)} className={adminButtonClass("secondary")}>
               취소
             </button>
           </div>
         </div>
       )}
 
+      {!editing && (
       <div className="space-y-2">
         {venues.length === 0 ? (
-          <p className="py-8 text-center text-body-sm text-muted">
-            등록된 장소가 없습니다. 테마를 만들려면 장소가 먼저 필요합니다.
-          </p>
+          <AdminEmpty title="아직 장소가 없어요" hint="테마를 만들려면 장소가 먼저 필요합니다. 「장소 등록」 을 눌러 주세요." />
         ) : (
           venues.map((v) => (
             <div
               key={v.id}
-              className="flex items-start justify-between gap-4 rounded-lg border border-border p-4"
+              className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-border bg-surface p-4"
             >
               <div className="min-w-0">
-                <p className="font-semibold">
+                <p className="flex flex-wrap items-center gap-2 font-semibold text-foreground">
                   {v.name}
-                  {!v.is_active && <span className="ml-2 text-micro text-muted">(사용 안 함)</span>}
+                  <AdminBadge tone={v.is_active ? "done" : "idle"}>{v.is_active ? "사용 중" : "사용 안 함"}</AdminBadge>
                 </p>
                 <p className="mt-1 text-body-sm text-muted">공개 위치: {v.area_label}</p>
                 <p className="text-micro text-muted">주소: {v.address}</p>
               </div>
               <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => setEditing(toInput(v))}
-                  className="rounded-md border border-border px-3 py-1.5 text-micro"
-                >
+                <button type="button" onClick={() => setEditing(toInput(v))} className={adminButtonClass("secondary")}>
                   수정
                 </button>
-                <button
-                  onClick={() => remove(v.id, v.name)}
-                  className="rounded-md border border-red-500/50 px-3 py-1.5 text-micro text-red-400"
-                >
+                <button type="button" onClick={() => remove(v.id, v.name)} className={adminButtonClass("danger")}>
                   삭제
                 </button>
               </div>
@@ -237,6 +230,7 @@ export function VenueEditor({ venues }: { venues: Venue[] }) {
           ))
         )}
       </div>
+      )}
     </div>
   );
 }
