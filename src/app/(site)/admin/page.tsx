@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import {
   formatHeadcountLine,
   countUnpaidConfirmed,
@@ -13,8 +13,12 @@ import {
   type DashboardGroup,
   type DashboardSession,
 } from "./DashboardSessions";
-import { BASE_MINUTES, OPTION } from "@/lib/groupPricing";
+import { BASE_MINUTES, OPTION, addDays, kstToday } from "@/lib/groupPricing";
 import { GROUP_BOOKING_THEME_SLUGS } from "@/lib/groupBooking";
+import { withBack } from "@/lib/adminBack";
+import { formatDateFull } from "@/lib/format";
+import { sessionPrepKey, type HomeTodo } from "@/lib/adminTodos";
+import { HomeTodos } from "./HomeTodos";
 
 export const dynamic = "force-dynamic";
 
@@ -25,12 +29,18 @@ function getNowMs(): number {
   return Date.now();
 }
 
+// 회차 시각(KST 'HH:MM'). 회차마다 새로 만들지 않게 모듈에 하나만 둔다(wye-server-cost).
+const KST_HM = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", hour12: false });
+const KST_YMD = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" });
+
 /**
- * 어드민 대시보드.
+ * 어드민 홈 — 오늘 할 일 + 월 달력(2026-11-27 관리자 개편 2단계. 예전 이름은 대시보드).
  *
- * 지표보다 "지금 내가 뭘 해야 하나"(처리 대기)를 위에 둔다.
- * 매주 운영에서 실제로 필요한 건 그것이기 때문이다.
- * 설계 근거: docs/08-architecture-screens-and-admin.md §3-3
+ * 지표보다 "지금 내가 뭘 해야 하나" 를 위에 둔다. 매주 운영에서 실제로 필요한 건 그것이기 때문이다.
+ * 지표는 홈에 두지 않는다(분석 메뉴). 설계 근거: docs/08-architecture-screens-and-admin.md §3-3
+ *
+ * 예전의 「처리 대기」 카드 네 장(미매칭 입금 · 입금 확인 전 · 기한 넘김 · 환불 대기)은 오늘 할 일의 줄이 됐다.
+ * ⚠️ **무엇을 세는지는 그대로다.** 아래 계산(지난 회차 제외, 환불 대기만 예외)을 바꾸지 않고 모양만 옮겼다.
  */
 export default async function AdminDashboard({ searchParams }: PageProps<"/admin">) {
   // 달력에서 보던 날짜(?date=) — 상세에 갔다 돌아오면 그 날짜를 다시 연다.
@@ -60,8 +70,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     return (
       <div className="min-h-screen bg-background p-4 md:p-6">
         <div className="mx-auto max-w-6xl">
-          <AdminNav current="/" />
-          <div className="text-red-400">세션 목록을 불러올 수 없습니다: {sessionsRes.error.message}</div>
+          <div className="text-danger">세션 목록을 불러올 수 없습니다: {sessionsRes.error.message}</div>
         </div>
       </div>
     );
@@ -77,11 +86,22 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   // 「단체 막기」 를 띄울 회차 — 단체 예약을 받는 테마(파티모드)의 것만. 이미 막아 둔 회차는 켜진 상태로.
   const groupThemeIds = new Set(themes.filter((t) => GROUP_BOOKING_THEME_SLUGS.includes(t.slug)).map((t) => t.id));
   // 단체 일정 — 달력에 회차와 같이 놓는다. 막은 일정 표 하나에 세 갈래(직접 · 예약 확정 · 파티 회차)가 모인다.
-  const [{ data: closureRows }, { data: groupRows }] = await Promise.all([
+  const [{ data: closureRows }, { data: groupRows }, manualTodosRes, dismissalsRes] = await Promise.all([
     supabase.from("group_booking_closures").select("id, date, start_time, minutes, note, inquiry_id, session_id"),
     supabase
       .from("admin_group_booking_inquiries_view")
       .select("id, organizer_name, group_name, headcount, status, preferred_date, preferred_time, options"),
+    // 직접 적은 할 일 — 남은 일 전부와, 끝낸 지 하루가 안 된 일(아래에 흐리게 남긴다).
+    supabase
+      .from("admin_todos")
+      .select("id, text, done_at, created_at")
+      .or(`done_at.is.null,done_at.gte.${new Date(getNowMs() - 86_400_000).toISOString()}`)
+      .order("created_at", { ascending: true }),
+    // 자동 할 일을 끝냄으로 체크한 기록 — 키에 날짜가 들어 있어 최근 것만 읽으면 된다.
+    supabase
+      .from("admin_todo_dismissals")
+      .select("todo_key")
+      .gte("done_at", new Date(getNowMs() - 3 * 86_400_000).toISOString()),
   ]);
   type ClosureRow = DashboardClosure & { inquiry_id: string | null; session_id: string | null };
   const closureList = (closureRows ?? []) as ClosureRow[];
@@ -218,6 +238,8 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       format_label: s.format_label,
       headcount_line: stats ? formatHeadcountLine(s, stats) : "확정 0명 · 대기 0명",
       confirmed: stats?.confirmed_count ?? 0,
+      paid_confirmed: stats?.paid_confirmed_count ?? 0,
+      capacity_max: s.capacity_max ?? null,
       booked_people: booked?.people ?? 0,
       payment_label: !booked ? null : booked.unpaid ? "입금 확인 전" : "입금 확인",
       unpaid: unpaidBySession.get(s.id) ?? 0,
@@ -228,75 +250,131 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
     };
   });
 
-  // 카드를 누르면 해당 조건이 걸린 신청 목록으로 바로 간다.
-  const todo = [
-    { label: "미매칭 입금", count: unmatchedDeposits, href: "/applications", tone: "red" as const },
-    {
-      label: "입금 확인 전",
-      count: unpaidConfirmed.length,
-      href: "/applications?status=confirmed&payment=pending",
-      tone: "amber" as const,
-    },
-    {
-      label: `기한 넘김 (${30}분)`,
-      count: unpaidOverdue.length,
-      href: "/applications?status=confirmed&payment=pending",
-      tone: "red" as const,
-    },
-    { label: "환불 대기", count: refundPending.length, href: "/applications?status=cancelled", tone: "amber" as const },
-  ];
-
-  const toneClass = {
-    red: "text-red-400",
-    amber: "text-amber-400",
+  // ── 오늘 할 일 ───────────────────────────────────────────
+  // 회차가 어느 모드인가 — 건수 줄 아래에 '파티 2 · 노말 1' 로 나눠 적는다(세는 대상은 위 계산 그대로).
+  const modeOf = new Map(
+    sessions.map((s) => [s.id, s.theme_mode?.includes("노말") ? "노말" : s.theme_mode?.includes("파티") ? "파티" : "기타"])
+  );
+  const byMode = (list: { session_id: string }[]) => {
+    const n = new Map<string, number>();
+    for (const a of list) n.set(modeOf.get(a.session_id) ?? "기타", (n.get(modeOf.get(a.session_id) ?? "기타") ?? 0) + 1);
+    return ["파티", "노말", "기타"]
+      .filter((m) => n.has(m))
+      .map((m) => `${m} ${n.get(m)}`)
+      .join(" · ");
   };
 
+  const todos: HomeTodo[] = [];
+  // 건수 줄 — 0건이면 올리지 않는다. 체크할 수 없고, 처리하면 저절로 사라진다. 누르면 예전 카드와 같은 목록으로 간다.
+  const countLine = (key: string, urgency: number, scope: string | null, title: string, sub: string, href: string) =>
+    todos.push({ key, tab: "check", scope, title, sub, href, urgency, checkable: false, done: false, manualId: null });
+  if (unmatchedDeposits > 0)
+    countLine("count:unmatched", 0, null, `미매칭 입금 ${unmatchedDeposits}건`, "들어온 입금을 신청과 맞춰 주세요", "/applications");
+  if (unpaidOverdue.length > 0)
+    countLine(
+      "count:overdue",
+      1,
+      null,
+      `입금 기한 넘김 ${unpaidOverdue.length}건`,
+      `신청 후 30분이 지났는데 입금 확인 전 · ${byMode(unpaidOverdue)}`,
+      "/applications?status=confirmed&payment=pending"
+    );
+  if (refundPending.length > 0)
+    countLine(
+      "count:refund",
+      2,
+      null,
+      `환불 대기 ${refundPending.length}건`,
+      `취소됐고 환불이 아직 안 끝남 · ${byMode(refundPending)}`,
+      "/applications?status=cancelled"
+    );
+  if (unpaidConfirmed.length > 0)
+    countLine(
+      "count:unpaid",
+      3,
+      null,
+      `입금 확인 전 ${unpaidConfirmed.length}건`,
+      `다가오는 회차의 확정 신청 · ${byMode(unpaidConfirmed)}`,
+      "/applications?status=confirmed&payment=pending"
+    );
+  // 새 단체 견적(아직 연락 전). 단체의 나머지 할 일(문자 · 신청서 · 준비)은 단체 예약 화면을 만드는 단계에 채운다.
+  const newInquiries = dashboardGroups.filter((g) => g.status === "new").length;
+  if (newInquiries > 0)
+    countLine("count:group-new", 4, "단체", `새 견적 ${newInquiries}건`, "아직 연락 전인 단체 견적", "/group-bookings?tab=new");
+
+  // 전날 · 당일 회차 — 신청자가 있는 파티모드, 예약이 들어온 노말모드만(2026-11-27 대표님). 체크할 수 있다.
+  const today = kstToday(new Date(nowMs));
+  const tomorrow = addDays(today, 1);
+  const dismissed = new Set(((dismissalsRes.data ?? []) as { todo_key: string }[]).map((d) => d.todo_key));
+  for (const s of dashboardSessions) {
+    if (s.status === "cancelled" || s.booked_people <= 0) continue;
+    if (new Date(s.start_at).getTime() <= nowMs) continue;
+    const day = KST_YMD.format(new Date(s.start_at));
+    if (day !== today && day !== tomorrow) continue;
+    const normal = !!s.theme_mode?.includes("노말");
+    const key = sessionPrepKey(s.id, today);
+    todos.push({
+      key,
+      tab: "prep",
+      scope: normal ? "노말" : s.theme_mode?.includes("파티") ? "파티" : (s.theme_name ?? "회차"),
+      title: `${day === today ? "오늘" : "내일"} ${KST_HM.format(new Date(s.start_at))} · ${
+        normal ? `예약 ${s.booked_people}명` : `확정 ${s.confirmed}명`
+      }`,
+      sub: normal ? (s.payment_label ?? "") : s.unpaid > 0 ? `입금 확인 전 ${s.unpaid}명` : "입금 확인 전 인원 없음",
+      href: withBack(`/sessions/${s.id}`, `/?date=${day}`),
+      urgency: day === today ? 5 : 6,
+      checkable: true,
+      done: dismissed.has(key),
+      manualId: null,
+    });
+  }
+
+  // 직접 적은 일
+  const manualTodos = (manualTodosRes.data ?? []) as { id: string; text: string; done_at: string | null }[];
+  for (const m of manualTodos) {
+    todos.push({
+      key: `manual:${m.id}`,
+      tab: "prep",
+      scope: null,
+      title: m.text,
+      sub: "직접 등록",
+      href: null,
+      urgency: 7,
+      checkable: true,
+      done: m.done_at != null,
+      manualId: m.id,
+    });
+  }
+  // 할 일 표를 못 읽어도 홈은 떠야 한다 — 건수 줄 · 달력은 그대로 보이고, 못 읽었다는 것만 알린다.
+  const todoStoreError = manualTodosRes.error?.message ?? dismissalsRes.error?.message ?? null;
+
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/" />
+    <AdminPage title="홈" description={formatDateFull(`${today}T12:00:00+09:00`)}>
+      {todoStoreError && (
+        <p role="alert" className="mb-3 text-body-sm text-danger">
+          직접 적은 할 일과 체크 기록을 불러오지 못했습니다: {todoStoreError}
+        </p>
+      )}
+      <HomeTodos todos={todos} />
 
-        <h1 className="mb-6 text-h2 font-semibold">대시보드</h1>
+      {/* ── 일정 ── */}
+      <section className="mt-8">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-h3 font-semibold text-foreground">일정</h2>
+          <Link href="/sessions" className="flex min-h-11 items-center text-body-sm text-glow underline">
+            회차 편성
+          </Link>
+        </div>
 
-        {/* ── 처리 대기 ── */}
-        <section className="mb-8">
-          <h2 className="mb-2 text-body-sm font-semibold text-muted">처리 대기</h2>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {todo.map((t) => (
-              <Link
-                key={t.label}
-                href={t.href}
-                className="rounded-lg border border-border p-4 transition-colors hover:bg-muted/10"
-              >
-                <p className="text-micro text-muted">{t.label}</p>
-                <p className={`mt-1 text-h2 font-semibold ${t.count > 0 ? toneClass[t.tone] : "text-muted"}`}>
-                  {t.count}
-                  <span className="ml-1 text-body-sm font-normal text-muted">건</span>
-                </p>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 회차 ── */}
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-body-sm font-semibold text-muted">일정</h2>
-            <Link href="/sessions" className="text-micro text-glow underline">
-              회차 편성 →
-            </Link>
-          </div>
-
-          <DashboardSessions
-            sessions={dashboardSessions}
-            groups={dashboardGroups}
-            closures={manualClosures}
-            siteUrl={SITE_URL}
-            nowMs={nowMs}
-            initialDate={initialDate}
-          />
-        </section>
-      </div>
-    </div>
+        <DashboardSessions
+          sessions={dashboardSessions}
+          groups={dashboardGroups}
+          closures={manualClosures}
+          siteUrl={SITE_URL}
+          nowMs={nowMs}
+          initialDate={initialDate}
+        />
+      </section>
+    </AdminPage>
   );
 }
