@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminPage } from "@/components/admin/ui";
+import { AdminEmpty, AdminPage } from "@/components/admin/ui";
 import { loadPreviewThemes } from "@/lib/templatePreview";
 import { SlackTemplateList } from "./SlackTemplateList";
 
@@ -41,7 +41,7 @@ export default async function SlackTemplatesPage() {
         }))}
       />
     ) : (
-      <div className="py-8 text-center text-muted">등록된 템플릿이 없습니다.</div>
+      <AdminEmpty title="등록된 템플릿이 없어요" />
     )}
     </AdminPage>
   );

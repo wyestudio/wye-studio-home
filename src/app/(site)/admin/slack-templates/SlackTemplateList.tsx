@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { MessageTemplateEditor } from "@/components/admin/MessageTemplateEditor";
+import { TemplateMasterDetail } from "@/components/admin/TemplateMasterDetail";
+import { adminInputClass } from "@/components/admin/ui";
 import { updateSlackTemplate } from "./actions";
 import {
   SLACK_PLACEHOLDER_LABELS,
@@ -23,8 +25,6 @@ export type PreviewThemeOption = {
   examples: Record<string, string>;
   basis: string;
 };
-
-const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 
 /** 테마와 무관한 값들. 미리보기에서만 쓰는 샘플이다. */
 const SAMPLE_VARS: Record<string, string> = {
@@ -85,6 +85,8 @@ export function SlackTemplateList({
     [templates]
   );
 
+  const byKey = useMemo(() => new Map(templates.map((t) => [t.key, t])), [templates]);
+
   const examples = useMemo(() => {
     const t = theme?.examples ?? {};
     return {
@@ -98,30 +100,35 @@ export function SlackTemplateList({
   }, [theme]);
 
   return (
-    <>
-      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-border p-4">
-        <div>
-          <label className="mb-1 block text-micro text-muted">미리보기 기준 테마</label>
-          <select className={field} value={themeId} onChange={(e) => setThemeId(e.target.value)}>
-            {themes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
+    <TemplateMasterDetail
+      listLabel="슬랙 알림 목록"
+      items={templates.map((t) => ({ key: t.key, label: t.label }))}
+      toolbar={
+        <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 md:flex-row md:items-end md:gap-4">
+          <div className="md:w-56">
+            <label htmlFor="slack-preview-theme" className="mb-1.5 block text-label font-semibold text-foreground">
+              미리보기 기준 테마
+            </label>
+            <select id="slack-preview-theme" className={adminInputClass} value={themeId} onChange={(e) => setThemeId(e.target.value)}>
+              {themes.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {theme && (
+            <p className="min-w-0 flex-1 text-body-sm text-muted">
+              금액·일시는 <strong className="text-foreground">{theme.name}</strong> 의 실제 값입니다 —{" "}
+              {theme.basis}. 참여자는 샘플 3명(대표 1 · 동행 2)입니다.
+            </p>
+          )}
         </div>
-        {theme && (
-          <p className="self-end pb-2 text-micro text-muted">
-            금액·일시는 <strong className="text-foreground">{theme.name}</strong> 의 실제 값입니다 —{" "}
-            {theme.basis}. 참여자는 샘플 3명(대표 1 · 동행 2)입니다.
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        {templates.map((t) => (
+      }
+      renderEditor={(item, onDirtyChange) => {
+        const t = byKey.get(item.key)!;
+        return (
           <MessageTemplateEditor
-            key={t.key}
             templateKey={t.key}
             label={t.label}
             initialBody={t.body}
@@ -132,9 +139,10 @@ export function SlackTemplateList({
             blockExamples={blocksByKey[t.key]}
             blockHints={BLOCK_HINTS_BY_KEY[t.key] ?? []}
             onSave={updateSlackTemplate}
+            onDirtyChange={onDirtyChange}
           />
-        ))}
-      </div>
-    </>
+        );
+      }}
+    />
   );
 }

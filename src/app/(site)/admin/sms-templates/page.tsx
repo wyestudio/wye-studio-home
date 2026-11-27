@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminPage } from "@/components/admin/ui";
+import { AdminEmpty, AdminPage } from "@/components/admin/ui";
 import { loadPreviewThemes } from "@/lib/templatePreview";
 import { TemplateList } from "./TemplateList";
 
@@ -58,7 +58,7 @@ export default async function SmsTemplatesPage() {
         }))}
       />
     ) : (
-      <div className="text-center py-8 text-muted">등록된 템플릿이 없습니다.</div>
+      <AdminEmpty title="등록된 템플릿이 없어요" />
     )}
     </AdminPage>
   );

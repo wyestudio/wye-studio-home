@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { adminButtonClass, adminInputClass } from "@/components/admin/ui";
 import { PlaceholderHints } from "@/components/admin/PlaceholderHints";
 import { renderTemplate, type TemplateBlocks } from "@/lib/messageTemplate";
 
@@ -31,6 +32,7 @@ export function MessageTemplateEditor({
   previewNote = "실제 발송 예시 (위에서 고른 테마의 실제 값 기준)",
   blockNote = "인원수만큼 반복되는 블록입니다. 블록 안에 원하는 항목만 골라 쓰세요.",
   onSave,
+  onDirtyChange,
 }: {
   templateKey: string;
   label: string;
@@ -47,6 +49,8 @@ export function MessageTemplateEditor({
   /** 반복 블록 안내. */
   blockNote?: string;
   onSave: (key: string, body: string) => Promise<{ error?: string; success?: true }>;
+  /** 저장하지 않은 변경이 생기거나 없어질 때 알린다(목록의 「저장 안 됨」 표시용). 안정된 함수를 넘긴다. */
+  onDirtyChange?: (key: string, dirty: boolean) => void;
 }) {
   const [body, setBody] = useState(initialBody);
   const [savedBody, setSavedBody] = useState(initialBody);
@@ -55,6 +59,9 @@ export function MessageTemplateEditor({
   const [saved, setSaved] = useState(false);
 
   const isDirty = body !== savedBody;
+  useEffect(() => {
+    onDirtyChange?.(templateKey, isDirty);
+  }, [onDirtyChange, templateKey, isDirty]);
   const preview = useMemo(
     () => renderTemplate(body, examples, blockExamples),
     [body, examples, blockExamples]
@@ -80,22 +87,22 @@ export function MessageTemplateEditor({
   }
 
   return (
-    <div className="border border-border rounded-lg p-4">
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <h2 className="font-semibold text-foreground">{label}</h2>
-        <span className="text-micro text-muted shrink-0">마지막 수정: {updatedAt}</span>
+    <div className="rounded-xl border border-border bg-surface p-4 md:p-5">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="text-h3 font-semibold text-foreground">{label}</h2>
+        <span className="text-body-sm tabular-nums text-muted">마지막 수정: {updatedAt}</span>
       </div>
 
       <div className="mb-3">
-        <p className="text-micro text-muted mb-1.5">
+        <p className="mb-1.5 text-body-sm text-muted">
           사용 가능한 변수 (hover로 설명 확인, 클릭하면 복사돼요)
         </p>
         <PlaceholderHints placeholders={placeholders} labels={labels} examples={examples} />
       </div>
 
       {blockHints.length > 0 && (
-        <div className="mb-3 rounded-md border border-border/60 bg-surface/40 p-3">
-          <p className="text-micro text-muted">
+        <div className="mb-3 rounded-lg border border-border bg-fill-subtle p-3">
+          <p className="text-body-sm text-muted">
             {blockNote}
           </p>
           {blockHints.map((b) => (
@@ -121,26 +128,32 @@ export function MessageTemplateEditor({
               setSaved(false);
             }}
             rows={14}
-            className="w-full p-3 text-body-sm font-mono bg-background border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-glow"
+            aria-label={`${label} 본문`}
+            className={`${adminInputClass} py-3 font-mono`}
           />
 
-          <div className="flex items-center gap-3 mt-3">
-            <button
-              onClick={handleSave}
-              disabled={isLoading || !isDirty}
-              className="px-3 py-1.5 text-micro bg-glow text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
-            >
-              {isLoading ? "저장중..." : "저장"}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={handleSave} disabled={isLoading || !isDirty} className={adminButtonClass("primary")}>
+              {isLoading ? "저장 중…" : "저장"}
             </button>
-            {saved && !isDirty && <span className="text-glow text-micro font-semibold">✓ 저장됨</span>}
-            {isDirty && !isLoading && <span className="text-micro text-muted">저장되지 않은 변경사항</span>}
-            {error && <span className="text-red-500 text-micro">{error}</span>}
+            {saved && !isDirty && (
+              <span role="status" className="text-body-sm font-semibold text-confirm">
+                ✓ 저장됨
+              </span>
+            )}
+            {isDirty && !isLoading && <span className="text-body-sm text-wait">저장되지 않은 변경사항</span>}
+            {error && (
+              <span role="alert" className="text-body-sm text-danger">
+                {error}
+              </span>
+            )}
           </div>
         </div>
 
-        <div>
-          <p className="text-micro text-muted mb-1.5">{previewNote}</p>
-          <div className="h-[calc(100%-1.375rem)] min-h-[280px] whitespace-pre-wrap rounded-md border border-border bg-background p-3 text-body-sm text-foreground">
+        <div className="flex flex-col">
+          <p className="mb-1.5 text-body-sm text-muted">{previewNote}</p>
+          {/* 왼쪽 입력칸과 키를 맞춘다(같은 줄의 높이를 다 채운다) */}
+          <div className="min-h-72 flex-1 whitespace-pre-wrap break-words rounded-lg border border-border bg-fill-subtle p-3 text-body-sm text-foreground">
             {preview}
           </div>
         </div>

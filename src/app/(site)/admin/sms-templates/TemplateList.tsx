@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MessageTemplateEditor } from "@/components/admin/MessageTemplateEditor";
+import { TemplateMasterDetail } from "@/components/admin/TemplateMasterDetail";
+import { AdminTabButtons, adminInputClass } from "@/components/admin/ui";
 import { PLACEHOLDER_INFO } from "./placeholderInfo";
 import { updateSmsTemplate } from "./actions";
 
@@ -44,8 +46,6 @@ export type TemplateRow = {
   updatedAt: string;
 };
 
-const field = "rounded-md border border-border bg-background px-3 py-2 text-body-sm";
-
 const LABELS = Object.fromEntries(
   Object.entries(PLACEHOLDER_INFO).map(([k, v]) => [k, v.label])
 );
@@ -73,6 +73,10 @@ export function TemplateList({
   const theme = themes.find((t) => t.id === themeId) ?? themes[0];
   const shown = templates.filter((t) => groupOf(t.key) === group);
   const groupInfo = GROUPS.find((g) => g.id === group)!;
+  const byKey = new Map(templates.map((t) => [t.key, t]));
+  // 고른 테마의 실제 값이 먼저다. 테마와 무관한 변수만 고정 예시로 채운다.
+  // 렌더마다 새 객체를 만들면 편집기의 미리보기 memo 가 매번 깨진다.
+  const examples = useMemo(() => ({ ...FALLBACK_EXAMPLES, ...(theme?.examples ?? {}) }), [theme]);
 
   // 탭을 바꾸면 미리보기 테마도 그 모드로 맞춘다 — 노말 문자를 파티 값으로 미리 보면 헷갈린다.
   function pickGroup(g: Group) {
@@ -87,64 +91,58 @@ export function TemplateList({
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap gap-2" role="tablist">
-        {GROUPS.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            role="tab"
-            aria-selected={group === g.id}
-            onClick={() => pickGroup(g.id)}
-            className={`rounded-md border px-3 py-1.5 text-label transition-colors ${
-              group === g.id
-                ? "border-line-strong bg-fill-strong text-foreground"
-                : "border-line text-muted hover:bg-fill"
-            }`}
-          >
-            {g.label} ({templates.filter((t) => groupOf(t.key) === g.id).length})
-          </button>
-        ))}
-      </div>
+      <AdminTabButtons
+        label="문자 종류"
+        current={group}
+        onSelect={pickGroup}
+        tabs={GROUPS.map((g) => ({ key: g.id, label: g.label, count: templates.filter((t) => groupOf(t.key) === g.id).length }))}
+      />
       <p className="mb-4 text-body-sm text-muted">{groupInfo.note}</p>
 
-      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-border p-4">
-        <div>
-          <label className="mb-1 block text-micro text-muted">미리보기 기준 테마</label>
-          <select className={field} value={themeId} onChange={(e) => setThemeId(e.target.value)}>
-            {themes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        {theme && (
-          <p className="self-end pb-2 text-micro text-muted">
-            가격·소요시간·장소·일시는 <strong className="text-foreground">{theme.name}</strong> 의
-            실제 값입니다 — {theme.basis}.
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-4">
-        {shown.length === 0 && (
-          <div className="rounded-lg border border-border py-8 text-center text-muted">이 탭에 등록된 문자가 없습니다.</div>
-        )}
-        {shown.map((t) => (
-          <MessageTemplateEditor
-            key={t.key}
-            templateKey={t.key}
-            label={t.label}
-            initialBody={t.body}
-            placeholders={t.placeholders}
-            updatedAt={t.updatedAt}
-            labels={LABELS}
-            // 고른 테마의 실제 값이 먼저다. 테마와 무관한 변수만 고정 예시로 채운다.
-            examples={{ ...FALLBACK_EXAMPLES, ...(theme?.examples ?? {}) }}
-            onSave={updateSmsTemplate}
-          />
-        ))}
-      </div>
+      <TemplateMasterDetail
+        listLabel={`${groupInfo.label} 문자 목록`}
+        items={templates.map((t) => ({ key: t.key, label: t.label }))}
+        visibleKeys={shown.map((t) => t.key)}
+        emptyTitle="이 탭에 등록된 문자가 없습니다."
+        toolbar={
+          <div className="mb-4 flex flex-col gap-2 rounded-xl border border-border bg-surface p-4 md:flex-row md:items-end md:gap-4">
+            <div className="md:w-56">
+              <label htmlFor="sms-preview-theme" className="mb-1.5 block text-label font-semibold text-foreground">
+                미리보기 기준 테마
+              </label>
+              <select id="sms-preview-theme" className={adminInputClass} value={themeId} onChange={(e) => setThemeId(e.target.value)}>
+                {themes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {theme && (
+              <p className="min-w-0 flex-1 text-body-sm text-muted">
+                가격·소요시간·장소·일시는 <strong className="text-foreground">{theme.name}</strong> 의
+                실제 값입니다 — {theme.basis}.
+              </p>
+            )}
+          </div>
+        }
+        renderEditor={(item, onDirtyChange) => {
+          const t = byKey.get(item.key)!;
+          return (
+            <MessageTemplateEditor
+              templateKey={t.key}
+              label={t.label}
+              initialBody={t.body}
+              placeholders={t.placeholders}
+              updatedAt={t.updatedAt}
+              labels={LABELS}
+              examples={examples}
+              onSave={updateSmsTemplate}
+              onDirtyChange={onDirtyChange}
+            />
+          );
+        }}
+      />
     </>
   );
 }
