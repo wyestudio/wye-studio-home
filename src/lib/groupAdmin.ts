@@ -78,6 +78,15 @@ export type HistoryRow = {
   created_at: string;
 };
 
+export type ChecklistItem = {
+  id: string;
+  idx: number;
+  label: string;
+  owner: string | null;
+  done_at: string | null;
+  auto: boolean;
+};
+
 export const toAdjustment = (r: AdjustmentRow): Adjustment => ({
   reason: r.reason_code,
   label: r.label,
@@ -125,10 +134,10 @@ export async function loadGroups(): Promise<{ rows: GroupRow[]; adjustments: Map
 /** 상세용 — 한 단체와 조정 줄 · 변경 기록. 없으면 null. */
 export async function loadGroup(
   id: string
-): Promise<{ group: GroupRow; adjustments: AdjustmentRow[]; history: HistoryRow[] } | null> {
+): Promise<{ group: GroupRow; adjustments: AdjustmentRow[]; history: HistoryRow[]; checklist: ChecklistItem[] } | null> {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) return null;
   const supabase = createAdminClient();
-  const [g, a, h] = await Promise.all([
+  const [g, a, h, c] = await Promise.all([
     supabase.from("admin_group_booking_inquiries_view").select(GROUP_COLUMNS).eq("id", id).maybeSingle(),
     supabase.from("group_booking_adjustments").select("*").eq("inquiry_id", id).order("created_at", { ascending: true }),
     supabase
@@ -137,14 +146,47 @@ export async function loadGroup(
       .eq("inquiry_id", id)
       .order("created_at", { ascending: false })
       .limit(100),
+    supabase
+      .from("group_checklist_items")
+      .select("id, idx, label, owner, done_at, auto")
+      .eq("inquiry_id", id)
+      .order("idx", { ascending: true })
+      .order("created_at", { ascending: true }),
   ]);
   if (g.error) throw new Error(g.error.message);
   if (a.error) throw new Error(a.error.message);
   if (h.error) throw new Error(h.error.message);
+  if (c.error) throw new Error(c.error.message);
   if (!g.data) return null;
   return {
     group: g.data as unknown as GroupRow,
     adjustments: (a.data ?? []) as AdjustmentRow[],
     history: (h.data ?? []) as HistoryRow[],
+    checklist: (c.data ?? []) as ChecklistItem[],
   };
+}
+
+/** 단체용 안내 문자 문구 원본(sms_templates 의 group_*). 키 → 본문. */
+export async function loadGroupTemplates(): Promise<Map<string, string>> {
+  const { data, error } = await createAdminClient().from("sms_templates").select("key, body").like("key", "group_%");
+  if (error) throw new Error(error.message);
+  return new Map(((data ?? []) as { key: string; body: string }[]).map((r) => [r.key, r.body]));
+}
+
+/**
+ * 준비 체크리스트를 양식에서 복사해 만든다 — 단체가 확정될 때 한 번. 이미 있으면 아무것도 하지 않는다.
+ * 양식을 나중에 고쳐도 이미 만들어진 단체의 체크리스트는 바뀌지 않는다.
+ */
+export async function createChecklistIfMissing(id: string): Promise<number> {
+  const supabase = createAdminClient();
+  const { count, error } = await supabase.from("group_checklist_items").select("id", { count: "exact", head: true }).eq("inquiry_id", id);
+  if (error) throw new Error(error.message);
+  if ((count ?? 0) > 0) return 0;
+  const { data: tpl, error: tplErr } = await supabase.from("group_checklist_templates").select("idx, label, owner").order("idx");
+  if (tplErr) throw new Error(tplErr.message);
+  const rows = ((tpl ?? []) as { idx: number; label: string; owner: string | null }[]).map((t) => ({ inquiry_id: id, idx: t.idx, label: t.label, owner: t.owner }));
+  if (rows.length === 0) return 0;
+  const { error: insErr } = await supabase.from("group_checklist_items").insert(rows);
+  if (insErr) throw new Error(insErr.message);
+  return rows.length;
 }

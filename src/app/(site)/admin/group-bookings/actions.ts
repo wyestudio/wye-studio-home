@@ -3,142 +3,18 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { requireAdmin, toActionError, type ActionResult } from "@/lib/adminGuard";
 import { writeAuditLog } from "@/lib/auditLog";
-import { GROUP_BOOKING_THEME_SLUGS, isInquiryStatus, inquiryStatusLabel } from "@/lib/groupBooking";
+import { GROUP_BOOKING_THEME_SLUGS } from "@/lib/groupBooking";
 import { GROUP_CLOSURES_TAG } from "@/lib/groupClosures";
-import { BASE_MINUTES, CLOSURE_BUFFER_MINUTES, HHMM, ISO_DATE, OPTION, addMinutes } from "@/lib/groupPricing";
+import { BASE_MINUTES, CLOSURE_BUFFER_MINUTES, HHMM, ISO_DATE, addMinutes } from "@/lib/groupPricing";
 import { closeOverlappingSessions, closureLabel } from "@/lib/groupClosureOps";
 
 /**
- * 단체 예약 문의의 진행 상태·메모 저장.
+ * 단체 일정 막기 · 풀기(홈 달력의 「이날 단체 막기」 · 파티 회차의 「단체 막기」).
  *
- * 금액이 바뀌는 작업이 아니다(견적은 사람이 따로 안내한다) — 여기 값은 **어디까지
- * 응대했는지** 를 적는 운영 메모다. 그래도 누가 언제 바꿨는지는 남긴다. 접수함을
- * 둘이 나눠 보면 "이거 연락했나" 가 반드시 겹친다.
- *
- * '예약 확정' 이면 확정 일시(booking)로 마감을 만든다 — 그 시간과 겹치는 단체 · 일반 회차를
- * 더 받지 않게(2026-10-30 대표님). 확정 일시는 희망 일시와 다를 수 있어(15:30 신청 → 13:30
- * 안내) 운영자가 넣은 값을 쓴다. 확정 일시를 바꾸면 마감도 옮기고, 확정에서 다른 상태로
- * 돌리면 마감을 푼다. 마감은 group_booking_closures.inquiry_id 로 이 신청 건과 이어진다.
+ * 예전에 여기 있던 「진행 상태 저장」(saveInquiryStatus) · 「문의 정보 수정」(saveInquiryInfo)은 관리자 개편으로
+ * groupActions.ts 의 입금 확인 · 금액 변경으로 바뀌어 지웠다(2026-11-27 대표님 확인). 단계는 이제 운영자가
+ * 직접 고르지 않고 동작에 따라 넘어간다.
  */
-export async function saveInquiryStatus(input: {
-  id: string;
-  status: string;
-  memo: string;
-  booking: ClosureInput | null;
-}): Promise<ActionResult> {
-  try {
-    const supabase = await requireAdmin();
-
-    if (!isInquiryStatus(input.status)) {
-      return { error: "알 수 없는 상태입니다." };
-    }
-    const booked = input.status === "booked";
-    if (booked) {
-      if (!input.booking || input.booking.time === null) return { error: "확정 날짜 · 시작 시각 · 소요 시간을 넣어주세요." };
-      const bad = validateClosure(input.booking);
-      if (bad) return { error: bad };
-    }
-
-    const { error } = await supabase
-      .from("group_booking_inquiries")
-      .update({
-        status: input.status,
-        admin_memo: input.memo.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", input.id);
-
-    if (error) return { error: error.message };
-
-    await writeAuditLog({
-      action: "group_booking.updated",
-      targetType: "group_booking_inquiry",
-      targetId: input.id,
-      summary: `단체 예약 문의 ${inquiryStatusLabel(input.status)}`,
-    });
-
-    // 이 신청 건에 이어진 마감. 확정 일시가 그대로면 손대지 않는다(회차를 다시 닫으러 가지 않게).
-    const { data: linkedRow, error: linkErr } = await supabase
-      .from("group_booking_closures")
-      .select("id, date, start_time, minutes")
-      .eq("inquiry_id", input.id)
-      .maybeSingle();
-    if (linkErr) throw linkErr;
-    const linked = linkedRow as { id: string; date: string; start_time: string | null; minutes: number | null } | null;
-    const b = booked ? input.booking! : null;
-    const same = !!linked && !!b && linked.date === b.date && linked.start_time === b.time && linked.minutes === b.minutes;
-
-    const parts = ["저장했습니다."];
-    if (linked && !same) {
-      await deleteClosure(supabase, linked.id);
-      if (!b) parts.push(`확정 일시(${closureLabel(linked.date, linked.start_time, linked.minutes)}) 마감을 풀었습니다.`);
-    }
-    if (b && !same) {
-      // 메모는 비운다 — 대시보드 달력에서 신청 건 이름으로 보여 준다.
-      const res = await insertClosure(supabase, b, null, input.id);
-      parts.push(res);
-    }
-
-    updateTag(GROUP_CLOSURES_TAG);
-    revalidatePath("/admin/group-bookings");
-    revalidatePath("/admin/sessions");
-    return { success: true, message: parts.join(" ") };
-  } catch (err) {
-    return toActionError(err, "저장에 실패했습니다.");
-  }
-}
-
-/**
- * 문의의 인원 · 모임 이름 · 담당자 이름 · 구성 고치기(2026-11-11 대표님).
- * 담당자 이름은 암호화해 넣어야 해서 DB 함수(admin_update_group_booking_inquiry)를 거친다.
- * 예상 금액은 그대로 둔다 — 접수 시점에 계산한 기록이다.
- */
-export async function saveInquiryInfo(input: {
-  id: string;
-  headcount: number;
-  groupName: string;
-  organizerName: string;
-  /** null 이면 구성은 그대로 둔다(구성 없이 받은 v1 접수분). */
-  options: { icebreaking: boolean; character: boolean; after_party_hours: number; cleanup: boolean } | null;
-}): Promise<ActionResult> {
-  try {
-    const supabase = await requireAdmin();
-    if (!Number.isInteger(input.headcount) || input.headcount < 2 || input.headcount > 200) {
-      return { error: "인원은 2~200명 사이로 넣어주세요." };
-    }
-    if (!input.organizerName.trim()) return { error: "담당자 이름을 넣어주세요." };
-    const o = input.options;
-    if (o && !(Number.isInteger(o.after_party_hours) && o.after_party_hours >= 0 && o.after_party_hours <= OPTION.afterParty.maxHours)) {
-      return { error: "애프터파티 시간을 확인해주세요." };
-    }
-
-    const { error } = await supabase.rpc("admin_update_group_booking_inquiry", {
-      p_id: input.id,
-      p_headcount: input.headcount,
-      p_group_name: input.groupName,
-      p_organizer_name: input.organizerName,
-      p_options: o
-        ? { icebreaking: !!o.icebreaking, character: !!o.character, after_party_hours: o.after_party_hours, cleanup: !!o.cleanup }
-        : null,
-    });
-    if (error) return { error: error.message };
-
-    // 이름은 개인정보라 감사 기록에는 인원만 남긴다.
-    await writeAuditLog({
-      action: "group_booking.updated",
-      targetType: "group_booking_inquiry",
-      targetId: input.id,
-      summary: `단체 예약 문의 정보 수정 — ${input.headcount}명`,
-    });
-
-    revalidatePath("/admin");
-    revalidatePath("/admin/group-bookings");
-    return { success: true, message: "저장했습니다." };
-  } catch (err) {
-    return toActionError(err, "저장에 실패했습니다.");
-  }
-}
-
 type ClosureInput = {
   date: string;
   time: string | null;

@@ -6,8 +6,17 @@ import { formatDateTimeFull } from "@/lib/format";
 import { contactMethodLabel, groupKindLabel, preferredTimeLabel, repeatPlayerLabel, teamStyleLabel } from "@/lib/groupBooking";
 import { addMinutes, dateLabel, kstToday, won } from "@/lib/groupPricing";
 import { groupRefund, isPayType, requiredDeposit } from "@/lib/groupSettlement";
-import { AdminBadge, AdminCard, AdminNotice, AdminPage, AdminTabs, adminButtonClass, type AdminTone } from "@/components/admin/ui";
-import { daysLeftOf, loadGroup, settlementFor } from "@/lib/groupAdmin";
+import { AdminBadge, AdminCard, AdminPage, AdminTabs, adminButtonClass, type AdminTone } from "@/components/admin/ui";
+import { daysLeftOf, loadGroup, loadGroupTemplates, settlementFor } from "@/lib/groupAdmin";
+import {
+  MESSAGE_KINDS,
+  fullPaymentNotice,
+  messageBlockedReason,
+  previewName,
+  renderGroupMessage,
+  stageAfterCopy,
+  templateKeyOf,
+} from "@/lib/groupMessages";
 import {
   GROUP_STAGES,
   ddayLabel,
@@ -24,6 +33,8 @@ import {
 } from "@/lib/groupStage";
 import { ContactReveal, GroupNameEditor, HeadActions, MemoEditor } from "./GroupDetailClient";
 import { MoneyTab } from "./MoneyTab";
+import { MessagesTab, type MessageView } from "./MessagesTab";
+import { Checklist, OrganizerNameEditor, StageBackButton } from "./OverviewClient";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +42,7 @@ export const dynamic = "force-dynamic";
  * 단체 예약 한 건(관리자 개편 4단계).
  *
  * 머리: 모임명 · 단계 · D-day / 일시 · 인원 · 모임 성격 / 「일정 수정」 · 「취소 · 환불」.
- * 탭: 개요 · 금액. (설문 · 문자 / 참가자 / 팀 편성 / 리포트 탭은 그 화면을 만드는 단계에 더한다.)
+ * 탭: 개요 · 금액 · 설문/문자. (참가자 / 팀 편성 / 리포트 탭은 그 화면을 만드는 단계에 더한다.)
  *
  * 예전 상세에 있던 것은 전부 남아 있다: 견적 신청 내용(담당자 · 견적 · 모임/요청사항 · 접수/유입) · 메모는 개요에,
  * 인원 · 구성 고치기는 금액 탭에(이제 기록이 남는다), 확정 일시는 금액 탭의 입금 확인과 머리의 일정 수정에.
@@ -50,11 +61,11 @@ export default async function AdminGroupBookingDetailPage({
   const sp = await searchParams;
   // 들어온 목록(조건 포함) · 홈 달력 날짜로 돌아간다 — adminBack.ts
   const back = safeBack(sp.back, "/group-bookings");
-  const tab = sp.tab === "money" ? "money" : "overview";
+  const tab = sp.tab === "money" ? "money" : sp.tab === "forms" ? "forms" : "overview";
 
   const loaded = await loadGroup(id);
   if (!loaded) notFound();
-  const { group: g, adjustments, history } = loaded;
+  const { group: g, adjustments, history, checklist } = loaded;
 
   // 가린 연락처는 서버에서 만든다. 전체 값은 이 요청의 응답에 싣지 않는다.
   const { data: contactRow } = await createAdminClient()
@@ -86,6 +97,28 @@ export default async function AdminGroupBookingDetailPage({
   const badge: { tone: AdminTone; label: string } = cancelled
     ? { tone: "danger", label: "취소" }
     : { tone: stage === "new" ? "warn" : stage === "contacted" ? "progress" : stage === "report" ? "idle" : "done", label: stageLabel(stage) };
+  // 안내 문자 미리보기 — 설문 · 문자 탭을 볼 때만 만든다. 담당자 이름은 가린 채 넣는다.
+  let messages: MessageView[] = [];
+  if (tab === "forms") {
+    const templates = await loadGroupTemplates();
+    messages = MESSAGE_KINDS.map((m) => {
+      const key = templateKeyOf(m.kind, g.pay_type);
+      const body = templates.get(key);
+      const blocked = messageBlockedReason(m.kind, g, today) ?? (body ? null : `문자 문구(${key})를 찾을 수 없습니다.`);
+      const to = stageAfterCopy(m.kind, g, today);
+      const copied = g.messages_copied?.[key];
+      return {
+        kind: m.kind,
+        label: m.label,
+        preview: blocked || !body ? null : renderGroupMessage({ kind: m.kind, body, group: g, adjustments, today, leaderName: previewName(g) }),
+        blocked,
+        copiedAt: copied ? formatDateTimeFull(copied) : null,
+        nextStage: to ? stageLabel(to) : null,
+        warning: m.kind === "quote" && !blocked ? fullPaymentNotice(g, adjustments, today) : null,
+      };
+    });
+  }
+  const dbStageIdx = stageIndex(g.stage);
   const self = (t: string) => withBack(`/group-bookings/${id}${t === "overview" ? "" : `?tab=${t}`}`, back);
   const o = g.options ?? {};
   const picks = [
@@ -146,6 +179,11 @@ export default async function AdminGroupBookingDetailPage({
               금액 탭에서 입금 확인
             </Link>
           )}
+          {(stage === "new" || stage === "d7" || stage === "done" || (stage === "confirmed" && g.deposit_paid_at != null)) && tab !== "forms" && (
+            <Link href={self("forms")} className={adminButtonClass("primary")}>
+              설문 · 문자 탭에서 문자 복사
+            </Link>
+          )}
         </div>
       )}
 
@@ -154,10 +192,13 @@ export default async function AdminGroupBookingDetailPage({
         tabs={[
           { key: "overview", label: "개요", href: self("overview") },
           { key: "money", label: "금액", href: self("money") },
+          { key: "forms", label: "설문 · 문자", href: self("forms") },
         ]}
       />
 
-      {tab === "money" ? (
+      {tab === "forms" ? (
+        <MessagesTab id={id} messages={messages} />
+      ) : tab === "money" ? (
         <MoneyTab
           id={id}
           cancelled={cancelled}
@@ -207,13 +248,35 @@ export default async function AdminGroupBookingDetailPage({
             </ol>
           )}
 
-          <AdminNotice title="모임장 신청서 · 준비 체크리스트는 다음 묶음에서 들어옵니다">
-            지금은 견적 신청 때 받은 내용과 메모만 보입니다. 예약금이 들어오면 신청서 없이도 금액 탭에서 확정할 수 있습니다.
-          </AdminNotice>
+          {!cancelled && dbStageIdx > 0 && g.stage !== "confirmed" && (
+            <div className="-mt-2 px-1">
+              <StageBackButton id={id} from={stageLabel(g.stage)} to={GROUP_STAGES[dbStageIdx - 1].label} />
+            </div>
+          )}
+
+          <AdminCard title="모임장 신청서">
+            <p className="text-body-sm text-foreground">아직 신청서가 없어요. 예약금이 들어오면 신청서 없이도 확정됩니다.</p>
+            <p className="mt-1 text-body-sm text-muted">신청서 받기 · 요약 · 수정 요청은 공개 폼을 만드는 단계에 들어옵니다.</p>
+            {confirmed && !cancelled && (
+              <Link href={self("forms")} className={`${adminButtonClass("secondary")} mt-3`}>
+                신청서 재촉 문자 보기
+              </Link>
+            )}
+          </AdminCard>
+
+          <AdminCard title="준비 체크리스트">
+            <Checklist
+              id={id}
+              confirmed={confirmed}
+              cancelled={cancelled}
+              items={checklist.map((c) => ({ id: c.id, label: c.label, owner: c.owner, done: c.done_at != null, auto: c.auto }))}
+            />
+          </AdminCard>
 
           <div className="grid gap-4 md:grid-cols-2">
             <AdminCard title="담당자 · 연락">
               <ContactReveal id={id} maskedName={maskName(g.organizer_name)} maskedContact={maskedContact} methodLabel={contactMethodLabel(g.contact_method)} />
+              {!cancelled && <OrganizerNameEditor id={id} />}
             </AdminCard>
 
             <AdminCard title="견적 신청 내용 (접수 시점)">

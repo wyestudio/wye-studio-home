@@ -99,7 +99,7 @@ export function HomeTodos({ todos }: { todos: HomeTodo[] }) {
       {list.length === 0 ? (
         <p className="rounded-lg border border-dashed border-line p-6 text-center text-body-sm text-muted">
           {tab === "sms"
-            ? "지금 보낼 안내 문자가 없어요. 단체 예약 안내 문자가 생기면 여기에 올라옵니다."
+            ? "지금 보낼 안내 문자가 없어요. 단체의 7일 전 · 하루 전 안내 때가 되면 여기에 올라옵니다."
             : "지금 할 일이 없어요. 아래에서 직접 적어 둘 수 있습니다."}
         </p>
       ) : (

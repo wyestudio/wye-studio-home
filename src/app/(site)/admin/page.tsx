@@ -18,6 +18,8 @@ import { GROUP_BOOKING_THEME_SLUGS } from "@/lib/groupBooking";
 import { withBack } from "@/lib/adminBack";
 import { formatDateFull } from "@/lib/format";
 import { sessionPrepKey, type HomeTodo } from "@/lib/adminTodos";
+import { daysBetween } from "@/lib/groupSettlement";
+import { maskName } from "@/lib/groupStage";
 import { HomeTodos } from "./HomeTodos";
 
 export const dynamic = "force-dynamic";
@@ -86,11 +88,13 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   // 「단체 막기」 를 띄울 회차 — 단체 예약을 받는 테마(파티모드)의 것만. 이미 막아 둔 회차는 켜진 상태로.
   const groupThemeIds = new Set(themes.filter((t) => GROUP_BOOKING_THEME_SLUGS.includes(t.slug)).map((t) => t.id));
   // 단체 일정 — 달력에 회차와 같이 놓는다. 막은 일정 표 하나에 세 갈래(직접 · 예약 확정 · 파티 회차)가 모인다.
-  const [{ data: closureRows }, { data: groupRows }, manualTodosRes, dismissalsRes] = await Promise.all([
+  const [{ data: closureRows }, { data: groupRows }, manualTodosRes, dismissalsRes, checklistRes] = await Promise.all([
     supabase.from("group_booking_closures").select("id, date, start_time, minutes, note, inquiry_id, session_id"),
     supabase
       .from("admin_group_booking_inquiries_view")
-      .select("id, organizer_name, group_name, headcount, status, preferred_date, preferred_time, options"),
+      .select(
+        "id, organizer_name, group_name, headcount, status, preferred_date, preferred_time, options, stage, event_date, deposit_paid_at, cancelled_at"
+      ),
     // 직접 적은 할 일 — 남은 일 전부와, 끝낸 지 하루가 안 된 일(아래에 흐리게 남긴다).
     supabase
       .from("admin_todos")
@@ -102,6 +106,8 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       .from("admin_todo_dismissals")
       .select("todo_key")
       .gte("done_at", new Date(getNowMs() - 3 * 86_400_000).toISOString()),
+    // 단체 준비 체크리스트 중 아직 안 끝난 줄 — 행사 3일 전부터 할 일에 올린다.
+    supabase.from("group_checklist_items").select("inquiry_id").is("done_at", null),
   ]);
   type ClosureRow = DashboardClosure & { inquiry_id: string | null; session_id: string | null };
   const closureList = (closureRows ?? []) as ClosureRow[];
@@ -111,7 +117,7 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       .filter((c) => c.inquiry_id && c.start_time)
       .map((c) => [c.inquiry_id!, { date: c.date, time: c.start_time!, minutes: c.minutes ?? BASE_MINUTES }])
   );
-  const dashboardGroups: DashboardGroup[] = (
+  const groupList = (
     (groupRows ?? []) as {
       id: string;
       organizer_name: string | null;
@@ -121,8 +127,13 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
       preferred_date: string | null;
       preferred_time: string;
       options: { icebreaking?: boolean; after_party_hours?: number } | null;
+      stage: string;
+      event_date: string | null;
+      deposit_paid_at: string | null;
+      cancelled_at: string | null;
     }[]
-  ).map((g) => ({
+  );
+  const dashboardGroups: DashboardGroup[] = groupList.map((g) => ({
     id: g.id,
     name: g.group_name ?? g.organizer_name ?? "이름 없음",
     headcount: g.headcount,
@@ -301,6 +312,41 @@ export default async function AdminDashboard({ searchParams }: PageProps<"/admin
   const newInquiries = dashboardGroups.filter((g) => g.status === "new").length;
   if (newInquiries > 0)
     countLine("count:group-new", 4, "단체", `새 견적 ${newInquiries}건`, "아직 연락 전인 단체 견적", "/group-bookings?tab=new");
+
+  // 단체 — 지금 데이터로 알 수 있는 일을 건별로 올린다. 처리하면(입금 확인 · 문자 복사 · 체크) 저절로 사라진다.
+  // 신청서 · 참가자 설문에 달린 할 일은 공개 폼을 만드는 단계에 더한다.
+  const undoneByGroup = new Map<string, number>();
+  for (const c of (checklistRes.data ?? []) as { inquiry_id: string }[]) {
+    undoneByGroup.set(c.inquiry_id, (undoneByGroup.get(c.inquiry_id) ?? 0) + 1);
+  }
+  const todayYmd = kstToday(new Date(nowMs));
+  for (const g of groupList) {
+    if (g.cancelled_at) continue;
+    // 모임 이름이 없으면 담당자 이름을 가려서 쓴다(홈에는 이름 전체를 싣지 않는다).
+    const name = g.group_name ?? `${maskName(g.organizer_name)} 님`;
+    const base = `/group-bookings/${g.id}`;
+    const left = g.event_date ? daysBetween(todayYmd, g.event_date) : null;
+    const when = left == null ? "" : left === 0 ? "오늘 행사" : left > 0 ? `행사 ${left}일 전` : `행사 ${-left}일 지남`;
+    const line = (key: string, tab: HomeTodo["tab"], urgency: number, title: string, sub: string, href: string) =>
+      todos.push({ key: `group:${g.id}:${key}`, tab, scope: "단체", title, sub, href, urgency, checkable: false, done: false, manualId: null });
+
+    if (g.stage === "contacted" && !g.deposit_paid_at) {
+      line("deposit", "check", 4, `예약금 입금 확인 · ${name}`, "견적 안내를 보냈고 입금을 기다리는 중", `${base}?tab=money`);
+    }
+    if (!g.deposit_paid_at || left == null) continue;
+    if (left >= 0 && left <= 1 && (g.stage === "confirmed" || g.stage === "d7")) {
+      line("d1", "sms", 0, `하루 전 안내 보내기 · ${name}`, when, `${base}?tab=forms`);
+    } else if (left >= 0 && left <= 7 && g.stage === "confirmed") {
+      line("d7", "sms", left <= 3 ? 1 : 3, `7일 전 안내 보내기 · ${name}`, when, `${base}?tab=forms`);
+    }
+    const undone = undoneByGroup.get(g.id) ?? 0;
+    if (left >= 0 && left <= 3 && undone > 0) {
+      line("prep", "prep", left, `준비 ${undone}개 남음 · ${name}`, when, base);
+    }
+    if (left < 0 && (g.stage === "confirmed" || g.stage === "d7" || g.stage === "d1")) {
+      line("report", "prep", 6, `리포트 전달 · ${name}`, when, `${base}?tab=forms`);
+    }
+  }
 
   // 전날 · 당일 회차 — 신청자가 있는 파티모드, 예약이 들어온 노말모드만(2026-11-27 대표님). 체크할 수 있다.
   const today = kstToday(new Date(nowMs));

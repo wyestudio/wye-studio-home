@@ -6,7 +6,15 @@ import { writeAuditLog } from "@/lib/auditLog";
 import { isContactMethod } from "@/lib/groupBooking";
 import { GROUP_CLOSURES_TAG } from "@/lib/groupClosures";
 import { closeOverlappingSessions, closureLabel } from "@/lib/groupClosureOps";
-import { loadGroup, settlementFor, type AdjustmentRow, type GroupRow } from "@/lib/groupAdmin";
+import {
+  createChecklistIfMissing,
+  loadGroup,
+  loadGroupTemplates,
+  settlementFor,
+  type AdjustmentRow,
+  type GroupRow,
+} from "@/lib/groupAdmin";
+import { isMessageKind, messageBlockedReason, renderGroupMessage, stageAfterCopy, templateKeyOf, MESSAGE_KINDS } from "@/lib/groupMessages";
 import { HHMM, ISO_DATE, OPTION, dateLabel, kstToday } from "@/lib/groupPricing";
 import {
   ADJUST_REASONS,
@@ -18,7 +26,7 @@ import {
   PAY_TYPES,
   type Adjustment,
 } from "@/lib/groupSettlement";
-import { isConfirmed, scheduleOf } from "@/lib/groupStage";
+import { GROUP_STAGES, effectiveStage, isConfirmed, scheduleOf, stageIndex, stageLabel } from "@/lib/groupStage";
 import { charCount, cleanLine } from "@/lib/textClean";
 
 /**
@@ -199,6 +207,13 @@ export async function confirmDeposit(input: {
       if (sessions.kept.length) {
         parts.push(`신청자가 있어 열어 둔 회차: ${sessions.kept.join(", ")} — 회차 관리에서 직접 확인해주세요.`);
       }
+    }
+    // 확정되면 준비 체크리스트를 양식에서 복사해 만든다(이미 있으면 그대로 둔다).
+    try {
+      const made = await createChecklistIfMissing(input.id);
+      if (made > 0) parts.push(`준비 체크리스트 ${made}줄을 만들었습니다.`);
+    } catch (e) {
+      console.error("[group] 체크리스트 생성 실패", e);
     }
     await writeAuditLog({
       action: "group_booking.deposit_confirmed",
@@ -685,5 +700,190 @@ export async function revealContact(input: {
     return { name: row.organizer_name ?? "", contact: row.contact, method: row.contact_method };
   } catch (err) {
     return toActionError(err, "연락처를 불러오지 못했습니다.");
+  }
+}
+
+// ── 안내 문자(복사 전용) · 단계 ──────────────────────────────────
+
+/**
+ * 「문자 복사」 — 전체 이름이 들어간 완성 문구를 돌려주고, 복사한 시각을 남기고, 규칙대로 단계를 넘긴다.
+ *   견적 안내 → 연락 완료 · 7일 전 안내 → 7일 전 안내 · 하루 전 안내 → 하루 전 안내 · 리포트 전달 → 리포트 · 후기
+ * ⚠️ **문자를 보내지 않는다.** 글자를 돌려줄 뿐이고, 붙여넣어 보내는 것은 운영자다.
+ */
+export async function copyMessage(input: { id: string; kind: string }): Promise<{ text: string; note: string } | { error: string }> {
+  try {
+    const { supabase, group, adjustments, today } = await open(input.id);
+    if (!isMessageKind(input.kind)) return { error: "알 수 없는 문자입니다." };
+    const blocked = messageBlockedReason(input.kind, group, today);
+    if (blocked) return { error: blocked };
+    const key = templateKeyOf(input.kind, group.pay_type);
+    const body = (await loadGroupTemplates()).get(key);
+    if (!body) return { error: `문자 문구(${key})를 찾을 수 없습니다.` };
+
+    const text = renderGroupMessage({
+      kind: input.kind,
+      body,
+      group,
+      adjustments,
+      today,
+      leaderName: group.organizer_name ?? "담당자",
+    });
+
+    const to = stageAfterCopy(input.kind, group, today);
+    const label = MESSAGE_KINDS.find((m) => m.kind === input.kind)!.label;
+    const patch: Record<string, unknown> = {
+      messages_copied: { ...(group.messages_copied ?? {}), [key]: new Date().toISOString() },
+      updated_at: new Date().toISOString(),
+    };
+    if (to) {
+      patch.stage = to;
+      // 옛 상태 칸도 같이 맞춘다(접수 → 연락 완료).
+      if (to === "contacted" && group.status === "new") patch.status = "contacted";
+    }
+    const { error } = await supabase.from("group_booking_inquiries").update(patch).eq("id", input.id);
+    if (error) return { error: error.message };
+    if (to) {
+      await addHistory(supabase, input.id, "stage", `「${label}」 문자 복사 · 단계 ${stageLabel(effectiveStage(group, today))} → ${stageLabel(to)}`);
+    }
+    refresh(input.id);
+    return { text, note: to ? `복사했습니다. 단계가 「${stageLabel(to)}」 로 넘어갔습니다.` : "복사했습니다." };
+  } catch (err) {
+    return toActionError(err, "문구를 만들지 못했습니다.");
+  }
+}
+
+/**
+ * 단계 한 칸 되돌리기 — 문자를 잘못 복사해 단계가 넘어갔을 때(2026-11-27 대표님).
+ * 「예약 확정」 을 되돌리는 것은 여기서 하지 않는다 — 금액 탭의 「입금 확인 취소」 로만 한다(막아 둔 일정이 풀려야 한다).
+ */
+export async function stepBackStage(input: { id: string }): Promise<ActionResult> {
+  try {
+    const { supabase, group } = await open(input.id);
+    if (group.cancelled_at) return { error: "취소된 단체입니다." };
+    const i = stageIndex(group.stage);
+    if (i <= 0) return { error: "더 되돌릴 단계가 없습니다." };
+    if (group.stage === "confirmed") return { error: "예약 확정은 금액 탭의 「입금 확인 취소」 로 되돌려주세요." };
+    const prev = GROUP_STAGES[i - 1].code;
+    const patch: Record<string, unknown> = { stage: prev, updated_at: new Date().toISOString() };
+    if (prev === "new" && group.status === "contacted") patch.status = "new";
+    const { error } = await supabase.from("group_booking_inquiries").update(patch).eq("id", input.id);
+    if (error) return { error: error.message };
+    await addHistory(supabase, input.id, "stage", `단계 되돌리기 · ${stageLabel(group.stage)} → ${stageLabel(prev)}`);
+    refresh(input.id);
+    return { success: true, message: `「${stageLabel(prev)}」 로 되돌렸습니다.` };
+  } catch (err) {
+    return toActionError(err, "되돌리지 못했습니다.");
+  }
+}
+
+/** 담당자 이름 변경. 이름은 암호화해 넣어야 해서 DB 함수(admin_update_group_booking_inquiry)를 거친다. 기록에는 이름을 남기지 않는다. */
+export async function changeOrganizerName(input: { id: string; name: string }): Promise<ActionResult> {
+  try {
+    const { supabase, group } = await open(input.id);
+    const name = cleanLine(input.name);
+    if (!/^[\p{L}][\p{L} .·'-]*$/u.test(name) || charCount(name) < 2 || charCount(name) > 20) {
+      return { error: "이름은 한글이나 영문 2~20자로 입력해주세요." };
+    }
+    const { error } = await supabase.rpc("admin_update_group_booking_inquiry", {
+      p_id: input.id,
+      p_headcount: group.headcount,
+      p_group_name: group.group_name ?? "",
+      p_organizer_name: name,
+      p_options: null,
+    });
+    if (error) return { error: error.message };
+    await addHistory(supabase, input.id, "info", "담당자 이름 변경");
+    await writeAuditLog({ action: "group_booking.updated", targetType: "group_booking_inquiry", targetId: input.id, summary: "단체 담당자 이름 변경" });
+    refresh(input.id);
+    return { success: true, message: "담당자 이름을 바꿨습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+// ── 준비 체크리스트 ──────────────────────────────────────────────
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** 체크리스트 만들기 — 확정됐는데 체크리스트가 없는 단체(개편 전에 확정된 건)용. */
+export async function makeChecklist(input: { id: string }): Promise<ActionResult> {
+  try {
+    await open(input.id);
+    const made = await createChecklistIfMissing(input.id);
+    refresh(input.id);
+    return { success: true, message: made > 0 ? `체크리스트 ${made}줄을 만들었습니다.` : "이미 체크리스트가 있습니다." };
+  } catch (err) {
+    return toActionError(err, "체크리스트를 만들지 못했습니다.");
+  }
+}
+
+/** 항목 완료 / 완료 취소. */
+export async function setChecklistDone(input: { id: string; itemId: string; done: boolean }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    if (!UUID.test(input.itemId)) return { error: "항목을 찾을 수 없습니다." };
+    const { error } = await supabase
+      .from("group_checklist_items")
+      .update({ done_at: input.done ? new Date().toISOString() : null })
+      .eq("id", input.itemId)
+      .eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    refresh(input.id);
+    return { success: true };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+/** 항목 등록(단체별). */
+export async function addChecklistItem(input: { id: string; label: string; owner?: string }): Promise<ActionResult> {
+  try {
+    const { supabase, checklist } = await open(input.id);
+    const label = cleanLine(input.label);
+    const owner = cleanLine(input.owner ?? "");
+    if (charCount(label) < 1 || charCount(label) > 60) return { error: "항목은 1~60자로 적어주세요." };
+    if (charCount(owner) > 20) return { error: "담당자는 20자까지 쓸 수 있어요." };
+    if (checklist.length >= 50) return { error: "항목은 50개까지 둘 수 있어요." };
+    const idx = checklist.reduce((m, c) => Math.max(m, c.idx), -1) + 1;
+    const { error } = await supabase.from("group_checklist_items").insert({ inquiry_id: input.id, idx, label, owner: owner || null });
+    if (error) return { error: error.message };
+    refresh(input.id);
+    return { success: true, message: "항목을 등록했습니다." };
+  } catch (err) {
+    return toActionError(err, "등록에 실패했습니다.");
+  }
+}
+
+/** 항목의 담당자 수정. */
+export async function setChecklistOwner(input: { id: string; itemId: string; owner: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    if (!UUID.test(input.itemId)) return { error: "항목을 찾을 수 없습니다." };
+    const owner = cleanLine(input.owner);
+    if (charCount(owner) > 20) return { error: "담당자는 20자까지 쓸 수 있어요." };
+    const { error } = await supabase
+      .from("group_checklist_items")
+      .update({ owner: owner || null })
+      .eq("id", input.itemId)
+      .eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    refresh(input.id);
+    return { success: true, message: "저장했습니다." };
+  } catch (err) {
+    return toActionError(err, "저장에 실패했습니다.");
+  }
+}
+
+/** 항목 삭제(단체별). */
+export async function removeChecklistItem(input: { id: string; itemId: string }): Promise<ActionResult> {
+  try {
+    const { supabase } = await open(input.id);
+    if (!UUID.test(input.itemId)) return { error: "항목을 찾을 수 없습니다." };
+    const { error } = await supabase.from("group_checklist_items").delete().eq("id", input.itemId).eq("inquiry_id", input.id);
+    if (error) return { error: error.message };
+    refresh(input.id);
+    return { success: true, message: "항목을 삭제했습니다." };
+  } catch (err) {
+    return toActionError(err, "삭제에 실패했습니다.");
   }
 }
