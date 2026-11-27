@@ -1,0 +1,107 @@
+/*
+  관리자 전용 색 (2026-11-27 대표님 — 관리자 전용 틀 · 라이트/다크 선택).
+
+  새 색 이름을 만들지 않는다. 사이트가 이미 쓰는 **역할 이름**(--background · --foreground ·
+  --muted · --border · --glow · --confirm …)의 값을 관리자 범위에서만 바꾼다. 관리자 화면은
+  거의 전부 이 이름으로 칠해져 있어서(text-muted 570곳 · border-border 320곳), 값만 바꾸면
+  화면 코드를 건드리지 않고 밝은 화면이 된다.
+
+  ⚠️ 범위는 `.admin-shell` 이 있는 문서뿐이다. 이 클래스는 admin/layout.tsx 만 단다.
+     공개 화면에는 이 클래스가 없으므로 아래 규칙이 하나도 걸리지 않는다.
+  ⚠️ body 에 값을 준다. body 의 배경(globals.css `body { background: var(--background) }`)까지
+     같이 바뀌어야 해서 `.admin-shell` 자신이 아니라 `body:has(...)` 로 올려 건다.
+
+  모드
+    라이트(기본)  data-admin-theme 가 "dark" 가 아닐 때
+    다크          data-admin-theme="dark" — 아래 값을 하나도 덮지 않는다 = 사이트의 원래 어두운 색 그대로
+  고르는 스위치는 AdminThemeToggle.tsx, 기억은 쿠키(wye_admin_theme · 기기별).
+*/
+
+body:has(.admin-shell:not([data-admin-theme="dark"])) {
+  --background: #f5f6f8;
+  --background-deep: #eceef2;
+  --surface: #ffffff;
+  --panel: #ffffff;
+  --panel-raised: #f9fafb;
+  --panel-border: #e3e5ea;
+  --surface-glass-from: #ffffff;
+  --surface-glass-to: #ffffff;
+  --glass-border: #d5d9e0;
+  --foreground: #1f2329;
+  /* 보조 글자. 배경(#f5f6f8) 위 대비 5.5 — 본문 기준(4.5)을 넘긴다 */
+  --muted: #5f6673;
+  --border: #e3e5ea;
+  --brand: #2563eb;
+  --brand-soft: #dbe7ff;
+  --brand-foreground: #ffffff;
+  /* 링크 · 선택 상태. 어두운 화면의 연한 파랑(#6f8cff)은 흰 배경에서 안 읽힌다 */
+  --glow: #2563eb;
+  --star: #1f2329;
+  --confirm: #15803d;
+  --confirm-soft: #dcfce7;
+  --wait: #b45309;
+  --wait-soft: #fef0c7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+
+  /* 면과 선 — 어두운 화면은 흰색 투명도, 밝은 화면은 검은색 투명도. 역할(기본 / hover·선택)은 같다 */
+  --fill-subtle: rgb(15 23 42 / 0.03);
+  --fill: rgb(15 23 42 / 0.05);
+  --fill-strong: rgb(15 23 42 / 0.1);
+  --line-subtle: rgb(15 23 42 / 0.08);
+  --line: rgb(15 23 42 / 0.16);
+  --line-strong: rgb(15 23 42 / 0.5);
+  --disabled: rgb(15 23 42 / 0.28);
+}
+
+/* 체크박스 · 날짜 입력 · 스크롤바 같은 브라우저 기본 부품도 밝게 그리게 한다(globals.css 는 dark 로 고정) */
+html:has(.admin-shell:not([data-admin-theme="dark"])) {
+  color-scheme: light;
+}
+
+/*
+  기존 화면이 Tailwind 기본 색을 직접 쓴 곳 — 어두운 배경용 연한 색이라 흰 배경에서 안 읽힌다.
+  화면 코드를 고치지 않고 라이트 모드에서만 같은 뜻의 진한 색으로 읽힌다.
+  8단계에서 화면을 하나씩 옮기며 역할 이름(text-danger · text-wait …)으로 바꾸면 이 묶음은 지운다.
+
+  ⚠️ 이 파일은 @layer 밖이라 Tailwind 유틸리티(@layer utilities)보다 항상 우선한다.
+*/
+.admin-shell:not([data-admin-theme="dark"]) :is(.text-red-300, .text-red-400) {
+  color: var(--danger);
+}
+.admin-shell:not([data-admin-theme="dark"]) :is(.text-amber-200, .text-amber-300, .text-amber-400, .text-amber-400\/80) {
+  color: var(--wait);
+}
+.admin-shell:not([data-admin-theme="dark"]) :is(.text-green-300, .text-green-400, .text-green-500) {
+  color: var(--confirm);
+}
+.admin-shell:not([data-admin-theme="dark"]) .text-sky-400 {
+  color: #0369a1;
+}
+.admin-shell:not([data-admin-theme="dark"]) :is(.bg-red-950\/40) {
+  background-color: var(--danger-soft);
+}
+.admin-shell:not([data-admin-theme="dark"]) :is(.bg-green-950\/40) {
+  background-color: var(--confirm-soft);
+}
+.admin-shell:not([data-admin-theme="dark"]) :is(.bg-amber-950\/30, .bg-amber-950\/50) {
+  background-color: var(--wait-soft);
+}
+/*
+  선택 · 강조 칸(bg-glow) 위의 글자. 기존 화면은 연한 파랑 위에 검은 글자(text-black)를 얹었는데,
+  라이트 모드의 파랑(#2563eb)은 진해서 흰 글자여야 읽힌다. bg-glow/10 같은 옅은 배경은 해당 없다.
+*/
+.admin-shell:not([data-admin-theme="dark"]) .bg-glow {
+  color: #ffffff;
+}
+
+/* 로고 — 밝은 화면에는 검은 로고, 어두운 화면에는 흰 로고 */
+.admin-shell .admin-logo-dark {
+  display: none;
+}
+.admin-shell[data-admin-theme="dark"] .admin-logo-dark {
+  display: block;
+}
+.admin-shell[data-admin-theme="dark"] .admin-logo-light {
+  display: none;
+}
