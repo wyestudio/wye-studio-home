@@ -68,11 +68,11 @@ const normalizeCode = (raw: string) =>
 const BUTTON =
   "rounded-md border px-3 py-1.5 text-label font-semibold transition-colors disabled:opacity-50";
 
-/** 위의 바로가기 — 대표님이 궁금한 순서 그대로 */
+/** 위의 바로가기 — 화면 순서 그대로. 선물 코드는 현장에서 바로 쓰게 맨 위(2026-11-27 대표님) */
 const SECTIONS = [
+  { id: "gifts", label: "선물 코드" },
   { id: "ranking", label: "전체 랭킹" },
   { id: "history", label: "플레이 기록" },
-  { id: "gifts", label: "선물 코드" },
   { id: "funnel", label: "참여 단계" },
 ];
 
@@ -101,8 +101,8 @@ function Section({
 
 /**
  * 크리스마스 게임 어드민(2026-11-27 대표님 — "정보가 너무 많고 겹쳐서 헷갈린다. 궁금한 순서대로만"):
- *   전체 랭킹 → 플레이 기록(게임 화면에 온 사람 수 · 사람마다 몇 번째 판에 몇 점 · 몇 라운드 · 선물 · 재도전. 라운드 도달 차트를
- *   누르면 그 사람들만) → 선물 코드(현장 지급 처리) → 참여 단계.
+ *   선물 코드(현장 지급 처리, 맨 위) → 전체 랭킹 → 플레이 기록(게임 화면에 온 사람 수 · 사람마다 몇 번째 판에 몇 점 · 몇 라운드 · 선물 · 재도전. 라운드 도달 차트를
+ *   누르면 그 사람들만) → 참여 단계.
  */
 export function XmasGameAdmin({
   gifts,
@@ -167,87 +167,6 @@ export function XmasGameAdmin({
           </a>
         ))}
       </nav>
-
-      <Section
-        id="ranking"
-        title="전체 랭킹"
-        desc="닉네임을 등록한 사람마다 가장 좋은 판입니다. 숨긴 사람은 맨 아래에 순위 없이 둡니다."
-      >
-        <RankTable
-          players={players}
-          pending={pending}
-          onToggleHidden={(id, hidden) =>
-            run(() => setPlayerHidden(id, hidden))
-          }
-        />
-      </Section>
-
-      <Section
-        id="history"
-        title="플레이 기록"
-        desc="게임을 시작한 사람마다 몇 번째 판에 몇 점 · 몇 라운드였는지입니다. 랭킹에 등록하지 않은 사람도 모두 있습니다."
-      >
-        <dl className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {(
-            [
-              [
-                "게임 화면에 온 사람",
-                funnel ? funnel.guests.visited : "-",
-                "우리 기기 뺌",
-              ],
-              [
-                "게임을 시작한 사람",
-                players.length,
-                `랭킹 등록 ${players.filter((p) => p.nickname).length}명`,
-              ],
-              ["시작한 판", totalRuns, ""],
-              ["공유하고 재도전", totalRetries, "번"],
-            ] as [string, number | string, string][]
-          ).map(([label, value, sub]) => (
-            <div
-              key={label}
-              className="rounded-lg border border-line bg-background px-4 py-3"
-            >
-              <dt className="text-label text-muted">{label}</dt>
-              <dd className="mt-1 text-h2 font-extrabold tabular-nums">
-                {value}
-              </dd>
-              {sub && <dd className="mt-0.5 text-label text-muted">{sub}</dd>}
-            </div>
-          ))}
-        </dl>
-
-        <h3 className="text-body font-semibold">
-          사람마다 가장 멀리 간 라운드
-        </h3>
-        <p className="mt-0.5 text-body-sm text-muted">
-          막대에 마우스를 올리면 이름이, 누르면 아래 목록에 그 사람들만
-          남습니다.
-        </p>
-        <div className="mt-3">
-          <ReachChart players={players} selected={reach} onSelect={setReach} />
-        </div>
-
-        <div className="mt-5 flex flex-wrap items-center gap-2">
-          <h3 className="text-body font-semibold">
-            {reach === null
-              ? `모든 사람 ${players.length}명`
-              : `${roundName(reach) === "5R 전" ? "5라운드를 못 마친" : `${roundName(reach)}까지 간`} 사람 ${shown.length}명`}
-          </h3>
-          {reach !== null && (
-            <button
-              type="button"
-              onClick={() => setReach(null)}
-              className="rounded-full border border-line px-3 py-1 text-label font-semibold text-muted hover:bg-fill"
-            >
-              전체 보기
-            </button>
-          )}
-        </div>
-        <div className="mt-3">
-          <PlayHistory players={shown} />
-        </div>
-      </Section>
 
       <Section
         id="gifts"
@@ -369,6 +288,87 @@ export function XmasGameAdmin({
             </table>
           </div>
         )}
+      </Section>
+
+      <Section
+        id="ranking"
+        title="전체 랭킹"
+        desc="닉네임을 등록한 사람마다 가장 좋은 판입니다. 숨긴 사람은 맨 아래에 순위 없이 둡니다."
+      >
+        <RankTable
+          players={players}
+          pending={pending}
+          onToggleHidden={(id, hidden) =>
+            run(() => setPlayerHidden(id, hidden))
+          }
+        />
+      </Section>
+
+      <Section
+        id="history"
+        title="플레이 기록"
+        desc="게임을 시작한 사람마다 몇 번째 판에 몇 점 · 몇 라운드였는지입니다. 랭킹에 등록하지 않은 사람도 모두 있습니다."
+      >
+        <dl className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {(
+            [
+              [
+                "게임 화면에 온 사람",
+                funnel ? funnel.guests.visited : "-",
+                "우리 기기 뺌",
+              ],
+              [
+                "게임을 시작한 사람",
+                players.length,
+                `랭킹 등록 ${players.filter((p) => p.nickname).length}명`,
+              ],
+              ["시작한 판", totalRuns, ""],
+              ["공유하고 재도전", totalRetries, "번"],
+            ] as [string, number | string, string][]
+          ).map(([label, value, sub]) => (
+            <div
+              key={label}
+              className="rounded-lg border border-line bg-background px-4 py-3"
+            >
+              <dt className="text-label text-muted">{label}</dt>
+              <dd className="mt-1 text-h2 font-extrabold tabular-nums">
+                {value}
+              </dd>
+              {sub && <dd className="mt-0.5 text-label text-muted">{sub}</dd>}
+            </div>
+          ))}
+        </dl>
+
+        <h3 className="text-body font-semibold">
+          사람마다 가장 멀리 간 라운드
+        </h3>
+        <p className="mt-0.5 text-body-sm text-muted">
+          막대에 마우스를 올리면 이름이, 누르면 아래 목록에 그 사람들만
+          남습니다.
+        </p>
+        <div className="mt-3">
+          <ReachChart players={players} selected={reach} onSelect={setReach} />
+        </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <h3 className="text-body font-semibold">
+            {reach === null
+              ? `모든 사람 ${players.length}명`
+              : `${roundName(reach) === "5R 전" ? "5라운드를 못 마친" : `${roundName(reach)}까지 간`} 사람 ${shown.length}명`}
+          </h3>
+          {reach !== null && (
+            <button
+              type="button"
+              onClick={() => setReach(null)}
+              className="rounded-full border border-line px-3 py-1 text-label font-semibold text-muted hover:bg-fill"
+            >
+              전체 보기
+            </button>
+          )}
+        </div>
+        <div className="mt-3">
+          <PlayHistory players={shown} />
+        </div>
       </Section>
 
       {funnel && (
