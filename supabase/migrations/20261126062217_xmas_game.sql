@@ -1,6 +1,6 @@
 -- 크리스마스 미니게임 「산타의 어드벤트 캘린더」 — 판 기록 · 랭킹 · 선물 코드(2026-11-26 대표님).
 --
--- 적용: test 20261126062343 (적용 완료, 2026-11-26) / 운영 미적용
+-- 적용: test 20261126062343 (적용 완료, 2026-11-26) / 운영 20261126062217 (적용 완료, 2026-11-27)
 --       같은 날 선물 점수 37 → 35, 이어하기 10 → 20라운드로 바꾸면서 test 에는 xmas_game_submit · xmas_game_claim ·
 --       xmas_game_stats 를 다시 실행해 이 파일과 맞췄다(표는 그대로). xmas_game_funnel 도 같은 날 test 에 더했다.
 --
@@ -176,8 +176,8 @@ declare
   v_name text;
   v_ok boolean := false;
 begin
-  -- 줄바꿈 · 탭 · 폭 없는 글자를 한 칸으로 줄인다
-  v_name := btrim(regexp_replace(coalesce(p_nickname, ''), '[[:space:][:cntrl:]​-‍﻿]+', ' ', 'g'));
+  -- 줄바꿈 · 탭 · 폭 없는 글자(U+200B~200D · FEFF)를 한 칸으로 줄인다. 글자를 직접 적지 않고 \u 로 적는다(복사하다 사라진다)
+  v_name := btrim(regexp_replace(coalesce(p_nickname, ''), '[[:space:][:cntrl:]\u200B-\u200D\uFEFF]+', ' ', 'g'));
   if char_length(v_name) between 1 and 10
      and exists (select 1 from xmas_game_runs where id = p_run and player_id = p_player and round >= 5)
   then
