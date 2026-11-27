@@ -5,7 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ReferenceLine,
+  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -14,81 +14,35 @@ import {
 import v from "./XmasGameAdmin.module.css";
 
 /**
- * 크리스마스 게임 어드민의 그림들 — 「한눈에 보기」 · 「참여자」 탭(2026-11-27 대표님 — "글만 쓰지 말고 차트 · 표로 첫눈에").
- * 데이터는 DB 의 xmas_game_admin()(supabase/migrations/20261127063948_xmas_game_admin_overview.sql).
- * 색은 XmasGameAdmin.module.css 의 --s1~--s6 만 쓴다(순서 고정). 숫자 · 글자는 색이 아니라 글자색(text-foreground · muted)으로.
+ * 크리스마스 게임 어드민의 표 · 그림 — 전체 랭킹 · 사람별 플레이 기록 · 라운드 도달 차트 · 참여 단계(2026-11-27 대표님).
+ * 데이터는 DB 의 xmas_game_admin()(supabase/migrations/20261127063948_xmas_game_admin_overview.sql) — 사람마다 판 목록.
+ * 색은 XmasGameAdmin.module.css 의 이름표만 쓴다. 숫자 · 글자는 색이 아니라 글자색(text-foreground · muted)으로.
  */
 
-/** 판 하나가 어떻게 끝났나 — 순서는 손님이 지나가는 순서(그만둠 → 35점 미만 → 통과한 갈래들) */
-export const OUTCOMES = [
-  {
-    key: "quit",
-    label: "5라운드 전에 그만둠",
-    color: "var(--s1)",
-    note: "창을 닫았거나 다시 시작 — 지금 하고 있는 판도 여기 든다",
-  },
-  { key: "below", label: "5라운드 35점 미만", color: "var(--s2)", note: "" },
-  {
-    key: "gift",
-    label: "정답 맞혀 선물 코드 받음",
-    color: "var(--s3)",
-    note: "",
-  },
-  {
-    key: "had_gift",
-    label: "통과 · 이미 코드 있음",
-    color: "var(--s4)",
-    note: "앞 판에서 받은 사람(선물은 브라우저에 하나)",
-  },
-  {
-    key: "skip",
-    label: "통과 · 정답 안 냄",
-    color: "var(--s5)",
-    note: "「기록만 남기기」 또는 정답 화면에서 나감",
-  },
-  {
-    key: "wrong",
-    label: "통과 · 오답 내고 멈춤",
-    color: "var(--s6)",
-    note: "",
-  },
-] as const;
-export type OutcomeKey = (typeof OUTCOMES)[number]["key"];
+export type RunRow = {
+  n: number;
+  started_at: string;
+  finished_at: string | null;
+  round: number;
+  score: number;
+  score5: number | null;
+  max_combo: number;
+  answer_tries: number;
+  react_ms: number | null;
+  retries: number;
+  gift: boolean;
+  had_gift: boolean;
+};
 
 export type PlayerRow = {
   player_id: string;
   nickname: string | null;
   hidden: boolean;
-  runs: number;
-  finished: number;
-  below: number;
-  passed: number;
-  skipped: number;
-  wrong_runs: number;
-  wrong_answers: number;
-  bonus: number;
-  retries: number;
-  best5: number | null;
-  best_round: number;
-  best_score: number | null;
-  gift: boolean;
-  redeemed: boolean;
-  react_ms: number | null;
-  first_at: string;
   last_at: string;
+  runs: RunRow[];
 };
 
-export type GameOverview = {
-  players: PlayerRow[];
-  outcomes: Partial<Record<OutcomeKey, number>>;
-  rounds: { round: number; reached: number; ended: number }[];
-  scores: { score: number; runs: number }[];
-  total_runs: number;
-  retries: number;
-};
-
-const pct = (part: number, whole: number) =>
-  whole > 0 ? `${Math.round((part / whole) * 100)}%` : "-";
+export type GameOverview = { players: PlayerRow[] };
 
 const KST = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "Asia/Seoul",
@@ -98,252 +52,224 @@ const KST = new Intl.DateTimeFormat("ko-KR", {
   minute: "2-digit",
   hour12: false,
 });
-/** "11/27 15:20" — 표 칸이 좁아 짧게 */
-const shortKst = (iso: string) => {
-  const p = Object.fromEntries(KST.formatToParts(new Date(iso)).map((x) => [x.type, x.value]));
+/** "11/27 15:20" */
+export const shortKst = (iso: string) => {
+  const p = Object.fromEntries(
+    KST.formatToParts(new Date(iso)).map((x) => [x.type, x.value]),
+  );
   return `${p.month}/${p.day} ${p.hour}:${p.minute}`;
 };
 
-/** 차트 칸 — 제목 · 한 줄 설명 · 그림. */
-export function Panel({
-  title,
-  desc,
-  children,
-}: {
-  title: string;
-  desc?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-line bg-fill-subtle p-4 md:p-5">
-      <h3 className="text-h3 font-semibold">{title}</h3>
-      {desc && <p className="mt-1 text-body-sm text-muted">{desc}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
-  );
+/** 고객 화면 랭킹과 같은 순서 — 점수 높은 순, 같으면 최대 콤보, 같으면 먼저 낸 기록 */
+const better = (a: RunRow, b: RunRow) =>
+  b.score - a.score ||
+  b.max_combo - a.max_combo ||
+  (a.finished_at ?? "").localeCompare(b.finished_at ?? "");
+
+/** 그 사람의 가장 좋은 판(5라운드를 마친 판 중) */
+export function bestRun(p: PlayerRow): RunRow | null {
+  const done = p.runs.filter((r) => r.round >= 5);
+  return done.length ? [...done].sort(better)[0] : null;
 }
 
-const TOOLTIP = {
-  contentStyle: {
-    backgroundColor: "var(--panel)",
-    border: "1px solid var(--line)",
-    borderRadius: 8,
-    color: "var(--foreground)",
-    fontSize: 13,
-  },
-  labelStyle: { color: "var(--foreground)", fontWeight: 600 },
-  itemStyle: { color: "var(--foreground)" },
-  cursor: { fill: "var(--line-subtle)" },
-};
+const name = (p: PlayerRow) => p.nickname ?? "미등록";
+const shortId = (p: PlayerRow) => p.player_id.slice(0, 6);
 
-/** 판은 어떻게 끝났나 — 한 줄 100% 막대 + 숫자를 적은 범례. */
-export function OutcomeBar({ overview }: { overview: GameOverview }) {
-  const total = overview.total_runs;
+/** 표 머리 · 칸 — 이 화면의 표는 다 같은 모양 */
+const TH = "px-2.5 py-2 font-semibold";
+const TD = "px-2.5 py-2";
+
+/* ── 전체 랭킹 ── */
+
+export function RankTable({
+  players,
+  pending,
+  onToggleHidden,
+}: {
+  players: PlayerRow[];
+  pending: boolean;
+  onToggleHidden: (playerId: string, hidden: boolean) => void;
+}) {
+  const rows = useMemo(() => {
+    const ranked = players
+      .filter((p) => p.nickname)
+      .map((p) => ({ p, best: bestRun(p) }))
+      .filter((x): x is { p: PlayerRow; best: RunRow } => x.best !== null)
+      .sort((a, b) => better(a.best, b.best));
+    // 숨긴 사람은 순위를 매기지 않고 맨 아래로 — 고객 화면에서 빠진 순서 그대로 번호를 붙인다
+    const shown = ranked
+      .filter((x) => !x.p.hidden)
+      .map((x, i) => ({ ...x, rank: i + 1 }));
+    const hidden = ranked
+      .filter((x) => x.p.hidden)
+      .map((x) => ({ ...x, rank: null }));
+    return [...shown, ...hidden];
+  }, [players]);
+
+  if (rows.length === 0)
+    return (
+      <p className="text-body-sm text-muted">
+        아직 랭킹에 오른 기록이 없습니다.
+      </p>
+    );
   return (
-    <div className={v.viz}>
-      <div className={v.stack} role="img" aria-label="판 결과 비율">
-        {OUTCOMES.map((o) => {
-          const n = overview.outcomes[o.key] ?? 0;
-          return n > 0 ? (
-            <span
-              key={o.key}
-              title={`${o.label} ${n}판 (${pct(n, total)})`}
-              style={{ width: `${(n / total) * 100}%`, background: o.color }}
-            />
-          ) : null;
-        })}
-      </div>
-      <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
-        {OUTCOMES.map((o) => {
-          const n = overview.outcomes[o.key] ?? 0;
-          return (
-            <li key={o.key} className="flex items-start gap-2">
-              <span
-                className={`${v.swatch} mt-1.5`}
-                style={{ background: o.color }}
-                aria-hidden
-              />
-              <span className="min-w-0">
-                <span className="text-body-sm font-semibold">{o.label}</span>
-                <span className="ml-2 text-body-sm tabular-nums">
-                  {n}판 <span className="text-muted">{pct(n, total)}</span>
-                </span>
-                {o.note && (
-                  <span className="block text-label text-muted">{o.note}</span>
+    <div className="overflow-x-auto rounded-lg border border-line">
+      <table className="w-full min-w-[760px] text-left text-body-sm">
+        <thead className="bg-fill text-label text-muted">
+          <tr>
+            <th className={TH}>순위</th>
+            <th className={TH}>닉네임</th>
+            <th className={`${TH} text-right`}>점수</th>
+            <th className={`${TH} text-right`}>라운드</th>
+            <th className={`${TH} text-right`}>최대 콤보</th>
+            <th
+              className={`${TH} text-right`}
+              title="이 기록을 낸 판이 그 사람의 몇 번째 판인가 / 지금까지 시작한 판"
+            >
+              몇 번째 판
+            </th>
+            <th
+              className={`${TH} text-right`}
+              title="이 기록을 낸 판에서 공유하고 재도전한 횟수"
+            >
+              재도전
+            </th>
+            <th className={TH}>기록 시각</th>
+            <th className={TH} />
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ p, best, rank }) => (
+            <tr
+              key={p.player_id}
+              className={`border-t border-line-subtle tabular-nums ${p.hidden ? "text-disabled" : ""}`}
+            >
+              <td className={`${TD} font-semibold`}>
+                {rank ?? <span className="text-label font-normal">숨김</span>}
+              </td>
+              <td className={`${TD} font-semibold`}>{p.nickname}</td>
+              <td className={`${TD} text-right font-semibold`}>{best.score}</td>
+              <td className={`${TD} text-right`}>{best.round}</td>
+              <td className={`${TD} text-right`}>{best.max_combo}</td>
+              <td className={`${TD} text-right`}>
+                {best.n}번째{" "}
+                <span className="text-muted">/ {p.runs.length}판</span>
+              </td>
+              <td className={`${TD} text-right`}>
+                {best.retries > 0 ? (
+                  `${best.retries}번`
+                ) : (
+                  <span className="text-muted">0</span>
                 )}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+              </td>
+              <td className={`${TD} text-muted`}>
+                {best.finished_at ? shortKst(best.finished_at) : "-"}
+              </td>
+              <td className={`${TD} text-right`}>
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => onToggleHidden(p.player_id, !p.hidden)}
+                  className="rounded-md border border-line px-2.5 py-1 text-label font-semibold text-foreground transition-colors hover:bg-fill disabled:opacity-50"
+                >
+                  {p.hidden ? "다시 보이기" : "숨김"}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-/**
- * 라운드별 도달 · 멈춤 — 막대 하나가 그 라운드까지 닿은 판. 위쪽(진한 색)이 거기서 멈춘 판, 아래가 다음 라운드로 간 판.
- * 맨 앞 「시작」 은 시작한 판 전부와, 5라운드를 마치기 전에 그만둔 판.
- */
-export function RoundChart({ overview }: { overview: GameOverview }) {
-  const [table, setTable] = useState(false);
-  const quit = overview.outcomes.quit ?? 0;
-  const data = [
-    {
-      name: "시작",
-      넘어감: overview.total_runs - quit,
-      멈춤: quit,
-      reached: overview.total_runs,
-    },
-    ...overview.rounds.map((r) => ({
-      name: `${r.round}R`,
-      넘어감: r.reached - r.ended,
-      멈춤: r.ended,
-      reached: r.reached,
-    })),
-  ];
+/* ── 라운드 도달 차트 ── */
+
+/** 사람마다 가장 멀리 간 라운드. 5라운드를 한 번도 못 마쳤으면 0 */
+const reachOf = (p: PlayerRow) => Math.max(0, ...p.runs.map((r) => r.round));
+const reachLabel = (round: number) => (round < 5 ? "5R 전" : `${round}R`);
+const REACH_KEYS = [0, ...Array.from({ length: 16 }, (_, i) => i + 5)];
+export const reachMatches = (p: PlayerRow, round: number) =>
+  round === 0 ? reachOf(p) < 5 : reachOf(p) === round;
+export const roundName = reachLabel;
+
+type ReachDatum = {
+  round: number;
+  label: string;
+  사람: number;
+  names: string[];
+};
+
+/** 막대에 올리면 뜨는 이름 목록 — 많으면 앞의 몇 명만 */
+function ReachTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: ReachDatum }[];
+}) {
+  if (!active || !payload?.length) return null;
+  const { label, names } = payload[0].payload;
+  const SHOW = 12;
   return (
-    <div className={v.viz}>
-      <div className="mb-3 flex flex-wrap items-center gap-4 text-body-sm">
-        <span className="flex items-center gap-2">
-          <span
-            className={v.swatch}
-            style={{ background: "var(--s1)" }}
-            aria-hidden
-          />
-          다음 라운드로 감
-        </span>
-        <span className="flex items-center gap-2">
-          <span
-            className={v.swatch}
-            style={{ background: "var(--s2)" }}
-            aria-hidden
-          />
-          이 라운드에서 멈춤
-        </span>
-        <button
-          type="button"
-          onClick={() => setTable((t) => !t)}
-          className="ml-auto rounded-md border border-line px-2.5 py-1 text-label font-semibold text-muted hover:bg-fill"
-        >
-          {table ? "차트로 보기" : "표로 보기"}
-        </button>
-      </div>
-      {table ? (
-        <div className="overflow-x-auto rounded-lg border border-line">
-          <table className="w-full min-w-[420px] text-left text-body-sm">
-            <thead className="bg-fill text-label text-muted">
-              <tr>
-                <th className="px-3 py-2 font-semibold">라운드</th>
-                <th className="px-3 py-2 text-right font-semibold">닿은 판</th>
-                <th className="px-3 py-2 text-right font-semibold">
-                  여기서 멈춤
-                </th>
-                <th className="px-3 py-2 text-right font-semibold">
-                  다음으로 간 비율
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((d) => (
-                <tr
-                  key={d.name}
-                  className="border-t border-line-subtle tabular-nums"
-                >
-                  <td className="px-3 py-2 font-semibold">{d.name}</td>
-                  <td className="px-3 py-2 text-right">{d.reached}</td>
-                  <td className="px-3 py-2 text-right">{d.멈춤}</td>
-                  <td className="px-3 py-2 text-right text-muted">
-                    {pct(d.넘어감, d.reached)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <ResponsiveContainer width="100%" height={280}>
-          <BarChart
-            data={data}
-            margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
-          >
-            <CartesianGrid vertical={false} stroke="var(--line-subtle)" />
-            <XAxis
-              dataKey="name"
-              tick={{ fill: "var(--muted)", fontSize: 12 }}
-              tickLine={false}
-              axisLine={{ stroke: "var(--line)" }}
-              interval={0}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fill: "var(--muted)", fontSize: 12 }}
-              tickLine={false}
-              axisLine={false}
-            />
-            <Tooltip
-              {...TOOLTIP}
-              formatter={(value, name) => [
-                `${value}판`,
-                name === "멈춤" ? "여기서 멈춤" : "다음 라운드로 감",
-              ]}
-            />
-            <Bar isAnimationActive={false}
-              dataKey="넘어감"
-              stackId="a"
-              fill="var(--s1)"
-              maxBarSize={36}
-            />
-            <Bar isAnimationActive={false}
-              dataKey="멈춤"
-              stackId="a"
-              fill="var(--s2)"
-              radius={[4, 4, 0, 0]}
-              maxBarSize={36}
-            />
-          </BarChart>
-        </ResponsiveContainer>
+    <div className="rounded-lg border border-line bg-panel px-3 py-2 text-body-sm shadow-lg">
+      <p className="font-semibold">
+        {label === "5R 전" ? "5라운드를 못 마침" : `${label}까지`} ·{" "}
+        {names.length}명
+      </p>
+      {names.length > 0 && (
+        <p className="mt-1 max-w-[260px] text-label text-muted">
+          {names.slice(0, SHOW).join(", ")}
+          {names.length > SHOW && ` 외 ${names.length - SHOW}명`}
+        </p>
+      )}
+      {names.length > 0 && (
+        <p className="mt-1 text-label text-muted">
+          누르면 아래 플레이 기록에 이 사람들만 남습니다
+        </p>
       )}
     </div>
   );
 }
 
-/** 5라운드 점수 분포 — 점수마다 판 수. 35점(선물 기준)에 선을 긋는다. */
-export function ScoreChart({ overview }: { overview: GameOverview }) {
-  // 0~52점을 빠짐없이 — 빈 점수도 칸을 둬야 모양이 보인다
-  const byScore = new Map(overview.scores.map((s) => [s.score, s.runs]));
-  const min = Math.min(0, ...overview.scores.map((s) => s.score));
-  const data = Array.from({ length: 52 - min + 1 }, (_, i) => ({
-    score: min + i,
-    판: byScore.get(min + i) ?? 0,
-  }));
-  const finished = overview.scores.reduce((a, s) => a + s.runs, 0);
-  const passed = overview.scores
-    .filter((s) => s.score >= 35)
-    .reduce((a, s) => a + s.runs, 0);
+export function ReachChart({
+  players,
+  selected,
+  onSelect,
+}: {
+  players: PlayerRow[];
+  selected: number | null;
+  onSelect: (round: number | null) => void;
+}) {
+  const data: ReachDatum[] = useMemo(
+    () =>
+      REACH_KEYS.map((round) => {
+        const who = players.filter((p) => reachMatches(p, round));
+        return {
+          round,
+          label: reachLabel(round),
+          사람: who.length,
+          names: who.map((p) =>
+            p.nickname ? p.nickname : `미등록 ${shortId(p)}`,
+          ),
+        };
+      }),
+    [players],
+  );
   return (
     <div className={v.viz}>
-      <p className="mb-3 text-body-sm">
-        5라운드를 마친{" "}
-        <span className="font-semibold tabular-nums">{finished}판</span> 중{" "}
-        <span className="font-semibold tabular-nums">{passed}판</span>이 35점을
-        넘겼습니다{" "}
-        <span className="text-muted tabular-nums">
-          ({pct(passed, finished)})
-        </span>
-      </p>
-      <ResponsiveContainer width="100%" height={220}>
+      <ResponsiveContainer width="100%" height={260}>
         <BarChart
           data={data}
-          margin={{ top: 16, right: 8, bottom: 0, left: -16 }}
-          barCategoryGap={1}
+          margin={{ top: 8, right: 8, bottom: 0, left: -16 }}
         >
           <CartesianGrid vertical={false} stroke="var(--line-subtle)" />
           <XAxis
-            dataKey="score"
+            dataKey="label"
             tick={{ fill: "var(--muted)", fontSize: 12 }}
             tickLine={false}
             axisLine={{ stroke: "var(--line)" }}
-            interval={4}
+            interval={0}
           />
           <YAxis
             allowDecimals={false}
@@ -352,33 +278,215 @@ export function ScoreChart({ overview }: { overview: GameOverview }) {
             axisLine={false}
           />
           <Tooltip
-            {...TOOLTIP}
-            labelFormatter={(s) => `${s}점`}
-            formatter={(value) => [`${value}판`, "판 수"]}
+            content={<ReachTooltip />}
+            cursor={{ fill: "var(--line-subtle)" }}
           />
-          <ReferenceLine
-            x={35}
-            stroke="var(--foreground)"
-            strokeDasharray="4 3"
-            label={{
-              value: "선물 기준 35점",
-              position: "top",
-              fill: "var(--muted)",
-              fontSize: 12,
+          <Bar
+            dataKey="사람"
+            radius={[4, 4, 0, 0]}
+            maxBarSize={40}
+            isAnimationActive={false}
+            cursor="pointer"
+            onClick={(d: { payload?: ReachDatum }) => {
+              const datum = d?.payload;
+              if (!datum || datum.사람 === 0) return;
+              onSelect(selected === datum.round ? null : datum.round);
             }}
-          />
-          <Bar isAnimationActive={false} dataKey="판" fill="var(--s1)" radius={[3, 3, 0, 0]} />
+          >
+            {data.map((d) => (
+              <Cell
+                key={d.round}
+                fill={
+                  selected === null || selected === d.round
+                    ? "var(--s1)"
+                    : "var(--dim)"
+                }
+              />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
+/* ── 사람별 플레이 기록 ── */
+
+/** 판 하나의 결과 한마디 */
+function runResult(r: RunRow): {
+  text: string;
+  tone: "muted" | "good" | "plain";
+} {
+  if (r.round < 5) return { text: "5라운드 전에 그만둠", tone: "muted" };
+  if ((r.score5 ?? 0) < 35) return { text: "35점 미만", tone: "plain" };
+  if (r.gift) return { text: "선물 받음", tone: "good" };
+  if (r.had_gift) return { text: "통과 · 이미 받은 사람", tone: "plain" };
+  if (r.answer_tries > 0)
+    return { text: `통과 · 오답 ${r.answer_tries}번`, tone: "plain" };
+  return { text: "통과 · 정답 안 냄", tone: "plain" };
+}
+
+export function PlayHistory({ players }: { players: PlayerRow[] }) {
+  const [sort, setSort] = useState<"recent" | "runs">("recent");
+  const list = useMemo(
+    () =>
+      [...players].sort(
+        (a, b) =>
+          (sort === "runs" ? b.runs.length - a.runs.length : 0) ||
+          b.last_at.localeCompare(a.last_at),
+      ),
+    [players, sort],
+  );
+
+  return (
+    <div>
+      <div className="mb-3 flex justify-end">
+        <label className="flex items-center gap-2 text-label text-muted">
+          정렬
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as "recent" | "runs")}
+            className="rounded-md border border-line bg-background px-2 py-1.5 text-label text-foreground"
+          >
+            <option value="recent">최근 플레이순</option>
+            <option value="runs">판 많은 순</option>
+          </select>
+        </label>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {list.map((p) => {
+          const best = bestRun(p);
+          const gift = p.runs.some((r) => r.gift);
+          const retries = p.runs.reduce((a, r) => a + r.retries, 0);
+          return (
+            <li key={p.player_id}>
+              <details className="group rounded-lg border border-line bg-background">
+                <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2.5 text-body-sm [&::-webkit-details-marker]:hidden">
+                  <span className="min-w-[140px]">
+                    <span
+                      className={`font-semibold ${p.nickname ? "" : "text-muted"}`}
+                    >
+                      {name(p)}
+                    </span>
+                    <span className="ml-2 font-mono text-label text-muted">
+                      {shortId(p)}
+                    </span>
+                    {p.hidden && (
+                      <span className="ml-2 text-label text-muted">숨김</span>
+                    )}
+                  </span>
+                  <span className="tabular-nums">
+                    <span className="font-semibold">{p.runs.length}</span>판
+                  </span>
+                  <span className="tabular-nums text-muted">
+                    최고 {best ? `${best.round}R · ${best.score}점` : "-"}
+                  </span>
+                  {gift && <span className="text-confirm">선물 받음</span>}
+                  {retries > 0 && (
+                    <span className="tabular-nums text-muted">
+                      재도전 {retries}번
+                    </span>
+                  )}
+                  <span className="ml-auto tabular-nums text-label text-muted">
+                    {shortKst(p.last_at)}
+                  </span>
+                  <svg
+                    aria-hidden
+                    viewBox="0 0 12 12"
+                    className="h-3 w-3 shrink-0 text-muted transition-transform group-open:rotate-180"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M2.5 4.5 6 8l3.5-3.5" />
+                  </svg>
+                </summary>
+                <div className="overflow-x-auto border-t border-line-subtle">
+                  <table className="w-full min-w-[640px] text-left text-body-sm">
+                    <thead className="text-label text-muted">
+                      <tr>
+                        <th className={TH}>판</th>
+                        <th className={TH}>시작</th>
+                        <th className={`${TH} text-right`}>라운드</th>
+                        <th className={`${TH} text-right`}>점수</th>
+                        <th className={`${TH} text-right`}>5R 점수</th>
+                        <th className={TH}>결과 · 선물</th>
+                        <th className={`${TH} text-right`}>재도전</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {p.runs.map((r) => {
+                        const res = runResult(r);
+                        return (
+                          <tr
+                            key={r.n}
+                            className="border-t border-line-subtle tabular-nums"
+                          >
+                            <td className={`${TD} font-semibold`}>{r.n}번째</td>
+                            <td className={`${TD} text-muted`}>
+                              {shortKst(r.started_at)}
+                            </td>
+                            <td className={`${TD} text-right`}>
+                              {r.round >= 5 ? (
+                                `${r.round}R`
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                            <td className={`${TD} text-right`}>
+                              {r.round >= 5 ? (
+                                r.score
+                              ) : (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                            <td className={`${TD} text-right`}>
+                              {r.score5 ?? (
+                                <span className="text-muted">-</span>
+                              )}
+                            </td>
+                            <td
+                              className={`${TD} ${res.tone === "good" ? "text-confirm" : res.tone === "muted" ? "text-muted" : ""}`}
+                            >
+                              {res.text}
+                            </td>
+                            <td className={`${TD} text-right`}>
+                              {r.retries > 0 ? (
+                                `${r.retries}번`
+                              ) : (
+                                <span className="text-muted">0</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-2 text-label text-muted">
+        「사람」 은 브라우저 하나입니다(같은 사람이 다른 기기 · 브라우저로 하면
+        따로 셉니다). 줄을 누르면 판마다의 기록이 펼쳐집니다.
+      </p>
+    </div>
+  );
+}
+
+/* ── 참여 단계 ── */
+
 /**
- * 가로 막대 목록 — 참여 단계처럼 단계마다 사람 수. 단계가 차례로 줄어드는 깔때기가 아니다(공유 링크로 온 사람은
+ * 가로 막대 목록 — 단계마다 사람 수. 단계가 차례로 줄어드는 깔때기가 아니다(공유 링크로 온 사람은
  * 블록을 안 보고 게임 화면에 온다) — 그래서 비율은 적지 않고, 막대 길이는 가장 많은 줄 대비다.
  */
-export function FunnelBars({ rows }: { rows: { label: string; note?: string; value: number; extra?: number }[] }) {
+export function FunnelBars({
+  rows,
+}: {
+  rows: { label: string; note?: string; value: number; extra?: number }[];
+}) {
   const max = Math.max(0, ...rows.map((r) => r.value));
   return (
     <ul className={`${v.viz} flex flex-col gap-3`}>
@@ -387,299 +495,29 @@ export function FunnelBars({ rows }: { rows: { label: string; note?: string; val
           <div className="mb-1 flex items-baseline justify-between gap-3">
             <span className="text-body-sm font-semibold">
               {r.label}
-              {r.note && <span className="ml-2 text-label font-normal text-muted">{r.note}</span>}
+              {r.note && (
+                <span className="ml-2 text-label font-normal text-muted">
+                  {r.note}
+                </span>
+              )}
             </span>
             <span className="shrink-0 text-body-sm tabular-nums">
               <span className="font-semibold">{r.value}명</span>
-              {r.extra !== undefined && <span className="ml-2 text-label text-muted">우리 기기 포함 {r.extra}</span>}
+              {r.extra !== undefined && (
+                <span className="ml-2 text-label text-muted">
+                  우리 기기 포함 {r.extra}
+                </span>
+              )}
             </span>
           </div>
           <div className={v.track}>
-            <div className={v.fill} style={{ width: max > 0 ? `${(r.value / max) * 100}%` : 0 }} />
+            <div
+              className={v.fill}
+              style={{ width: max > 0 ? `${(r.value / max) * 100}%` : 0 }}
+            />
           </div>
         </li>
       ))}
     </ul>
-  );
-}
-
-/** 비율 칸 — 큰 숫자 + 막대 + "몇 명 중 몇 명". */
-export function RatioCards({
-  items,
-}: {
-  items: { label: string; part: number; whole: number; who: string }[];
-}) {
-  return (
-    <dl className={`${v.viz} grid grid-cols-1 gap-3 md:grid-cols-3`}>
-      {items.map((it) => (
-        <div
-          key={it.label}
-          className="rounded-lg border border-line bg-background px-4 py-3"
-        >
-          <dt className="text-label text-muted">{it.label}</dt>
-          <dd className="mt-1 text-h2 font-extrabold tabular-nums">
-            {pct(it.part, it.whole)}
-          </dd>
-          <dd className={`${v.track} mt-2`}>
-            <div
-              className={v.fill}
-              style={{
-                width: it.whole > 0 ? `${(it.part / it.whole) * 100}%` : 0,
-              }}
-            />
-          </dd>
-          <dd className="mt-2 text-label text-muted tabular-nums">
-            {it.who} {it.whole}명 중 {it.part}명
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-/* ── 참여자 표 ── */
-
-const FILTERS: {
-  key: string;
-  label: string;
-  test: (p: PlayerRow) => boolean;
-}[] = [
-  { key: "all", label: "전체", test: () => true },
-  { key: "unranked", label: "랭킹 미등록", test: (p) => !p.nickname },
-  { key: "notyet", label: "5라운드 못 마침", test: (p) => p.finished === 0 },
-  {
-    key: "below",
-    label: "35점 못 넘김",
-    test: (p) => p.finished > 0 && p.passed === 0,
-  },
-  {
-    key: "nogift",
-    label: "통과했지만 코드 없음",
-    test: (p) => p.passed > 0 && !p.gift,
-  },
-  { key: "skip", label: "정답 안 내고 기록만", test: (p) => p.skipped > 0 },
-  { key: "gift", label: "코드 받음", test: (p) => p.gift },
-  { key: "hidden", label: "숨김", test: (p) => p.hidden },
-];
-
-const SORTS: {
-  key: string;
-  label: string;
-  cmp: (a: PlayerRow, b: PlayerRow) => number;
-}[] = [
-  {
-    key: "recent",
-    label: "최근 플레이순",
-    cmp: (a, b) => b.last_at.localeCompare(a.last_at),
-  },
-  {
-    key: "runs",
-    label: "시도 많은 순",
-    cmp: (a, b) => b.runs - a.runs || b.last_at.localeCompare(a.last_at),
-  },
-  {
-    key: "score",
-    label: "최고 점수순",
-    cmp: (a, b) =>
-      (b.best_score ?? -1) - (a.best_score ?? -1) ||
-      b.best_round - a.best_round,
-  },
-];
-
-/** 한 사람의 판들이 어떻게 끝났나 — 그만둠 · 35점 미만 · 통과 */
-function PlayerMix({ p }: { p: PlayerRow }) {
-  const parts = [
-    { n: p.runs - p.finished, color: "var(--s1)", label: "그만둠" },
-    { n: p.below, color: "var(--s2)", label: "35점 미만" },
-    { n: p.passed, color: "var(--s3)", label: "통과" },
-  ];
-  return (
-    <span
-      className={v.mini}
-      title={parts.map((x) => `${x.label} ${x.n}`).join(" · ")}
-      aria-hidden
-    >
-      {parts.map((x) =>
-        x.n > 0 ? (
-          <span key={x.label} style={{ flex: x.n, background: x.color }} />
-        ) : null,
-      )}
-    </span>
-  );
-}
-
-export function PlayerTable({ players }: { players: PlayerRow[] }) {
-  const [filter, setFilter] = useState("all");
-  const [sort, setSort] = useState("recent");
-  const rows = useMemo(() => {
-    const f = FILTERS.find((x) => x.key === filter) ?? FILTERS[0];
-    const s = SORTS.find((x) => x.key === sort) ?? SORTS[0];
-    return players.filter(f.test).sort(s.cmp);
-  }, [players, filter, sort]);
-
-  return (
-    <div className={v.viz}>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {FILTERS.map((f) => {
-          const n = players.filter(f.test).length;
-          const on = f.key === filter;
-          return (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => setFilter(f.key)}
-              aria-pressed={on}
-              className={`rounded-full border px-3 py-1.5 text-label font-semibold transition-colors ${
-                on
-                  ? "border-glow bg-glow text-glow-foreground"
-                  : "border-line text-muted hover:bg-fill"
-              }`}
-            >
-              {f.label} <span className="tabular-nums">{n}</span>
-            </button>
-          );
-        })}
-        <label className="ml-auto flex items-center gap-2 text-label text-muted">
-          정렬
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            className="rounded-md border border-line bg-background px-2 py-1.5 text-label text-foreground"
-          >
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      <div className="mb-2 flex flex-wrap gap-4 text-label text-muted">
-        <span>판 결과 막대:</span>
-        {[
-          ["var(--s1)", "그만둠"],
-          ["var(--s2)", "35점 미만"],
-          ["var(--s3)", "35점 통과"],
-        ].map(([c, l]) => (
-          <span key={l} className="flex items-center gap-1.5">
-            <span className={v.swatch} style={{ background: c }} aria-hidden />
-            {l}
-          </span>
-        ))}
-      </div>
-      {rows.length === 0 ? (
-        <p className="text-body-sm text-muted">해당하는 사람이 없습니다.</p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-line">
-          <table className="w-full min-w-[900px] text-left text-body-sm">
-            <thead className="bg-fill text-label text-muted">
-              <tr>
-                <th className="px-2 py-2 font-semibold">사람</th>
-                <th className="px-2 py-2 text-right font-semibold">시도</th>
-                <th className="px-2 py-2 font-semibold">판 결과</th>
-                <th className="px-2 py-2 text-right font-semibold">
-                  35점 미만
-                </th>
-                <th className="px-2 py-2 text-right font-semibold">통과</th>
-                <th className="px-2 py-2 text-right font-semibold">기록만</th>
-                <th className="px-2 py-2 text-right font-semibold">오답</th>
-                <th className="px-2 py-2 text-right font-semibold">최고 5R</th>
-                <th className="px-2 py-2 text-right font-semibold">
-                  최고 라운드
-                </th>
-                <th className="px-2 py-2 text-right font-semibold">
-                  최고 점수
-                </th>
-                <th className="px-2 py-2 font-semibold">선물</th>
-                <th
-                  className="px-2 py-2 text-right font-semibold"
-                  title="최근 판의 반응 속도 중앙값 — 사람은 대개 300~600ms"
-                >
-                  반응
-                </th>
-                <th className="px-2 py-2 font-semibold">마지막</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((p) => (
-                <tr
-                  key={p.player_id}
-                  className={`border-t border-line-subtle tabular-nums ${p.hidden ? "text-disabled" : ""}`}
-                >
-                  <td className="px-2 py-2">
-                    {p.nickname ? (
-                      <span className="font-semibold">{p.nickname}</span>
-                    ) : (
-                      <span className="text-muted">미등록</span>
-                    )}
-                    <span className="ml-2 font-mono text-label text-muted">
-                      {p.player_id.slice(0, 6)}
-                    </span>
-                    {p.hidden && (
-                      <span className="ml-2 text-label text-muted">숨김</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2 text-right font-semibold">
-                    {p.runs}
-                  </td>
-                  <td className="px-2 py-2">
-                    <PlayerMix p={p} />
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.below || <span className="text-muted">0</span>}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.passed || <span className="text-muted">0</span>}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.skipped || <span className="text-muted">0</span>}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.wrong_answers || <span className="text-muted">0</span>}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.best5 ?? <span className="text-muted">-</span>}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.best_round >= 5 ? (
-                      p.best_round
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.best_score ?? <span className="text-muted">-</span>}
-                  </td>
-                  <td className="px-2 py-2">
-                    {p.redeemed ? (
-                      <span className="text-muted">수령</span>
-                    ) : p.gift ? (
-                      <span className="text-confirm">받음</span>
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2 text-right">
-                    {p.react_ms ? (
-                      `${p.react_ms}ms`
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
-                  </td>
-                  <td className="px-2 py-2 text-muted">
-                    {shortKst(p.last_at)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <p className="mt-2 text-label text-muted">
-        「사람」 은 브라우저 하나입니다(같은 사람이 다른 기기 · 브라우저로 하면
-        따로 셉니다). 「-」 는 그 값이 아직 없다는 뜻, 「0」 은 0번입니다. 반응
-        속도는 서버 확인을 넣은 뒤(11/27 오후)의 판부터 남습니다.
-      </p>
-    </div>
   );
 }
