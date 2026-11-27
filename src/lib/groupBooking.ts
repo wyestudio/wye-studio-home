@@ -171,6 +171,8 @@ export const GROUP_ENTRY = {
   faq: "detail_faq",
   /** 상세 FOR YOU 4번째 카드 안의 링크 */
   forYou: "detail_for_you",
+  /** 홈 헤더 오른쪽의 「단체 예약」 버튼(HomeHeaderCtas) */
+  homeHeader: "home_header",
 } as const;
 
 export type GroupEntryKey = (typeof GROUP_ENTRY)[keyof typeof GROUP_ENTRY];

@@ -8,6 +8,7 @@ import { RandomLetterSwap } from "@/components/ui/RandomLetterSwap";
 import { SeasonArt } from "@/components/season/SeasonArt";
 import { ADMIN_MENU, ADMIN_QUICK, isAdminMenuActive } from "@/components/admin/adminMenu";
 import { LogoutButton } from "@/components/admin/LogoutButton";
+import { HomeHeaderCtas } from "@/components/layout/HomeHeaderCtas";
 
 // 휴면 처리(2026-08-09): 비회원 구매 플로우로 전환하며 로그인/계정 네비게이션은
 // 제거함. 로그인 시스템 자체는 삭제하지 않고 보존 — 자세한 배경은 CLAUDE.md
@@ -211,20 +212,32 @@ export function Header({ admin = false }: { admin?: boolean }) {
             ))}
           </nav>
         ) : (
-        <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-h3 font-semibold text-muted">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return item.enabled === false ? null : (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`pb-2.5 hover:text-glow transition-colors ${isActive ? 'border-b-2 border-glow' : ''}`}
-              >
-                <RandomLetterSwap label={item.label} active={isActive} />
-              </Link>
-            );
-          })}
-        </nav>
+        <div className="flex items-center gap-6">
+          <nav className="flex flex-wrap items-center gap-x-7 gap-y-1 text-h3 font-semibold text-muted">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+              return item.enabled === false ? null : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`pb-2.5 hover:text-glow transition-colors ${isActive ? 'border-b-2 border-glow' : ''}`}
+                >
+                  <RandomLetterSwap label={item.label} active={isActive} />
+                </Link>
+              );
+            })}
+          </nav>
+          {/*
+            홈에서만 — 메뉴 끝에 선을 긋고 바로가기 버튼(HomeHeaderCtas). 메뉴 글자는 밑줄 자리(pb-2.5)의 절반만큼
+            위로 올라가 있어서, 버튼 묶음도 그만큼(4px) 올려 글자와 세로 가운데를 맞춘다(광학 보정).
+            margin 으로 올리면 헤더 높이(72px)가 커진다 — relative 로 자리만 옮긴다.
+          */}
+          {isHome && (
+            <div className="relative bottom-1 flex items-center border-l border-line pl-6">
+              <HomeHeaderCtas />
+            </div>
+          )}
+        </div>
         )}
       </div>
 
@@ -250,6 +263,12 @@ export function Header({ admin = false }: { admin?: boolean }) {
             </Link>
             {admin && <span className="rounded-md bg-amber-400 px-2 py-0.5 text-micro font-semibold text-black">어드민</span>}
             </div>
+          {/* 홈에서만 — 로고와 메뉴 버튼 사이에 작은 바로가기(HomeHeaderCtas) */}
+          {isHome && !admin && (
+            <div className="ml-auto mr-3">
+              <HomeHeaderCtas compact />
+            </div>
+          )}
           {/* 모바일 햄버거 버튼 */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
