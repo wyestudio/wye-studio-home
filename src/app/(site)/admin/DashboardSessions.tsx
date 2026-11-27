@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CopyUrlButton } from "@/components/admin/CopyUrlButton";
@@ -11,7 +11,7 @@ import { GroupBlockToggle } from "@/components/admin/GroupBlockToggle";
 import { Chevron } from "@/components/ui/Chevron";
 import { inquiryStatusLabel } from "@/lib/groupBooking";
 import { BASE_MINUTES, addMinutes } from "@/lib/groupPricing";
-import { isPartyGo } from "@/lib/adminTodos";
+import { DAY_RANK, blockedByGroup, sessionGo, sessionRank, sortDay, type GroupSlot } from "@/lib/adminDayOrder";
 import { addGroupClosure, removeGroupClosure } from "./group-bookings/actions";
 import { withBack } from "@/lib/adminBack";
 
@@ -19,6 +19,8 @@ export type DashboardSession = {
   id: string;
   theme_id: string | null;
   start_at: string;
+  /** 끝나는 시각 — 단체 시간과 겹치는지 볼 때 쓴다. 모르면 null. */
+  end_at: string | null;
   status: string;
   /** 이 시각부터 고객 화면에 보인다. 미래면 아직 비공개. */
   opens_at: string | null;
@@ -29,7 +31,7 @@ export type DashboardSession = {
   headcount_line: string;
   /** 확정 인원(달력 칸의 짧은 표시용). */
   confirmed: number;
-  /** 입금까지 확인된 확정 인원 — 파티모드 「진행 확정」 판정에 쓴다(isPartyGo). */
+  /** 입금까지 확인된 확정 인원 — 「진행 확정」 판정에 쓴다(adminDayOrder.ts sessionGo). */
   paid_confirmed: number;
   /** 정원. 모르면 null. */
   capacity_max: number | null;
@@ -97,12 +99,12 @@ type CalEvent = {
   /** 마우스를 올리면 보이는 전체 설명. */
   label: string;
   /**
-   * 칸 안의 순서 — 작을수록 위. 확정된 일정이 먼저다(2026-11-27 대표님):
-   * 단체 확정 0 → 파티 진행 확정 1 → 파티 모집 2 → 노말 예약 3 → 마감 4 → 단체 문의 5 → 빈 회차 6.
+   * 칸 안의 순서 — 작을수록 위. 확정된 일정이 먼저다(2026-11-27 대표님, 규칙은 adminDayOrder.ts):
+   * 단체 확정 0 → 진행 확정 회차(파티 · 노말 시간순) 1 → 신청은 있지만 미확정 2 → 마감 4 → 단체 문의 5 → 빈 회차 6 → 닫힌 회차 7.
    * 칸이 넘쳐 '+n' 으로 접혀도 단체 확정은 항상 보이는 쪽에 남는다.
    */
   rank: number;
-  /** 꽉 찬 색으로 그린다(단체 확정 · 파티 진행 확정). */
+  /** 꽉 찬 색으로 그린다(단체 확정 · 진행이 확정된 파티 · 노말 회차). */
   solid: boolean;
   /** 신청자가 없는 빈 회차 — 「빈 회차도 보기」 를 켜야 칸에 나온다. */
   empty: boolean;
@@ -186,6 +188,9 @@ export function DashboardSessions({
   const [showInquiry, setShowInquiry] = useState(false);
   const [showEmpty, setShowEmpty] = useState(false);
 
+  // 확정된 단체 일정 — 이 시간과 겹쳐 닫힌 회차는 흐리게, 맨 아래로 보낸다.
+  const groupSlots = useMemo<GroupSlot[]>(() => groups.flatMap((g) => (g.booking ? [g.booking] : [])), [groups]);
+
   const events = useMemo(() => {
     const list: CalEvent[] = [];
     for (const s of sessions) {
@@ -194,7 +199,8 @@ export function DashboardSessions({
       const mode = kind === "party" ? "파티" : kind === "normal" ? "노말" : (s.theme_name ?? "회차");
       // 신청자가 있는가 — 파티는 신청(확정 · 대기), 노말은 예약. 둘 다 취소를 뺀 인원이다.
       const empty = s.booked_people <= 0;
-      const go = kind === "party" && !empty && isPartyGo(s);
+      // 진행 확정 — 파티는 isPartyGo, 노말은 입금이 확인되면(2026-11-27 대표님).
+      const go = sessionGo(kind as "party" | "normal" | "other", s) === true;
       const people = kind === "normal" ? s.booked_people : s.confirmed;
       list.push({
         key: `s-${s.id}`,
@@ -204,11 +210,11 @@ export function DashboardSessions({
         short: empty ? mode : `${mode} ${people}명`,
         label:
           kind === "normal"
-            ? `${kstTime(s.start_at)} 노말 · ${empty ? "예약 없음" : `예약 ${s.booked_people}명 · ${s.payment_label ?? ""}`}`
+            ? `${kstTime(s.start_at)} 노말 · ${empty ? "예약 없음" : `예약 ${s.booked_people}명 · ${s.payment_label ?? ""}${go ? " · 진행 확정" : ""}`}`
             : `${kstTime(s.start_at)} ${mode} · 확정 ${s.confirmed}명${s.capacity_max ? ` / 정원 ${s.capacity_max}명` : ""}${
                 go ? " · 진행 확정" : empty ? " · 신청 없음" : " · 모집 중"
               }`,
-        rank: empty ? 6 : go ? 1 : kind === "normal" ? 3 : 2,
+        rank: sessionRank(kind as "party" | "normal" | "other", s, groupSlots),
         solid: go,
         empty,
       });
@@ -222,7 +228,7 @@ export function DashboardSessions({
           kind: "group",
           short: `단체 ${g.headcount}명`,
           label: `${g.booking.time} 단체 확정 · ${g.name} · ${g.headcount}명`,
-          rank: 0,
+          rank: DAY_RANK.group,
           solid: true,
           empty: false,
         });
@@ -235,7 +241,7 @@ export function DashboardSessions({
           kind: "inquiry",
           short: `문의 ${g.headcount}명`,
           label: `${t ? `${t} ` : ""}단체 문의(희망) · ${g.name} · ${g.headcount}명`,
-          rank: 5,
+          rank: DAY_RANK.inquiry,
           solid: false,
           empty: false,
         });
@@ -249,7 +255,7 @@ export function DashboardSessions({
         kind: "block",
         short: "마감",
         label: c.start_time ? `${c.start_time} 마감${c.note ? ` · ${c.note}` : ""}` : `종일 마감${c.note ? ` · ${c.note}` : ""}`,
-        rank: 4,
+        rank: DAY_RANK.closure,
         solid: false,
         empty: false,
       });
@@ -263,7 +269,7 @@ export function DashboardSessions({
     // 확정된 일정이 먼저, 그 안에서는 시간 순.
     for (const arr of byDate.values()) arr.sort((a, b) => a.rank - b.rank || a.time.localeCompare(b.time));
     return byDate;
-  }, [sessions, groups, closures, showInquiry, showEmpty]);
+  }, [sessions, groups, closures, groupSlots, showInquiry, showEmpty]);
 
   // 달력 칸: 그 달 1일이 있는 주의 일요일부터 6주.
   const [y, m] = month.split("-").map(Number);
@@ -276,13 +282,35 @@ export function DashboardSessions({
     setMonth(d.toISOString().slice(0, 7));
   };
 
-  const daySessions = sessions
-    .filter((s) => kstYmd(s.start_at) === selected)
-    .sort((a, b) => a.start_at.localeCompare(b.start_at));
-  const dayGroups = groups
-    .filter((g) => (g.booking ? g.booking.date === selected : OPEN_INQUIRY.has(g.status) && g.preferred_date === selected))
-    .sort((a, b) => (a.booking?.time ?? a.preferred_time).localeCompare(b.booking?.time ?? b.preferred_time));
+  const daySessions = sessions.filter((s) => kstYmd(s.start_at) === selected);
+  const dayGroups = groups.filter((g) => (g.booking ? g.booking.date === selected : OPEN_INQUIRY.has(g.status) && g.preferred_date === selected));
   const dayClosures = closures.filter((c) => c.date === selected);
+  // 그날 목록 — 달력 칸과 같은 순서로 한 줄에 세운다(2026-11-27 대표님):
+  // 단체 확정 → 진행이 확정된 파티 · 노말(시간순) → 신청은 있지만 미확정 → 마감 → 단체 문의 → 빈 회차 → 닫힌 회차.
+  type DayItem =
+    | { key: string; rank: number; time: string; type: "session"; s: DashboardSession; blocked: boolean }
+    | { key: string; rank: number; time: string; type: "group"; g: DashboardGroup }
+    | { key: string; rank: number; time: string; type: "closure"; c: DashboardClosure };
+  const dayItems = sortDay<DayItem>([
+    ...daySessions.map((s) => ({
+      key: `s-${s.id}`,
+      rank: sessionRank(sessionKind(s) as "party" | "normal" | "other", s, groupSlots),
+      time: kstTime(s.start_at),
+      type: "session" as const,
+      s,
+      blocked: blockedByGroup(s, groupSlots),
+    })),
+    ...dayGroups.map((g) => ({
+      key: `g-${g.id}`,
+      rank: g.booking ? DAY_RANK.group : DAY_RANK.inquiry,
+      // 시간을 안 정한 문의는 그 묶음의 맨 뒤로.
+      time: g.booking?.time ?? (HHMM.test(g.preferred_time) ? g.preferred_time : "99:99"),
+      type: "group" as const,
+      g,
+    })),
+    ...dayClosures.map((c) => ({ key: `c-${c.id}`, rank: DAY_RANK.closure, time: c.start_time ?? "00:00", type: "closure" as const, c })),
+  ]);
+  const firstOff = dayItems.findIndex((i) => i.rank === DAY_RANK.off);
 
   return (
     // 컴퓨터는 달력 왼쪽 · 그날 목록 오른쪽 — 달력이 화면 폭을 다 쓰면 너무 크다(2026-10-30 대표님).
@@ -419,41 +447,19 @@ export function DashboardSessions({
         )}
 
         <div className="flex flex-col gap-3">
-          {daySessions.map((s) => (
-            <SessionCard key={s.id} s={s} date={selected} siteUrl={siteUrl} nowMs={nowMs} back={back} />
-          ))}
-
-          {dayGroups.map((g) => (
-            <Link
-              key={g.id}
-              href={withBack(`/group-bookings/${g.id}`, back)}
-              className="flex items-center gap-3 rounded-lg border bg-surface p-4 hover:bg-fill-subtle"
-              style={{ borderColor: tint(COLOR.group, g.booking ? 60 : 25) }}
-            >
-              <span className="min-w-0 flex-1">
-                <span className="font-semibold tabular-nums">
-                  {g.booking
-                    ? `${g.booking.time} ~ ${addMinutes(g.booking.time, g.booking.minutes)}`
-                    : HHMM.test(g.preferred_time)
-                      ? `${g.preferred_time} ~ ${addMinutes(g.preferred_time, g.minutes)}`
-                      : "시간 미정"}
-                </span>
-                <span
-                  className="ml-2 rounded-md px-1.5 py-0.5 text-micro"
-                  style={{ backgroundColor: tint(COLOR.group, 15), color: COLOR.group }}
-                >
-                  {g.booking ? "단체 확정" : `단체 문의(희망) · ${inquiryStatusLabel(g.status)}`}
-                </span>
-                <span className="mt-1 block text-micro text-muted">
-                  {g.name} · {g.headcount}명
-                </span>
-              </span>
-              <Chevron className="h-4 w-4 shrink-0 text-muted" />
-            </Link>
-          ))}
-
-          {dayClosures.map((c) => (
-            <ClosureRow key={c.id} c={c} />
+          {dayItems.map((item, i) => (
+            <Fragment key={item.key}>
+              {i === firstOff && (
+                <p className="mt-2 text-body-sm text-muted">닫힌 회차 — 단체 시간과 겹쳐 닫혔거나 비활성화한 회차입니다.</p>
+              )}
+              {item.type === "session" ? (
+                <SessionCard s={item.s} blocked={item.blocked} date={selected} siteUrl={siteUrl} nowMs={nowMs} back={back} />
+              ) : item.type === "closure" ? (
+                <ClosureRow c={item.c} />
+              ) : (
+                <GroupDayCard g={item.g} back={back} />
+              )}
+            </Fragment>
           ))}
 
           {/* 날짜를 바꾸면 새로 그린다 — 안 그러면 다른 날 막은 결과 문구가 남아 헷갈린다. */}
@@ -461,6 +467,37 @@ export function DashboardSessions({
         </div>
       </div>
     </div>
+  );
+}
+
+/** 그날 목록의 단체 한 건 — 확정이면 확정 일시, 문의면 희망 일시. 누르면 단체 상세로. */
+function GroupDayCard({ g, back }: { g: DashboardGroup; back: string }) {
+  return (
+    <Link
+      href={withBack(`/group-bookings/${g.id}`, back)}
+      className="flex items-center gap-3 rounded-lg border bg-surface p-4 hover:bg-fill-subtle"
+      style={{ borderColor: tint(COLOR.group, g.booking ? 60 : 25) }}
+    >
+      <span className="min-w-0 flex-1">
+        <span className="font-semibold tabular-nums">
+          {g.booking
+            ? `${g.booking.time} ~ ${addMinutes(g.booking.time, g.booking.minutes)}`
+            : HHMM.test(g.preferred_time)
+              ? `${g.preferred_time} ~ ${addMinutes(g.preferred_time, g.minutes)}`
+              : "시간 미정"}
+        </span>
+        <span
+          className="ml-2 rounded-md px-1.5 py-0.5 text-micro"
+          style={{ backgroundColor: tint(COLOR.group, 15), color: COLOR.group }}
+        >
+          {g.booking ? "단체 확정" : `단체 문의(희망) · ${inquiryStatusLabel(g.status)}`}
+        </span>
+        <span className="mt-1 block text-micro text-muted">
+          {g.name} · {g.headcount}명
+        </span>
+      </span>
+      <Chevron className="h-4 w-4 shrink-0 text-muted" />
+    </Link>
   );
 }
 
@@ -494,12 +531,15 @@ function EventChip({ e }: { e: CalEvent }) {
 
 function SessionCard({
   s,
+  blocked,
   date,
   siteUrl,
   nowMs,
   back,
 }: {
   s: DashboardSession;
+  /** 단체 시간과 겹쳐 닫힌 회차 — 흐리게 그리고 이유를 적는다. */
+  blocked: boolean;
   date: string;
   siteUrl: string;
   nowMs: number;
@@ -518,12 +558,17 @@ function SessionCard({
         : s.status === "open"
           ? { label: "모집중", cls: "bg-brand text-brand-foreground" }
           : { label: "마감", cls: "bg-zinc-500 text-white" };
-  // 파티모드 — 신청자가 있으면 진행 여부를 같이 적는다(기준은 isPartyGo).
-  const go = kind === "party" && s.status !== "cancelled" && s.booked_people > 0 ? isPartyGo(s) : null;
+  // 신청자가 있으면 진행 여부를 같이 적는다 — 파티는 isPartyGo, 노말은 입금이 확인되면 확정(adminDayOrder.ts).
+  const go = sessionGo(kind as "party" | "normal" | "other", s);
+  // 닫힌 회차(단체 시간과 겹침 · 비활성화)는 흐리게 — 아래 버튼은 그대로 눌린다.
+  const off = blocked || s.status === "cancelled";
   return (
     <div className="rounded-lg border border-border bg-surface" style={{ borderLeft: `3px solid ${color}` }}>
       {/* 카드 윗부분을 누르면 회차 상세(신청자)로 — 단체 카드와 같은 모양 */}
-      <Link href={withBack(`/sessions/${s.id}`, back)} className="flex items-center gap-3 rounded-t-lg p-4 pb-3 hover:bg-fill-subtle">
+      <Link
+        href={withBack(`/sessions/${s.id}`, back)}
+        className={`flex items-center gap-3 rounded-t-lg p-4 pb-3 hover:bg-fill-subtle ${off ? "opacity-60" : ""}`}
+      >
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span className="text-body font-semibold tabular-nums">{kstTime(s.start_at)}</span>
@@ -540,9 +585,11 @@ function SessionCard({
                   go ? "bg-confirm-soft text-confirm" : "bg-wait-soft text-wait"
                 }`}
               >
-                {go ? "진행 확정" : "인원 모으는 중"}
+                {go ? "진행 확정" : kind === "normal" ? "입금 확인 전" : "인원 모으는 중"}
               </span>
             )}
+            {/* 색 · 흐림만으로 알리지 않는다 — 왜 닫혔는지 글자로 적는다 */}
+            {blocked && <span className="rounded-md bg-fill-strong px-2 py-0.5 text-micro font-semibold text-muted">단체 시간과 겹침</span>}
           </span>
           {kind === "normal" ? (
             // 노말은 한 팀만 받는다 — 확정 · 대기 대신 예약 인원과 입금 상태.
