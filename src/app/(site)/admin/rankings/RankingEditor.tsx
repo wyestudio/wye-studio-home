@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RANKING_GRADES, type RankingGrade } from "@/types/catalog";
+import { AdminBadge, AdminEmpty, adminButtonClass, adminInputClass } from "@/components/admin/ui";
 import { saveRanking, deleteRanking, type RankingInput } from "./actions";
 
 export type RankingTheme = { id: string; name: string; variant_label: string | null };
@@ -20,7 +21,7 @@ export type RankingRow = {
   source: "manual" | "baro";
 };
 
-const field = "rounded-md border border-border bg-background px-2 py-1.5 text-body-sm";
+const fieldLabel = "flex flex-col gap-1.5 text-label font-semibold text-foreground";
 
 const SIZE_LABEL: Record<number, string> = { 2: "2인", 3: "3인", 4: "4인 이상" };
 
@@ -33,6 +34,12 @@ function parseTime(v: string): number | null {
 }
 function formatTime(sec: number | null) {
   return sec === null ? "" : `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`;
+}
+
+/** 포인트 아래 한 줄 — 남은 시간 · 등급 · 노힌트 여부(예전 표의 세 칸을 한 칸에 모았다). */
+function recordLine(r: RankingRow): string {
+  const time = formatTime(r.remaining_sec);
+  return [time && `남은 시간 ${time}`, `등급 ${r.grade}`, r.hint_free ? "노힌트" : "힌트 사용"].filter(Boolean).join(" · ");
 }
 
 type Draft = Omit<RankingInput, "remaining_sec"> & { time: string };
@@ -123,41 +130,55 @@ export function RankingEditor({
     });
   }
 
+  // 한 줄의 버튼 셋 — 표와 휴대폰 카드가 같이 쓴다.
+  const rowButtons = (r: RankingRow) => (
+    <>
+      <button type="button" onClick={() => setEditing(toDraft(r))} className={adminButtonClass("secondary")}>
+        수정
+      </button>
+      <button type="button" disabled={pending} onClick={() => toggleHidden(r)} className={adminButtonClass("secondary")}>
+        {r.hidden ? "다시 보이기" : "숨김"}
+      </button>
+      <button type="button" disabled={pending} onClick={() => remove(r)} className={adminButtonClass("danger")}>
+        삭제
+      </button>
+    </>
+  );
+
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-body-sm">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className={fieldLabel}>
           달
           <input
             type="month"
-            className={field}
+            className={`${adminInputClass} font-normal`}
             value={month}
             onChange={(e) => e.target.value && router.push(`/rankings?month=${e.target.value}`)}
           />
         </label>
-        <button
-          type="button"
-          onClick={() => setEditing(blank())}
-          className="ml-auto rounded-md bg-glow px-3 py-2 text-body-sm text-white"
-        >
+        <button type="button" onClick={() => setEditing(blank())} className={`${adminButtonClass("primary")} ml-auto`}>
           기록 등록
         </button>
       </div>
 
       {message && (
-        <p className={message.kind === "ok" ? "text-body-sm text-glow" : "text-body-sm text-red-400"}>
+        <p
+          role={message.kind === "ok" ? "status" : "alert"}
+          className={`rounded-lg px-3 py-2 text-body-sm ${message.kind === "ok" ? "bg-confirm-soft text-confirm" : "bg-danger-soft text-danger"}`}
+        >
           {message.text}
         </p>
       )}
 
       {editing && (
-        <div className="space-y-3 rounded-lg border border-border p-4">
-          <h2 className="font-semibold">{editing.id ? "기록 수정" : "새 기록"}</h2>
+        <div className="space-y-4 rounded-xl border border-border bg-surface p-4 md:p-5">
+          <h2 className="text-h3 font-semibold text-foreground">{editing.id ? "기록 수정" : "새 기록"}</h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <label className="flex flex-col gap-1 text-micro text-muted">
+            <label className={fieldLabel}>
               테마
               <select
-                className={field}
+                className={`${adminInputClass} font-normal`}
                 value={editing.theme_id}
                 onChange={(e) => setEditing({ ...editing, theme_id: e.target.value })}
               >
@@ -168,28 +189,28 @@ export function RankingEditor({
                 ))}
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-micro text-muted">
+            <label className={fieldLabel}>
               회차 날짜
               <input
                 type="date"
-                className={field}
+                className={`${adminInputClass} font-normal`}
                 value={editing.played_on}
                 onChange={(e) => setEditing({ ...editing, played_on: e.target.value })}
               />
             </label>
-            <label className="flex flex-col gap-1 text-micro text-muted">
+            <label className={fieldLabel}>
               팀명 (고객 화면에 그대로 나갑니다)
               <input
-                className={field}
+                className={`${adminInputClass} font-normal`}
                 value={editing.team_name}
                 maxLength={30}
                 onChange={(e) => setEditing({ ...editing, team_name: e.target.value })}
               />
             </label>
-            <label className="flex flex-col gap-1 text-micro text-muted">
+            <label className={fieldLabel}>
               인원 구분 (노말만)
               <select
-                className={field}
+                className={`${adminInputClass} font-normal`}
                 value={editing.group_size ?? ""}
                 onChange={(e) =>
                   setEditing({ ...editing, group_size: e.target.value ? Number(e.target.value) : null })
@@ -201,28 +222,28 @@ export function RankingEditor({
                 <option value="4">4인 이상</option>
               </select>
             </label>
-            <label className="flex flex-col gap-1 text-micro text-muted">
+            <label className={fieldLabel}>
               획득 포인트
               <input
                 type="number"
-                className={field}
+                className={`${adminInputClass} font-normal`}
                 value={editing.points}
                 onChange={(e) => setEditing({ ...editing, points: Number(e.target.value) || 0 })}
               />
             </label>
-            <label className="flex flex-col gap-1 text-micro text-muted">
+            <label className={fieldLabel}>
               남은 시간 (분:초, 노말만)
               <input
-                className={field}
+                className={`${adminInputClass} font-normal`}
                 value={editing.time}
                 placeholder="12:34"
                 onChange={(e) => setEditing({ ...editing, time: e.target.value })}
               />
             </label>
-            <label className="flex flex-col gap-1 text-micro text-muted">
+            <label className={fieldLabel}>
               등급
               <select
-                className={field}
+                className={`${adminInputClass} font-normal`}
                 value={editing.grade}
                 onChange={(e) => setEditing({ ...editing, grade: e.target.value as RankingGrade })}
               >
@@ -233,18 +254,20 @@ export function RankingEditor({
                 ))}
               </select>
             </label>
-            <div className="flex flex-col justify-end gap-1.5 text-body-sm">
-              <label className="flex items-center gap-1.5">
+            <div className="flex flex-col justify-end text-body-sm">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
+                  className="h-4 w-4"
                   checked={editing.hint_free}
                   onChange={(e) => setEditing({ ...editing, hint_free: e.target.checked })}
                 />
                 노힌트
               </label>
-              <label className="flex items-center gap-1.5">
+              <label className="flex min-h-11 cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
+                  className="h-4 w-4"
                   checked={editing.hidden}
                   onChange={(e) => setEditing({ ...editing, hidden: e.target.checked })}
                 />
@@ -253,19 +276,10 @@ export function RankingEditor({
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => submit(editing)}
-              className="rounded-md bg-glow px-3 py-2 text-body-sm text-white disabled:opacity-40"
-            >
-              저장
+            <button type="button" disabled={pending} onClick={() => submit(editing)} className={adminButtonClass("primary")}>
+              {pending ? "저장 중…" : "저장"}
             </button>
-            <button
-              type="button"
-              onClick={() => setEditing(null)}
-              className="rounded-md border border-border px-3 py-2 text-body-sm"
-            >
+            <button type="button" onClick={() => setEditing(null)} className={adminButtonClass("secondary")}>
               취소
             </button>
           </div>
@@ -273,49 +287,78 @@ export function RankingEditor({
       )}
 
       {rows.length === 0 ? (
-        <p className="rounded-md border border-dashed border-border py-8 text-center text-body-sm text-muted">
-          {month} 기록이 없습니다.
-        </p>
+        <AdminEmpty title={`${month} 기록이 없어요`} hint="「기록 등록」 으로 넣거나, 현장 연동 기록이 들어오면 여기에 보입니다." />
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-body-sm">
-            <thead className="bg-fill-subtle text-micro text-muted">
-              <tr>
-                {["날짜", "테마", "인원", "팀명", "포인트", "남은 시간", "등급", "노힌트", "출처", ""].map((h) => (
-                  <th key={h} className="px-3 py-2 text-left font-normal">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className={`border-t border-border ${r.hidden ? "opacity-40" : ""}`}>
-                  <td className="px-3 py-2 tabular-nums">{r.played_on}</td>
-                  <td className="px-3 py-2">{themeName(r.theme_id)}</td>
-                  <td className="px-3 py-2">{r.group_size ? SIZE_LABEL[r.group_size] : "-"}</td>
-                  <td className="px-3 py-2 font-semibold">{r.team_name}</td>
-                  <td className="px-3 py-2 tabular-nums">{r.points}</td>
-                  <td className="px-3 py-2 tabular-nums">{formatTime(r.remaining_sec) || "-"}</td>
-                  <td className="px-3 py-2">{r.grade}</td>
-                  <td className="px-3 py-2">{r.hint_free ? "O" : "X"}</td>
-                  <td className="px-3 py-2 text-muted">{r.source === "baro" ? "현장 연동" : "직접 입력"}</td>
-                  <td className="whitespace-nowrap px-3 py-2 text-right">
-                    <button type="button" onClick={() => setEditing(toDraft(r))} className="mr-2 underline">
-                      수정
-                    </button>
-                    <button type="button" onClick={() => toggleHidden(r)} className="mr-2 underline">
-                      {r.hidden ? "다시 보이기" : "숨김"}
-                    </button>
-                    <button type="button" onClick={() => remove(r)} className="text-red-400 underline">
-                      삭제
-                    </button>
-                  </td>
+        <>
+          {/* 휴대폰: 카드 */}
+          <ul className="flex flex-col gap-2 md:hidden">
+            {rows.map((r) => (
+              <li key={r.id} className="rounded-xl border border-border bg-surface p-4">
+                <div className={r.hidden ? "opacity-50" : ""}>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-body font-semibold text-foreground">{r.team_name}</span>
+                    <span className="text-body-sm tabular-nums text-foreground">{r.points}점</span>
+                    {r.hidden && <AdminBadge>숨김</AdminBadge>}
+                  </div>
+                  <div className="mt-1 text-body-sm tabular-nums text-muted">{recordLine(r)}</div>
+                  <div className="mt-0.5 text-body-sm tabular-nums text-muted">
+                    {r.played_on} · {themeName(r.theme_id)}
+                    {r.group_size ? ` · ${SIZE_LABEL[r.group_size]}` : ""}
+                  </div>
+                  <div className="mt-0.5 text-body-sm text-muted">{r.source === "baro" ? "현장 연동" : "직접 입력"}</div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">{rowButtons(r)}</div>
+              </li>
+            ))}
+          </ul>
+
+          {/* 컴퓨터: 표 — 열은 6개(docs/01 5장 원칙 3). 인원은 테마 칸에, 남은 시간 · 등급 · 노힌트는 기록 칸에 모았다 */}
+          <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface md:block">
+            <table className="w-full text-body-sm">
+              <thead className="border-b border-border text-left text-label text-muted">
+                <tr>
+                  <th className="px-3 py-2.5">날짜</th>
+                  <th className="px-3 py-2.5">테마</th>
+                  <th className="px-3 py-2.5">팀명</th>
+                  <th className="px-3 py-2.5">기록</th>
+                  <th className="px-3 py-2.5">출처</th>
+                  <th className="px-3 py-2.5" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  // 숨긴 기록은 흐리게 — 색만으로 가르지 않게 「숨김」 글자를 같이 붙인다.
+                  const dim = r.hidden ? "opacity-50" : "";
+                  return (
+                    <tr key={r.id} className="border-b border-border/50 align-top last:border-0 hover:bg-fill-subtle">
+                      <td className={`whitespace-nowrap px-3 py-3 tabular-nums ${dim}`}>{r.played_on}</td>
+                      <td className={`px-3 py-3 ${dim}`}>
+                        {themeName(r.theme_id)}
+                        <span className="block text-muted">{r.group_size ? SIZE_LABEL[r.group_size] : "인원 구분 없음"}</span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`font-semibold text-foreground ${dim}`}>{r.team_name}</span>
+                        {r.hidden && (
+                          <span className="ml-1.5">
+                            <AdminBadge>숨김</AdminBadge>
+                          </span>
+                        )}
+                      </td>
+                      <td className={`px-3 py-3 tabular-nums ${dim}`}>
+                        <span className="font-semibold text-foreground">{r.points}점</span>
+                        <span className="block text-muted">{recordLine(r)}</span>
+                      </td>
+                      <td className={`whitespace-nowrap px-3 py-3 text-muted ${dim}`}>{r.source === "baro" ? "현장 연동" : "직접 입력"}</td>
+                      <td className="px-3 py-2">
+                        <span className="flex justify-end gap-2">{rowButtons(r)}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
