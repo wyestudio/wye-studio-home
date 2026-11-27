@@ -11,6 +11,7 @@ import { GroupBlockToggle } from "@/components/admin/GroupBlockToggle";
 import { Chevron } from "@/components/ui/Chevron";
 import { inquiryStatusLabel } from "@/lib/groupBooking";
 import { BASE_MINUTES, addMinutes } from "@/lib/groupPricing";
+import { isPartyGo } from "@/lib/adminTodos";
 import { addGroupClosure, removeGroupClosure } from "./group-bookings/actions";
 import { withBack } from "@/lib/adminBack";
 
@@ -28,6 +29,10 @@ export type DashboardSession = {
   headcount_line: string;
   /** 확정 인원(달력 칸의 짧은 표시용). */
   confirmed: number;
+  /** 입금까지 확인된 확정 인원 — 파티모드 「진행 확정」 판정에 쓴다(isPartyGo). */
+  paid_confirmed: number;
+  /** 정원. 모르면 null. */
+  capacity_max: number | null;
   /** 예약 인원(취소 제외) — 노말모드 카드에 쓴다. */
   booked_people: number;
   /** 노말모드 예약의 입금 상태. 예약이 없으면 null. */
@@ -63,25 +68,51 @@ export type DashboardClosure = {
   note: string | null;
 };
 
+/**
+ * 구분색 — 값은 admin.css 에 있다(--cal-*). 라이트 / 다크 모드에서 각각 읽히는 값으로 바뀐다.
+ * 예전에는 어두운 배경용 형광색을 여기 박아 두어 밝은 화면에서 안 읽혔다.
+ * ⚠️ 색만으로 가르지 않는다. 칸 · 카드에 「단체 · 파티 · 노말 · 마감」 글자를 같이 쓴다.
+ */
 const COLOR = {
-  party: "#3dffb0",
-  normal: "#40ecff",
-  other: "#9aa0b4",
-  group: "#f082f4",
-  block: "#ff6b6b",
+  party: "var(--cal-party)",
+  normal: "var(--cal-normal)",
+  other: "var(--cal-other)",
+  group: "var(--cal-group)",
+  block: "var(--cal-block)",
 } as const;
+
+/** 색을 옅게 — 예전의 16진수 투명도('26' · '66')를 대신한다(CSS 변수에는 투명도를 이어 붙일 수 없다). */
+const tint = (color: string, pct: number) => `color-mix(in srgb, ${color} ${pct}%, transparent)`;
 
 type Kind = "party" | "normal" | "other" | "group" | "inquiry" | "block";
 
 /** 달력 칸 하나에 놓이는 것. 칸 안에서는 누를 수 없다 — 날짜만 고른다(2026-10-30 대표님, 잘못 눌러 넘어가는 게 거슬린다). */
-type CalEvent = { key: string; date: string; time: string; kind: Kind; label: string };
+type CalEvent = {
+  key: string;
+  date: string;
+  time: string;
+  kind: Kind;
+  /** 칸에 적는 짧은 글(시각 뒤) — '단체 12명' · '파티 8명' · '마감'. */
+  short: string;
+  /** 마우스를 올리면 보이는 전체 설명. */
+  label: string;
+  /**
+   * 칸 안의 순서 — 작을수록 위. 확정된 일정이 먼저다(2026-11-27 대표님):
+   * 단체 확정 0 → 파티 진행 확정 1 → 파티 모집 2 → 노말 예약 3 → 마감 4 → 단체 문의 5 → 빈 회차 6.
+   * 칸이 넘쳐 '+n' 으로 접혀도 단체 확정은 항상 보이는 쪽에 남는다.
+   */
+  rank: number;
+  /** 꽉 찬 색으로 그린다(단체 확정 · 파티 진행 확정). */
+  solid: boolean;
+  /** 신청자가 없는 빈 회차 — 「빈 회차도 보기」 를 켜야 칸에 나온다. */
+  empty: boolean;
+};
 
-const LEGEND: { kind: Kind; label: string }[] = [
+const LEGEND: { kind: Kind; label: string; solid?: boolean }[] = [
+  { kind: "group", label: "단체 확정", solid: true },
   { kind: "party", label: "파티" },
   { kind: "normal", label: "노말" },
-  { kind: "group", label: "단체 확정" },
-  { kind: "inquiry", label: "단체 희망" },
-  { kind: "block", label: "막음" },
+  { kind: "block", label: "마감" },
 ];
 
 const kindColor = (k: Kind) =>
@@ -151,18 +182,35 @@ export function DashboardSessions({
   };
   const back = `/?date=${selected}`;
 
+  // 칸에 무엇까지 보일지 — 기본은 확정 · 모집된 것만(2026-11-27 대표님). 그날 목록에는 언제나 전부 나온다.
+  const [showInquiry, setShowInquiry] = useState(false);
+  const [showEmpty, setShowEmpty] = useState(false);
+
   const events = useMemo(() => {
     const list: CalEvent[] = [];
     for (const s of sessions) {
       if (s.status === "cancelled") continue;
       const kind = sessionKind(s);
       const mode = kind === "party" ? "파티" : kind === "normal" ? "노말" : (s.theme_name ?? "회차");
+      // 신청자가 있는가 — 파티는 신청(확정 · 대기), 노말은 예약. 둘 다 취소를 뺀 인원이다.
+      const empty = s.booked_people <= 0;
+      const go = kind === "party" && !empty && isPartyGo(s);
+      const people = kind === "normal" ? s.booked_people : s.confirmed;
       list.push({
         key: `s-${s.id}`,
         date: kstYmd(s.start_at),
         time: kstTime(s.start_at),
         kind,
-        label: `${kstTime(s.start_at)} ${mode} ${s.confirmed}명`,
+        short: empty ? mode : `${mode} ${people}명`,
+        label:
+          kind === "normal"
+            ? `${kstTime(s.start_at)} 노말 · ${empty ? "예약 없음" : `예약 ${s.booked_people}명 · ${s.payment_label ?? ""}`}`
+            : `${kstTime(s.start_at)} ${mode} · 확정 ${s.confirmed}명${s.capacity_max ? ` / 정원 ${s.capacity_max}명` : ""}${
+                go ? " · 진행 확정" : empty ? " · 신청 없음" : " · 모집 중"
+              }`,
+        rank: empty ? 6 : go ? 1 : kind === "normal" ? 3 : 2,
+        solid: go,
+        empty,
       });
     }
     for (const g of groups) {
@@ -172,7 +220,11 @@ export function DashboardSessions({
           date: g.booking.date,
           time: g.booking.time,
           kind: "group",
-          label: `${g.booking.time} 단체 ${g.name}`,
+          short: `단체 ${g.headcount}명`,
+          label: `${g.booking.time} 단체 확정 · ${g.name} · ${g.headcount}명`,
+          rank: 0,
+          solid: true,
+          empty: false,
         });
       } else if (OPEN_INQUIRY.has(g.status) && g.preferred_date) {
         const t = HHMM.test(g.preferred_time) ? g.preferred_time : "";
@@ -181,7 +233,11 @@ export function DashboardSessions({
           date: g.preferred_date,
           time: t || "99:99",
           kind: "inquiry",
-          label: `${t ? `${t} ` : ""}희망 ${g.name}`,
+          short: `문의 ${g.headcount}명`,
+          label: `${t ? `${t} ` : ""}단체 문의(희망) · ${g.name} · ${g.headcount}명`,
+          rank: 5,
+          solid: false,
+          empty: false,
         });
       }
     }
@@ -191,14 +247,23 @@ export function DashboardSessions({
         date: c.date,
         time: c.start_time ?? "00:00",
         kind: "block",
-        label: c.start_time ? `${c.start_time} 막음` : "종일 막음",
+        short: "마감",
+        label: c.start_time ? `${c.start_time} 마감${c.note ? ` · ${c.note}` : ""}` : `종일 마감${c.note ? ` · ${c.note}` : ""}`,
+        rank: 4,
+        solid: false,
+        empty: false,
       });
     }
     const byDate = new Map<string, CalEvent[]>();
-    for (const e of list) byDate.set(e.date, [...(byDate.get(e.date) ?? []), e]);
-    for (const arr of byDate.values()) arr.sort((a, b) => a.time.localeCompare(b.time));
+    for (const e of list) {
+      if (e.kind === "inquiry" && !showInquiry) continue;
+      if (e.empty && !showEmpty) continue;
+      byDate.set(e.date, [...(byDate.get(e.date) ?? []), e]);
+    }
+    // 확정된 일정이 먼저, 그 안에서는 시간 순.
+    for (const arr of byDate.values()) arr.sort((a, b) => a.rank - b.rank || a.time.localeCompare(b.time));
     return byDate;
-  }, [sessions, groups, closures]);
+  }, [sessions, groups, closures, showInquiry, showEmpty]);
 
   // 달력 칸: 그 달 1일이 있는 주의 일요일부터 6주.
   const [y, m] = month.split("-").map(Number);
@@ -221,15 +286,16 @@ export function DashboardSessions({
 
   return (
     // 컴퓨터는 달력 왼쪽 · 그날 목록 오른쪽 — 달력이 화면 폭을 다 쓰면 너무 크다(2026-10-30 대표님).
-    <div className="flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start lg:gap-6">
+    // 칸에 '단체 12명' 같은 글을 적게 되면서 달력 쪽을 넓혔다(2026-11-27). 휴대폰은 달력 아래에 그날 목록.
+    <div className="flex flex-col gap-5 xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:items-start xl:gap-6">
       {/* ── 달 ── */}
-      <div className="rounded-xl border border-border p-3 md:p-4">
+      <div className="rounded-xl border border-border bg-surface p-3 md:p-4">
         <div className="mb-3 flex items-center justify-between gap-2">
           <button
             type="button"
             onClick={() => shift(-1)}
             aria-label="이전 달"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted hover:text-foreground"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted hover:text-foreground"
           >
             <Chevron dir="left" />
           </button>
@@ -244,7 +310,7 @@ export function DashboardSessions({
                   setMonth(today.slice(0, 7));
                   setSelected(today);
                 }}
-                className="rounded-md border border-border px-2 py-1 text-micro text-muted hover:text-foreground"
+                className="min-h-11 rounded-lg border border-border px-3 text-label text-muted hover:text-foreground"
               >
                 오늘
               </button>
@@ -254,7 +320,7 @@ export function DashboardSessions({
             type="button"
             onClick={() => shift(1)}
             aria-label="다음 달"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted hover:text-foreground"
+            className="flex h-11 w-11 items-center justify-center rounded-lg border border-border text-muted hover:text-foreground"
           >
             <Chevron dir="right" />
           </button>
@@ -262,7 +328,7 @@ export function DashboardSessions({
 
         <div className="grid grid-cols-7 text-center text-micro text-muted">
           {DOW.map((d, i) => (
-            <div key={d} className={`pb-1 ${i === 0 ? "text-red-400" : i === 6 ? "text-sky-400" : ""}`}>
+            <div key={d} className={`pb-1 ${i === 0 ? "text-danger" : i === 6 ? "text-brand" : ""}`}>
               {d}
             </div>
           ))}
@@ -283,17 +349,17 @@ export function DashboardSessions({
                 aria-label={`${kstDateLabel(d)} ${evs.length}건`}
                 aria-pressed={isSel}
                 className={`flex min-h-14 cursor-pointer flex-col gap-1 p-1 text-left md:min-h-20 md:p-1.5 ${
-                  isSel ? "bg-fill-strong" : "bg-background hover:bg-fill-subtle"
+                  isSel ? "bg-brand-soft" : "bg-surface hover:bg-fill-subtle"
                 } ${inMonth ? "" : "[&>*]:opacity-40"}`}
               >
                 <span
                   className={`text-micro tabular-nums ${
                     d === today
-                      ? "flex h-5 w-5 items-center justify-center rounded-full bg-glow font-semibold text-glow-foreground"
+                      ? "flex h-5 w-5 items-center justify-center rounded-full bg-brand font-semibold text-brand-foreground"
                       : dow === 0
-                        ? "text-red-400"
+                        ? "text-danger"
                         : dow === 6
-                          ? "text-sky-400"
+                          ? "text-brand"
                           : "text-muted"
                   }`}
                 >
@@ -305,7 +371,7 @@ export function DashboardSessions({
                     <span
                       key={e.key}
                       className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: kindColor(e.kind), opacity: e.kind === "inquiry" ? 0.45 : 1 }}
+                      style={{ backgroundColor: kindColor(e.kind), opacity: e.kind === "inquiry" || e.empty ? 0.45 : 1 }}
                     />
                   ))}
                 </span>
@@ -321,16 +387,24 @@ export function DashboardSessions({
           })}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-micro text-muted">
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-micro text-muted">
           {LEGEND.map((l) => (
             <span key={l.kind} className="inline-flex items-center gap-1">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: kindColor(l.kind), opacity: l.kind === "inquiry" ? 0.45 : 1 }}
-              />
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: kindColor(l.kind) }} />
               {l.label}
             </span>
           ))}
+        </div>
+        {/* 기본은 확정 · 모집된 일정만. 켜면 칸에 연하게 더 나온다 — 그날 목록에는 언제나 전부 있다 */}
+        <div className="mt-1 flex flex-wrap gap-x-4">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-body-sm text-foreground">
+            <input type="checkbox" checked={showInquiry} onChange={(e) => setShowInquiry(e.target.checked)} className="h-5 w-5" />
+            단체 문의도 보기
+          </label>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-body-sm text-foreground">
+            <input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} className="h-5 w-5" />
+            빈 회차도 보기
+          </label>
         </div>
       </div>
 
@@ -353,8 +427,8 @@ export function DashboardSessions({
             <Link
               key={g.id}
               href={withBack(`/group-bookings/${g.id}`, back)}
-              className="flex items-center gap-3 rounded-lg border p-4 hover:bg-fill-subtle"
-              style={{ borderColor: `${COLOR.group}${g.booking ? "99" : "40"}` }}
+              className="flex items-center gap-3 rounded-lg border bg-surface p-4 hover:bg-fill-subtle"
+              style={{ borderColor: tint(COLOR.group, g.booking ? 60 : 25) }}
             >
               <span className="min-w-0 flex-1">
                 <span className="font-semibold tabular-nums">
@@ -366,9 +440,9 @@ export function DashboardSessions({
                 </span>
                 <span
                   className="ml-2 rounded-md px-1.5 py-0.5 text-micro"
-                  style={{ backgroundColor: `${COLOR.group}26`, color: COLOR.group }}
+                  style={{ backgroundColor: tint(COLOR.group, 15), color: COLOR.group }}
                 >
-                  {g.booking ? "단체 확정" : `단체 희망 · ${inquiryStatusLabel(g.status)}`}
+                  {g.booking ? "단체 확정" : `단체 문의(희망) · ${inquiryStatusLabel(g.status)}`}
                 </span>
                 <span className="mt-1 block text-micro text-muted">
                   {g.name} · {g.headcount}명
@@ -392,19 +466,28 @@ export function DashboardSessions({
 
 function EventChip({ e }: { e: CalEvent }) {
   const color = kindColor(e.kind);
+  const faint = e.kind === "inquiry" || e.empty;
+  const time = e.kind === "block" && e.time === "00:00" ? "종일" : e.time === "99:99" ? "" : e.time;
   return (
     <span
       title={e.label}
-      className="block truncate rounded px-1 text-micro leading-5 tabular-nums"
-      style={{
-        backgroundColor: `${color}${e.kind === "inquiry" ? "14" : "26"}`,
-        color,
-        // 테두리는 outline 으로 — border 는 폭을 먹어 좁은 칸에서 시각이 잘린다.
-        ...(e.kind === "inquiry" ? { outline: `1px dashed ${color}66`, outlineOffset: "-1px" } : {}),
-      }}
+      className="block truncate rounded-md px-1 text-micro leading-5 tabular-nums"
+      style={
+        e.solid
+          ? // 확정된 일정(단체 확정 · 파티 진행 확정)은 꽉 찬 색 — 한눈에 먼저 들어와야 한다
+            { backgroundColor: color, color: "var(--cal-on)" }
+          : {
+              backgroundColor: tint(color, faint ? 8 : 15),
+              color,
+              opacity: e.empty ? 0.7 : 1,
+              // 테두리는 outline 으로 — border 는 폭을 먹어 좁은 칸에서 글자가 잘린다.
+              ...(e.kind === "inquiry" ? { outline: `1px dashed ${tint(color, 40)}`, outlineOffset: "-1px" } : {}),
+            }
+      }
     >
-      {/* 종일 막음만 글자로 — 나머지는 시각만 적는다(칸이 좁다). */}
-      {e.kind === "block" && e.time === "00:00" ? "종일" : e.time === "99:99" ? "희망" : e.time}
+      {/* 시각 + 종류(단체 · 파티 · 노말 · 마감) + 인원. 색만으로 가르지 않는다 */}
+      {time && <span className="font-semibold">{time} </span>}
+      {e.short}
     </span>
   );
 }
@@ -433,10 +516,12 @@ function SessionCard({
       : pending
         ? { label: "공개 전", cls: "bg-amber-400 text-black" }
         : s.status === "open"
-          ? { label: "모집중", cls: "bg-glow text-black" }
+          ? { label: "모집중", cls: "bg-brand text-brand-foreground" }
           : { label: "마감", cls: "bg-zinc-500 text-white" };
+  // 파티모드 — 신청자가 있으면 진행 여부를 같이 적는다(기준은 isPartyGo).
+  const go = kind === "party" && s.status !== "cancelled" && s.booked_people > 0 ? isPartyGo(s) : null;
   return (
-    <div className="rounded-lg border border-border" style={{ borderLeft: `3px solid ${color}` }}>
+    <div className="rounded-lg border border-border bg-surface" style={{ borderLeft: `3px solid ${color}` }}>
       {/* 카드 윗부분을 누르면 회차 상세(신청자)로 — 단체 카드와 같은 모양 */}
       <Link href={withBack(`/sessions/${s.id}`, back)} className="flex items-center gap-3 rounded-t-lg p-4 pb-3 hover:bg-fill-subtle">
         <span className="min-w-0 flex-1">
@@ -449,6 +534,15 @@ function SessionCard({
             )}
             {/* 꽉 찬 색 — 옅은 배경은 카드 배경에 묻혀 눈에 안 띄었다(2026-10-30 대표님). */}
             <span className={`rounded-md px-2 py-0.5 text-micro font-semibold ${state.cls}`}>{state.label}</span>
+            {go !== null && (
+              <span
+                className={`rounded-md px-2 py-0.5 text-micro font-semibold ${
+                  go ? "bg-confirm-soft text-confirm" : "bg-wait-soft text-wait"
+                }`}
+              >
+                {go ? "진행 확정" : "인원 모으는 중"}
+              </span>
+            )}
           </span>
           {kind === "normal" ? (
             // 노말은 한 팀만 받는다 — 확정 · 대기 대신 예약 인원과 입금 상태.
@@ -462,7 +556,7 @@ function SessionCard({
             </>
           )}
           {pending && s.opens_at && (
-            <span className="mt-0.5 block text-micro text-amber-400">공개 예정: {formatDateTimeFull(s.opens_at)}</span>
+            <span className="mt-0.5 block text-micro text-wait">공개 예정: {formatDateTimeFull(s.opens_at)}</span>
           )}
         </span>
         <Chevron className="h-4 w-4 shrink-0 text-muted" />
@@ -503,19 +597,19 @@ function ClosureRow({ c }: { c: DashboardClosure }) {
     });
   };
   return (
-    <div className="flex items-center gap-3 rounded-lg border p-4" style={{ borderColor: `${COLOR.block}66` }}>
+    <div className="flex items-center gap-3 rounded-lg border bg-surface p-4" style={{ borderColor: tint(COLOR.block, 40) }}>
       <span className="min-w-0 flex-1">
         <span className="font-semibold tabular-nums">
           {c.start_time ? `${c.start_time} ~ ${addMinutes(c.start_time, c.minutes ?? BASE_MINUTES)}` : "종일"}
         </span>
         <span
           className="ml-2 rounded-md px-1.5 py-0.5 text-micro"
-          style={{ backgroundColor: `${COLOR.block}26`, color: COLOR.block }}
+          style={{ backgroundColor: tint(COLOR.block, 15), color: COLOR.block }}
         >
           단체 막음
         </span>
         {c.note && <span className="mt-1 block text-micro text-muted">{c.note}</span>}
-        {error && <span className="mt-1 block text-micro text-red-400">{error}</span>}
+        {error && <span className="mt-1 block text-micro text-danger">{error}</span>}
       </span>
       <button
         type="button"
@@ -569,7 +663,7 @@ function DayBlockForm({ date }: { date: string }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-lg border border-dashed border-border px-4 py-2 text-body-sm text-muted hover:text-foreground"
+          className="min-h-11 rounded-lg border border-dashed border-line px-4 text-body-sm text-muted hover:text-foreground"
         >
           + 이날 단체 막기
         </button>
@@ -596,7 +690,6 @@ function DayBlockForm({ date }: { date: string }) {
               onChange={(e) => setTime(e.target.value)}
               aria-label="시작 시각"
               className={field}
-              style={{ colorScheme: "dark" }}
             />
             <span className="flex items-center gap-1 text-body-sm">
               <input

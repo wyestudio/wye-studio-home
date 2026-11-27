@@ -17,7 +17,27 @@
   고르는 스위치는 AdminThemeToggle.tsx, 기억은 쿠키(wye_admin_theme · 기기별).
 */
 
+/*
+  일정 구분색(홈 달력 · 그날 목록) — 단체 · 파티 · 노말 · 마감. 다크는 예전부터 쓰던 형광색 그대로,
+  라이트는 흰 배경에서 읽히는 진한 색. --cal-on 은 꽉 찬 칩 위의 글자색이다.
+*/
+body:has(.admin-shell) {
+  --cal-party: #3dffb0;
+  --cal-normal: #40ecff;
+  --cal-other: #9aa0b4;
+  --cal-group: #f082f4;
+  --cal-block: #ff6b6b;
+  --cal-on: #04070d;
+}
+
 body:has(.admin-shell:not([data-admin-theme="dark"])) {
+  --cal-party: #047857;
+  --cal-normal: #0e7490;
+  --cal-other: #5f6673;
+  --cal-group: #a21caf;
+  --cal-block: #dc2626;
+  --cal-on: #ffffff;
+
   --background: #f5f6f8;
   --background-deep: #eceef2;
   --surface: #ffffff;
