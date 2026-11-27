@@ -16,10 +16,24 @@ import { saveTheme, deleteTheme, type ThemeInput, type PriceTierInput } from "./
 import { ContentBlocksEditor } from "./ContentBlocksEditor";
 import { ImageUploadField } from "./ImageUploadField";
 import { GenreInput } from "./GenreInput";
+import { AdminBadge, AdminEmpty, adminButtonClass } from "@/components/admin/ui";
 
 const field = "w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm";
 const label = "block text-micro font-semibold text-muted mb-1";
-const section = "rounded-lg border border-border p-4 space-y-4";
+const section = "rounded-xl border border-border bg-surface p-4 space-y-4";
+
+/**
+ * 편집 화면의 구역(관리자 개편 docs/01 5장 — 편집 화면이 길면 구역을 탭으로 나눈다).
+ * ⚠️ 고르지 않은 구역도 지우지 않고 **숨기기만 한다** — 구역마다 따로 저장하지 않고 한 번에 저장하며,
+ *    상세 페이지 편집기가 들고 있는 상태(펼친 블록 등)가 탭을 오갈 때 사라지면 안 된다.
+ */
+const EDIT_TABS = [
+  { key: "basic", label: "기본 정보" },
+  { key: "content", label: "상세 페이지" },
+  { key: "price", label: "요금 · 정원" },
+  { key: "show", label: "노출" },
+] as const;
+type EditTab = (typeof EDIT_TABS)[number]["key"];
 
 /** 강조색을 안 정한 테마가 쓰는 기본값. 고객 화면의 DEFAULT_ACCENT 와 같아야 한다. */
 const DEFAULT_ACCENT = "#3dffb0";
@@ -136,6 +150,12 @@ export function ThemeEditor({
   categories: ThemeCategory[];
 }) {
   const [editing, setEditing] = useState<ThemeInput | null>(null);
+  const [tab, setTab] = useState<EditTab>("basic");
+  /** 한 건을 열 때는 항상 첫 구역부터. */
+  const openEdit = (input: ThemeInput) => {
+    setTab("basic");
+    setEditing(input);
+  };
   const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -202,13 +222,14 @@ export function ThemeEditor({
   return (
     <div className="space-y-6">
       {message && (
-        <div
-          className={`rounded-md border px-3 py-2 text-body-sm ${
-            message.kind === "ok" ? "border-glow text-glow" : "border-red-500 text-red-400"
+        <p
+          role={message.kind === "ok" ? "status" : "alert"}
+          className={`rounded-lg border px-3 py-2 text-body-sm ${
+            message.kind === "ok" ? "border-confirm bg-confirm-soft text-confirm" : "border-danger bg-danger-soft text-danger"
           }`}
         >
           {message.text}
-        </div>
+        </p>
       )}
 
       {/*
@@ -218,25 +239,49 @@ export function ThemeEditor({
       */}
       {!editing && (
         <div className="flex justify-end">
-          <button
-            onClick={() => setEditing(emptyTheme(activeVenues[0].id))}
-            className="rounded-md bg-glow px-3 py-2 text-body-sm text-glow-foreground"
-          >
-            + 테마 등록
+          <button type="button" onClick={() => openEdit(emptyTheme(activeVenues[0].id))} className={adminButtonClass("primary")}>
+            테마 등록
           </button>
         </div>
       )}
 
       {editing && (
         <div className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={() => setEditing(null)} className="min-h-11 text-body-sm text-glow hover:underline">
+              ← 테마 목록
+            </button>
+            <h2 className="text-h3 font-semibold text-foreground">{editing.id ? `${editing.name || "테마"} 수정` : "새 테마"}</h2>
+          </div>
+
+          <div className="overflow-x-auto border-b border-border [scrollbar-width:none]">
+            <div role="tablist" aria-label="테마 편집 구역" className="flex min-w-max gap-1">
+              {EDIT_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  role="tab"
+                  id={`theme-tab-${t.key}`}
+                  aria-selected={tab === t.key}
+                  aria-controls={`theme-panel-${t.key}`}
+                  onClick={() => setTab(t.key)}
+                  className={`-mb-px flex min-h-11 items-center whitespace-nowrap border-b-2 px-3 text-label font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                    tab === t.key ? "border-foreground text-foreground" : "border-transparent text-muted hover:text-foreground"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div id="theme-panel-basic" role="tabpanel" aria-labelledby="theme-tab-basic" className={tab === "basic" ? "space-y-4" : "hidden"}>
           {/*
             ── 최상단: 좌 포스터 / 우 정보 ──
             고객이 보는 상세 페이지와 같은 배치다. 어디를 고치면 어디가
             바뀌는지 폼만 보고 알 수 있어야 한다.
           */}
           <div className={section}>
-            <h2 className="font-semibold">{editing.id ? "테마 수정" : "새 테마"}</h2>
-
             <div className="flex flex-col gap-6 md:flex-row">
               <div className="w-full shrink-0 space-y-4 md:w-56">
                 <ImageUploadField
@@ -464,6 +509,10 @@ export function ThemeEditor({
             </div>
           </div>
 
+          </div>
+
+          <div id="theme-panel-content" role="tabpanel" aria-labelledby="theme-tab-content" className={tab === "content" ? "min-w-0 space-y-4 overflow-x-auto" : "hidden"}>
+          {/* 고객 화면 미리보기가 휴대폰 폭보다 넓다 — 페이지 전체가 옆으로 밀리지 않게 이 구역 안에서만 민다. */}
           {/* ── 상세 콘텐츠 ── */}
           <div className={section}>
             <h3 className="text-body-sm font-semibold">상세 페이지 콘텐츠</h3>
@@ -496,6 +545,9 @@ export function ThemeEditor({
             />
           </div>
 
+          </div>
+
+          <div id="theme-panel-price" role="tabpanel" aria-labelledby="theme-tab-price" className={tab === "price" ? "space-y-4" : "hidden"}>
           {/* ── 요금 구간 · 정원/연령 (둘 다 좁아서 2열로 붙인다) ── */}
           <div className="grid gap-4 lg:grid-cols-2">
             <div className={section}>
@@ -625,6 +677,9 @@ export function ThemeEditor({
             </div>
           </div>
 
+          </div>
+
+          <div id="theme-panel-show" role="tabpanel" aria-labelledby="theme-tab-show" className={tab === "show" ? "space-y-4" : "hidden"}>
           {/* ── 노출 ── */}
           <div className={section}>
             <h3 className="text-body-sm font-semibold">노출</h3>
@@ -688,28 +743,33 @@ export function ThemeEditor({
             </div>
           </div>
 
+          </div>
+
           {/* 폼이 길어서 맨 위 메시지가 화면 밖에 있을 수 있다. 버튼 옆에도 보여준다. */}
           {message?.kind === "err" && (
-            <div className="rounded-md border border-red-500 px-3 py-2 text-body-sm text-red-400">
+            <p role="alert" className="rounded-lg border border-danger bg-danger-soft px-3 py-2 text-body-sm text-danger">
               {message.text}
-            </div>
+            </p>
           )}
 
-          <div className="flex flex-wrap gap-2">
-            <button onClick={submit} disabled={pending} className="rounded-md bg-glow px-4 py-2 text-body-sm text-glow-foreground disabled:opacity-50">
+          {/* 저장은 구역마다가 아니라 네 구역을 한 번에 한다 — 어느 탭에 있어도 같은 버튼이다. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={submit} disabled={pending} className={adminButtonClass("primary")}>
               {pending ? "저장 중…" : "저장"}
             </button>
-            <button onClick={() => setEditing(null)} className="rounded-md border border-border px-4 py-2 text-body-sm">
+            <button type="button" onClick={() => setEditing(null)} className={adminButtonClass("secondary")}>
               취소
             </button>
+            <span className="text-body-sm text-muted">네 구역을 한 번에 저장합니다.</span>
             {/* 목록이 행성 격자가 되면서 줄별 삭제 버튼이 사라졌다. 편집 화면에 둔다. */}
             {editing.id && (
               <button
+                type="button"
                 onClick={() => remove(editing.id!, editing.name)}
                 disabled={pending}
-                className="ml-auto rounded-md border border-red-500/50 px-4 py-2 text-body-sm text-red-400 disabled:opacity-50"
+                className={`${adminButtonClass("danger")} ml-auto`}
               >
-                이 테마 삭제
+                삭제
               </button>
             )}
           </div>
@@ -720,7 +780,7 @@ export function ThemeEditor({
       {!editing && (
         <div>
           {themes.length === 0 ? (
-            <p className="py-8 text-center text-body-sm text-muted">등록된 테마가 없습니다.</p>
+            <AdminEmpty title="아직 테마가 없어요" hint="오른쪽 위 「테마 등록」 으로 첫 테마를 만드세요." />
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {themes.map((t) => {
@@ -729,8 +789,9 @@ export function ThemeEditor({
                 return (
                   <button
                     key={t.id}
-                    onClick={() => setEditing(toInput(t, categories))}
-                    className="overflow-hidden rounded-lg border border-border text-left transition-colors hover:border-glow"
+                    type="button"
+                    onClick={() => openEdit(toInput(t, categories))}
+                    className="overflow-hidden rounded-xl border border-border bg-surface text-left transition-colors hover:border-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                   >
                     <div className="relative aspect-square bg-background">
                       <Image
@@ -743,21 +804,9 @@ export function ThemeEditor({
 
                       {(!t.is_active || !t.is_listed || t.is_locked) && (
                         <div className="absolute left-2 top-2 flex flex-col gap-1">
-                          {t.is_locked && (
-                            <span className="rounded-md bg-white/90 px-1.5 py-0.5 text-micro text-black">
-                              🔒 잠금
-                            </span>
-                          )}
-                          {!t.is_active && (
-                            <span className="rounded-md bg-amber-500/90 px-1.5 py-0.5 text-micro text-black">
-                              신청 중지
-                            </span>
-                          )}
-                          {!t.is_listed && (
-                            <span className="rounded-md bg-black/70 px-1.5 py-0.5 text-micro text-white">
-                              목록 숨김
-                            </span>
-                          )}
+                          {t.is_locked && <AdminBadge>잠금</AdminBadge>}
+                          {!t.is_active && <AdminBadge tone="warn">신청 중지</AdminBadge>}
+                          {!t.is_listed && <AdminBadge>목록 숨김</AdminBadge>}
                         </div>
                       )}
                     </div>
