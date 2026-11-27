@@ -102,6 +102,27 @@ export default function XmasGame() {
   const [response, setResponse] = useState("");
   const [checking, setChecking] = useState(false);
   const [shareMsg, setShareMsg] = useState("");
+  /*
+    랭킹에 등록한 적이 있는 사람의 첫 화면(2026-11-27 대표님) — 게임 방법 대신 내 순위 · 현재 랭킹 · 받은 선물 코드를 먼저
+    보여 준다. 다시 온 사람이 궁금한 것은 규칙이 아니라 "내가 지금 몇 위인가" 다.
+    lobby: 들어왔을 때 받아 둔 랭킹. 닉네임이 저장된 브라우저에서만 받는다(처음 온 사람은 서버를 부르지 않는다).
+    showRules: 그 화면에서 「게임 방법 자세히 보기」 를 눌렀다 — 원래의 게임 방법 카드를 보여 준다.
+  */
+  /*
+    시작하기 전에 받아 두는 닉네임(2026-11-27 대표님) — 적어 두면 판이 끝나는 순간 랭킹에 저절로 오른다.
+    끝난 뒤에만 물었더니 닉네임 넣는 것을 잊고 창을 닫아 "등록이 안 됐다" 고 아쉬워하는 손님이 있었다.
+    비워 둬도 게임은 된다 — 그때는 예전처럼 결과 화면에서 넣을 수 있다.
+  */
+  const [nick, setNick] = useState(savedNickname);
+  const nickRef = useRef(nick);
+  useEffect(() => {
+    nickRef.current = nick;
+  }, [nick]);
+  const [lobby, setLobby] = useState<Board | null>(null);
+  const [showRules, setShowRules] = useState(false);
+  useEffect(() => {
+    if (savedNickname()) fetchBoard().then(setLobby);
+  }, []);
 
   // 분석 이벤트에 붙이는 이름 — 어느 화면에서 넘어왔나
   const origin = from ?? XMAS_GAME_PATH;
@@ -124,7 +145,16 @@ export default function XmasGame() {
       const round = e.type === "five" ? GIFT_ROUNDS : e.round;
       submitted.current = (async () => {
         const id = await run.current;
-        const next = id ? await submitScore(id, round, e.points, e.peak) : null;
+        let next = id ? await submitScore(id, round, e.points, e.peak) : null;
+        // 시작 전에 닉네임을 적어 뒀고 아직 랭킹에 없으면 여기서 바로 올린다
+        const name = nickRef.current.trim();
+        if (id && next && !next.me && name.length >= 1 && name.length <= 10) {
+          const named = await registerNickname(id, name);
+          if (named?.ok) {
+            next = named;
+            pushGa4Event(XMAS_GAME_EVENT.rank, { themeLabel: origin });
+          }
+        }
         if (next) setBoard(next);
         else setBoardFailed(true);
       })();
@@ -238,7 +268,7 @@ export default function XmasGame() {
    */
   async function share() {
     const { round, points } = game.getView();
-    const me = board?.me;
+    const me = (board ?? lobby)?.me;
     const record: ShareRecord = {
       round: me ? me.round : round,
       score: me ? me.score : points,
@@ -271,6 +301,23 @@ export default function XmasGame() {
   const bonus = view.round > GIFT_ROUNDS;
   const left = view.goal - view.gauge;
   const full = left <= 0;
+
+  // 한 판을 끝내고 처음으로 돌아왔으면 그 판의 랭킹이 가장 새것이다
+  const home = board ?? lobby;
+  const returning = home?.me != null && !showRules;
+
+  /** 받은 선물 코드와 신청 버튼 — 정답 화면과, 다시 온 사람의 첫 화면에 같이 쓴다. */
+  const giftTicket = code && (
+    <div className={s.ticket}>
+      <small className="text-label font-semibold">선물 코드</small>
+      <strong className={s.display}>{formatGiftCode(code)}</strong>
+      <p className="text-body-sm">이 코드를 현장에서 직원에게 보여주시면 크리스마스 선물을 드려요.</p>
+      {/* 선물은 참여하는 날 받는다 — 코드를 받은 자리에서 바로 신청으로 잇는다 */}
+      <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={goApply}>
+        참여 신청하러 가기
+      </button>
+    </div>
+  );
 
   const shareNote = shareMsg && (
     <p role="status" className="text-body-sm">
@@ -373,17 +420,18 @@ export default function XmasGame() {
             <li>
               <span aria-hidden dangerouslySetInnerHTML={{ __html: SNOWMAN }} />
               <span className="sr-only">눈사람</span>
-              +1
+              <b>+1</b>
             </li>
             <li>
               <span aria-hidden dangerouslySetInnerHTML={{ __html: RUDOLPH }} />
               <span className="sr-only">루돌프</span>
-              +1
+              <b>+1</b>
             </li>
             <li className={s.legendBad}>
               <span aria-hidden dangerouslySetInnerHTML={{ __html: SANTA }} />
               <span className="sr-only">산타</span>
-              −1
+              {/* 빼기는 U+2212(−)가 아니라 키보드의 - 로 적는다 — 주아 글꼴에 − 가 없어 아이폰에서 통째로 빠졌다(2026-11-27 QA) */}
+              <b>-1</b>
             </li>
           </ul>
           <p className="sr-only" role="status">
@@ -413,7 +461,49 @@ export default function XmasGame() {
       {!playing && (
         <div className={s.overlay}>
           {/* 「게임 방법」 — 대표님이 고른 기준 카드(2026-11-26). 다른 카드를 이 결에 맞춘다. 이 카드의 짜임은 바꾸지 않는다 */}
-          {view.phase === "rules" && (
+          {/* 랭킹에 등록한 사람의 첫 화면 — 내 순위 · 현재 랭킹 → 게임 시작 → 짧은 게임 방법 → 선물 코드 → 공유. 게임 시작이 휴대폰 첫 화면 안에 들어오게 랭킹 바로 밑에 둔다 */}
+          {view.phase === "rules" && returning && home && (
+            <section className={s.card}>
+              <p className={`${s.ribbon} ${s.ribbonKo} text-label font-extrabold`}>다시 오셨네요!</p>
+              <h2 className={`${s.cardTitle} ${s.display}`}>내 기록</h2>
+              <RankBlock board={home} failed={false} before={null} showTop onRegister={register} />
+              <div className={s.next}>
+                <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={game.begin}>
+                  게임 시작
+                </button>
+              </div>
+              <ul className={`${s.brief} ${s.display}`} aria-label="점수 규칙">
+                <li>
+                  <span aria-hidden dangerouslySetInnerHTML={{ __html: SNOWMAN }} />
+                  <span className="sr-only">눈사람</span>
+                  <b>+1</b>
+                </li>
+                <li>
+                  <span aria-hidden dangerouslySetInnerHTML={{ __html: RUDOLPH }} />
+                  <span className="sr-only">루돌프</span>
+                  <b>+1</b>
+                </li>
+                <li className={s.briefBad}>
+                  <span aria-hidden dangerouslySetInnerHTML={{ __html: SANTA }} />
+                  <span className="sr-only">산타</span>
+                  <b>-1</b>
+                </li>
+              </ul>
+              <p className={`${s.muted} text-body-sm`}>라운드마다 산타의 선물에 적힌 글자를 기억하세요.</p>
+              {giftTicket}
+              <div className={s.actions}>
+                <button type="button" className={`${s.btn} ${s.btnGreen} ${s.btnWide}`} onClick={share}>
+                  내 기록 공유하기
+                </button>
+                <button type="button" className={`${s.btn} ${s.btnPaper} ${s.btnWide}`} onClick={() => setShowRules(true)}>
+                  게임 방법 자세히 보기
+                </button>
+              </div>
+              {shareNote}
+            </section>
+          )}
+
+          {view.phase === "rules" && !returning && (
             <section className={s.card}>
               <p className={`${s.ribbon} text-label font-extrabold`}>HOW TO PLAY</p>
               <h2 className={`${s.cardTitle} ${s.display}`}>게임 방법</h2>
@@ -443,7 +533,7 @@ export default function XmasGame() {
                     <strong className="text-body font-extrabold">산타</strong>
                     터치하면 점수가 줄어요
                   </span>
-                  <b className={`${s.point} ${s.pointBad} ${s.display}`}>−1</b>
+                  <b className={`${s.point} ${s.pointBad} ${s.display}`}>-1</b>
                 </li>
                 <li>
                   <span className={s.howtoArt} aria-hidden>
@@ -463,6 +553,24 @@ export default function XmasGame() {
                   산타의 선물이 열려요
                 </span>
               </p>
+              {/* 닉네임 — 이미 랭킹에 있는 사람(게임 방법을 다시 펴 본 사람)에게는 묻지 않는다 */}
+              {!home?.me && (
+                <div className={s.preNick}>
+                  <input
+                    className="text-input font-semibold"
+                    value={nick}
+                    onChange={(e) => setNick(e.target.value)}
+                    maxLength={10}
+                    aria-label="랭킹에 올릴 닉네임"
+                    placeholder="닉네임 (10자 이내)"
+                    autoComplete="off"
+                    enterKeyHint="done"
+                  />
+                  <p className={`${s.muted} text-label`}>
+                    적어 두면 게임이 끝날 때 랭킹에 자동으로 올라가요. 닉네임은 랭킹에 공개돼요.
+                  </p>
+                </div>
+              )}
               {/* 자동으로 초점을 주지 않는다 — 창이 뜨자마자 누르지도 않은 버튼에 테두리가 둘러져 있으면 고장처럼 보인다 */}
               <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={game.begin}>
                 게임 시작
@@ -551,7 +659,8 @@ export default function XmasGame() {
                 <button type="button" className={`${s.btn} ${s.btnPaper}`} onClick={replay}>
                   다시하기
                 </button>
-                <button type="button" className={`${s.btn} ${s.btnPaper}`} onClick={game.skipPuzzle}>
+                {/* 초록으로 눈에 띄게 — 정답을 모르겠으면 이것을 눌러 랭킹에는 남기라고(2026-11-27 대표님) */}
+                <button type="button" className={`${s.btn} ${s.btnGreen}`} onClick={game.skipPuzzle}>
                   기록만 남기기
                 </button>
               </div>
@@ -581,17 +690,7 @@ export default function XmasGame() {
                   <dd className={s.display}>{view.peakCombo}</dd>
                 </div>
               </dl>
-              {code && (
-                <div className={s.ticket}>
-                  <small className="text-label font-semibold">선물 코드</small>
-                  <strong className={s.display}>{formatGiftCode(code)}</strong>
-                  <p className="text-body-sm">이 코드를 현장에서 직원에게 보여주시면 크리스마스 선물을 드려요.</p>
-                  {/* 선물은 참여하는 날 받는다 — 코드를 받은 자리에서 바로 신청으로 잇는다. 이 카드에서 가장 먼저 누를 것 */}
-                  <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={goApply}>
-                    참여 신청하러 가기
-                  </button>
-                </div>
-              )}
+              {giftTicket}
               {/* 다섯 라운드를 통과한 화면(정답을 맞혔든 기록만 남겼든)에서만 — 이어하기가 끝난 화면에는 없다 */}
               {!bonus && (
                 <div className={s.next}>
@@ -657,7 +756,7 @@ const Tile = memo(function Tile({
           />
         )}
         {/* 누른 자리에서 점수가 튀어 오른다 */}
-        {shown?.hit && <span className={`${s.pop} ${santa ? s.popBad : ""}`}>{santa ? "아이쿠! −1" : "+1"}</span>}
+        {shown?.hit && <span className={`${s.pop} ${santa ? s.popBad : ""}`}>{santa ? "아이쿠! -1" : "+1"}</span>}
       </button>
       <div className={s.door}>
         <span className={s.num}>{index + 1}</span>
@@ -756,11 +855,30 @@ function RankBlock({
   const climbed = raised ? Math.max(0, before.rank - me.rank) : 0;
   // 치고 올라오는 거리 — 줄 하나가 52px 쯤이다. 아래 버튼까지 내려갔다 오지 않게 두 줄까지만
   const climb = { "--climb": `${Math.min(Math.max(climbed, 1), 2) * 52}px` } as CSSProperties;
+  // 10위 밖이면 점 셋 밑에 내 바로 위 · 나 · 바로 아래를 잇는다. 예전 응답(around 없음)이면 내 줄만
+  const outside = me !== null && me.rank > board.top.length;
+  const around = outside ? (board.around?.length ? board.around : [{ ...me, me: true }]) : [];
+  // 한 줄 목표 — 바로 위 사람을 넘으려면 몇 점이 더 필요한가(동점이면 1점). 1위에게는 없다
+  const above = me && me.rank > 1 ? [...board.top, ...around].find((r) => r.rank === me.rank - 1) : undefined;
+  const row = (r: BoardRow) => (
+    <li
+      key={r.rank}
+      data-rank={r.rank}
+      className={`${s.rankRow} ${r.me ? s.rankMe : ""} ${r.me && raised ? s.rankUp : ""}`}
+      style={r.me && raised ? climb : undefined}
+    >
+      <b className={s.display}>{r.rank}</b>
+      <span className={`${s.rankName} text-body font-semibold`}>{r.name}</span>
+      <span className={`${s.rankScore} ${s.display}`}>{r.score}점</span>
+      <span className={`${s.rankRound} text-label`}>{r.round}라운드</span>
+    </li>
+  );
   return (
     <div className={s.rank}>
       <div className={s.rankHead}>
         <strong className={s.display}>{listed ? "현재 랭킹" : "랭킹에 내 기록 올리기"}</strong>
-        {listed && <span className={`${s.muted} text-label`}>등록 {board.players}명</span>}
+        {/* 등록 인원은 100명을 넘긴 뒤에만 보여 준다 — 그 전에는 숫자가 작아 썰렁해 보인다(2026-11-27 대표님) */}
+        {listed && board.players > 100 && <span className={`${s.muted} text-label`}>등록 {board.players}명</span>}
       </div>
       {raised && (
         <p className={`${s.rankNews} ${s.display}`} role="status">
@@ -769,37 +887,25 @@ function RankBlock({
       )}
       {listed &&
         (board.top.length ? (
-          <ol className={s.rankList}>
-            {board.top.map((row) => (
-              <li
-                key={row.rank}
-                className={`${s.rankRow} ${row.me ? s.rankMe : ""} ${row.me && raised ? s.rankUp : ""}`}
-                style={row.me && raised ? climb : undefined}
-              >
-                <b className={s.display}>{row.rank}</b>
-                <span className={`${s.rankName} text-body font-semibold`}>{row.name}</span>
-                <span className={`${s.rankScore} ${s.display}`}>{row.score}점</span>
-                <span className={`${s.rankRound} text-label`}>{row.round}라운드</span>
-              </li>
-            ))}
-          </ol>
+          <ol className={s.rankList}>{board.top.map(row)}</ol>
         ) : (
           <p className={`${s.muted} text-body-sm`}>아직 등록된 기록이 없어요.</p>
         ))}
-      {me ? (
-        // 내가 위 세 명 안에 있으면 그 줄이 이미 칠해져 있다 — 같은 말을 두 번 하지 않는다
-        me.rank > board.top.length && (
-          <p className={`${s.rankMine} ${raised ? s.rankUp : ""} text-body font-semibold`} style={raised ? climb : undefined}>
-            <span>
-              내 순위<b className={s.display}>{me.rank}위</b>
-            </span>
-            <span>
-              {me.name}
-              <small className="text-label font-normal">최고 {me.score}점</small>
-            </span>
-          </p>
-        )
-      ) : (
+      {/* 10위와 내 주변 사이가 떨어져 있으면 점 셋으로 건너뛴 것을 알린다 */}
+      {outside && around[0].rank > board.top.length + 1 && (
+        <span className={s.rankGap} aria-hidden>
+          <i />
+          <i />
+          <i />
+        </span>
+      )}
+      {outside && <ol className={s.rankList}>{around.map(row)}</ol>}
+      {above && me && (
+        <p className={`${s.rankGoal} text-body-sm font-semibold`}>
+          바로 위 {above.name}님까지 <b>{above.score - me.score + 1}점</b>!
+        </p>
+      )}
+      {me ? null : (
         <>
           <div className={s.nickLine}>
             <input

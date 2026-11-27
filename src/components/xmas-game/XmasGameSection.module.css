@@ -362,3 +362,33 @@
     transition: none;
   }
 }
+
+/*
+  ── 주아 글꼴의 세로 자리 맞추기 ── 까닭과 방법은 XmasGame.module.css 맨 끝과 같다(글자가 0.065em 위에 앉는다 →
+  위 여백을 0.13em 더 준다). 파일 맨 끝에 둔다.
+*/
+.display {
+  padding-top: 0.13em;
+  padding-top: round(0.13em, 1px);
+}
+
+.code strong {
+  padding-top: 0.13em;
+  padding-top: round(0.13em, 1px);
+}
+
+.start {
+  padding-top: calc(16px + 0.13em);
+  padding-top: calc(16px + round(0.13em, 1px));
+}
+
+.door {
+  padding-top: calc(4px + 0.13em);
+  padding-top: calc(4px + round(0.13em, 1px));
+}
+
+.pop {
+  padding-top: 0.13em;
+  padding-top: round(0.13em, 1px);
+}
+
