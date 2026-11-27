@@ -106,6 +106,21 @@ export async function registerNickname(run: string, nickname: string): Promise<B
   return board;
 }
 
+/**
+ * 카카오톡 공유하고 재도전 — 공유 표를 하나 만든다(그 판이 정말 round 라운드에서 떨어졌을 때만). 표 번호를 카카오 공유에
+ * 실어 보내면, 손님이 정말 보냈을 때 카카오가 웹훅으로 그 번호를 돌려준다(supabase/migrations/20261127043946_xmas_game_share_retry.sql).
+ */
+export function beginShare(run: string, round: number): Promise<string | null> {
+  return rpc<string>("xmas_game_share_begin", { p_run: run, p_player: playerId(), p_round: round });
+}
+
+export type ShareStatus = "pending" | "ok" | "dup" | "memo";
+
+/** 공유 표의 결과. pending 이면 아직 카카오 알림이 안 왔다(안 보냈거나 늦다). */
+export function shareStatus(token: string): Promise<ShareStatus | null> {
+  return rpc<ShareStatus>("xmas_game_share_status", { p_token: token, p_player: playerId() });
+}
+
 /** 정답을 낸다. 맞으면 선물 코드가 온다. */
 export async function claimGift(run: string, answer: string): Promise<Claim | null> {
   const claim = await rpc<Claim>("xmas_game_claim", { p_run: run, p_player: playerId(), p_answer: answer });

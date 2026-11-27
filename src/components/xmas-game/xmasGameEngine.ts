@@ -96,6 +96,12 @@ export type GameView = {
   swingMs: number;
   status: string;
   result: { kind: "win" | "final"; title: string } | null;
+  /**
+   * 이어하기에서 떨어진 라운드(재도전할 라운드). 다 깼거나 이어하기가 아니면 null.
+   * retryOpen: 그 라운드를 아직 재도전하지 않았다(한 라운드에 한 번 — 2026-11-27 대표님).
+   */
+  failedRound: number | null;
+  retryOpen: boolean;
   /** '최고점수 갱신' 딱지 */
   record: boolean;
 };
@@ -176,7 +182,11 @@ export function createGame(music: GameMusic) {
     status: READY_STATUS,
     result: null,
     record: false,
+    failedRound: null,
+    retryOpen: false,
   };
+  // 이번 판에서 이미 재도전한 라운드(0부터)
+  const retried = new Set<number>();
 
   function set(patch: Partial<GameView>) {
     view = { ...view, ...patch };
@@ -225,7 +235,10 @@ export function createGame(music: GameMusic) {
     last = -1;
     roundStart = 0;
     decks = ROUNDS.map((_, i) => makeDeck(i));
+    retried.clear();
     set({
+      failedRound: null,
+      retryOpen: false,
       phase: "rules",
       round: 1,
       roundTotal: GIFT_ROUNDS,
@@ -339,7 +352,12 @@ export function createGame(music: GameMusic) {
       }
       music.stop();
       music.cue("result");
-      set({ phase: "result", result: { kind: "final", title: passed ? `${ROUNDS.length}라운드 클리어!` : `${r + 1}라운드 도전 종료` } });
+      set({
+        phase: "result",
+        result: { kind: "final", title: passed ? `${ROUNDS.length}라운드 클리어!` : `${r + 1}라운드 도전 종료` },
+        failedRound: passed ? null : r + 1,
+        retryOpen: !passed && !retried.has(r),
+      });
       onEvent({ type: "final", round: r + 1, points: view.points, peak: view.peakCombo });
       return;
     }
@@ -404,6 +422,28 @@ export function createGame(music: GameMusic) {
       if (view.phase !== "result" || r !== GIFT_ROUNDS - 1) return;
       r++;
       countdown();
+    },
+    /**
+     * 떨어진 라운드를 다시 한다 — 친구에게 공유한 뒤(2026-11-27 대표님). 점수는 **그 라운드에서 얻은 점수만 빼고**
+     * 이어 간다(라운드를 시작할 때의 점수로 되돌린다). 문 패는 새로 섞는다. 같은 라운드는 한 판에 한 번 —
+     * 재도전에서 또 떨어지면 끝이다. 그 라운드를 넘기고 다음 라운드에서 떨어지면 거기서 다시 한 번 할 수 있다.
+     */
+    retryRound(): boolean {
+      if (view.phase !== "result" || view.failedRound !== r + 1 || retried.has(r)) return false;
+      retried.add(r);
+      decks[r] = makeDeck(r);
+      last = -1;
+      set({
+        ...scored(roundStart),
+        combo: 0,
+        failedRound: null,
+        retryOpen: false,
+        result: null,
+        tiles: Array<Shown | null>(25).fill(null),
+        openPos: -1,
+      });
+      countdown();
+      return true;
     },
     /** 화면이 가려졌다(다른 앱 · 탭) — 시계와 음악을 세운다. */
     suspend() {

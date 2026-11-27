@@ -90,7 +90,17 @@ export const XMAS_GAME_EVENT = {
   rank: "xmas_game_rank",
   /** 공유하기를 눌렀다 */
   share: "xmas_game_share",
+  /** 이어하기에서 떨어진 뒤 「공유하고 재도전하기」 로 공유를 시작했다. sectionKey = kakao | instagram */
+  retryShare: "xmas_game_retry_share",
+  /** 공유가 인정돼 떨어진 라운드를 다시 시작했다 */
+  retry: "xmas_game_retry",
 } as const;
+
+/**
+ * 카카오톡 공유에 실어 보내는 값의 이름(serverCallbackArgs) — 카카오가 웹훅(/api/xmas/kakao-share)으로 그대로 돌려준다.
+ * 값은 DB 의 공유 표 번호(xmas_game_shares.token). 웹훅과 화면이 같은 이름을 써야 한다.
+ */
+export const XMAS_SHARE_ARG = "xmas_share";
 
 /**
  * 입구에서 게임 화면으로 가는 주소. 지금 화면(모드 포함)을 from 으로 넘긴다 — 그쪽의 돌아가기 · 공유가 이 값을 쓴다.
