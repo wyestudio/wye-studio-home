@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import { Chevron } from "@/components/ui/Chevron";
 import { formatKrw, formatDateTimeFull, formatDateFull } from "@/lib/format";
 import { getInternalApplicationIds } from "@/lib/internalTraffic";
@@ -113,12 +113,11 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
 
   if (rowsRes.error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
-        <div className="mx-auto max-w-6xl">
-          <AdminNav current="/applications" />
-          <div className="text-red-400">신청 목록을 불러올 수 없습니다: {rowsRes.error.message}</div>
-        </div>
-      </div>
+      <AdminPage title="신청 (파티 · 노말)">
+        <p role="alert" className="text-body-sm text-danger">
+          신청 목록을 불러올 수 없습니다: {rowsRes.error.message}
+        </p>
+      </AdminPage>
     );
   }
 
@@ -151,13 +150,8 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
   });
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/applications" />
-
-        <header className="mb-5">
-          <h1 className="text-h2 font-semibold">신청 목록</h1>
-        </header>
+    <AdminPage title="신청 (파티 · 노말)" description="파티모드 신청과 노말모드 예약을 한 목록에서 찾습니다. 한 건을 누르면 그 회차의 신청 화면으로 갑니다.">
+      <>
 
         {/* ── 검색 조건 ── 조건이 걸려 있으면 펼쳐 둔다 */}
         <details open={applied > 0 || undefined} className="group mb-5 rounded-xl border border-border">
@@ -189,13 +183,13 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
               </select>
             </Labeled>
             <Labeled label="회차 날짜 (부터)">
-              <input type="date" name="from" defaultValue={v.from} className={field} style={{ colorScheme: "dark" }} />
+              <input type="date" name="from" defaultValue={v.from} className={field} />
             </Labeled>
             <Labeled label="회차 날짜 (까지)">
-              <input type="date" name="to" defaultValue={v.to} className={field} style={{ colorScheme: "dark" }} />
+              <input type="date" name="to" defaultValue={v.to} className={field} />
             </Labeled>
             <Labeled label="회차 시각">
-              <input type="time" name="time" defaultValue={v.time} className={field} style={{ colorScheme: "dark" }} />
+              <input type="time" name="time" defaultValue={v.time} className={field} />
             </Labeled>
             <Labeled label="신청 상태">
               <select name="status" defaultValue={v.status} className={field}>
@@ -377,8 +371,8 @@ export default async function AdminApplicationsPage({ searchParams }: PageProps<
             )}
           </div>
         )}
-      </div>
-    </div>
+      </>
+    </AdminPage>
   );
 }
 

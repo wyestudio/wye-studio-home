@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import type { Venue, ThemePriceTier, ThemeWithTiers, ThemeCategory } from "@/types/catalog";
 import { ThemeEditor } from "./ThemeEditor";
 
@@ -18,12 +18,11 @@ export default async function AdminThemesPage() {
   const error = themesRes.error ?? tiersRes.error ?? venuesRes.error;
   if (error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
-        <div className="mx-auto max-w-6xl">
-          <AdminNav current="/themes" />
-          <div className="text-red-400">테마를 불러올 수 없습니다: {error.message}</div>
-        </div>
-      </div>
+      <AdminPage title="테마">
+        <p role="alert" className="text-body-sm text-danger">
+          테마를 불러올 수 없습니다: {error.message}
+        </p>
+      </AdminPage>
     );
   }
 
@@ -34,24 +33,15 @@ export default async function AdminThemesPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/themes" />
-
-        <header className="mb-6">
-          <h1 className="text-h2 font-semibold">테마</h1>
-          <p className="mt-1 text-body-sm text-muted">
-            판매하는 방탈출 컨텐츠입니다. 가격·정원·소요시간·장소를 여기서 정하면{" "}
-            <strong>회차가 물려받습니다.</strong> 회차를 열 때는 날짜만 고르면 됩니다.
-          </p>
-        </header>
-
-        <ThemeEditor
-          themes={themes}
-          venues={(venuesRes.data ?? []) as Venue[]}
-          categories={(categoriesRes.data ?? []) as ThemeCategory[]}
-        />
-      </div>
-    </div>
+    <AdminPage
+      title="테마"
+      description={
+        <>
+          판매하는 방탈출 컨텐츠입니다. 가격·정원·소요시간·장소를 여기서 정하면 <strong>회차가 물려받습니다.</strong> 회차를 열 때는 날짜만 고르면 됩니다.
+        </>
+      }
+    >
+      <ThemeEditor themes={themes} venues={(venuesRes.data ?? []) as Venue[]} categories={(categoriesRes.data ?? []) as ThemeCategory[]} />
+    </AdminPage>
   );
 }

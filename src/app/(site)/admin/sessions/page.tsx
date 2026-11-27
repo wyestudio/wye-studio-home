@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import type { Theme } from "@/types/catalog";
 import { SessionManager, type ThemeSchedule } from "./SessionManager";
 
@@ -16,34 +17,29 @@ export default async function AdminSessionsPage() {
   const error = themesRes.error ?? schedulesRes.error;
   if (error) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-6">
-        <div className="mx-auto max-w-6xl">
-          <AdminNav current="/sessions" />
-          <div className="text-red-400">편성을 불러올 수 없습니다: {error.message}</div>
-        </div>
-      </div>
+      <AdminPage title="회차">
+        <p role="alert" className="text-body-sm text-danger">
+          편성을 불러올 수 없습니다: {error.message}
+        </p>
+      </AdminPage>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/sessions" />
-
-        <header className="mb-6">
-          <h1 className="text-h2 font-semibold">회차 편성</h1>
-          <p className="mt-1 text-body-sm text-muted">
-            테마마다 <strong>언제 진행하고 언제 신청을 여는지</strong>를 정합니다. 회차는 이 규칙대로
-            자동으로 만들어지고, 정해진 시점이 되면 저절로 신청 가능해집니다.
-            회차 하나하나는 <strong>대시보드</strong>에서 날짜별로 봅니다.
-          </p>
-        </header>
-
-        <SessionManager
-          themes={(themesRes.data ?? []) as Theme[]}
-          schedules={(schedulesRes.data ?? []) as ThemeSchedule[]}
-        />
-      </div>
-    </div>
+    <AdminPage
+      title="회차 편성"
+      description={
+        <>
+          테마마다 <strong>언제 진행하고 언제 신청을 여는지</strong>를 정합니다. 회차는 이 규칙대로 자동으로 만들어지고, 정해진 시점이 되면 저절로 신청
+          가능해집니다. 회차 하나하나는{" "}
+          <Link href="/" className="text-glow underline">
+            홈 달력
+          </Link>
+          에서 날짜별로 봅니다.
+        </>
+      }
+    >
+      <SessionManager themes={(themesRes.data ?? []) as Theme[]} schedules={(schedulesRes.data ?? []) as ThemeSchedule[]} />
+    </AdminPage>
   );
 }

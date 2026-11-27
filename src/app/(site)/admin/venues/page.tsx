@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { AdminNav } from "@/components/admin/AdminNav";
+import { AdminPage } from "@/components/admin/ui";
 import type { Venue } from "@/types/catalog";
 import { VenueEditor } from "./VenueEditor";
 
@@ -14,24 +14,22 @@ export default async function AdminVenuesPage() {
     .order("created_at", { ascending: true });
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-6xl">
-        <AdminNav current="/venues" />
-
-        <header className="mb-6">
-          <h1 className="text-h2 font-semibold">장소</h1>
-          <p className="mt-1 text-body-sm text-muted">
-            대관 장소를 관리합니다. <strong>상호명·주소·지도 링크는 테마 상세 &lsquo;진행 장소&rsquo;
-            블록에 공개됩니다</strong>(네이버 플레이스 등록용). 주소는 장소안내 문자에도 쓰입니다.
-          </p>
-        </header>
-
-        {error ? (
-          <div className="text-red-400">장소를 불러올 수 없습니다: {error.message}</div>
-        ) : (
-          <VenueEditor venues={(data ?? []) as Venue[]} />
-        )}
-      </div>
-    </div>
+    <AdminPage
+      title="장소"
+      description={
+        <>
+          대관 장소를 관리합니다. <strong>상호명·주소·지도 링크는 테마 상세 &lsquo;진행 장소&rsquo; 블록에 공개됩니다</strong>(네이버 플레이스 등록용). 주소는
+          장소안내 문자에도 쓰입니다.
+        </>
+      }
+    >
+      {error ? (
+        <p role="alert" className="text-body-sm text-danger">
+          장소를 불러올 수 없습니다: {error.message}
+        </p>
+      ) : (
+        <VenueEditor venues={(data ?? []) as Venue[]} />
+      )}
+    </AdminPage>
   );
 }
