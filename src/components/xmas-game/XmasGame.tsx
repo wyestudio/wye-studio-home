@@ -7,15 +7,18 @@ import { CONFETTI, DOORS, GIFT_SVG } from "./xmasGameDoors";
 import { createGameMusic } from "./xmasGameAudio";
 import { GIFT_ROUNDS, ROUNDS, createGame, type GameEvent, type Shown } from "./xmasGameEngine";
 import {
+  beginShare,
   claimGift,
   fetchBoard,
   registerNickname,
   savedNickname,
+  shareStatus,
   startRun,
   submitScore,
   type Board,
   type BoardRow,
 } from "./xmasGameApi";
+import { kakaoShareAvailable, loadKakao } from "./xmasKakao";
 import {
   XMAS_GAME_EVENT,
   XMAS_GAME_HASH,
@@ -23,6 +26,7 @@ import {
   SHARE_CHARACTERS,
   XMAS_GAME_PAGE_TITLE,
   XMAS_GAME_TITLE,
+  XMAS_SHARE_ARG,
   applyPath,
   formatGiftCode,
   friendRecord,
@@ -70,6 +74,14 @@ const SANTA_WITH_STAR = characterSvg("santa", "★", false);
 
 /** 콤보가 이 숫자에 닿는 순간 옆에 한 번 뜨는 말. */
 const COMBO_CHEER: Record<number, string> = { 5: "NICE!", 10: "GREAT!", 20: "AMAZING!", 30: "PERFECT!" };
+
+// 공유할 때 같이 보내는 글은 이름 한 줄뿐이다 — 랭킹 · 점수 · "도전해 보세요" 는 바로 아래 공유 카드가 말한다(2026-11-26 대표님).
+const SHARE_TEXT = `우주이스케이프 크리스마스 이벤트 게임 「${XMAS_GAME_TITLE}」`;
+/** 인스타그램 DM 함. 휴대폰에 앱이 있으면 앱으로 열린다. */
+const INSTAGRAM_DM = "https://www.instagram.com/direct/inbox/";
+/** 카카오톡에서 돌아온 뒤 카카오 알림(웹훅)이 오기를 기다리는 횟수 · 간격 — 합쳐 12초 남짓 */
+const SHARE_POLLS = 8;
+const SHARE_POLL_MS = 1500;
 
 /** 입력칸의 Enter. 한글 조합 중의 Enter 는 글자 확정이다 — 그때 제출하면 마지막 글자가 빠진다. */
 const isSubmitKey = (e: KeyboardEvent<HTMLInputElement>) =>
@@ -130,6 +142,145 @@ export default function XmasGame() {
   // 분석 이벤트에 붙이는 이름 — 어느 화면에서 넘어왔나
   const origin = from ?? XMAS_GAME_PATH;
 
+  /*
+    친구에게 공유하고 재도전(2026-11-27 대표님) — 이어하기(6~20라운드)에서 떨어지면 그 라운드를 한 번 더 할 수 있다.
+      카카오톡: 정말 보냈을 때만 인정한다. 카카오가 웹훅(/api/xmas/kakao-share)으로 알려 주고, 이 화면은 돌아왔을 때
+                DB 에 결과를 묻는다. 나와의 채팅 · 이 브라우저가 전에 보낸 방은 인정하지 않는다(DB 가 가른다).
+      인스타그램 DM: 보냈는지 알 길이 없어 "공유하러 다녀온 것" 을 인정한다(링크를 복사하고 DM 함을 연다 → 다녀오면 인정).
+      링크 복사(그냥 공유하기)는 인정하지 않는다.
+    같은 라운드는 한 판에 한 번(엔진의 retryRound). 그 라운드를 넘겨 다음 라운드에서 떨어지면 다시 한 번 — 카카오톡이면
+    다른 방에 보내야 한다.
+  */
+  const [retryChoose, setRetryChoose] = useState(false);
+  const [retryMsg, setRetryMsg] = useState("");
+  const [retryReady, setRetryReady] = useState(false);
+  // 카카오 공유에 실어 보낼 표 번호 — 버튼을 누르는 순간 바로 보내야 해서(누른 뒤 기다리면 브라우저가 창 열기를 막는다) 미리 받아 둔다
+  const kakaoToken = useRef<string | null>(null);
+  const [kakaoFor, setKakaoFor] = useState<number | null>(null);
+  // 공유하러 나간 것 — 이 창이 가려졌다가(left) 다시 보이면 결과를 확인한다
+  const pendingShare = useRef<{ channel: "kakao" | "instagram"; token: string | null; round: number; left: boolean } | null>(null);
+  const failedRound = view.phase === "result" ? view.failedRound : null;
+  const retryOpen = view.phase === "result" && view.retryOpen && failedRound != null;
+
+  /** 카카오 공유 준비 — SDK 와 공유 표 번호. 점수가 DB 에 적힌 뒤에 부른다(그 판이 이 라운드에서 떨어졌는지 DB 가 본다). */
+  async function prepareKakao(round: number) {
+    if (!kakaoShareAvailable()) return;
+    const [sdk, id] = await Promise.all([loadKakao(), run.current]);
+    await submitted.current;
+    const token = id && sdk ? await beginShare(id, round) : null;
+    if (!token) return;
+    kakaoToken.current = token;
+    setKakaoFor(round);
+  }
+
+  useEffect(() => {
+    if (retryOpen && failedRound != null) {
+      kakaoToken.current = null;
+      prepareKakao(failedRound);
+    }
+    // prepareKakao 는 ref 와 setter 만 쓴다 — 떨어진 라운드가 바뀔 때만 다시 준비한다
+  }, [retryOpen, failedRound]);
+
+  // 공유하러 나갔다가 돌아왔는지 본다 — 휴대폰은 창이 가려지고(visibilitychange), 컴퓨터의 카카오 창은 이 창의 포커스를 가져간다(blur)
+  useEffect(() => {
+    let checking = false;
+    const left = () => {
+      if (pendingShare.current) pendingShare.current.left = true;
+    };
+    const check = async () => {
+      const p = pendingShare.current;
+      if (!p || !p.left || checking) return;
+      // 그사이 다시하기를 눌렀으면 없던 일로
+      const v = game.getView();
+      if (v.phase !== "result" || !v.retryOpen || v.failedRound !== p.round) {
+        pendingShare.current = null;
+        return;
+      }
+      if (p.channel === "instagram") {
+        pendingShare.current = null;
+        setRetryMsg("");
+        setRetryReady(true);
+        return;
+      }
+      checking = true;
+      setRetryMsg("카카오톡 전송을 확인하고 있어요…");
+      let status = null;
+      for (let i = 0; i < SHARE_POLLS; i++) {
+        status = p.token ? await shareStatus(p.token) : null;
+        if (status && status !== "pending") break;
+        await new Promise((r) => setTimeout(r, SHARE_POLL_MS));
+      }
+      checking = false;
+      if (pendingShare.current !== p) return;
+      if (status === "ok") {
+        pendingShare.current = null;
+        setRetryMsg("");
+        setRetryReady(true);
+      } else if (status === "dup") {
+        pendingShare.current = null;
+        setRetryMsg("이미 공유한 대화방이에요. 다른 친구에게 보내 주세요.");
+      } else if (status === "memo") {
+        pendingShare.current = null;
+        setRetryMsg("나와의 채팅은 재도전에 포함되지 않아요. 친구에게 보내 주세요.");
+      } else {
+        // 아직 안 보냈거나 알림이 늦다 — 다시 나갔다 오면 또 확인한다
+        p.left = false;
+        setRetryMsg("카카오톡 전송이 확인되지 않았어요. 친구에게 보낸 뒤 돌아와 주세요.");
+      }
+    };
+    const onVisibility = () => (document.hidden ? left() : check());
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", left);
+    window.addEventListener("focus", check);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", left);
+      window.removeEventListener("focus", check);
+    };
+  }, [game]);
+
+  /** 카카오톡으로 보내기 — 누르는 순간 바로 연다(미리 받아 둔 표 번호를 싣는다). */
+  function shareKakao() {
+    const token = kakaoToken.current;
+    const sdk = window.Kakao;
+    if (!token || !sdk || failedRound == null) return;
+    try {
+      sdk.Share.sendScrap({ requestUrl: shareUrl(shareRecordNow()), serverCallbackArgs: { [XMAS_SHARE_ARG]: token } });
+    } catch {
+      setRetryMsg("카카오톡을 열지 못했어요. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    pendingShare.current = { channel: "kakao", token, round: failedRound, left: false };
+    setRetryMsg("");
+    pushGa4Event(XMAS_GAME_EVENT.retryShare, { themeLabel: origin, sectionKey: "kakao" });
+    // 이 표는 이번 전송에 썼다 — 다른 방에 또 보낼 때를 위해 새 표를 받아 둔다
+    kakaoToken.current = null;
+    setKakaoFor(null);
+    prepareKakao(failedRound);
+  }
+
+  /** 인스타그램 DM 으로 보내기 — 링크를 복사하고 DM 함을 연다. 보냈는지는 알 수 없어 다녀오면 인정한다. */
+  function shareInstagram() {
+    if (failedRound == null) return;
+    const text = `${SHARE_TEXT}\n${shareUrl(shareRecordNow())}`;
+    // 복사를 먼저 시작한다 — 창을 연 뒤에는 이 창이 포커스를 잃어 복사가 막힌다
+    navigator.clipboard?.writeText(text).then(
+      () => setRetryMsg("링크를 복사했어요. 인스타그램 DM에 붙여 넣어 보내 주세요."),
+      () => setRetryMsg("인스타그램 DM에 이 게임 주소를 보내 주세요."),
+    );
+    pendingShare.current = { channel: "instagram", token: null, round: failedRound, left: false };
+    pushGa4Event(XMAS_GAME_EVENT.retryShare, { themeLabel: origin, sectionKey: "instagram" });
+    window.open(INSTAGRAM_DM, "_blank", "noopener");
+  }
+
+  /** 공유 완료 팝업의 「N라운드 도전하기」. */
+  function startRetry() {
+    setRetryReady(false);
+    setRetryChoose(false);
+    setRetryMsg("");
+    if (game.retryRound()) pushGa4Event(XMAS_GAME_EVENT.retry, { themeLabel: origin });
+  }
+
   useEffect(() => {
     game.setEventHandler((e: GameEvent) => {
       if (e.type === "start") {
@@ -142,6 +293,10 @@ export default function XmasGame() {
         setAnswer("");
         setResponse("");
         setShareMsg("");
+        setRetryChoose(false);
+        setRetryMsg("");
+        setRetryReady(false);
+        pendingShare.current = null;
         pushGa4Event(XMAS_GAME_EVENT.start, { themeLabel: origin });
         return;
       }
@@ -178,7 +333,13 @@ export default function XmasGame() {
     };
   }, [game, music]);
 
-  const replay = () => game.reset();
+  const replay = () => {
+    setRetryChoose(false);
+    setRetryMsg("");
+    setRetryReady(false);
+    pendingShare.current = null;
+    game.reset();
+  };
   /** 게임 방법 카드의 「게임 시작」 — 닉네임이 비었으면 시작하지 않고 칸으로 보낸다. */
   function beginWithNick() {
     const name = nick.trim();
@@ -287,18 +448,20 @@ export default function XmasGame() {
    * 랭킹에 올라 있으면 랭킹과 그 기록(가장 좋은 판)을, 아니면 이번 판의 라운드 · 점수를 싣는다.
    * 카드에 그릴 캐릭터는 누를 때마다 셋 중 하나를 뽑는다.
    */
-  async function share() {
+  function shareRecordNow(): ShareRecord {
     const { round, points } = game.getView();
     const me = (board ?? lobby)?.me;
-    const record: ShareRecord = {
+    return {
       round: me ? me.round : round,
       score: me ? me.score : points,
       rank: me ? me.rank : null,
       who: SHARE_CHARACTERS[Math.floor(Math.random() * SHARE_CHARACTERS.length)],
     };
-    const url = shareUrl(record);
-    // 같이 보내는 글은 이름 한 줄뿐이다 — 랭킹 · 점수 · "도전해 보세요" 는 바로 아래 공유 카드가 말한다(2026-11-26 대표님).
-    const text = `우주이스케이프 크리스마스 이벤트 게임 「${XMAS_GAME_TITLE}」`;
+  }
+
+  async function share() {
+    const url = shareUrl(shareRecordNow());
+    const text = SHARE_TEXT;
     pushGa4Event(XMAS_GAME_EVENT.share, { themeLabel: origin });
     if (navigator.share) {
       try {
@@ -345,12 +508,42 @@ export default function XmasGame() {
       {shareMsg}
     </p>
   );
-  /** 결과 화면 공통 — 공유 · 다시하기 · 돌아가기. */
+  /*
+    이어하기에서 떨어졌고 그 라운드를 아직 재도전하지 않았으면 — 「공유하고 재도전하기」. 누르면 보낼 곳 두 개.
+    카카오톡은 공유 표가 준비된 뒤에만 누를 수 있다(누르는 순간 바로 열어야 한다).
+  */
+  const kakaoReady = kakaoFor != null && kakaoFor === failedRound;
+  const retryShare = retryOpen && (
+    <>
+      {retryChoose ? (
+        <div className={`${s.retryPick} ${s.btnWide}`} role="group" aria-label="공유할 곳">
+          {kakaoShareAvailable() && (
+            <button type="button" className={`${s.btn} ${s.btnKakao}`} onClick={shareKakao} disabled={!kakaoReady}>
+              카카오톡
+            </button>
+          )}
+          <button type="button" className={`${s.btn} ${s.btnInsta}`} onClick={shareInstagram}>
+            인스타그램 DM
+          </button>
+        </div>
+      ) : (
+        <button type="button" className={`${s.btn} ${s.btnGreen} ${s.btnWide}`} onClick={() => setRetryChoose(true)}>
+          공유하고 재도전하기
+        </button>
+      )}
+    </>
+  );
+
+  /** 결과 화면 공통 — 공유(또는 공유하고 재도전) · 다시하기 · 돌아가기. */
   const endActions = (
     <div className={s.actions}>
-      <button type="button" className={`${s.btn} ${s.btnGreen} ${s.btnWide}`} onClick={share}>
-        친구에게 공유하기
-      </button>
+      {retryOpen ? (
+        retryShare
+      ) : (
+        <button type="button" className={`${s.btn} ${s.btnGreen} ${s.btnWide}`} onClick={share}>
+          친구에게 공유하기
+        </button>
+      )}
       <button type="button" className={`${s.btn} ${s.btnPaper}`} onClick={replay}>
         다시하기
       </button>
@@ -742,9 +935,28 @@ export default function XmasGame() {
               )}
               <RankBlock board={board} failed={boardFailed} before={before} showTop onRegister={register} />
               {endActions}
+              {retryOpen && retryMsg && (
+                <p role="status" className="text-body-sm">
+                  {retryMsg}
+                </p>
+              )}
               {shareNote}
             </section>
           )}
+        </div>
+      )}
+
+      {/* 공유가 인정됐다 — 떨어진 라운드를 다시 연다 */}
+      {retryReady && retryOpen && (
+        <div className={s.retryLayer}>
+          <section className={`${s.card} ${s.celebrate}`} role="dialog" aria-modal="true" aria-labelledby="xmas-retry-title">
+            <h2 id="xmas-retry-title" className={`${s.cardTitle} ${s.display}`}>
+              공유 완료!
+            </h2>
+            <button type="button" className={`${s.btn} ${s.btnBig}`} onClick={startRetry}>
+              {failedRound}라운드 도전하기
+            </button>
+          </section>
         </div>
       )}
 

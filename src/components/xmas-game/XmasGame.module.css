@@ -151,6 +151,46 @@
   font-size: 20px;
 }
 
+/* 공유하고 재도전 — 보낼 곳 두 개. 손님이 늘 보던 그 서비스의 색이라야 어디로 가는지 바로 안다 */
+.retryPick {
+  display: flex;
+  gap: 8px;
+}
+
+.retryPick .btn {
+  flex: 1 1 0;
+}
+
+.btnKakao {
+  color: var(--x-kakao-ink);
+  background: var(--x-kakao);
+  box-shadow: 0 4px 0 var(--x-kakao-lip);
+}
+
+.btnKakao:active {
+  box-shadow: 0 1px 0 var(--x-kakao-lip);
+}
+
+.btnInsta {
+  background: var(--x-insta);
+  box-shadow: 0 4px 0 var(--x-insta-lip);
+}
+
+.btnInsta:active {
+  box-shadow: 0 1px 0 var(--x-insta-lip);
+}
+
+/* 공유 완료 팝업 — 결과 카드 위에 한 겹 더 */
+.retryLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--x-pine-veil);
+}
+
 /* ── 맨 위: 돌아가기 · 이름 · 재시작 · 소리 ── */
 .top {
   position: relative;
