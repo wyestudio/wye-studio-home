@@ -1,40 +1,43 @@
 import Link from "next/link";
-import { backLabel, safeBack } from "@/lib/adminBack";
 import { notFound } from "next/navigation";
+import { backLabel, safeBack, withBack } from "@/lib/adminBack";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatDateFull, formatDateTimeFull } from "@/lib/format";
+import { formatDateTimeFull } from "@/lib/format";
+import { contactMethodLabel, groupKindLabel, preferredTimeLabel, repeatPlayerLabel, teamStyleLabel } from "@/lib/groupBooking";
+import { addMinutes, dateLabel, kstToday, won } from "@/lib/groupPricing";
+import { groupRefund, isPayType, requiredDeposit } from "@/lib/groupSettlement";
+import { AdminBadge, AdminCard, AdminNotice, AdminPage, AdminTabs, adminButtonClass, type AdminTone } from "@/components/admin/ui";
+import { daysLeftOf, loadGroup, settlementFor } from "@/lib/groupAdmin";
 import {
-  contactMethodLabel,
-  groupKindLabel,
-  inquiryStatusLabel,
-  preferredTimeLabel,
-  repeatPlayerLabel,
-  teamStyleLabel,
-} from "@/lib/groupBooking";
-import { BASE_MINUTES, HHMM, addMinutes, won } from "@/lib/groupPricing";
-import { InquiryInfoEditor } from "../InquiryInfoEditor";
-import { InquiryRow } from "../InquiryRow";
-import { ContactLink, SourceCell, suggestedBooking, type Inquiry } from "../inquiryParts";
+  GROUP_STAGES,
+  ddayLabel,
+  effectiveStage,
+  isConfirmed,
+  maskContact,
+  maskName,
+  nextAction,
+  optionMinutes,
+  scheduleOf,
+  stageIndex,
+  stageLabel,
+  toSettlementOptions,
+} from "@/lib/groupStage";
+import { ContactReveal, GroupNameEditor, HeadActions, MemoEditor } from "./GroupDetailClient";
+import { MoneyTab } from "./MoneyTab";
 
 export const dynamic = "force-dynamic";
 
-/** 상태 꼬리표 — 대시보드 · 회차 상세와 같은 꽉 찬 색. */
-const STATUS_TAG: Record<string, string> = {
-  new: "bg-brand text-brand-foreground",
-  contacted: "bg-amber-400 text-black",
-  quoted: "bg-amber-400 text-black",
-  booked: "bg-green-500 text-black",
-  dropped: "bg-zinc-500 text-white",
-};
-
-const dateLabel = (ymd: string) => formatDateFull(`${ymd}T12:00:00+09:00`);
-
 /**
- * 단체 예약 문의 한 건(2026-10-30 대표님).
+ * 단체 예약 한 건(관리자 개편 4단계).
  *
- * 대시보드 달력 · 문의 목록에서 눌러 들어온다. 회차 상세처럼 위에 언제 · 누가 · 지금 상태를
- * 크게 두고, 아래에 진행 상태 · 메모 · 확정 일시를 고치는 칸을 둔다.
- * ⚠️ 복호화된 연락처가 보인다 — 어드민 로그인을 거친 이 화면에서만.
+ * 머리: 모임명 · 단계 · D-day / 일시 · 인원 · 모임 성격 / 「일정 수정」 · 「취소 · 환불」.
+ * 탭: 개요 · 금액. (설문 · 문자 / 참가자 / 팀 편성 / 리포트 탭은 그 화면을 만드는 단계에 더한다.)
+ *
+ * 예전 상세에 있던 것은 전부 남아 있다: 견적 신청 내용(담당자 · 견적 · 모임/요청사항 · 접수/유입) · 메모는 개요에,
+ * 인원 · 구성 고치기는 금액 탭에(이제 기록이 남는다), 확정 일시는 금액 탭의 입금 확인과 머리의 일정 수정에.
+ * 「진행 상태」 선택 상자는 없앴다 — 단계는 동작에 따라 넘어간다(2026-11-27 대표님).
+ *
+ * ⚠️ 연락처 · 담당자 이름은 **가려서** 내려간다. 전체 값은 「연락처 보기」 를 눌렀을 때만 온다(감사로그에 남는다).
  */
 export default async function AdminGroupBookingDetailPage({
   params,
@@ -44,30 +47,47 @@ export default async function AdminGroupBookingDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
-  // 들어온 목록(조건 포함) · 대시보드 날짜로 돌아간다 — adminBack.ts
-  const back = safeBack((await searchParams).back, "/group-bookings");
-  const supabase = createAdminClient();
+  const sp = await searchParams;
+  // 들어온 목록(조건 포함) · 홈 달력 날짜로 돌아간다 — adminBack.ts
+  const back = safeBack(sp.back, "/group-bookings");
+  const tab = sp.tab === "money" ? "money" : "overview";
 
-  const [{ data, error }, { data: closure }] = await Promise.all([
-    supabase.from("admin_group_booking_inquiries_view").select("*").eq("id", id).maybeSingle(),
-    supabase.from("group_booking_closures").select("date, start_time, minutes").eq("inquiry_id", id).maybeSingle(),
-  ]);
-  if (error) {
-    return (
-      <div className="p-6">
-        <p className="text-danger">문의를 불러올 수 없습니다: {error.message}</p>
-      </div>
-    );
-  }
-  if (!data) notFound();
+  const loaded = await loadGroup(id);
+  if (!loaded) notFound();
+  const { group: g, adjustments, history } = loaded;
 
-  const r = data as Inquiry;
-  const c = closure as { date: string; start_time: string | null; minutes: number | null } | null;
-  const booking = c?.start_time ? { date: c.date, time: c.start_time, minutes: c.minutes ?? BASE_MINUTES } : null;
-  const suggested = suggestedBooking(r);
-  const wishTime = HHMM.test(r.preferred_time) ? r.preferred_time : null;
+  // 가린 연락처는 서버에서 만든다. 전체 값은 이 요청의 응답에 싣지 않는다.
+  const { data: contactRow } = await createAdminClient()
+    .from("admin_group_booking_inquiries_view")
+    .select("contact")
+    .eq("id", id)
+    .maybeSingle();
+  const maskedContact = maskContact(g.contact_method, (contactRow as { contact: string } | null)?.contact ?? null);
 
-  const o = r.options ?? {};
+  const today = kstToday();
+  const sch = scheduleOf(g);
+  const left = daysLeftOf(g, today);
+  const s = settlementFor(g, adjustments, today);
+  const stage = effectiveStage(g, today);
+  const cancelled = g.cancelled_at != null;
+  const confirmed = isConfirmed(g);
+  const payType = isPayType(g.pay_type) ? g.pay_type : "transfer";
+  const deposit = g.deposit_amount ?? 0;
+  const refund = sch.date ? groupRefund({ depositPaid: deposit, eventDate: sch.date, today }) : null;
+  const refundView = {
+    deposit,
+    amount: refund ? refund.amount : deposit,
+    label: refund ? `${refund.range} — ${refund.label}` : "행사 날짜가 없어 전액 환불",
+    daysLeft: refund?.daysLeft ?? null,
+  };
+  const required = requiredDeposit({ total: s.total, eventDate: sch.date ?? today, today, payType });
+  const todo = nextAction(g, today, left);
+  const name = g.group_name ?? `${maskName(g.organizer_name)} 님`;
+  const badge: { tone: AdminTone; label: string } = cancelled
+    ? { tone: "danger", label: "취소" }
+    : { tone: stage === "new" ? "warn" : stage === "contacted" ? "progress" : stage === "report" ? "idle" : "done", label: stageLabel(stage) };
+  const self = (t: string) => withBack(`/group-bookings/${id}${t === "overview" ? "" : `?tab=${t}`}`, back);
+  const o = g.options ?? {};
   const picks = [
     o.icebreaking === false ? "레크리에이션 뺌" : null,
     o.character ? "캐릭터 꾸미기" : null,
@@ -75,118 +95,192 @@ export default async function AdminGroupBookingDetailPage({
     o.cleanup ? "뒷정리" : null,
   ].filter(Boolean);
 
-  // 누구에게 연락하나 / 얼마 견적인가 / 어떤 모임인가 — 칸을 나눠 둔다(2026-10-30 대표님).
-  const blocks: { title: string; rows: [string, React.ReactNode][] }[] = [
-    {
-      title: "담당자 · 연락",
-      rows: [
-        ["담당자", r.organizer_name ?? "-"],
-        ["연락 수단", contactMethodLabel(r.contact_method)],
-        ["연락처", <ContactLink key="c" r={r} />],
-      ],
-    },
-    {
-      title: "견적",
-      rows: [
-        ["인원", `${r.headcount}명`],
-        ["구성", picks.length ? picks.join(", ") : "기본 구성"],
-        ["예상 금액", r.estimate_total != null ? won(r.estimate_total) : "상담 후 안내"],
-        ["1인", r.unit_price != null ? won(r.unit_price) : "-"],
-      ],
-    },
-    {
-      title: "모임 · 요청사항",
-      rows: [
-        ["모임 이름", r.group_name ?? "-"],
-        ["모임 성격", r.group_kind ? `${groupKindLabel(r.group_kind)}${r.group_kind_note ? ` (${r.group_kind_note})` : ""}` : "-"],
-        ["팀 구성", r.team_style ? teamStyleLabel(r.team_style) : "-"],
-        ["재참여", r.repeat_player ? repeatPlayerLabel(r.repeat_player) : "-"],
-        ["기념일", r.occasion ?? "-"],
-        ["요청사항", r.note ? <span className="whitespace-pre-line">{r.note}</span> : "-"],
-      ],
-    },
-    {
-      title: "접수",
-      rows: [
-        ["접수 시각", formatDateTimeFull(r.created_at)],
-        ["유입", <SourceCell key="s" r={r} />],
-      ],
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      <div className="mx-auto max-w-3xl">
-        <Link href={back} className="mb-4 inline-block text-body-sm text-glow hover:underline">
-          ← {backLabel(back)}
-        </Link>
+    <AdminPage title={name}>
+      <Link href={back} className="-mt-4 mb-3 flex min-h-11 items-center text-body-sm text-glow underline">
+        {backLabel(back)}으로 돌아가기
+      </Link>
 
-        {/* ── 머리 ── 확정이면 확정 일시를, 아니면 희망 일시를 크게 */}
-        <header className="mb-6 rounded-xl border border-border p-4 md:p-5">
-          {booking ? (
-            <>
-              <p className="text-h2 font-semibold tabular-nums">
-                {dateLabel(booking.date)} {booking.time} ~ {addMinutes(booking.time, booking.minutes)}
-              </p>
-              {(booking.date !== r.preferred_date || booking.time !== wishTime) && (
-                <p className="mt-1 text-body-sm text-muted">
-                  희망은 {r.preferred_date ? dateLabel(r.preferred_date) : "날짜 미정"} {preferredTimeLabel(r.preferred_time)}
-                </p>
-              )}
-            </>
-          ) : (
-            <p className="text-h2 font-semibold tabular-nums">
-              {r.preferred_date ? dateLabel(r.preferred_date) : "날짜 미정"}{" "}
-              {wishTime ? `${wishTime} ~ ${addMinutes(wishTime, suggested.minutes)}` : preferredTimeLabel(r.preferred_time)}
-              <span className="ml-2 text-body font-normal text-muted">희망</span>
-            </p>
-          )}
-          {/* 모임 이름 · 담당자 · 인원은 여기서 고친다(InquiryInfoEditor) */}
-          <InquiryInfoEditor
-            id={r.id}
-            headcount={r.headcount}
-            groupName={r.group_name}
-            organizerName={r.organizer_name}
-            options={r.options}
-            statusTag={
-              <span
-                className={`rounded-md px-2 py-0.5 text-micro font-semibold ${STATUS_TAG[r.status] ?? "bg-fill-strong text-muted"}`}
-              >
-                {inquiryStatusLabel(r.status)}
-              </span>
-            }
-          />
-        </header>
-
-        {/* ── 신청 내용 ── 묶음마다 카드 하나 */}
-        <div className="mb-6 grid gap-4 md:grid-cols-2">
-          {blocks.map((b) => (
-            <section key={b.title} className="rounded-xl border border-border p-4 md:p-5">
-              <h2 className="mb-3 text-label font-semibold text-muted">{b.title}</h2>
-              <dl className="grid grid-cols-[5rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-body">
-                {b.rows.map(([k, v]) => (
-                  <div key={k} className="contents">
-                    <dt className="text-body-sm text-muted">{k}</dt>
-                    <dd className="min-w-0 break-words">{v}</dd>
-                  </div>
-                ))}
-              </dl>
-            </section>
-          ))}
+      {/* ── 머리 ── */}
+      <section className="mb-4 rounded-xl border border-border bg-surface p-4 md:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <AdminBadge tone={badge.tone}>{badge.label}</AdminBadge>
+          {left != null && !cancelled && <AdminBadge tone="idle">{ddayLabel(left)}</AdminBadge>}
+          {g.source === "manual" && <AdminBadge tone="idle">직접 등록</AdminBadge>}
+          {g.is_student_group && <AdminBadge tone="progress">학생 단체</AdminBadge>}
         </div>
+        <p className="mt-2 text-h3 font-extrabold tabular-nums text-foreground">
+          {sch.date ? dateLabel(sch.date) : "날짜 미정"}{" "}
+          {sch.time ? `${sch.time} – ${addMinutes(sch.time, sch.minutes)}` : "시간 미정"}
+          {!sch.fixed && <span className="ml-2 text-body font-normal text-muted">희망</span>}
+        </p>
+        <p className="mt-1 text-body text-muted">
+          {g.headcount}명{g.group_kind ? ` · ${groupKindLabel(g.group_kind)}` : ""}
+          {s.priced ? ` · 총 ${won(s.total)}` : " · 별도 상담"}
+        </p>
+        {cancelled && (
+          <p className="mt-2 text-body-sm text-danger">
+            {formatDateTimeFull(g.cancelled_at!)} 취소 · 사유: {g.cancel_reason ?? "-"}
+            {g.refund_amount != null && ` · 환불 ${won(g.refund_amount)}`}
+          </p>
+        )}
+        <GroupNameEditor id={id} groupName={g.group_name ?? ""} />
+        <HeadActions
+          id={id}
+          cancelled={cancelled}
+          confirmed={confirmed}
+          schedule={{ date: sch.date ?? today, time: sch.time ?? "", minutes: sch.minutes }}
+          refund={refundView}
+        />
+      </section>
 
-        {/* ── 응대 ── 상태 · 확정 일시 · 메모 */}
-        <section className="rounded-xl border border-border p-4 md:p-5">
-          <h2 className="mb-3 text-body font-semibold">진행 상태 · 메모</h2>
-          <InquiryRow
-            id={r.id}
-            status={r.status}
-            memo={r.admin_memo ?? ""}
-            booking={booking}
-            suggested={suggested}
-          />
-        </section>
-      </div>
-    </div>
+      {/* ── 지금 할 일 ── */}
+      {todo && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand bg-brand-soft p-4">
+          <p className="text-body text-foreground">
+            <span className="block text-label font-semibold text-brand">지금 할 일</span>
+            <span className="font-semibold">{todo}</span>
+          </p>
+          {(stage === "contacted" || (stage === "confirmed" && g.deposit_paid_at == null)) && tab !== "money" && (
+            <Link href={self("money")} className={adminButtonClass("primary")}>
+              금액 탭에서 입금 확인
+            </Link>
+          )}
+        </div>
+      )}
+
+      <AdminTabs
+        current={tab}
+        tabs={[
+          { key: "overview", label: "개요", href: self("overview") },
+          { key: "money", label: "금액", href: self("money") },
+        ]}
+      />
+
+      {tab === "money" ? (
+        <MoneyTab
+          id={id}
+          cancelled={cancelled}
+          headcount={g.headcount}
+          options={toSettlementOptions(g.options)}
+          isStudent={g.is_student_group}
+          studentCount={g.student_count}
+          payType={payType}
+          schedule={sch}
+          optionMinutes={optionMinutes(g.options)}
+          settlement={s}
+          adjustments={adjustments.map((a) => ({ id: a.id, reason: a.reason_code, label: a.label, note: a.note }))}
+          deposit={{
+            amount: g.deposit_amount,
+            paidAt: g.deposit_paid_at ? formatDateTimeFull(g.deposit_paid_at) : null,
+            returnedAt: g.deposit_returned_at ? formatDateTimeFull(g.deposit_returned_at) : null,
+          }}
+          balancePaidAt={g.balance_paid_at ? formatDateTimeFull(g.balance_paid_at) : null}
+          required={required}
+          daysLeft={left}
+          refund={refundView}
+          history={history.map((h) => ({ id: h.id, summary: h.summary, reason: h.reason, actor: h.actor, at: formatDateTimeFull(h.created_at) }))}
+        />
+      ) : (
+        <div className="flex flex-col gap-4">
+          {/* 단계 줄 — 7단계 중 어디인지. 색만으로 가르지 않게 지금 단계에 글자를 붙인다 */}
+          {!cancelled && (
+            <ol className="flex flex-wrap gap-x-1 gap-y-2 rounded-xl border border-border bg-surface p-4" aria-label="진행 단계">
+              {GROUP_STAGES.map((st, i) => {
+                const cur = stageIndex(stage);
+                const state = i < cur ? "지남" : i === cur ? "지금" : "남음";
+                return (
+                  <li key={st.code} className="flex items-center gap-1 text-body-sm">
+                    <span
+                      className={`rounded-md px-2 py-1 ${
+                        i === cur ? "bg-foreground font-semibold text-background" : i < cur ? "bg-fill-strong text-foreground" : "text-muted"
+                      }`}
+                    >
+                      {st.label}
+                      {i === cur && <span className="ml-1 text-micro">(지금)</span>}
+                      <span className="sr-only"> — {state}</span>
+                    </span>
+                    {i < GROUP_STAGES.length - 1 && <span aria-hidden className="text-muted">→</span>}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <AdminNotice title="모임장 신청서 · 준비 체크리스트는 다음 묶음에서 들어옵니다">
+            지금은 견적 신청 때 받은 내용과 메모만 보입니다. 예약금이 들어오면 신청서 없이도 금액 탭에서 확정할 수 있습니다.
+          </AdminNotice>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <AdminCard title="담당자 · 연락">
+              <ContactReveal id={id} maskedName={maskName(g.organizer_name)} maskedContact={maskedContact} methodLabel={contactMethodLabel(g.contact_method)} />
+            </AdminCard>
+
+            <AdminCard title="견적 신청 내용 (접수 시점)">
+              <Info
+                rows={[
+                  ["구성", picks.length ? picks.join(", ") : "기본 구성"],
+                  ["예상 금액", g.estimate_total != null ? won(g.estimate_total) : "상담 후 안내"],
+                  ["1인", g.unit_price != null ? won(g.unit_price) : "-"],
+                  ["희망 일시", `${g.preferred_date ? dateLabel(g.preferred_date) : "날짜 미정"} ${preferredTimeLabel(g.preferred_time)}`],
+                ]}
+              />
+              <p className="mt-2 text-body-sm text-muted">지금 금액은 금액 탭에서 봅니다. 위는 접수할 때 계산한 기록입니다.</p>
+            </AdminCard>
+
+            <AdminCard title="모임 · 요청사항">
+              <Info
+                rows={[
+                  ["모임 이름", g.group_name ?? "-"],
+                  ["모임 성격", g.group_kind ? `${groupKindLabel(g.group_kind)}${g.group_kind_note ? ` (${g.group_kind_note})` : ""}` : "-"],
+                  ["팀 구성", g.team_style ? teamStyleLabel(g.team_style) : "-"],
+                  ["재참여", g.repeat_player ? repeatPlayerLabel(g.repeat_player) : "-"],
+                  ["기념일", g.occasion ?? "-"],
+                  ["요청사항", g.note ? <span key="n" className="whitespace-pre-line">{g.note}</span> : "-"],
+                ]}
+              />
+            </AdminCard>
+
+            <AdminCard title="접수">
+              <Info
+                rows={[
+                  ["접수 시각", formatDateTimeFull(g.created_at)],
+                  ["경로", g.source === "manual" ? "운영자 직접 등록" : "홈페이지 단체 견적"],
+                  [
+                    "유입",
+                    !g.utm_source && !g.referrer ? (
+                      "직접 방문"
+                    ) : (
+                      <span key="u" className="break-all">
+                        {[g.utm_source && `${g.utm_source}${g.utm_medium ? ` / ${g.utm_medium}` : ""}`, g.utm_campaign, g.referrer, g.landing_path]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    ),
+                  ],
+                ]}
+              />
+            </AdminCard>
+          </div>
+
+          <AdminCard title="운영 메모">
+            <MemoEditor id={id} memo={g.admin_memo ?? ""} />
+          </AdminCard>
+        </div>
+      )}
+    </AdminPage>
+  );
+}
+
+function Info({ rows }: { rows: [string, React.ReactNode][] }) {
+  return (
+    <dl className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-x-3 gap-y-2">
+      {rows.map(([k, v]) => (
+        <div key={k} className="contents">
+          <dt className="text-body-sm text-muted">{k}</dt>
+          <dd className="min-w-0 break-words text-body-sm text-foreground">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }

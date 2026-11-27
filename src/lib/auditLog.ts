@@ -75,6 +75,14 @@ export type AuditAction =
   | "group_booking.updated"
   | "group_booking.closure_added"
   | "group_booking.closure_removed"
+  // 단체 예약 운영(관리자 개편) — 돈 · 일정 · 개인정보 열람은 누가 언제 했는지 남긴다
+  | "group_booking.created"
+  | "group_booking.deposit_confirmed"
+  | "group_booking.deposit_unconfirmed"
+  | "group_booking.rescheduled"
+  | "group_booking.cancelled"
+  | "group_booking.money_changed"
+  | "group_booking.contact_viewed"
   // 후기 후보 (고객 화면에 남의 글을 싣는 결정이다 — 누가 넣고 뺐는지 남긴다)
   | "review_candidate.published"
   | "review_candidate.ignored"

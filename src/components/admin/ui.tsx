@@ -33,7 +33,8 @@ export function AdminPage({
           <h1 className="text-h2 font-extrabold text-foreground">{title}</h1>
           {description && <p className="mt-1 text-body-sm text-muted">{description}</p>}
         </div>
-        {action && <div className="shrink-0">{action}</div>}
+        {/* 버튼이 펼쳐져 폼이 되는 경우(단체 등록)에도 화면 밖으로 밀리지 않게 폭을 가둔다 */}
+        {action && <div className="max-w-full">{action}</div>}
       </div>
       {children}
     </div>
@@ -193,7 +194,7 @@ export function AdminTabs({
   current: string;
 }) {
   return (
-    <div className="mb-4 overflow-x-auto border-b border-border">
+    <div className="mb-4 overflow-x-auto border-b border-border [scrollbar-width:none]">
       <div role="tablist" className="flex min-w-max gap-1">
         {tabs.map((t) => {
           const active = t.key === current;
