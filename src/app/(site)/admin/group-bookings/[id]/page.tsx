@@ -43,6 +43,9 @@ import { loadNametagMode, loadParticipants, loadSavedTeams, loadTeamPeople } fro
 import { ParticipantsTab } from "./ParticipantsTab";
 import { TeamsTab } from "./TeamsTab";
 import { ReportTab } from "./ReportTab";
+import { ReviewsTab } from "./ReviewsTab";
+import { countReviews, loadReviewQuestions, loadReviews } from "@/lib/groupReviews";
+import { choiceBreakdowns, ratingSummary, reviewItems, reviewsCsv } from "@/lib/groupReviewSummary";
 import { flattenTemplate, leaderParts } from "@/lib/groupForms/template";
 import { loadTemplate, loadTemplateVersion } from "@/lib/groupFormTemplates";
 import { answerText } from "@/lib/groupForms/leaderForm";
@@ -75,7 +78,7 @@ export default async function AdminGroupBookingDetailPage({
   const sp = await searchParams;
   // 들어온 목록(조건 포함) · 홈 달력 날짜로 돌아간다 — adminBack.ts
   const back = safeBack(sp.back, "/group-bookings");
-  const TABS = ["overview", "money", "forms", "people", "teams", "report"] as const;
+  const TABS = ["overview", "money", "forms", "people", "teams", "report", "reviews"] as const;
   const tab = TABS.find((t) => t === sp.tab) ?? "overview";
 
   const loaded = await loadGroup(id);
@@ -129,6 +132,10 @@ export default async function AdminGroupBookingDetailPage({
     tab === "report"
       ? ((await createAdminClient().from("group_reports").select("updated_at").eq("inquiry_id", id).maybeSingle()).data as { updated_at: string } | null)?.updated_at ?? null
       : null;
+  // 후기 탭 — 모임 후기 설문 답(익명). 답은 그때의 양식으로 읽는다. 다른 탭에서는 건수만 센다(탭의 숫자).
+  const reviewList = tab === "reviews" ? await loadReviews(id) : null;
+  const reviewQuestions = reviewList ? await loadReviewQuestions(reviewList) : null;
+  const reviewCount = reviewList ? reviewList.length : await countReviews(id);
   if (tab === "forms") {
     // 폼 링크 셋(없으면 이때 만든다)과 현황. 참가자는 수만, 후기는 건수와 평균 별점만 읽는다.
     const admin = createAdminClient();
@@ -147,7 +154,16 @@ export default async function AdminGroupBookingDetailPage({
     links = [
       { key: "leader", label: "모임장용 신청서", url: urls.leader, stat: leaderStat, fileName: file("모임장") },
       { key: "participant", label: "참가자용 사전 설문", url: urls.participant, stat: `${partRes.count ?? 0} / ${g.headcount}명`, fileName: file("참가자") },
-      { key: "review", label: "모임 후기 설문", url: urls.review, stat: avg ? `${ratings.length}건 · 평균 ${avg}점` : "0건", fileName: file("후기") },
+      {
+        key: "review",
+        label: "모임 후기 설문",
+        url: urls.review,
+        stat: avg ? `${ratings.length}건 · 평균 ${avg}점` : "0건",
+        fileName: file("후기"),
+        // 답 내용은 후기 탭에서 읽는다.
+        detailHref: withBack(`/group-bookings/${id}?tab=reviews`, back),
+        detailLabel: "답변 보기",
+      },
     ];
     const templates = await loadGroupTemplates();
     messages = MESSAGE_KINDS.map((m) => {
@@ -245,6 +261,7 @@ export default async function AdminGroupBookingDetailPage({
           { key: "people", label: "참가자", href: self("people") },
           { key: "teams", label: "팀 편성", href: self("teams") },
           { key: "report", label: "리포트", href: self("report") },
+          { key: "reviews", label: "후기", href: self("reviews"), count: reviewCount ?? undefined },
         ]}
       />
 
@@ -285,6 +302,31 @@ export default async function AdminGroupBookingDetailPage({
                 }
               : null
           }
+        />
+      ) : tab === "reviews" && reviewList && reviewQuestions ? (
+        <ReviewsTab
+          formsHref={self("forms")}
+          view={(() => {
+            const summary = ratingSummary(reviewList.map((r) => r.rating));
+            return {
+              count: summary.count,
+              average: summary.average === null ? null : summary.average.toFixed(1),
+              dist: summary.dist,
+              breakdowns: choiceBreakdowns(reviewList, reviewQuestions),
+              items: reviewItems(reviewList, reviewQuestions).map((r) => ({
+                id: r.id,
+                rating: r.rating,
+                ratingLabel: r.ratingLabel,
+                at: formatDateTimeFull(r.submittedAt),
+                choices: r.choices,
+                texts: r.texts,
+              })),
+              csv: {
+                fileName: `${(g.group_name ?? "단체").replace(/[\\/:*?"<>|\s]+/g, "_")}_모임후기.csv`,
+                ...reviewsCsv(reviewList, reviewQuestions, formatDateTimeFull),
+              },
+            };
+          })()}
         />
       ) : tab === "report" ? (
         <ReportTab id={id} cancelled={cancelled} savedAt={reportSavedAt ? formatDateTimeFull(reportSavedAt) : null} />
