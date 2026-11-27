@@ -25,25 +25,51 @@ export const QUOTE_HEADCOUNT_MAX = 60;
 type RateTable = { weekday: readonly number[]; weekend: readonly number[] };
 
 /**
- * 1인 요금(원). 기간 · 평일/주말 · 인원 구간으로 정해진다.
+ * 1인 요금표(원). 인덱스가 PRICE_BANDS 의 인원 구간 순서다.
  *
- * - 11월까지: 오픈 특가(가시안 v2 의 값).
- * - 12월 · 1월: 대표님이 준 표(2026-10-25). 6~9명 주말 49,000원은 표에 '임시 제안' 으로
+ * - 상시(regular): 오픈 특가(가시안 v2 의 값). 2026-11 까지, 그리고 2027-02 부터(2026-11-27 대표님 — "일단" 11월과 같게).
+ * - 성수기(peak): 12월 · 1월, 대표님이 준 표(2026-10-25). 6~9명 주말 49,000원은 표에 '임시 제안' 으로
  *   적혀 있던 값이다 — 확정되면 여기만 고친다.
  * ⚠️ 표에 '12월 평일 37,000원~' 이라는 머리 문구가 있었지만 표 안 최저는 41,000원이라
  *    맞지 않았다. 표 안의 값을 따랐다.
+ *
+ * 학생 단체 특가(2026-11-27, 안내 이미지 6장): 일반가보다 평일 4,000원 · 주말 2,000원 싸다.
+ * 학생가는 **관리자 정산**(groupSettlement.ts)만 쓴다 — 고객 견적 화면(/group)의 자동 견적은 일반가다.
+ */
+export type RateSeason = "regular" | "peak";
+export type RateKind = "general" | "student";
+
+export const GROUP_RATES: Record<RateKind, Record<RateSeason, RateTable>> = {
+  general: {
+    regular: { weekday: [47000, 43000, 41000, 39000], weekend: [49000, 45000, 43000, 41000] },
+    peak: { weekday: [47000, 45000, 43000, 41000], weekend: [49000, 47000, 45000, 43000] },
+  },
+  student: {
+    regular: { weekday: [43000, 39000, 37000, 35000], weekend: [47000, 43000, 41000, 39000] },
+    peak: { weekday: [43000, 41000, 39000, 37000], weekend: [47000, 45000, 43000, 41000] },
+  },
+};
+
+/**
+ * **고객 견적 화면(/group)이 여는 기간.** 마지막 구간의 끝(QUOTE_LAST_DATE)이 고객이 고를 수 있는 마지막 날이다.
+ *
+ * ⚠️ 여기에 구간을 더하면 고객 화면의 날짜 상한 · '부터' 가격(unitPriceRange) · llms.txt 가 같이 바뀐다.
+ *    2027-02 이후는 관리자만 쓴다(2026-11-27 대표님) — 그 기간은 아래 SEASON_PERIODS 에 있다.
  */
 const RATE_PERIODS: readonly { until: string; label: string; rates: RateTable }[] = [
-  {
-    until: "2026-11-30",
-    label: "11월까지 오픈 특가",
-    rates: { weekday: [47000, 43000, 41000, 39000], weekend: [49000, 45000, 43000, 41000] },
-  },
-  {
-    until: "2027-01-31",
-    label: "12월 · 1월 요금",
-    rates: { weekday: [47000, 45000, 43000, 41000], weekend: [49000, 47000, 45000, 43000] },
-  },
+  { until: "2026-11-30", label: "11월까지 오픈 특가", rates: GROUP_RATES.general.regular },
+  { until: "2027-01-31", label: "12월 · 1월 요금", rates: GROUP_RATES.general.peak },
+];
+
+/**
+ * **관리자 정산이 보는 시기표** — 이용일(행사 날짜) 기준. 위에서부터 처음 맞는 줄을 쓴다.
+ * 마지막 줄(until null)은 끝없이 상시다. 다음 겨울을 성수기로 할지는 정해지지 않았다(자동 적용 안 함 —
+ * 2026-11-27 대표님). 정해지면 여기에 한 줄 끼워 넣는다.
+ */
+export const SEASON_PERIODS: readonly { until: string | null; season: RateSeason; label: string }[] = [
+  { until: "2026-11-30", season: "regular", label: "상시" },
+  { until: "2027-01-31", season: "peak", label: "성수기 (12월 · 1월)" },
+  { until: null, season: "regular", label: "상시" },
 ];
 
 /** 고를 수 있는 마지막 날. 요금표가 끝나는 날과 같다. */

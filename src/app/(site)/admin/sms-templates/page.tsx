@@ -12,6 +12,9 @@ export default async function SmsTemplatesPage() {
     supabase
       .from("sms_templates")
       .select("key, label, body, placeholders, updated_at")
+      // 단체 예약 안내 문구(group_*)는 여기 넣지 않는다 — 발송하는 문자가 아니라 복사해서 쓰는 문구다.
+      // 이 화면의 "발송 시 치환됩니다" 안내와 맞지 않아, 단체 도구의 안내 문자 화면에서 따로 고친다(관리자 개편).
+      .not("key", "like", "group_%")
       .order("label", { ascending: true }),
     loadPreviewThemes(),
   ]);
